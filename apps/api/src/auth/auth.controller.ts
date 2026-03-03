@@ -1,0 +1,166 @@
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Body,
+  Req,
+  Res,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import { Request, Response } from 'express';
+import { AuthService } from './auth.service';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { Public } from '../common/decorators/public.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { ConfigService } from '@nestjs/config';
+
+@ApiTags('Auth')
+@Controller('auth')
+export class AuthController {
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  @Public()
+  @Post('register')
+  @ApiOperation({ summary: 'Register a new user' })
+  @ApiResponse({ status: 201, description: 'User registered successfully' })
+  @ApiResponse({ status: 409, description: 'Email already registered' })
+  async register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto);
+  }
+
+  @Public()
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login with email and password' })
+  @ApiResponse({ status: 200, description: 'Login successful' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiResponse({ status: 403, description: 'Email not verified' })
+  async login(@Body() dto: LoginDto) {
+    return this.authService.login(dto.email, dto.password);
+  }
+
+  @ApiBearerAuth()
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Logout and blacklist token' })
+  @ApiResponse({ status: 200, description: 'Logged out successfully' })
+  async logout(
+    @CurrentUser() user: { jti: string; exp: number },
+  ) {
+    await this.authService.logout(user.jti, user.exp);
+    return { message: 'Logged out successfully' };
+  }
+
+  @Public()
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiResponse({ status: 200, description: 'Tokens refreshed' })
+  @ApiResponse({ status: 401, description: 'Invalid refresh token' })
+  async refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refreshTokens(dto.refreshToken);
+  }
+
+  @Public()
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify email address' })
+  @ApiResponse({ status: 200, description: 'Email verified' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token' })
+  async verifyEmail(@Body() dto: VerifyEmailDto) {
+    await this.authService.verifyEmail(dto.token);
+    return { message: 'Email verified successfully' };
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request password reset email' })
+  @ApiResponse({ status: 200, description: 'If account exists, reset email sent' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await this.authService.forgotPassword(dto.email);
+    return { message: 'If an account with that email exists, a reset link has been sent' };
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password with token' })
+  @ApiResponse({ status: 200, description: 'Password reset successful' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.authService.resetPassword(dto.token, dto.newPassword);
+    return { message: 'Password reset successfully' };
+  }
+
+  @ApiBearerAuth()
+  @Patch('change-password')
+  @ApiOperation({ summary: 'Change password (authenticated)' })
+  @ApiResponse({ status: 200, description: 'Password changed' })
+  @ApiResponse({ status: 401, description: 'Current password incorrect' })
+  async changePassword(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    await this.authService.changePassword(
+      userId,
+      dto.currentPassword,
+      dto.newPassword,
+    );
+    return { message: 'Password changed successfully' };
+  }
+
+  @Public()
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Initiate Google OAuth login' })
+  async googleAuth() {
+    // Guard redirects to Google
+  }
+
+  @Public()
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Google OAuth callback' })
+  async googleCallback(
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const webUrl = this.configService.get<string>('WEB_URL', 'http://localhost:3000');
+    const user = req.user as Record<string, unknown> | undefined;
+
+    if (!user || !user['id']) {
+      return res.redirect(`${webUrl}/login?error=google_auth_failed`);
+    }
+
+    try {
+      const result = await this.authService.loginGoogleUser(user['id'] as string);
+      const params = new URLSearchParams({
+        accessToken: result.accessToken as string,
+        refreshToken: result.refreshToken as string,
+      });
+      return res.redirect(`${webUrl}/login?${params.toString()}`);
+    } catch {
+      return res.redirect(`${webUrl}/login?error=google_auth_failed`);
+    }
+  }
+}
