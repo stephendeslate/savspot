@@ -111,6 +111,50 @@ export const envSchema = z.object({
     .transform(Number)
     .pipe(z.number().min(0).max(100))
     .default('1'),
+
+  // ---- Twilio (SMS) ----
+  TWILIO_ACCOUNT_SID: z
+    .string()
+    .optional(),
+
+  TWILIO_AUTH_TOKEN: z
+    .string()
+    .optional(),
+
+  TWILIO_PHONE_NUMBER: z
+    .string()
+    .optional(),
+
+  // ---- Google Calendar OAuth ----
+  GOOGLE_CALENDAR_CLIENT_ID: z
+    .string()
+    .optional(),
+
+  GOOGLE_CALENDAR_CLIENT_SECRET: z
+    .string()
+    .optional(),
+
+  GOOGLE_CALENDAR_REDIRECT_URI: z
+    .string()
+    .url()
+    .default('http://localhost:3001/api/auth/google-calendar/callback'),
+
+  GOOGLE_CALENDAR_WEBHOOK_URL: z
+    .string()
+    .optional(),
+
+  // ---- VAPID (Browser Push) ----
+  VAPID_PUBLIC_KEY: z
+    .string()
+    .optional(),
+
+  VAPID_PRIVATE_KEY: z
+    .string()
+    .optional(),
+
+  VAPID_SUBJECT: z
+    .string()
+    .default('mailto:support@savspot.co'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

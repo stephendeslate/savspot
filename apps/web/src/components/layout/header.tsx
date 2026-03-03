@@ -2,6 +2,7 @@
 
 import { Menu } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useAuth } from '@/hooks/use-auth';
 
 interface HeaderProps {
@@ -33,8 +34,9 @@ export function Header({ title, onMenuClick }: HeaderProps) {
         )}
       </div>
 
-      {/* Right: User avatar */}
+      {/* Right: Notifications + User avatar */}
       <div className="flex items-center gap-3">
+        <NotificationBell />
         <span className="hidden text-sm text-muted-foreground sm:block">
           {displayName}
         </span>

@@ -43,6 +43,20 @@ function makeStripe() {
   };
 }
 
+function makeEvents() {
+  return {
+    emitBookingCreated: vi.fn(),
+    emitBookingConfirmed: vi.fn(),
+    emitBookingCancelled: vi.fn(),
+    emitBookingRescheduled: vi.fn(),
+    emitBookingCompleted: vi.fn(),
+    emitBookingNoShow: vi.fn(),
+    emitBookingWalkIn: vi.fn(),
+    emitPaymentReceived: vi.fn(),
+    emitPaymentFailed: vi.fn(),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Suite
 // ---------------------------------------------------------------------------
@@ -58,7 +72,8 @@ describe('PaymentsService', () => {
     stripe = makeStripe();
 
     // Direct instantiation — avoids PrismaClient super() constructor
-    service = new PaymentsService(prisma as never, config as never, stripe as never);
+    const events = makeEvents();
+    service = new PaymentsService(prisma as never, config as never, stripe as never, events as never);
   });
 
   // -----------------------------------------------------------------------

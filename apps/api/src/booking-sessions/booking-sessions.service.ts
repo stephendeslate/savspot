@@ -5,6 +5,7 @@ import { ReservationService } from './reservation.service';
 import { PaymentsService } from '../payments/payments.service';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
+import { EventsService } from '../events/events.service';
 
 /**
  * Booking flow step types.
@@ -33,6 +34,7 @@ export class BookingSessionsService {
     private readonly prisma: PrismaService,
     private readonly reservationService: ReservationService,
     private readonly paymentsService: PaymentsService,
+    private readonly eventsService: EventsService,
   ) {}
 
   /**
@@ -225,6 +227,14 @@ export class BookingSessionsService {
     const guestCount = (sessionData['guestCount'] as number | undefined) ?? null;
     const notes = (sessionData['notes'] as string | undefined) ?? null;
 
+    // Load client info for event payload
+    const client = await this.prisma.user.findUnique({
+      where: { id: clientId },
+      select: { name: true, email: true },
+    });
+
+    const bookingStatus = service.confirmationMode === 'AUTO_CONFIRM' ? 'CONFIRMED' : 'PENDING';
+
     // Create the booking and convert the reservation in a transaction
     const [booking] = await this.prisma.$transaction([
       this.prisma.booking.create({
@@ -234,7 +244,7 @@ export class BookingSessionsService {
           serviceId: session.serviceId,
           venueId: heldReservation.venueId,
           bookingFlowId: session.bookingFlowId,
-          status: service.confirmationMode === 'AUTO_CONFIRM' ? 'CONFIRMED' : 'PENDING',
+          status: bookingStatus,
           startTime: heldReservation.startTime,
           endTime: heldReservation.endTime,
           totalAmount: service.basePrice,
@@ -256,6 +266,25 @@ export class BookingSessionsService {
         },
       }),
     ]);
+
+    // Emit domain event after transaction commits
+    const eventPayload = {
+      tenantId,
+      bookingId: booking.id,
+      serviceId: session.serviceId,
+      clientId,
+      clientEmail: client?.email ?? '',
+      clientName: client?.name ?? '',
+      serviceName: service.name,
+      startTime: heldReservation.startTime,
+      endTime: heldReservation.endTime,
+      source: session.source as string,
+    };
+
+    this.eventsService.emitBookingCreated(eventPayload);
+    if (bookingStatus === 'CONFIRMED') {
+      this.eventsService.emitBookingConfirmed(eventPayload);
+    }
 
     return booking;
   }
