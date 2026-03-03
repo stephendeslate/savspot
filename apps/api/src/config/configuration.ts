@@ -35,3 +35,11 @@ export const r2Config = registerAs('r2', () => ({
   bucketName: process.env['R2_BUCKET_NAME'] || 'savspot-uploads',
   publicUrl: process.env['R2_PUBLIC_URL'],
 }));
+
+export const stripeConfig = registerAs('stripe', () => ({
+  secretKey: process.env['STRIPE_SECRET_KEY'],
+  publishableKey: process.env['STRIPE_PUBLISHABLE_KEY'],
+  webhookSecret: process.env['STRIPE_WEBHOOK_SECRET'],
+  connectWebhookSecret: process.env['STRIPE_CONNECT_WEBHOOK_SECRET'],
+  platformFeePercent: parseInt(process.env['STRIPE_PLATFORM_FEE_PERCENT'] || '1', 10),
+}));

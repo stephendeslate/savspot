@@ -99,6 +99,17 @@ export class BookingSessionsController {
     return { message: 'Reservations released' };
   }
 
+  @Post(':id/pay')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Process payment for a booking session' })
+  @ApiResponse({ status: 200, description: 'Payment intent created' })
+  @ApiResponse({ status: 400, description: 'Session cannot accept payment' })
+  @ApiResponse({ status: 404, description: 'Booking session not found' })
+  async processPayment(@Param('id', UuidValidationPipe) id: string) {
+    return this.sessionsService.processPayment(id);
+  }
+
   @Post(':id/complete')
   @Public()
   @HttpCode(HttpStatus.CREATED)

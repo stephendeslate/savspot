@@ -88,6 +88,29 @@ export const envSchema = z.object({
   R2_PUBLIC_URL: z
     .string()
     .optional(),
+
+  // ---- Stripe (payments) ----
+  STRIPE_SECRET_KEY: z
+    .string()
+    .optional(),
+
+  STRIPE_PUBLISHABLE_KEY: z
+    .string()
+    .optional(),
+
+  STRIPE_WEBHOOK_SECRET: z
+    .string()
+    .optional(),
+
+  STRIPE_CONNECT_WEBHOOK_SECRET: z
+    .string()
+    .optional(),
+
+  STRIPE_PLATFORM_FEE_PERCENT: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().min(0).max(100))
+    .default('1'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

@@ -10,10 +10,12 @@ import { ROUTES } from '@/lib/constants';
 
 const pageTitles: Record<string, string> = {
   [ROUTES.DASHBOARD]: 'Dashboard',
+  [ROUTES.BOOKINGS]: 'Bookings',
   [ROUTES.CALENDAR]: 'Calendar',
   [ROUTES.SERVICES]: 'Services',
   [ROUTES.CLIENTS]: 'Clients',
   [ROUTES.SETTINGS]: 'Settings',
+  [ROUTES.SETTINGS_PAYMENTS]: 'Payment Settings',
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {

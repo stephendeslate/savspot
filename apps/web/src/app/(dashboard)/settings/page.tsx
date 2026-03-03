@@ -25,16 +25,16 @@ const settingsSections = [
     icon: Clock,
   },
   {
+    name: 'Payments',
+    description: 'Connect Stripe to accept online payments',
+    href: '/settings/payments',
+    icon: CreditCard,
+  },
+  {
     name: 'Notifications',
     description: 'Configure email and push notification preferences',
     href: '/settings/notifications',
     icon: Bell,
-  },
-  {
-    name: 'Billing',
-    description: 'Manage your subscription and payment methods',
-    href: '/settings/billing',
-    icon: CreditCard,
   },
   {
     name: 'Appearance',

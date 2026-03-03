@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReservationService } from './reservation.service';
+import { PaymentsService } from '../payments/payments.service';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
 
@@ -26,9 +27,12 @@ interface ResolvedStep {
 
 @Injectable()
 export class BookingSessionsService {
+  private readonly logger = new Logger(BookingSessionsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly reservationService: ReservationService,
+    private readonly paymentsService: PaymentsService,
   ) {}
 
   /**
@@ -347,7 +351,26 @@ export class BookingSessionsService {
       order: order++,
     });
 
-    // PAYMENT: future — skip for now
+    // PAYMENT: if tenant has payment provider onboarded and service price > 0
+    if (service) {
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { paymentProviderOnboarded: true },
+      });
+
+      const basePrice =
+        typeof service.basePrice === 'number'
+          ? service.basePrice
+          : (service.basePrice as { toNumber: () => number }).toNumber();
+
+      if (tenant?.paymentProviderOnboarded && basePrice > 0) {
+        steps.push({
+          type: 'PAYMENT',
+          label: 'Payment',
+          order: order++,
+        });
+      }
+    }
 
     // CONFIRMATION: always included
     steps.push({
@@ -357,5 +380,121 @@ export class BookingSessionsService {
     });
 
     return steps;
+  }
+
+  /**
+   * Process payment for a booking session.
+   * Creates a Stripe PaymentIntent and returns the client_secret.
+   *
+   * Prerequisites:
+   *   - Session must be IN_PROGRESS
+   *   - Session must have a held reservation
+   *   - A booking must already be created (via complete)
+   *
+   * For the payment flow, the booking is created first with PENDING status,
+   * then the payment is processed. On success, the webhook confirms the booking.
+   */
+  async processPayment(sessionId: string) {
+    const session = await this.prisma.bookingSession.findFirst({
+      where: { id: sessionId },
+      include: {
+        service: {
+          select: {
+            id: true,
+            name: true,
+            basePrice: true,
+            currency: true,
+          },
+        },
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Booking session not found');
+    }
+
+    if (session.status !== 'IN_PROGRESS') {
+      throw new BadRequestException('Session is not in progress');
+    }
+
+    // Check for an active held reservation
+    const heldReservation = await this.prisma.dateReservation.findFirst({
+      where: {
+        tenantId: session.tenantId,
+        sessionId,
+        status: 'HELD',
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (!heldReservation) {
+      throw new BadRequestException(
+        'No active reservation found — reserve a slot first',
+      );
+    }
+
+    if (!session.serviceId || !session.service) {
+      throw new BadRequestException('Session must have a service selected');
+    }
+
+    // Find or create the booking for this session
+    // The booking may have been created by complete() or we create it here with PENDING status
+    let booking = await this.prisma.booking.findFirst({
+      where: {
+        tenantId: session.tenantId,
+        serviceId: session.serviceId,
+        startTime: heldReservation.startTime,
+        endTime: heldReservation.endTime,
+        status: { in: ['PENDING', 'CONFIRMED'] },
+      },
+    });
+
+    const sessionData = (session.data ?? {}) as Record<string, unknown>;
+    const clientId =
+      session.clientId ?? (sessionData['clientId'] as string | undefined);
+
+    if (!booking) {
+      if (!clientId) {
+        throw new BadRequestException('Session must have a client associated');
+      }
+
+      booking = await this.prisma.booking.create({
+        data: {
+          tenantId: session.tenantId,
+          clientId,
+          serviceId: session.serviceId,
+          venueId: heldReservation.venueId,
+          bookingFlowId: session.bookingFlowId,
+          status: 'PENDING',
+          startTime: heldReservation.startTime,
+          endTime: heldReservation.endTime,
+          totalAmount: session.service.basePrice,
+          currency: session.service.currency,
+          guestCount:
+            (sessionData['guestCount'] as number | undefined) ?? null,
+          notes: (sessionData['notes'] as string | undefined) ?? null,
+          source: session.source,
+        },
+      });
+
+      this.logger.log(
+        `Booking ${booking.id} created in PENDING for payment processing`,
+      );
+    }
+
+    // Create the Stripe PaymentIntent
+    const result = await this.paymentsService.processPaymentIntent(
+      session.tenantId,
+      booking.id,
+      sessionId,
+    );
+
+    return {
+      clientSecret: result.clientSecret,
+      paymentId: result.paymentId,
+      bookingId: booking.id,
+      amount: result.amount,
+      currency: result.currency,
+    };
   }
 }
