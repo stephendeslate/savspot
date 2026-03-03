@@ -43,3 +43,24 @@ export const stripeConfig = registerAs('stripe', () => ({
   connectWebhookSecret: process.env['STRIPE_CONNECT_WEBHOOK_SECRET'],
   platformFeePercent: parseInt(process.env['STRIPE_PLATFORM_FEE_PERCENT'] || '1', 10),
 }));
+
+export const twilioConfig = registerAs('twilio', () => ({
+  accountSid: process.env['TWILIO_ACCOUNT_SID'],
+  authToken: process.env['TWILIO_AUTH_TOKEN'],
+  phoneNumber: process.env['TWILIO_PHONE_NUMBER'],
+}));
+
+export const googleCalendarConfig = registerAs('googleCalendar', () => ({
+  clientId: process.env['GOOGLE_CALENDAR_CLIENT_ID'],
+  clientSecret: process.env['GOOGLE_CALENDAR_CLIENT_SECRET'],
+  redirectUri:
+    process.env['GOOGLE_CALENDAR_REDIRECT_URI'] ||
+    'http://localhost:3001/api/auth/google-calendar/callback',
+  webhookUrl: process.env['GOOGLE_CALENDAR_WEBHOOK_URL'],
+}));
+
+export const vapidConfig = registerAs('vapid', () => ({
+  publicKey: process.env['VAPID_PUBLIC_KEY'],
+  privateKey: process.env['VAPID_PRIVATE_KEY'],
+  subject: process.env['VAPID_SUBJECT'] || 'mailto:support@savspot.co',
+}));

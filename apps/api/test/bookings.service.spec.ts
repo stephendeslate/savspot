@@ -68,6 +68,20 @@ function makePayments() {
   return { processRefund: vi.fn() };
 }
 
+function makeEvents() {
+  return {
+    emitBookingCreated: vi.fn(),
+    emitBookingConfirmed: vi.fn(),
+    emitBookingCancelled: vi.fn(),
+    emitBookingRescheduled: vi.fn(),
+    emitBookingCompleted: vi.fn(),
+    emitBookingNoShow: vi.fn(),
+    emitBookingWalkIn: vi.fn(),
+    emitPaymentReceived: vi.fn(),
+    emitPaymentFailed: vi.fn(),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Suite
 // ---------------------------------------------------------------------------
@@ -80,7 +94,8 @@ describe('BookingsService', () => {
   beforeEach(() => {
     prisma = makePrisma();
     payments = makePayments();
-    service = new BookingsService(prisma as never, payments as never);
+    const events = makeEvents();
+    service = new BookingsService(prisma as never, payments as never, events as never);
   });
 
   // -----------------------------------------------------------------------

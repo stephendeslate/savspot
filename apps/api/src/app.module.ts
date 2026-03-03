@@ -16,6 +16,15 @@ import { PaymentsModule } from './payments/payments.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { PublicBookingModule } from './public-booking/public-booking.module';
+import { CommunicationsModule } from './communications/communications.module';
+import { WorkflowsModule } from './workflows/workflows.module';
+import { CalendarModule } from './calendar/calendar.module';
+import { SmsModule } from './sms/sms.module';
+import { JobsModule } from './jobs/jobs.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { BrowserPushModule } from './browser-push/browser-push.module';
+import { BullMqModule } from './bullmq/bullmq.module';
+import { EventsModule } from './events/events.module';
 import { validateEnv } from './config/env.validation';
 import {
   appConfig,
@@ -24,6 +33,9 @@ import {
   resendConfig,
   r2Config,
   stripeConfig,
+  twilioConfig,
+  googleCalendarConfig,
+  vapidConfig,
 } from './config/configuration';
 
 @Module({
@@ -31,10 +43,12 @@ import {
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
-      load: [appConfig, jwtConfig, googleConfig, resendConfig, r2Config, stripeConfig],
+      load: [appConfig, jwtConfig, googleConfig, resendConfig, r2Config, stripeConfig, twilioConfig, googleCalendarConfig, vapidConfig],
     }),
     PrismaModule,
     RedisModule,
+    BullMqModule,
+    EventsModule,
     TenantContextModule,
     HealthModule,
     UploadModule,
@@ -48,6 +62,13 @@ import {
     BookingsModule,
     InvoicesModule,
     PublicBookingModule,
+    CommunicationsModule,
+    WorkflowsModule,
+    CalendarModule,
+    SmsModule,
+    JobsModule,
+    NotificationsModule,
+    BrowserPushModule,
   ],
   controllers: [AppController],
 })

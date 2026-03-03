@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeProvider } from './providers/stripe.provider';
+import { EventsService } from '../events/events.service';
 
 @Injectable()
 export class PaymentsService {
@@ -17,6 +18,7 @@ export class PaymentsService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly stripeProvider: StripeProvider,
+    private readonly eventsService: EventsService,
   ) {}
 
   /**
@@ -232,6 +234,44 @@ export class PaymentsService {
       });
     }
 
+    // Load booking details for event payload
+    const fullBooking = await this.prisma.booking.findFirst({
+      where: { id: payment.bookingId },
+      include: {
+        client: { select: { id: true, name: true, email: true } },
+        service: { select: { id: true, name: true } },
+      },
+    });
+
+    if (fullBooking) {
+      this.eventsService.emitPaymentReceived({
+        tenantId: payment.tenantId,
+        bookingId: payment.bookingId,
+        paymentId: payment.id,
+        amount: payment.amount.toNumber(),
+        currency: payment.currency,
+        clientId: fullBooking.clientId,
+        clientName: fullBooking.client?.name ?? '',
+        clientEmail: fullBooking.client?.email ?? '',
+        serviceName: fullBooking.service?.name ?? '',
+      });
+
+      if (payment.booking.status === 'PENDING') {
+        this.eventsService.emitBookingConfirmed({
+          tenantId: payment.tenantId,
+          bookingId: payment.bookingId,
+          serviceId: fullBooking.serviceId,
+          clientId: fullBooking.clientId,
+          clientEmail: fullBooking.client?.email ?? '',
+          clientName: fullBooking.client?.name ?? '',
+          serviceName: fullBooking.service?.name ?? '',
+          startTime: fullBooking.startTime,
+          endTime: fullBooking.endTime,
+          source: fullBooking.source as string,
+        });
+      }
+    }
+
     this.logger.log(
       `Payment ${payment.id} succeeded for booking ${payment.bookingId}`,
     );
@@ -269,6 +309,29 @@ export class PaymentsService {
         reason: reason ?? 'Payment failed via Stripe webhook',
       },
     });
+
+    // Load booking details for event payload
+    const failedBooking = await this.prisma.booking.findFirst({
+      where: { id: payment.bookingId },
+      include: {
+        client: { select: { id: true, name: true, email: true } },
+        service: { select: { id: true, name: true } },
+      },
+    });
+
+    if (failedBooking) {
+      this.eventsService.emitPaymentFailed({
+        tenantId: payment.tenantId,
+        bookingId: payment.bookingId,
+        paymentId: payment.id,
+        amount: payment.amount.toNumber(),
+        currency: payment.currency,
+        clientId: failedBooking.clientId,
+        clientName: failedBooking.client?.name ?? '',
+        clientEmail: failedBooking.client?.email ?? '',
+        serviceName: failedBooking.service?.name ?? '',
+      });
+    }
 
     this.logger.log(`Payment ${payment.id} failed: ${reason ?? 'unknown'}`);
   }
@@ -379,6 +442,29 @@ export class PaymentsService {
         reason: `Marked paid offline via ${paymentMethod}`,
       },
     });
+
+    // Load booking details for event payload
+    const paidBooking = await this.prisma.booking.findFirst({
+      where: { id: bookingId, tenantId },
+      include: {
+        client: { select: { id: true, name: true, email: true } },
+        service: { select: { id: true, name: true } },
+      },
+    });
+
+    if (paidBooking) {
+      this.eventsService.emitPaymentReceived({
+        tenantId,
+        bookingId,
+        paymentId: payment.id,
+        amount,
+        currency,
+        clientId: paidBooking.clientId,
+        clientName: paidBooking.client?.name ?? '',
+        clientEmail: paidBooking.client?.email ?? '',
+        serviceName: paidBooking.service?.name ?? '',
+      });
+    }
 
     this.logger.log(
       `Booking ${bookingId} marked as paid offline: ${amount} ${currency}`,

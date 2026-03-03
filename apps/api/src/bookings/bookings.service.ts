@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from '../payments/payments.service';
 import { ListBookingsDto } from './dto/list-bookings.dto';
 import { WalkInBookingDto } from './dto/walk-in-booking.dto';
+import { EventsService } from '../events/events.service';
 
 /**
  * Valid booking state transitions.
@@ -28,6 +29,7 @@ export class BookingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly paymentsService: PaymentsService,
+    private readonly eventsService: EventsService,
   ) {}
 
   /**
@@ -179,6 +181,20 @@ export class BookingsService {
     ]);
 
     this.logger.log(`Booking ${id} confirmed by ${userId}`);
+
+    this.eventsService.emitBookingConfirmed({
+      tenantId,
+      bookingId: id,
+      serviceId: booking.serviceId,
+      clientId: booking.clientId,
+      clientEmail: booking.client.email,
+      clientName: booking.client.name ?? '',
+      serviceName: booking.service.name,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      source: booking.source as string,
+    });
+
     return updatedBooking;
   }
 
@@ -239,6 +255,21 @@ export class BookingsService {
     }
 
     this.logger.log(`Booking ${id} cancelled by ${userId}: ${reason}`);
+
+    this.eventsService.emitBookingCancelled({
+      tenantId,
+      bookingId: id,
+      serviceId: booking.serviceId,
+      clientId: booking.clientId,
+      clientEmail: booking.client.email,
+      clientName: booking.client.name ?? '',
+      serviceName: booking.service.name,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      source: booking.source as string,
+      cancellationReason: reason,
+    });
+
     return updatedBooking;
   }
 
@@ -342,6 +373,24 @@ export class BookingsService {
     ]);
 
     this.logger.log(`Booking ${id} rescheduled by ${userId}`);
+
+    this.eventsService.emitBookingRescheduled({
+      tenantId,
+      bookingId: id,
+      serviceId: booking.serviceId,
+      clientId: booking.clientId,
+      clientEmail: booking.client.email,
+      clientName: booking.client.name ?? '',
+      serviceName: booking.service.name,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      source: booking.source as string,
+      previousStartTime: booking.startTime,
+      previousEndTime: booking.endTime,
+      newStartTime: startTime,
+      newEndTime: endTime,
+    });
+
     return updatedBooking;
   }
 
@@ -374,6 +423,20 @@ export class BookingsService {
     ]);
 
     this.logger.log(`Booking ${id} marked as no-show by ${userId}`);
+
+    this.eventsService.emitBookingNoShow({
+      tenantId,
+      bookingId: id,
+      serviceId: booking.serviceId,
+      clientId: booking.clientId,
+      clientEmail: booking.client.email,
+      clientName: booking.client.name ?? '',
+      serviceName: booking.service.name,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      source: booking.source as string,
+    });
+
     return updatedBooking;
   }
 
@@ -434,7 +497,7 @@ export class BookingsService {
     }
 
     // Check availability with pessimistic locking
-    return this.prisma.$transaction(async (tx) => {
+    const booking = await this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
 
       // Check for conflicting bookings
@@ -516,6 +579,21 @@ export class BookingsService {
 
       return booking;
     });
+
+    this.eventsService.emitBookingWalkIn({
+      tenantId,
+      bookingId: booking.id,
+      serviceId: dto.serviceId,
+      clientId,
+      clientEmail: booking.client?.email ?? '',
+      clientName: booking.client?.name ?? '',
+      serviceName: booking.service?.name ?? '',
+      startTime,
+      endTime,
+      source: 'WALK_IN',
+    });
+
+    return booking;
   }
 
   /**

@@ -7,6 +7,7 @@ import {
   CreditCard,
   Palette,
   Clock,
+  CalendarSync,
   ChevronRight,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,6 +30,12 @@ const settingsSections = [
     description: 'Connect Stripe to accept online payments',
     href: '/settings/payments',
     icon: CreditCard,
+  },
+  {
+    name: 'Calendar',
+    description: 'Connect Google Calendar to sync availability and bookings',
+    href: '/settings/calendar',
+    icon: CalendarSync,
   },
   {
     name: 'Notifications',

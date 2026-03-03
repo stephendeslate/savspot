@@ -124,7 +124,18 @@ export class AvailabilityService {
       select: { startTime: true, endTime: true },
     });
 
-    // Combine bookings and reservations into a single conflict list
+    // 5b. Load INBOUND calendar events (Layer 4 — external calendar blocks)
+    const calendarBlocks = await this.prisma.calendarEvent.findMany({
+      where: {
+        tenantId,
+        direction: 'INBOUND',
+        startTime: { lt: bookingRangeEnd },
+        endTime: { gt: bookingRangeStart },
+      },
+      select: { startTime: true, endTime: true },
+    });
+
+    // Combine bookings, reservations, and calendar blocks into a single conflict list
     const conflicts = [
       ...existingBookings.map((b) => ({
         start: b.startTime.getTime(),
@@ -133,6 +144,10 @@ export class AvailabilityService {
       ...activeReservations.map((r) => ({
         start: r.startTime.getTime(),
         end: r.endTime.getTime(),
+      })),
+      ...calendarBlocks.map((e) => ({
+        start: e.startTime.getTime(),
+        end: e.endTime.getTime(),
       })),
     ];
 

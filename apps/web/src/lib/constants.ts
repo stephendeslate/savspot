@@ -23,6 +23,8 @@ export const ROUTES = {
   SETTINGS_PROFILE: '/settings/profile',
   SETTINGS_AVAILABILITY: '/settings/availability',
   SETTINGS_PAYMENTS: '/settings/payments',
+  SETTINGS_CALENDAR: '/settings/calendar',
+  SETTINGS_NOTIFICATIONS: '/settings/notifications',
 } as const;
 
 export const API_ROUTES = {
