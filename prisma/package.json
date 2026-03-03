@@ -1,0 +1,26 @@
+{
+  "name": "@savspot/prisma",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "prisma generate",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "seed": "tsx prisma/seed/index.ts",
+    "studio": "prisma studio",
+    "format": "prisma format",
+    "build": "echo 'prisma: no build needed'",
+    "typecheck": "echo 'prisma: no typecheck needed'",
+    "lint": "echo 'prisma: no lint needed'",
+    "test": "echo 'prisma: no tests yet'"
+  },
+  "dependencies": {
+    "prisma": "^6.0.0",
+    "@prisma/client": "^6.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "dotenv": "^16.0.0"
+  }
+}
