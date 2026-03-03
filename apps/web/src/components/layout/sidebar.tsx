@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Calendar,
+  CalendarCheck,
   LayoutDashboard,
   Users,
   Briefcase,
@@ -16,6 +17,7 @@ import { useAuth } from '@/hooks/use-auth';
 
 const navigation = [
   { name: 'Dashboard', href: ROUTES.DASHBOARD, icon: LayoutDashboard },
+  { name: 'Bookings', href: ROUTES.BOOKINGS, icon: CalendarCheck },
   { name: 'Calendar', href: ROUTES.CALENDAR, icon: Calendar },
   { name: 'Services', href: ROUTES.SERVICES, icon: Briefcase },
   { name: 'Clients', href: ROUTES.CLIENTS, icon: Users },

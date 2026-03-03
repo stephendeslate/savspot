@@ -325,13 +325,14 @@ Based on dependency analysis across all spec documents:
 11. **Booking session** — State machine, step resolution, date reservation with pessimistic locking (`$queryRaw` + `SELECT ... FOR UPDATE`)
 12. **Admin CRM frontend** — Auth pages, onboarding wizard, dashboard, service management, availability editor, settings, calendar stub
 
-### Sprint 3 (Week 5-6): Booking Flow + Payments
-11. **Dynamic booking flow engine** — Step resolution algorithm (SRS-1 §8)
-12. **Booking page** — Branded page, service listing, "Book Now" flow
-13. **Stripe Connect integration** — Express onboarding, PaymentProvider abstraction
-14. **Payment processing** — Payment intents, deposits, refunds, webhooks
-15. **Invoice generation** — Auto-create on booking confirmation
-16. **Offline payment path** — Booking confirms without payment, manual mark-paid
+### Sprint 3 (Week 5-6): Booking Flow + Payments — DONE (March 3, 2026)
+13. **Public booking page** — `/book/[slug]` branded page, service listing, multi-step booking wizard (FR-BP-1 through FR-BP-6)
+14. **Bookings admin module** — CRUD, state transitions (confirm/cancel/reschedule/no-show), walk-in quick-add (FR-BFW-18)
+15. **PaymentProvider abstraction** — Interface + Stripe Connect Express + offline provider (FR-PAY-1)
+16. **Payment processing** — Payment intents with destination charges, deposits, refunds, Stripe webhooks (FR-PAY-2 through FR-PAY-14)
+17. **Invoice generation** — Auto-create on booking confirmation with line items
+18. **Offline payment path** — Booking confirms without payment, admin mark-paid
+19. **Booking session payment step** — PAYMENT step in booking flow, Stripe Elements integration
 
 ### Sprint 4 (Week 7-8): Communications + Calendar
 17. **Email system** — Resend integration, React Email templates (confirmation, receipt, reminder, follow-up)
@@ -343,7 +344,7 @@ Based on dependency analysis across all spec documents:
 ### Sprint 5 (Week 9-10): Client Portal + Admin CRM Completion
 22. **Client portal** — Dashboard, booking detail, cancellation, payment management, profile
 23. **Admin CRM completion** — All Must screens: calendar view, client management, payment management, booking flow config, settings, branding
-24. **Walk-in booking** — Quick-Add from Admin CRM (FR-BFW-18)
+24. ~~Walk-in booking~~ — Moved to Sprint 3 (natural fit with booking management)
 25. **RBAC enforcement** — Guards, permission matrix (SRS-2 §3)
 26. **Platform admin CLI scripts** — All FR-PADM-* requirements
 
@@ -869,3 +870,601 @@ The following configuration is required before production deployment and was int
 - [ ] CI/CD pipeline with staging environment
 - [ ] Rate limiting, CSRF protection, CSP headers
 - [ ] Monitoring and alerting setup
+
+---
+
+## 16. Sprint 3 Implementation Plan
+
+**Target Start:** March 3, 2026 | **Scope:** Booking Flow + Payments + Walk-in | **Status:** Planning
+
+Sprint 3 delivers the core revenue path: clients can discover a business's booking page, select a service, pick a time, pay (or book offline), and receive a confirmed booking. Business owners can manage bookings, connect Stripe, and accept walk-in clients. This sprint converts the platform from a configuration tool into a functioning booking engine.
+
+### 16.1 Sprint 3 Scope — Verified Against Spec Requirements
+
+| Requirement | Source | Description | Priority |
+|-------------|--------|-------------|----------|
+| FR-BP-1 | PRD | Branded booking page at `/book/{slug}` | Must |
+| FR-BP-2 | PRD | Service listing on booking page | Must |
+| FR-BP-3 | PRD | Mobile-responsive booking page | Must |
+| FR-BP-4 | PRD | OG meta tags for social sharing | Must |
+| FR-BP-5 | PRD | Booking page SEO basics | Must |
+| FR-BP-6 | PRD | Business info display (hours, location, contact) | Must |
+| FR-BFW-1 | PRD | Dynamic booking flow engine (step resolution) | Must (backend done Sprint 2, frontend Sprint 3) |
+| FR-BFW-2 | PRD | Service/venue selection step | Must |
+| FR-BFW-3 | PRD | Date/time picker with real-time availability | Must |
+| FR-BFW-4 | PRD | Guest count step | Must |
+| FR-BFW-7 | PRD | Pricing summary step | Must |
+| FR-BFW-8 | PRD | Payment step via Stripe Elements | Must |
+| FR-BFW-10 | PRD | Confirmation step with .ics download | Must |
+| FR-BFW-11 | PRD | Back/next navigation + progress indicator | Must |
+| FR-BFW-12 | PRD | Real-time availability check | Must (backend done Sprint 2) |
+| FR-BFW-13 | PRD | Reservation token system | Must (backend done Sprint 2) |
+| FR-BFW-18 | PRD | Walk-in booking (Admin Quick-Add) | Must (moved from Sprint 5) |
+| FR-PAY-1 | PRD | PaymentProvider abstraction + Stripe Connect Express | Must |
+| FR-PAY-2 | PRD | Payment intent creation with platform fee | Must |
+| FR-PAY-3 | PRD | Deposit payments | Must |
+| FR-PAY-4 | PRD | Full payment at booking | Must |
+| FR-PAY-6 | PRD | Refund processing (full/partial) | Must |
+| FR-PAY-7 | PRD | Tenant-currency payment processing | Must |
+| FR-PAY-10 | PRD | Webhook handling for payment lifecycle | Must |
+| FR-PAY-11 | PRD | Platform referral commission calculation | Must |
+| FR-PAY-12 | PRD | Payout dashboard (link to Stripe dashboard) | Must |
+| FR-PAY-14 | PRD | Offline payment first-class path | Must |
+| FR-CRM-3 | PRD | Booking management (list, detail, actions) | Must |
+| FR-CRM-28 | PRD | Quick actions (walk-in) | Should |
+
+**Note:** FR-BFW-1, FR-BFW-12, FR-BFW-13 backend logic was implemented in Sprint 2 (booking sessions module). Sprint 3 builds the frontend booking wizard and adds payment integration.
+
+### 16.2 Architecture Decisions for Sprint 3
+
+#### 16.2.1 PaymentProvider Abstraction
+
+```typescript
+// apps/api/src/payments/interfaces/payment-provider.interface.ts
+interface PaymentProvider {
+  // Account management (Stripe Connect / equivalent)
+  createConnectedAccount(tenant: Tenant): Promise<ConnectedAccount>;
+  getOnboardingLink(accountId: string, returnUrl: string): Promise<string>;
+  getDashboardLink(accountId: string): Promise<string>;
+  getAccountStatus(accountId: string): Promise<AccountStatus>;
+
+  // Payment operations
+  createPaymentIntent(params: CreatePaymentIntentParams): Promise<PaymentIntentResult>;
+  confirmPaymentIntent(intentId: string): Promise<PaymentIntentResult>;
+  cancelPaymentIntent(intentId: string): Promise<void>;
+
+  // Refunds
+  createRefund(params: CreateRefundParams): Promise<RefundResult>;
+
+  // Webhooks
+  constructWebhookEvent(payload: Buffer, signature: string): WebhookEvent;
+}
+```
+
+**Implementations:**
+- `StripePaymentProvider` — Stripe Connect Express with destination charges
+- `OfflinePaymentProvider` — No-op for offline bookings, admin mark-paid flow
+
+**Provider selection:** `tenant.paymentProvider` column determines which implementation is used at runtime. Injected via NestJS factory provider.
+
+#### 16.2.2 Stripe Connect Destination Charges
+
+Per SRS-3 and BRD, the payment flow uses destination charges:
+```
+Client pays $100 for service
+  → PaymentIntent: amount=$100, transfer_data.destination=connected_account
+  → application_fee_amount = $100 × 0.01 = $1.00 (platform fee)
+  → For REFERRAL source: application_fee_amount += referral_commission
+  → Stripe processes: $100 → connected account, $1 back to platform
+```
+
+**Deposit flow (per Section 8.3 — Two Separate PaymentIntents):**
+1. PaymentIntent #1: Deposit amount at booking time
+2. SetupIntent: Save payment method for future charges
+3. PaymentIntent #2: Remaining balance (later, manual or automated)
+
+#### 16.2.3 Booking Page URL Structure
+
+**Decision:** `/book/[slug]` route within the existing Next.js app.
+- Development: `localhost:3000/book/{slug}`
+- Production: `savspot.co/book/{slug}` (can add URL rewrite for `savspot.co/{slug}` later)
+- Layout: Minimal (no admin sidebar), tenant-branded (logo, brand_color)
+- No auth required (public)
+
+#### 16.2.4 Admin Booking Management
+
+**Decision:** Table-based list view (not calendar) for Sprint 3. Full calendar component deferred to Sprint 5.
+- Booking list with filters: date range, status, service, search
+- Booking detail with state transition actions
+- Walk-in quick-add dialog accessible from booking list page
+
+#### 16.2.5 Invoice Auto-Generation
+
+When a booking transitions to CONFIRMED:
+1. Create Invoice with status DRAFT
+2. Create InvoiceLineItem(s) from booking service + addons
+3. If payment exists and SUCCEEDED → Invoice status = PAID
+4. If offline → Invoice status = SENT (awaiting payment)
+
+### 16.3 Execution Strategy — Wave-Based with Parallel Sub-Agents
+
+Sprint 3 is organized into 5 waves. Waves 1-2 are sequential (foundation), Waves 3-4 are parallelized across sub-agents, Wave 5 is sequential integration.
+
+```
+Wave 1: Backend Foundation (Sequential)
+  └─ PaymentProvider interface + Stripe + Offline implementations
+  └─ Bookings module (CRUD + state transitions + walk-in)
+  └─ Invoice module (auto-generation + CRUD)
+  └─ Public booking API (slug resolution + public service/availability)
+  └─ Booking session payment step integration
+
+Wave 2: Stripe Connect + Webhook Infrastructure (Sequential)
+  └─ Stripe Connect account management (create, onboarding link, dashboard link)
+  └─ Stripe webhook handler (payment_intent.succeeded/failed, account.updated, charge.refunded)
+  └─ Payment state machine (CREATED → PENDING → PROCESSING → SUCCEEDED/FAILED)
+  └─ Wire payment completion to booking confirmation + invoice update
+  └─ Environment config (STRIPE_* env vars)
+
+Wave 3: Frontend — Public Booking Page (2 parallel agents)
+  ├─ Agent A: Public Booking Page + Booking Wizard
+  │   └─ /book/[slug] page + layout (tenant-branded, no sidebar)
+  │   └─ Booking wizard components (service selection, date/time picker,
+  │      guest count, pricing summary, confirmation)
+  │   └─ Booking progress indicator
+  │   └─ .ics calendar download on confirmation
+  │
+  └─ Agent B: Admin Bookings + Walk-in + Payments UI
+      └─ /dashboard/bookings page (list with filters)
+      └─ /dashboard/bookings/[id] page (detail + actions)
+      └─ Walk-in quick-add dialog
+      └─ /settings/payments page (Stripe Connect onboarding)
+      └─ Update sidebar navigation
+
+Wave 4: Payment UI Integration (Sequential)
+  └─ Stripe Elements integration in booking wizard (payment step)
+  └─ @stripe/stripe-js + @stripe/react-stripe-js setup
+  └─ Payment confirmation handling (success/failure states)
+  └─ Admin payment status indicators in booking detail
+
+Wave 5: Integration + Verification (Sequential)
+  └─ Wire all modules together in app.module.ts
+  └─ Update .env.example with Stripe vars
+  └─ End-to-end manual verification of booking flow
+  └─ Lint, typecheck, test, build verification
+  └─ Update seed data (add sample bookings with payments)
+```
+
+### 16.4 Detailed File Plan
+
+#### Backend Files to Create
+
+```
+apps/api/src/payments/
+├── payments.module.ts                    # NestJS module
+├── payments.controller.ts               # Admin payment endpoints
+├── payments.service.ts                  # Payment orchestration
+├── stripe-connect.service.ts            # Stripe Connect account management
+├── stripe-webhook.controller.ts         # POST /api/webhooks/stripe
+├── interfaces/
+│   └── payment-provider.interface.ts    # Abstract PaymentProvider interface
+├── providers/
+│   ├── stripe.provider.ts              # Stripe Connect Express implementation
+│   └── offline.provider.ts             # Offline/manual payment implementation
+└── dto/
+    ├── create-payment-intent.dto.ts
+    ├── create-refund.dto.ts
+    ├── connect-account.dto.ts
+    └── mark-paid.dto.ts
+
+apps/api/src/bookings/
+├── bookings.module.ts
+├── bookings.controller.ts              # Admin booking management
+├── bookings.service.ts                 # Booking CRUD + state transitions
+└── dto/
+    ├── list-bookings.dto.ts            # Query params (date, status, service, page)
+    ├── confirm-booking.dto.ts
+    ├── cancel-booking.dto.ts
+    ├── reschedule-booking.dto.ts
+    ├── walk-in-booking.dto.ts
+    └── update-booking.dto.ts
+
+apps/api/src/invoices/
+├── invoices.module.ts
+├── invoices.controller.ts              # Admin invoice endpoints
+├── invoices.service.ts                 # Invoice CRUD + auto-generation
+└── dto/
+    └── list-invoices.dto.ts
+
+apps/api/src/public-booking/
+├── public-booking.module.ts
+├── public-booking.controller.ts        # Public endpoints (no auth)
+└── public-booking.service.ts           # Slug resolution, public service/availability
+```
+
+#### Backend Files to Modify
+
+```
+apps/api/src/app.module.ts              # Register new modules
+apps/api/src/booking-sessions/
+├── booking-sessions.service.ts         # Add PAYMENT step to resolveSteps()
+└── booking-sessions.controller.ts      # Add POST /:id/pay endpoint
+apps/api/src/config/configuration.ts    # Add Stripe config
+apps/api/src/config/env.validation.ts   # Add STRIPE_* env validation
+apps/api/package.json                   # Add stripe dependency
+.env.example                            # Add STRIPE_* vars
+```
+
+#### Frontend Files to Create
+
+```
+apps/web/src/app/book/
+├── [slug]/
+│   ├── page.tsx                        # Public booking page
+│   └── layout.tsx                      # Minimal branded layout
+└── components/                         # Or under src/components/booking/
+    (booking wizard components below)
+
+apps/web/src/components/booking/
+├── booking-wizard.tsx                  # Multi-step wizard container
+├── service-selection-step.tsx          # Service cards grid
+├── date-time-picker-step.tsx           # Calendar + time slot grid
+├── guest-count-step.tsx                # Guest count input
+├── pricing-summary-step.tsx            # Price breakdown
+├── payment-step.tsx                    # Stripe Elements card form
+├── confirmation-step.tsx              # Success + .ics download
+└── booking-progress.tsx                # Step indicator bar
+
+apps/web/src/app/(dashboard)/bookings/
+├── page.tsx                            # Booking list with table + filters
+└── [id]/
+    └── page.tsx                        # Booking detail + actions
+
+apps/web/src/app/(dashboard)/settings/payments/
+└── page.tsx                            # Stripe Connect onboarding
+
+apps/web/src/components/bookings/
+├── booking-list-table.tsx              # Filterable booking table
+├── booking-detail-card.tsx             # Booking detail view
+├── booking-actions.tsx                 # Confirm/cancel/no-show buttons
+└── walk-in-dialog.tsx                  # Quick-add walk-in form
+```
+
+#### Frontend Files to Modify
+
+```
+apps/web/src/components/layout/sidebar.tsx    # Add Bookings nav item
+apps/web/src/lib/constants.ts                 # Add booking/payment API routes
+apps/web/src/middleware.ts                     # Allow /book/* as public route
+apps/web/package.json                          # Add @stripe/stripe-js, @stripe/react-stripe-js
+```
+
+### 16.5 API Endpoints — Sprint 3
+
+#### Public Booking API (No Auth)
+
+| Method | Path | Response | Purpose |
+|--------|------|----------|---------|
+| GET | `/api/book/:slug` | Tenant public profile + services | Booking page data |
+| GET | `/api/book/:slug/services/:serviceId` | Service detail | Service info for booking flow |
+
+**Note:** Availability query (`GET /api/tenants/:tenantId/availability`) and booking session endpoints (`POST/GET/PATCH /api/booking-sessions/*`) already exist from Sprint 2.
+
+#### Admin Bookings API (Auth + TenantRoles)
+
+| Method | Path | Roles | Purpose |
+|--------|------|-------|---------|
+| GET | `/api/tenants/:tenantId/bookings` | OWNER, ADMIN, STAFF | List bookings (paginated, filterable) |
+| GET | `/api/tenants/:tenantId/bookings/:id` | OWNER, ADMIN, STAFF | Booking detail with payment + invoice |
+| POST | `/api/tenants/:tenantId/bookings/:id/confirm` | OWNER, ADMIN | Confirm pending booking |
+| POST | `/api/tenants/:tenantId/bookings/:id/cancel` | OWNER, ADMIN | Cancel booking (with reason) |
+| POST | `/api/tenants/:tenantId/bookings/:id/reschedule` | OWNER, ADMIN | Reschedule to new time |
+| POST | `/api/tenants/:tenantId/bookings/:id/no-show` | OWNER, ADMIN | Mark as no-show |
+| POST | `/api/tenants/:tenantId/bookings/walk-in` | OWNER, ADMIN, STAFF | Create walk-in booking |
+| PATCH | `/api/tenants/:tenantId/bookings/:id` | OWNER, ADMIN, STAFF | Update notes |
+
+#### Payments API (Auth + TenantRoles)
+
+| Method | Path | Roles | Purpose |
+|--------|------|-------|---------|
+| POST | `/api/tenants/:tenantId/payments/connect` | OWNER | Create Stripe Connect account + get onboarding link |
+| GET | `/api/tenants/:tenantId/payments/connect/status` | OWNER, ADMIN | Check Connect onboarding status |
+| POST | `/api/tenants/:tenantId/payments/connect/dashboard` | OWNER | Get Stripe Express dashboard link |
+| POST | `/api/tenants/:tenantId/bookings/:id/mark-paid` | OWNER, ADMIN | Mark offline booking as paid |
+| GET | `/api/tenants/:tenantId/payments` | OWNER, ADMIN | List payments |
+| GET | `/api/tenants/:tenantId/payments/:id` | OWNER, ADMIN | Payment detail |
+| POST | `/api/tenants/:tenantId/payments/:id/refund` | OWNER | Process refund |
+
+#### Booking Session Payment (Public)
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/api/booking-sessions/:id/pay` | Create payment intent for session |
+
+#### Stripe Webhook (Public, Signature-Verified)
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/api/webhooks/stripe` | Handle Stripe webhook events |
+
+#### Invoices API (Auth + TenantRoles)
+
+| Method | Path | Roles | Purpose |
+|--------|------|-------|---------|
+| GET | `/api/tenants/:tenantId/invoices` | OWNER, ADMIN | List invoices |
+| GET | `/api/tenants/:tenantId/invoices/:id` | OWNER, ADMIN | Invoice detail with line items |
+
+### 16.6 Environment Variables — Sprint 3
+
+```env
+# Stripe (required for payment processing)
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_CONNECT_WEBHOOK_SECRET=whsec_...    # Separate secret for Connect webhooks
+STRIPE_PLATFORM_FEE_PERCENT=1              # 1% platform fee (default)
+
+# Frontend
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+```
+
+### 16.7 Dependencies to Install
+
+**API (`apps/api`):**
+```
+stripe                    # Stripe Node.js SDK
+```
+
+**Web (`apps/web`):**
+```
+@stripe/stripe-js         # Stripe.js loader
+@stripe/react-stripe-js   # Stripe Elements React components
+```
+
+### 16.8 Sub-Agent Assignment Matrix
+
+| Wave | Agent | Type | Scope | Files | Estimated Endpoints |
+|------|-------|------|-------|-------|-------------------|
+| 1 | Main / Single | Backend | PaymentProvider + Bookings + Invoices + Public API + Session payment | 20+ files | 20 endpoints |
+| 2 | Main / Single | Backend | Stripe Connect + Webhooks + Payment state machine + Env config | 5+ files | Webhook wiring |
+| 3A | Parallel Agent A | Frontend | Public booking page + booking wizard (7 components + 2 pages) | 10 files | — |
+| 3B | Parallel Agent B | Frontend | Admin bookings + walk-in + payments settings (4 components + 3 pages) | 8 files | — |
+| 4 | Main / Single | Frontend | Stripe Elements payment step + payment status UI | 3 files | — |
+| 5 | Main / Single | Integration | App module registration, env config, verification | 5 files | — |
+
+### 16.9 Risk Mitigations
+
+| Risk | Severity | Mitigation |
+|------|----------|------------|
+| Stripe Connect Express onboarding flow complexity | Medium | Use Stripe's hosted onboarding (AccountLink) — handles KYC, identity, banking. Minimal custom UI needed. |
+| Webhook delivery reliability | Medium | Implement idempotency keys on webhook handler. Log all events to `payment_webhook_logs`. Verify signatures. |
+| Payment + booking atomicity | High | Payment success webhook triggers booking confirmation in a transaction. If webhook arrives before session completion, queue for retry. Use `booking_sessions.reservation_token` to link payment to session. |
+| Stripe Elements CSP headers | Low | Add `https://js.stripe.com` to Content-Security-Policy frame-src and script-src. |
+| Concurrent payment attempts on same session | Medium | Check session status before creating PaymentIntent. Only one active PaymentIntent per session. Cancel stale intents. |
+| Walk-in availability conflicts | Low | Walk-in still performs pessimistic locking check (same as regular booking). Reuses existing ReservationService.$queryRaw pattern. |
+
+### 16.10 Acceptance Criteria
+
+**Backend:**
+- [x] PaymentProvider interface with Stripe + Offline implementations
+- [x] Stripe Connect Express: account creation, onboarding link, dashboard link, status check
+- [x] Payment intents with destination charges and platform fee
+- [x] Deposit payment flow (two separate PaymentIntents)
+- [x] Refund processing (full and partial)
+- [x] Stripe webhook handler with signature verification and idempotency
+- [x] Booking CRUD with all state transitions (confirm, cancel, reschedule, no-show)
+- [x] Walk-in booking endpoint (bypasses PENDING, availability check, source=WALK_IN)
+- [x] Invoice auto-generation on booking confirmation
+- [x] Public booking API (slug resolution, public service/availability queries)
+- [x] PAYMENT step added to booking flow step resolution
+- [x] All new endpoints have Swagger documentation
+
+**Frontend:**
+- [x] Public booking page at `/book/[slug]` — branded, mobile-responsive
+- [x] Multi-step booking wizard (service → date/time → guest count → pricing → payment → confirmation)
+- [x] Stripe Elements card input in payment step
+- [x] .ics calendar file download on confirmation
+- [x] Admin booking list with filters (date, status, service)
+- [x] Admin booking detail with state transition actions
+- [x] Walk-in quick-add dialog
+- [x] Stripe Connect onboarding in settings
+- [x] Sidebar updated with Bookings navigation item
+
+**Verification:**
+- [x] `pnpm lint` — 0 errors
+- [x] `pnpm typecheck` — 0 errors
+- [x] `pnpm test` — All existing + new tests pass (484 total)
+- [x] `pnpm build` — All packages build successfully (21 routes)
+
+## 17. Sprint 3 Implementation Results
+
+**Completed:** March 3, 2026
+**Status:** All acceptance criteria met. Lint, typecheck, tests, and build all pass.
+
+### 17.1 Execution Strategy
+
+Sprint 3 used a 5-wave execution strategy with 3 parallel sub-agents:
+
+| Wave | Description | Approach |
+|------|------------|----------|
+| Wave 1 | Dependencies + env config | Sequential (foundation) |
+| Wave 2 | Backend modules | Sub-agent (Payments + Bookings + Invoices + PublicBooking) |
+| Wave 3A | Public booking page + wizard | Sub-agent (11 frontend files) |
+| Wave 3B | Admin bookings + walk-in + settings | Sub-agent (8 frontend files) |
+| Wave 4 | Stripe Elements integration | Main context (replaced placeholder) |
+| Wave 5 | Verification + fixes | Sequential (lint, typecheck, test, build) |
+
+Waves 2, 3A, and 3B ran in parallel. Total sub-agent tool uses: 182 across 3 agents.
+
+### 17.2 Backend Modules Delivered
+
+#### PaymentsModule (`apps/api/src/payments/`) — 11 files
+- **PaymentProvider interface** — Abstract contract for payment processing
+- **StripeProvider** — Full Stripe SDK integration: PaymentIntents, Connect accounts, onboarding, webhooks, refunds
+- **OfflineProvider** — No-op implementation for cash/manual payments
+- **PaymentsService** — Payment business logic: create, process, mark-paid, refund, state history tracking
+- **StripeConnectService** — Stripe Connect Express management: account creation, onboarding link, dashboard link, status sync
+- **StripeWebhookController** — `POST /api/webhooks/stripe` with raw body signature verification, routes `payment_intent.succeeded`, `payment_intent.payment_failed`, `account.updated`, `charge.refunded`
+- **PaymentsController** — 7 endpoints for Connect management + payment CRUD + refunds
+- **DTOs** — `connect-account.dto.ts`, `create-refund.dto.ts`, `mark-paid.dto.ts`
+
+#### BookingsModule (`apps/api/src/bookings/`) — 8 files
+- **BookingsService** — CRUD, state transitions (confirm/cancel/reschedule/no-show), walk-in creation with pessimistic locking, auto-refund on cancellation
+- **BookingsController** — 9 endpoints: list, detail, confirm, cancel, reschedule, no-show, walk-in, mark-paid, update
+- **DTOs** — `list-bookings.dto.ts`, `cancel-booking.dto.ts`, `reschedule-booking.dto.ts`, `walk-in-booking.dto.ts`, `update-booking.dto.ts`
+
+#### InvoicesModule (`apps/api/src/invoices/`) — 4 files
+- **InvoicesService** — Auto-generates invoice number `INV-{YYYYMM}-{sequential}` with transaction-safe numbering. Creates line items from service. Status-aware (PAID if payment succeeded, DRAFT otherwise).
+- **InvoicesController** — List (paginated, filtered) and detail endpoints
+- **DTO** — `list-invoices.dto.ts`
+
+#### PublicBookingModule (`apps/api/src/public-booking/`) — 3 files
+- **PublicBookingService** — `getTenantBySlug()` returns public tenant profile + active services. `getServiceDetail()` returns service + availability rules.
+- **PublicBookingController** — 2 `@Public()` endpoints: `GET /api/book/:slug`, `GET /api/book/:slug/services/:serviceId`
+
+#### BookingSessionsModule (modified) — 3 files changed
+- `resolveSteps()` now inserts `PAYMENT` step when tenant has onboarded Stripe and service `basePrice > 0`
+- New `POST /api/booking-sessions/:id/pay` endpoint — creates PaymentIntent, returns `clientSecret`
+- Module now imports PaymentsModule
+
+### 17.3 API Endpoints Implemented — Sprint 3
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/webhooks/stripe` | Public | Stripe webhook handler |
+| POST | `/api/tenants/:tenantId/payments/connect` | Owner | Create Stripe Connect account |
+| POST | `/api/tenants/:tenantId/payments/connect/onboarding` | Owner | Get onboarding link |
+| GET | `/api/tenants/:tenantId/payments/connect/status` | Owner/Admin | Check Connect status |
+| POST | `/api/tenants/:tenantId/payments/connect/dashboard` | Owner | Get Stripe dashboard link |
+| GET | `/api/tenants/:tenantId/payments` | Owner/Admin | List payments (paginated) |
+| GET | `/api/tenants/:tenantId/payments/:id` | Owner/Admin | Payment detail |
+| POST | `/api/tenants/:tenantId/payments/:id/refund` | Owner | Process refund |
+| GET | `/api/tenants/:tenantId/bookings` | Owner/Admin/Staff | List bookings (filtered) |
+| GET | `/api/tenants/:tenantId/bookings/:id` | Owner/Admin/Staff | Booking detail |
+| POST | `/api/tenants/:tenantId/bookings/:id/confirm` | Owner/Admin | Confirm booking |
+| POST | `/api/tenants/:tenantId/bookings/:id/cancel` | Owner/Admin | Cancel booking |
+| POST | `/api/tenants/:tenantId/bookings/:id/reschedule` | Owner/Admin | Reschedule booking |
+| POST | `/api/tenants/:tenantId/bookings/:id/no-show` | Owner/Admin | Mark no-show |
+| POST | `/api/tenants/:tenantId/bookings/walk-in` | Owner/Admin/Staff | Create walk-in booking |
+| POST | `/api/tenants/:tenantId/bookings/:id/mark-paid` | Owner/Admin | Mark as paid (offline) |
+| PATCH | `/api/tenants/:tenantId/bookings/:id` | Owner/Admin/Staff | Update notes |
+| GET | `/api/tenants/:tenantId/invoices` | Owner/Admin | List invoices (filtered) |
+| GET | `/api/tenants/:tenantId/invoices/:id` | Owner/Admin | Invoice detail |
+| GET | `/api/book/:slug` | Public | Tenant profile + services |
+| GET | `/api/book/:slug/services/:serviceId` | Public | Service detail + availability |
+| POST | `/api/booking-sessions/:id/pay` | Public | Create PaymentIntent |
+
+**Total new endpoints: 22** (Sprint 2 had 40+, cumulative ~62+)
+
+### 17.4 Frontend Pages Delivered — Sprint 3
+
+| Route | Type | Description |
+|-------|------|-------------|
+| `/book/[slug]` | Public (dynamic) | Branded public booking page with service cards + booking wizard |
+| `/bookings` | Dashboard | Booking list with status/date/search filters, walk-in dialog trigger |
+| `/bookings/[id]` | Dashboard | Booking detail with state transitions, payment actions, timeline |
+| `/settings/payments` | Dashboard | Stripe Connect onboarding + status |
+
+**Booking wizard components (11 files in `components/booking/`):**
+- `booking-types.ts` — Shared type definitions
+- `booking-wizard.tsx` — Multi-step wizard container with step navigation
+- `booking-progress.tsx` — Visual numbered step indicator with completion states
+- `service-selection-step.tsx` — Service card grid with auto-advance
+- `date-time-picker-step.tsx` — Custom calendar (date-fns) + time slot picker with 409 conflict handling
+- `guest-count-step.tsx` — Counter controls with simple/tiered modes
+- `pricing-summary-step.tsx` — Price breakdown with deposit display
+- `payment-step.tsx` — Stripe Elements (`PaymentElement`) with `clientSecret` flow
+- `confirmation-step.tsx` — CSS animation success state + .ics download
+
+**Admin booking components:**
+- `walk-in-dialog.tsx` — Dialog with service/time selection and availability check
+
+### 17.5 Key Technical Decisions
+
+1. **Stripe Connect Express with destination charges** — `application_fee_amount` calculated as `Math.round(amountInCents * platformFeePercent / 100)` (1% default)
+2. **Webhook idempotency** — Checks if payment already SUCCEEDED before processing duplicate events
+3. **Walk-in skips DateReservation** — `DateReservation.sessionId` is a required FK; walk-ins create booking record directly, availability enforced via pessimistic locking
+4. **Walk-in client resolution** — Uses `walkin+{tenantId}@savspot.co` placeholder for anonymous walk-ins; if email provided, creates/finds real user
+5. **rawBody for webhooks** — `NestFactory.create(AppModule, { rawBody: true })` enables `req.rawBody` for Stripe signature verification
+6. **No calendar library for date picker** — Custom-built with `date-fns` (`eachDayOfInterval`, `startOfMonth`, `endOfMonth`, `getDay`)
+7. **Stripe loaded as singleton** — `loadStripe()` called once per page, `Elements` wrapper scoped to payment step only
+8. **Confirmation .ics file** — Generated client-side with proper `DTSTART;TZID=`, `DTEND;TZID=`, `SUMMARY`, `DTSTAMP`, `UID` fields
+9. **Invoice numbering** — `INV-{YYYYMM}-{sequential}` with transaction-safe counter to prevent duplicates
+
+### 17.6 Dependencies Added
+
+**API (`apps/api/package.json`):**
+- `stripe` `^20.4.0` — Stripe Node.js SDK for Connect, PaymentIntents, webhooks
+
+**Web (`apps/web/package.json`):**
+- `@stripe/stripe-js` `^7.2.0` — Stripe.js loader
+- `@stripe/react-stripe-js` `^3.5.0` — React components for Stripe Elements
+
+### 17.7 Environment Variables Added
+
+```env
+# Stripe (API)
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_CONNECT_WEBHOOK_SECRET=whsec_...
+STRIPE_PLATFORM_FEE_PERCENT=1
+
+# Stripe (Web)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+```
+
+### 17.8 Issues Encountered & Resolutions
+
+| Issue | Resolution |
+|-------|-----------|
+| ESLint: `@next/next/no-img-element` rule not found | ESLint 10 flat config doesn't register Next.js plugin rules; removed `eslint-disable` comments |
+| TypeScript: `params.id` / `params.slug` index signature access | Changed to `params['id']` / `params['slug']` bracket notation |
+| TypeScript: Stripe event `data.object` cast to `Record<string, unknown>` | Added `as unknown as Record<string, unknown>` double cast |
+| Lint: Unused `_params` / `_status` variables | Added eslint-disable-line for interface-required params; destructuring rest pattern |
+| Prisma: No `authProvider` field on User model | Backend agent self-corrected during execution, removed from `create()` calls |
+| NestJS TestingModule can't mock PrismaService (extends PrismaClient) | Use direct instantiation (`new ServiceName(prisma as never, ...)`) instead of TestingModule for unit tests |
+| UUID v4 validation in DTO tests | Test UUIDs must have `4` in third group position — used `f47ac10b-58cc-4372-a567-0e02b2c3d479` |
+| TypeScript: `mock.calls[0][0]` possibly undefined | Added non-null assertion `!` on array index access |
+
+#### Sprint 3 Test Files (8 files, 123 tests)
+
+| File | Tests | Coverage |
+|------|-------|----------|
+| `app.controller.spec.ts` | 4 | Root endpoint |
+| `health.controller.spec.ts` | 3 | Health checks |
+| `env.validation.spec.ts` | 21 | Environment variable validation |
+| `bookings.service.spec.ts` | 23 | State machine, CRUD, walk-in, reschedule, cancel |
+| `payments.service.spec.ts` | 24 | PaymentIntent, webhooks, refunds, offline, pagination |
+| `invoices.service.spec.ts` | 12 | Invoice creation, sequential numbering, mark paid |
+| `public-booking.service.spec.ts` | 8 | Tenant lookup, service detail, availability |
+| `sprint3-dto.spec.ts` | 28 | All Sprint 3 DTOs (walk-in, cancel, reschedule, update, payment, refund, connect) |
+
+### 17.9 Verification Results
+
+```
+pnpm lint       ✅ 6/6 packages pass (0 errors)
+pnpm typecheck  ✅ 6/6 packages pass (0 errors)
+pnpm test       ✅ 579 tests pass (123 API + 444 shared + 12 UI)
+pnpm build      ✅ All packages build (21 Next.js routes, 3 dynamic)
+```
+
+### 17.10 Cumulative Sprint Summary
+
+| Metric | Sprint 1 | Sprint 2 | Sprint 3 | Total |
+|--------|----------|----------|----------|-------|
+| Prisma models | 75 | — | — | 75 |
+| API modules | 5 | 11 | 15 (+4 new) | 15 |
+| API endpoints | 1 | 40+ | 22 | 62+ |
+| Frontend pages | 0 | 18 | 21 (+3 new routes) | 21 |
+| Frontend components | 0 | ~20 | ~33 (+13 new) | ~33 |
+| Tests | 484 | 484 | 579 (+95) | 579 |
+| Dependencies | — | +9 | +3 | — |
+
+### 17.11 What's Next — Sprint 4 Scope
+
+Sprint 4 (Communications + Calendar) should focus on:
+1. **Email system** — Resend integration + React Email templates (confirmation, receipt, reminder, follow-up)
+2. **SMS system** — Twilio integration for provider notifications
+3. **Notification preferences** — User-level notification settings
+4. **Google Calendar integration** — OAuth + INBOUND sync
+5. **In-app notifications** — Real-time notification system with read/unread tracking

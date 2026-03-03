@@ -15,12 +15,14 @@ export const ROUTES = {
   // Dashboard
   DASHBOARD: '/dashboard',
   CALENDAR: '/calendar',
+  BOOKINGS: '/bookings',
   SERVICES: '/services',
   SERVICES_NEW: '/services/new',
   CLIENTS: '/clients',
   SETTINGS: '/settings',
   SETTINGS_PROFILE: '/settings/profile',
   SETTINGS_AVAILABILITY: '/settings/availability',
+  SETTINGS_PAYMENTS: '/settings/payments',
 } as const;
 
 export const API_ROUTES = {
@@ -49,6 +51,11 @@ export const API_ROUTES = {
 
   // Bookings
   BOOKINGS: '/api/bookings',
+
+  // Payments
+  PAYMENTS_CONNECT: '/api/payments/connect',
+  PAYMENTS_CONNECT_STATUS: '/api/payments/connect/status',
+  PAYMENTS_CONNECT_DASHBOARD: '/api/payments/connect/dashboard',
 
   // Users
   USERS: '/api/users',

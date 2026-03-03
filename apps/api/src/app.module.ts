@@ -12,6 +12,10 @@ import { TenantsModule } from './tenants/tenants.module';
 import { ServicesModule } from './services/services.module';
 import { AvailabilityModule } from './availability/availability.module';
 import { BookingSessionsModule } from './booking-sessions/booking-sessions.module';
+import { PaymentsModule } from './payments/payments.module';
+import { BookingsModule } from './bookings/bookings.module';
+import { InvoicesModule } from './invoices/invoices.module';
+import { PublicBookingModule } from './public-booking/public-booking.module';
 import { validateEnv } from './config/env.validation';
 import {
   appConfig,
@@ -19,6 +23,7 @@ import {
   googleConfig,
   resendConfig,
   r2Config,
+  stripeConfig,
 } from './config/configuration';
 
 @Module({
@@ -26,7 +31,7 @@ import {
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
-      load: [appConfig, jwtConfig, googleConfig, resendConfig, r2Config],
+      load: [appConfig, jwtConfig, googleConfig, resendConfig, r2Config, stripeConfig],
     }),
     PrismaModule,
     RedisModule,
@@ -39,6 +44,10 @@ import {
     ServicesModule,
     AvailabilityModule,
     BookingSessionsModule,
+    PaymentsModule,
+    BookingsModule,
+    InvoicesModule,
+    PublicBookingModule,
   ],
   controllers: [AppController],
 })
