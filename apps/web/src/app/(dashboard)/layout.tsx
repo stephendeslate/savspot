@@ -1,0 +1,67 @@
+'use client';
+
+import { useState, type ReactNode } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Sidebar } from '@/components/layout/sidebar';
+import { Header } from '@/components/layout/header';
+import { MobileNav } from '@/components/layout/mobile-nav';
+import { useAuth } from '@/hooks/use-auth';
+import { ROUTES } from '@/lib/constants';
+
+const pageTitles: Record<string, string> = {
+  [ROUTES.DASHBOARD]: 'Dashboard',
+  [ROUTES.CALENDAR]: 'Calendar',
+  [ROUTES.SERVICES]: 'Services',
+  [ROUTES.CLIENTS]: 'Clients',
+  [ROUTES.SETTINGS]: 'Settings',
+};
+
+export default function DashboardLayout({ children }: { children: ReactNode }) {
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+  const { isLoading, isAuthenticated } = useAuth();
+
+  const title = pageTitles[pathname] ?? '';
+
+  // Redirect to login if not authenticated
+  if (!isLoading && !isAuthenticated) {
+    router.push(ROUTES.LOGIN);
+    return null;
+  }
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen">
+      {/* Desktop sidebar */}
+      <div className="hidden lg:block">
+        <div className="fixed inset-y-0 left-0 z-30">
+          <Sidebar />
+        </div>
+      </div>
+
+      {/* Mobile nav */}
+      <MobileNav
+        open={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+      />
+
+      {/* Main content */}
+      <div className="flex flex-1 flex-col lg:pl-64">
+        <Header
+          title={title}
+          onMenuClick={() => setMobileNavOpen(true)}
+        />
+        <main className="flex-1 p-4 lg:p-6">{children}</main>
+      </div>
+    </div>
+  );
+}

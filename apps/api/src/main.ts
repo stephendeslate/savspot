@@ -1,15 +1,22 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
 
+  // Cookie parsing (for refresh tokens)
+  app.use(cookieParser());
+
   // CORS
   app.enableCors({
     origin: process.env['WEB_URL'] || 'http://localhost:3000',
+    credentials: true,
   });
 
   // Global prefix (exclude health endpoint)
@@ -22,10 +29,17 @@ async function bootstrap() {
     .setTitle('SavSpot API')
     .setDescription('SavSpot multi-tenant booking platform API')
     .setVersion('0.1.0')
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document);
+
+  // Global exception filter
+  app.useGlobalFilters(new AllExceptionsFilter());
+
+  // Global response transformer
+  app.useGlobalInterceptors(new TransformInterceptor());
 
   // Global validation pipe
   app.useGlobalPipes(

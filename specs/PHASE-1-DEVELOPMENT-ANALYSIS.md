@@ -316,12 +316,14 @@ Based on dependency analysis across all spec documents:
 5. ~~Auth module~~ — Deferred to Sprint 2 (foundation-only scope)
 6. ~~Multi-tenancy middleware~~ — Deferred to Sprint 2 (foundation-only scope)
 
-### Sprint 2 (Week 3-4): Core Domain
-6. **Tenant/onboarding** — Business registration, preset functions, slug generation
-7. **Service management** — CRUD, progressive complexity (nullable JSONB fields)
-8. **Availability engine** — Rules, time slots, timezone handling (SRS-3 §4-6)
-9. **Booking session** — State machine, reservation tokens, real-time availability check
-10. **Admin CRM shell** — Layout, navigation, dashboard skeleton
+### Sprint 2 (Week 3-4): Core Domain — DONE (March 3, 2026)
+6. **Auth module** — Email/password, Google OAuth, JWT RS256, email verification (Resend), password reset, token blacklisting
+7. **Multi-tenancy middleware** — nestjs-cls, tenant context, RLS integration, Prisma Client Extensions
+8. **Tenant/onboarding** — Business registration, preset functions, slug generation, preset application
+9. **Service management** — CRUD with all JSONB fields, categories, venues, copy/duplicate
+10. **Availability engine** — Rules CRUD, blocked dates, slot resolution algorithm (timezone-aware)
+11. **Booking session** — State machine, step resolution, date reservation with pessimistic locking (`$queryRaw` + `SELECT ... FOR UPDATE`)
+12. **Admin CRM frontend** — Auth pages, onboarding wizard, dashboard, service management, availability editor, settings, calendar stub
 
 ### Sprint 3 (Week 5-6): Booking Flow + Payments
 11. **Dynamic booking flow engine** — Step resolution algorithm (SRS-1 §8)
@@ -590,3 +592,280 @@ The 10-week development timeline (excluding Week 11-12 polish/testing) is ambiti
 3. **ESLint flat config:** All packages share the root `eslint.config.mjs`. Package-specific rules can be added with directory-scoped overrides.
 4. **Vitest `passWithNoTests`:** Packages without test files need `passWithNoTests: true` in vitest config to avoid CI failures.
 5. **tenant_id type:** The Prisma schema uses `String` for tenant_id (Prisma's UUID maps to text). RLS policies must NOT cast `current_setting()` to UUID — use plain text comparison.
+
+---
+
+## 15. Sprint 2 Implementation Results
+
+**Started:** March 2, 2026 | **Completed:** March 3, 2026 | **Status:** Done | **Scope:** Core domain layer
+
+Sprint 2 delivers all zero-to-one business logic: authentication, multi-tenancy, tenant onboarding, service management, availability engine, booking session state machine, and a working Admin CRM frontend. This is the critical path — Sprints 3-6 cannot begin without Sprint 2's outputs.
+
+### 15.1 Execution Strategy
+
+Work was organized into 5 parallel waves with specialized sub-agents:
+
+| Wave | Scope | Status | Duration |
+|------|-------|--------|----------|
+| Wave 1 | Shared Infrastructure (Prisma, Redis, Upload, TenantContext, Common) | ✅ Done | Sequential |
+| Wave 2 | Auth Module (backend) + Frontend Scaffolding (parallel) | ✅ Done | 2 parallel agents |
+| Wave 3 | Tenants + Services backend + Onboarding/Services UI (parallel) | ✅ Done | 2 parallel agents |
+| Wave 4 | Availability Engine + Booking Sessions + Remaining Frontend (parallel) | ✅ Done | 2 parallel agents |
+| Wave 5 | Integration wiring, lint/typecheck/test/build verification | ✅ Done | Sequential |
+
+### 15.2 Modules Delivered
+
+#### Infrastructure (Wave 1)
+- **PrismaModule** — Global module wrapping PrismaClient with lifecycle hooks. Import path: `../../../../prisma/generated/prisma` (relative, since path aliases don't resolve at NestJS tsc runtime)
+- **RedisModule** — Global ioredis wrapper (get, set, setex, del, exists, expire). Reads `REDIS_URL` from ConfigService
+- **UploadModule** — Cloudflare R2 presigned URL generation via `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`
+- **TenantContextModule** — `nestjs-cls` + middleware that extracts tenantId from JWT or URL params, stores in CLS, executes `SELECT set_config('app.current_tenant', tenantId, TRUE)`
+- **PrismaTenantExtension** — `$extends()` with `$allModels.$allOperations` for defense-in-depth tenant filtering. NOT used for booking reservation per architecture decision
+- **Common utilities** — 5 decorators (`@CurrentUser`, `@CurrentTenant`, `@Roles`, `@TenantRoles`, `@Public`), 3 guards (JWT global, platform roles, tenant roles), exception filter, transform interceptor, UUID validation pipe
+
+#### Authentication (Wave 2)
+- **JWT RS256** — 15-min access token, 7-day refresh with rotation, token blacklisting via Redis (`token:blacklist:{jti}` with TTL)
+- **Token management** — Ephemeral RSA keypair generated at startup if `JWT_PRIVATE_KEY_BASE64`/`JWT_PUBLIC_KEY_BASE64` not provided (dev only)
+- **Email/password auth** — bcrypt 12 rounds, email verification via HMAC-SHA256 signed tokens (24h expiry), password reset via UUID token in Redis (1h TTL)
+- **Google OAuth** — passport-google-oauth20 strategy, handles missing config gracefully, account linking for existing email users
+- **Email delivery** — Resend integration with console.log fallback when `RESEND_API_KEY` not set
+- **Users module** — `GET/PATCH /api/users/me` with sanitized output (strips passwordHash, mfaSecret, mfaRecoveryCodes)
+
+#### Tenants + Services (Wave 3)
+- **Tenant CRUD** — Create with OWNER membership, slug generation (dedup with `-2`, `-3` suffixes), preset application
+- **Preset application** — Dynamic import of `@savspot/shared` BUSINESS_PRESETS (ESM→CJS bridge), transactional creation of services + availability rules + workflow automations
+- **Service CRUD** — Full CRUD with all nullable JSONB fields (guestConfig, tierConfig, depositConfig, intakeFormConfig, cancellationPolicy), copy/duplicate endpoint, soft-delete
+- **Service Categories** — Standard CRUD with hard delete
+- **Venues** — CRUD with JSON address/images fields, soft-delete
+- **TenantRolesGuard enhancement** — Now resolves tenantId from route params (`:tenantId` or `:id`) before falling back to JWT payload
+
+#### Availability Engine + Booking Sessions (Wave 4)
+- **Availability Service** — Slot resolution algorithm: loads service duration/buffers, availability rules (service-specific → tenant-wide fallback), blocked dates, existing bookings, HELD reservations; generates non-conflicting slots for date range
+- **Availability Rules Service** — CRUD with day-of-week, start/end times, service/venue scoping, active toggle
+- **Blocked Dates Service** — CRUD with date range, reason, service/venue scoping
+- **Booking Sessions Service** — Session lifecycle: create (IN_PROGRESS), update (step/data), abandon (release reservations), complete (create booking in transaction). Dynamic step resolution based on service config
+- **Reservation Service** — Pessimistic locking via `$transaction` + `$queryRaw` + `SELECT ... FOR UPDATE`. Checks both `date_reservations` (HELD) and `bookings` (CONFIRMED/IN_PROGRESS/PENDING) for conflicts. Creates reservation with 5-minute expiry and UUID token
+- **Session State Machine** — `IN_PROGRESS → COMPLETED` (booking created) or `IN_PROGRESS → ABANDONED` (reservations released). Dynamic step types: SERVICE_SELECTION (if multi-service), VENUE_SELECTION (if venues exist), GUEST_COUNT (if guestConfig), DATE_TIME_PICKER, PRICING_SUMMARY, CONFIRMATION (always)
+
+#### Frontend Scaffolding (Wave 2)
+- **Auth pages** — Login, register, verify-email, forgot-password, reset-password
+- **Auth components** — Login form (react-hook-form + zod), register form (password strength validation), Google OAuth button
+- **Dashboard shell** — Sidebar navigation, header with mobile menu toggle, mobile slide-over nav
+- **UI components** — 12 shadcn/ui-pattern components (input, label, card, badge, skeleton, separator, avatar, textarea, select, table, tabs, dialog)
+- **Infrastructure** — API client with auto 401→refresh, auth context provider, query provider (TanStack Query), route protection middleware
+
+#### Frontend Pages (Waves 3-4)
+- **Onboarding Wizard** — 3-step flow: business type selection (6 categories) → business profile form (name, timezone, country, currency) → review & create. Creates tenant + applies business preset
+- **Dashboard** — Stats cards (services, active services, availability rules, bookings), quick action links, onboarding CTA when no tenant
+- **Services Management** — List with table (name, duration, price, status, actions), create form, edit form with all JSONB fields, deactivate action
+- **Settings Hub** — Navigation to profile, availability, notifications, billing, appearance
+- **Business Profile Settings** — Edit tenant name, description, timezone, country, currency, contact info
+- **Availability Schedule Editor** — List rules by day/time, add rule form (day, start, end), toggle active/inactive, delete rules
+- **Calendar Stub** — Day/week/month view selector, placeholder content
+- **Clients List** — Search bar, empty state with CTA, table structure ready for bookings
+
+### 15.3 API Endpoints Implemented
+
+```
+# Auth
+POST   /api/auth/register           201 { user, tokens }
+POST   /api/auth/login              200 { user, tokens, memberships }
+POST   /api/auth/logout             200
+POST   /api/auth/refresh            200 { user, tokens }
+POST   /api/auth/verify-email       200
+POST   /api/auth/forgot-password    200
+POST   /api/auth/reset-password     200
+PATCH  /api/auth/change-password    200
+GET    /api/auth/google             302 → Google
+GET    /api/auth/google/callback    302 → Frontend
+
+# Users
+GET    /api/users/me                200 { user }
+PATCH  /api/users/me                200 { user }
+
+# Tenants
+POST   /api/tenants                 201 { tenant }
+GET    /api/tenants/:id             200 { tenant }
+PATCH  /api/tenants/:id             200 { tenant }
+POST   /api/tenants/:id/apply-preset 200 { counts }
+
+# Services
+GET    /api/tenants/:tenantId/services          200 [services]
+POST   /api/tenants/:tenantId/services          201
+GET    /api/tenants/:tenantId/services/:id      200
+PATCH  /api/tenants/:tenantId/services/:id      200
+DELETE /api/tenants/:tenantId/services/:id       204
+POST   /api/tenants/:tenantId/services/:id/copy 201
+
+# Service Categories
+GET    /api/tenants/:tenantId/service-categories       200
+POST   /api/tenants/:tenantId/service-categories       201
+PATCH  /api/tenants/:tenantId/service-categories/:id   200
+DELETE /api/tenants/:tenantId/service-categories/:id   204
+
+# Venues
+GET    /api/tenants/:tenantId/venues         200
+POST   /api/tenants/:tenantId/venues         201
+PATCH  /api/tenants/:tenantId/venues/:id     200
+DELETE /api/tenants/:tenantId/venues/:id     204
+
+# Availability
+GET    /api/tenants/:tenantId/availability              200 [slots]
+GET    /api/tenants/:tenantId/availability-rules        200 [rules]
+POST   /api/tenants/:tenantId/availability-rules        201
+PATCH  /api/tenants/:tenantId/availability-rules/:id    200
+DELETE /api/tenants/:tenantId/availability-rules/:id    204
+POST   /api/tenants/:tenantId/blocked-dates             201
+DELETE /api/tenants/:tenantId/blocked-dates/:id          204
+
+# Booking Sessions
+POST   /api/booking-sessions                201 { session }
+GET    /api/booking-sessions/:id            200 { session }
+PATCH  /api/booking-sessions/:id            200 { session }
+POST   /api/booking-sessions/:id/reserve    201 { reservation }
+POST   /api/booking-sessions/:id/release    200
+POST   /api/booking-sessions/:id/complete   201 { booking }
+
+# Upload
+POST   /api/upload/presigned-url    200 { uploadUrl, publicUrl }
+```
+
+**Total: 40 API endpoints** (10 auth + 2 users + 4 tenants + 10 services/categories + 5 venues + 7 availability + 6 booking sessions + 1 upload)
+
+### 15.4 Issues Encountered & Resolutions
+
+| # | Issue | Resolution |
+|---|-------|------------|
+| 1 | **DTO definite assignment (TS2564)** — Strict TS requires `!` on class properties | Added `!` to all DTO class fields (e.g., `email!: string`) |
+| 2 | **Missing @types/jsonwebtoken** — `Cannot find module 'jsonwebtoken'` | Installed `@types/jsonwebtoken` as dev dependency |
+| 3 | **jwt.sign() type mismatch (TS2769)** — Newer `@types/jsonwebtoken` expects `StringValue` for `expiresIn` | Cast: `expiresIn: this.accessExpiry as unknown as number, } as jwt.SignOptions` |
+| 4 | **Lint errors from destructuring unused vars** — `const { passwordHash, ...safe } = user` triggers `@typescript-eslint/no-unused-vars` | Replaced with `delete result['passwordHash']` pattern |
+| 5 | **Google OAuth callback broken** — Tried to call `authService.login()` which requires password | Added `loginGoogleUser(userId)` method to AuthService |
+| 6 | **@savspot/shared ESM→CJS import** — API is CJS, shared is ESM-only. `moduleResolution: "node"` can't resolve ESM exports | Added `@savspot/shared` as workspace dependency (types resolve via top-level `"types"` field), runtime uses `await import()` |
+| 7 | **Prisma schema field name mismatches** — Sub-agent used `basePriceCents` (Int), schema has `basePrice` (Decimal) | Fixed all DTOs and services to use `basePrice` (Decimal), proper field names from schema |
+| 8 | **WorkflowAutomation schema mismatch** — No `name` or `delayMinutes` fields exist | Store description and delay in `actionConfig` JSON field |
+| 9 | **AvailabilityRule time fields** — `@db.Time()` maps to Date, not string | Convert "HH:mm" strings to `new Date(1970, 0, 1, hours, minutes)` |
+| 10 | **JSON type casting** — `Record<string, unknown>` not assignable to Prisma `InputJsonValue` | Explicit cast: `dto.field as Prisma.InputJsonValue` |
+| 11 | **Web missing DOM lib** — Base tsconfig has `lib: ["ES2022"]` without DOM types | Added `"lib": ["ES2022", "DOM", "DOM.Iterable"]` to web tsconfig |
+| 12 | **noPropertyAccessFromIndexSignature** — `process.env.X` requires bracket notation | Changed to `process.env['NEXT_PUBLIC_API_URL']` |
+| 13 | **Tailwind CSS 4 `@apply` fails** — `border-border` not recognized as utility in `globals.css` build | Added `@theme inline {}` block to register CSS variables as Tailwind theme values (e.g., `--color-border: hsl(var(--border))`) |
+| 14 | **Next.js 15 `useSearchParams()` SSG error** — Static generation fails without Suspense boundary | Wrapped `useSearchParams()` components in `<Suspense>` with loading fallback (verify-email, reset-password pages) |
+| 15 | **Seed script path double-nesting** — `tsx prisma/seed/index.ts` in `prisma/package.json` resolves to `prisma/prisma/seed/index.ts` | Fixed to `tsx seed/index.ts` (working directory is already `prisma/`) |
+| 16 | **Migration name not propagating** — `pnpm db:migrate:dev -- --name X` loses the `--name` flag through pnpm filter chain | Run directly: `cd prisma && npx prisma migrate dev --name sprint2_core_domain` |
+| 17 | **14 web lint errors** — Unused imports (Table components, lucide icons) and empty interfaces in UI components | Removed unused imports, converted `interface Foo extends Bar {}` to `type Foo = Bar` |
+
+### 15.5 Key Technical Decisions
+
+1. **ESM/CJS bridge pattern** — The `@savspot/shared` package is ESM-only (`"type": "module"`), while the NestJS API uses CJS (`moduleResolution: "node"`). Resolution: `import type` for types (erased at compile time), `await import()` for runtime values (works in CJS to load ESM). This avoids requiring a dual CJS/ESM build of the shared package.
+
+2. **Prisma import path** — Using relative paths (`../../../../prisma/generated/prisma`) rather than tsconfig path aliases, since path aliases don't resolve in NestJS tsc build output at runtime.
+
+3. **JSON field handling** — All nullable JSONB columns use explicit `Prisma.InputJsonValue` casts. For updates, build `Prisma.ServiceUpdateInput` objects field-by-field instead of spreading DTOs (which would include non-Prisma fields).
+
+4. **TenantRolesGuard param resolution** — Enhanced to resolve tenantId from route params (`:tenantId` or `:id`) before falling back to JWT `tenantId` claim. This enables nested resource routes like `/tenants/:tenantId/services`.
+
+5. **Auth token flow** — Access tokens in memory (ApiClient class), refresh tokens in localStorage. Next.js middleware checks a `savspot-has-session` cookie (set by client-side AuthProvider) for route protection — middleware can't access localStorage.
+
+6. **Sanitize user pattern** — Uses `delete result['field']` instead of destructuring to avoid TypeScript lint errors with unused variables.
+
+### 15.6 Dependencies Added
+
+**API (`apps/api`):**
+```
+# Runtime
+@nestjs/passport passport passport-jwt passport-local passport-google-oauth20
+jsonwebtoken bcryptjs nestjs-cls ioredis uuid cookie-parser resend
+@aws-sdk/client-s3 @aws-sdk/s3-request-presigner @savspot/shared
+
+# Dev
+@types/bcryptjs @types/ioredis @types/uuid @types/cookie-parser
+@types/passport-jwt @types/passport-local @types/passport-google-oauth20
+@types/jsonwebtoken
+```
+
+**Web (`apps/web`):**
+```
+@tanstack/react-query react-hook-form @hookform/resolvers zod lucide-react
+```
+
+### 15.7 Environment Variables Added
+
+```env
+# JWT (required for production, auto-generated in dev)
+JWT_PRIVATE_KEY_BASE64=
+JWT_PUBLIC_KEY_BASE64=
+JWT_ACCESS_EXPIRY=15m
+JWT_REFRESH_EXPIRY=7d
+
+# Google OAuth (optional — disabled if not set)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_CALLBACK_URL=http://localhost:3001/api/auth/google/callback
+
+# Resend Email (optional — falls back to console.log)
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=noreply@savspot.co
+
+# Cloudflare R2 (optional — upload disabled if not set)
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET_NAME=
+R2_PUBLIC_URL=
+```
+
+### 15.8 Verification Results
+
+All monorepo checks pass:
+
+| Check | Packages | Status |
+|-------|----------|--------|
+| `pnpm lint` | 5/5 | ✅ Pass (0 errors) |
+| `pnpm typecheck` | 5/5 | ✅ Pass (0 errors) |
+| `pnpm test` | 5/5 | ✅ Pass (484 tests: 444 shared + 12 UI + 28 API) |
+| `pnpm build` | 5/5 | ✅ Pass (API: NestJS, Web: 18 Next.js pages) |
+
+**Database:** Migration `sprint2_core_domain` applied, seed data loaded (11 users, 3 tenants, 6 services, 14 availability rules, 10 bookings).
+
+### 15.9 Frontend Pages Delivered
+
+| Route | Type | Purpose |
+|-------|------|---------|
+| `/login` | Static | Email/password login form |
+| `/register` | Static | Registration with password strength validation |
+| `/forgot-password` | Static | Request password reset email |
+| `/reset-password` | Static | Set new password (from email link) |
+| `/verify-email` | Static | Auto-verify email token from link |
+| `/onboarding` | Static | 3-step business setup wizard |
+| `/dashboard` | Static | Stats cards, quick actions, onboarding CTA |
+| `/services` | Static | Service list with table, deactivate action |
+| `/services/new` | Static | Create service form |
+| `/services/[id]` | Dynamic | Edit service form |
+| `/calendar` | Static | Day/week/month view stub |
+| `/clients` | Static | Client list with search |
+| `/settings` | Static | Settings navigation hub |
+| `/settings/profile` | Static | Edit business profile |
+| `/settings/availability` | Static | Weekly schedule rule editor |
+
+### 15.10 Production Deployment TODO (Future)
+
+The following configuration is required before production deployment and was intentionally deferred from Sprint 2 (development-only scope):
+
+**Critical — Required for production:**
+- [ ] Generate and persist JWT RS256 keypair (`JWT_PRIVATE_KEY_BASE64`, `JWT_PUBLIC_KEY_BASE64`) in production secrets manager
+- [ ] Configure production PostgreSQL (`DATABASE_URL`) — Fly.io self-managed or managed
+- [ ] Configure production Redis (`REDIS_URL`) — Upstash Fixed plan ($10/mo)
+- [ ] Set `WEB_URL` to production frontend domain (used for CORS + email links)
+- [ ] Set `NEXT_PUBLIC_API_URL` to production API domain
+- [ ] Configure Resend (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`) with verified sending domain
+
+**Recommended — Enables features:**
+- [ ] Configure Google OAuth (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`) with production redirect URI
+- [ ] Configure Cloudflare R2 (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`) for file uploads
+
+**Infrastructure — Sprint 6 scope:**
+- [ ] Fly.io deployment (API + Workers)
+- [ ] Vercel Pro deployment (Next.js frontend)
+- [ ] CI/CD pipeline with staging environment
+- [ ] Rate limiting, CSRF protection, CSP headers
+- [ ] Monitoring and alerting setup

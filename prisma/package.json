@@ -7,7 +7,7 @@
     "generate": "prisma generate",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
-    "seed": "tsx prisma/seed/index.ts",
+    "seed": "tsx seed/index.ts",
     "studio": "prisma studio",
     "format": "prisma format",
     "build": "echo 'prisma: no build needed'",
