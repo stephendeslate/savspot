@@ -20,7 +20,14 @@
     "db:studio": "pnpm --filter @savspot/prisma studio",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "clean": "turbo run clean && rm -rf node_modules",
+    "admin:list-tenants": "tsx scripts/admin/list-tenants.ts",
+    "admin:revenue-summary": "tsx scripts/admin/revenue-summary.ts",
+    "admin:dead-letter": "tsx scripts/admin/dead-letter.ts",
+    "admin:manage-roles": "tsx scripts/admin/manage-roles.ts",
+    "admin:suspend-tenant": "tsx scripts/admin/suspend-tenant.ts",
+    "admin:platform-config": "tsx scripts/admin/platform-config.ts",
+    "admin:import-clients": "tsx scripts/admin/import-clients.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

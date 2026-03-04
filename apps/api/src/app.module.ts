@@ -23,6 +23,9 @@ import { SmsModule } from './sms/sms.module';
 import { JobsModule } from './jobs/jobs.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { BrowserPushModule } from './browser-push/browser-push.module';
+import { ClientPortalModule } from './client-portal/client-portal.module';
+import { ClientsModule } from './clients/clients.module';
+import { DiscountsModule } from './discounts/discounts.module';
 import { BullMqModule } from './bullmq/bullmq.module';
 import { EventsModule } from './events/events.module';
 import { validateEnv } from './config/env.validation';
@@ -69,6 +72,9 @@ import {
     JobsModule,
     NotificationsModule,
     BrowserPushModule,
+    ClientPortalModule,
+    ClientsModule,
+    DiscountsModule,
   ],
   controllers: [AppController],
 })

@@ -19,12 +19,22 @@ export const ROUTES = {
   SERVICES: '/services',
   SERVICES_NEW: '/services/new',
   CLIENTS: '/clients',
+  PAYMENTS: '/payments',
   SETTINGS: '/settings',
   SETTINGS_PROFILE: '/settings/profile',
   SETTINGS_AVAILABILITY: '/settings/availability',
   SETTINGS_PAYMENTS: '/settings/payments',
   SETTINGS_CALENDAR: '/settings/calendar',
   SETTINGS_NOTIFICATIONS: '/settings/notifications',
+  SETTINGS_BRANDING: '/settings/branding',
+  SETTINGS_DISCOUNTS: '/settings/discounts',
+
+  // Client Portal
+  PORTAL: '/portal',
+  PORTAL_BOOKINGS: '/portal/bookings',
+  PORTAL_PAYMENTS: '/portal/payments',
+  PORTAL_PROFILE: '/portal/profile',
+  PORTAL_SETTINGS: '/portal/settings',
 } as const;
 
 export const API_ROUTES = {

@@ -17,6 +17,9 @@ const pageTitles: Record<string, string> = {
   [ROUTES.CLIENTS]: 'Clients',
   [ROUTES.SETTINGS]: 'Settings',
   [ROUTES.SETTINGS_PAYMENTS]: 'Payment Settings',
+  [ROUTES.PAYMENTS]: 'Payments',
+  [ROUTES.SETTINGS_BRANDING]: 'Branding',
+  [ROUTES.SETTINGS_DISCOUNTS]: 'Discounts',
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {

@@ -13,10 +13,13 @@ const AUTH_PAGES = [
 const PROTECTED_PREFIXES = [
   '/dashboard',
   '/calendar',
+  '/bookings',
   '/services',
   '/clients',
+  '/payments',
   '/settings',
   '/onboarding',
+  '/portal',
 ];
 
 export function middleware(request: NextRequest) {

@@ -57,6 +57,7 @@ export type BookingStepType =
   | 'DATE_TIME_PICKER'
   | 'GUEST_COUNT'
   | 'PRICING_SUMMARY'
+  | 'CLIENT_INFO'
   | 'PAYMENT'
   | 'CONFIRMATION';
 
@@ -73,6 +74,9 @@ export interface BookingSessionData {
   endTime?: string;
   guestCount?: number;
   guestTierCounts?: Record<string, number>;
+  guestName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
   reservationId?: string;
   totalAmount?: number;
   depositAmount?: number;

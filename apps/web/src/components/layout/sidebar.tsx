@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   Calendar,
   CalendarCheck,
+  CreditCard,
   LayoutDashboard,
   Users,
   Briefcase,
@@ -20,6 +21,7 @@ const navigation = [
   { name: 'Bookings', href: ROUTES.BOOKINGS, icon: CalendarCheck },
   { name: 'Calendar', href: ROUTES.CALENDAR, icon: Calendar },
   { name: 'Services', href: ROUTES.SERVICES, icon: Briefcase },
+  { name: 'Payments', href: ROUTES.PAYMENTS, icon: CreditCard },
   { name: 'Clients', href: ROUTES.CLIENTS, icon: Users },
   { name: 'Settings', href: ROUTES.SETTINGS, icon: Settings },
 ];
