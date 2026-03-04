@@ -22,7 +22,21 @@ function makePrisma() {
   };
 }
 
-function makeApiKeyRecord(overrides: Record<string, unknown> = {}) {
+function makeApiKeyRecord(overrides: Partial<{
+  id: string;
+  tenantId: string;
+  createdBy: string;
+  name: string;
+  prefix: string;
+  keyHash: string;
+  scopes: Record<string, string>;
+  rateLimit: number;
+  lastUsedAt: Date | null;
+  expiresAt: Date | null;
+  isActive: boolean;
+  createdAt: Date;
+  revokedAt: Date | null;
+}> = {}) {
   return {
     id: KEY_ID,
     tenantId: TENANT_ID,
@@ -67,11 +81,11 @@ describe('ApiKeyService', () => {
     it('should return rawKey and apiKey record', async () => {
       prisma.apiKey.create.mockImplementation(async (args: { data: Record<string, unknown> }) => {
         return makeApiKeyRecord({
-          prefix: args.data.prefix,
-          keyHash: args.data.keyHash,
-          name: args.data.name,
-          scopes: args.data.scopes,
-          expiresAt: args.data.expiresAt,
+          prefix: args.data['prefix'] as string,
+          keyHash: args.data['keyHash'] as string,
+          name: args.data['name'] as string,
+          scopes: args.data['scopes'] as Record<string, string>,
+          expiresAt: args.data['expiresAt'] as Date | null,
         });
       });
 
@@ -84,8 +98,8 @@ describe('ApiKeyService', () => {
     it('should return a rawKey that starts with svs_', async () => {
       prisma.apiKey.create.mockImplementation(async (args: { data: Record<string, unknown> }) => {
         return makeApiKeyRecord({
-          prefix: args.data.prefix,
-          keyHash: args.data.keyHash,
+          prefix: args.data['prefix'] as string,
+          keyHash: args.data['keyHash'] as string,
         });
       });
 
@@ -97,8 +111,8 @@ describe('ApiKeyService', () => {
     it('should return a rawKey with correct format (3 parts separated by _)', async () => {
       prisma.apiKey.create.mockImplementation(async (args: { data: Record<string, unknown> }) => {
         return makeApiKeyRecord({
-          prefix: args.data.prefix,
-          keyHash: args.data.keyHash,
+          prefix: args.data['prefix'] as string,
+          keyHash: args.data['keyHash'] as string,
         });
       });
 
@@ -114,8 +128,8 @@ describe('ApiKeyService', () => {
     it('should return apiKey record WITHOUT keyHash', async () => {
       prisma.apiKey.create.mockImplementation(async (args: { data: Record<string, unknown> }) => {
         return makeApiKeyRecord({
-          prefix: args.data.prefix,
-          keyHash: args.data.keyHash,
+          prefix: args.data['prefix'] as string,
+          keyHash: args.data['keyHash'] as string,
         });
       });
 
@@ -130,8 +144,8 @@ describe('ApiKeyService', () => {
     it('should call prisma.apiKey.create with correct tenantId, creatorId, and name', async () => {
       prisma.apiKey.create.mockImplementation(async (args: { data: Record<string, unknown> }) => {
         return makeApiKeyRecord({
-          prefix: args.data.prefix,
-          keyHash: args.data.keyHash,
+          prefix: args.data['prefix'] as string,
+          keyHash: args.data['keyHash'] as string,
         });
       });
 
@@ -152,10 +166,10 @@ describe('ApiKeyService', () => {
       let capturedKeyHash = '';
 
       prisma.apiKey.create.mockImplementation(async (args: { data: Record<string, unknown> }) => {
-        capturedKeyHash = args.data.keyHash as string;
+        capturedKeyHash = args.data['keyHash'] as string;
         return makeApiKeyRecord({
-          prefix: args.data.prefix,
-          keyHash: args.data.keyHash,
+          prefix: args.data['prefix'] as string,
+          keyHash: args.data['keyHash'] as string,
         });
       });
 
@@ -169,10 +183,10 @@ describe('ApiKeyService', () => {
       let capturedPrefix = '';
 
       prisma.apiKey.create.mockImplementation(async (args: { data: Record<string, unknown> }) => {
-        capturedPrefix = args.data.prefix as string;
+        capturedPrefix = args.data['prefix'] as string;
         return makeApiKeyRecord({
-          prefix: args.data.prefix,
-          keyHash: args.data.keyHash,
+          prefix: args.data['prefix'] as string,
+          keyHash: args.data['keyHash'] as string,
         });
       });
 
@@ -185,9 +199,9 @@ describe('ApiKeyService', () => {
     it('should pass permissions as scopes when provided', async () => {
       prisma.apiKey.create.mockImplementation(async (args: { data: Record<string, unknown> }) => {
         return makeApiKeyRecord({
-          prefix: args.data.prefix,
-          keyHash: args.data.keyHash,
-          scopes: args.data.scopes,
+          prefix: args.data['prefix'] as string,
+          keyHash: args.data['keyHash'] as string,
+          scopes: args.data['scopes'] as Record<string, string>,
         });
       });
 
@@ -207,9 +221,9 @@ describe('ApiKeyService', () => {
     it('should default scopes to empty object when permissions not provided', async () => {
       prisma.apiKey.create.mockImplementation(async (args: { data: Record<string, unknown> }) => {
         return makeApiKeyRecord({
-          prefix: args.data.prefix,
-          keyHash: args.data.keyHash,
-          scopes: args.data.scopes,
+          prefix: args.data['prefix'] as string,
+          keyHash: args.data['keyHash'] as string,
+          scopes: args.data['scopes'] as Record<string, string>,
         });
       });
 
@@ -229,9 +243,9 @@ describe('ApiKeyService', () => {
 
       prisma.apiKey.create.mockImplementation(async (args: { data: Record<string, unknown> }) => {
         return makeApiKeyRecord({
-          prefix: args.data.prefix,
-          keyHash: args.data.keyHash,
-          expiresAt: args.data.expiresAt,
+          prefix: args.data['prefix'] as string,
+          keyHash: args.data['keyHash'] as string,
+          expiresAt: args.data['expiresAt'] as Date | null,
         });
       });
 
@@ -249,8 +263,8 @@ describe('ApiKeyService', () => {
     it('should set expiresAt to null when not provided', async () => {
       prisma.apiKey.create.mockImplementation(async (args: { data: Record<string, unknown> }) => {
         return makeApiKeyRecord({
-          prefix: args.data.prefix,
-          keyHash: args.data.keyHash,
+          prefix: args.data['prefix'] as string,
+          keyHash: args.data['keyHash'] as string,
         });
       });
 
@@ -268,8 +282,8 @@ describe('ApiKeyService', () => {
     it('should generate unique keys on consecutive calls', async () => {
       prisma.apiKey.create.mockImplementation(async (args: { data: Record<string, unknown> }) => {
         return makeApiKeyRecord({
-          prefix: args.data.prefix,
-          keyHash: args.data.keyHash,
+          prefix: args.data['prefix'] as string,
+          keyHash: args.data['keyHash'] as string,
         });
       });
 
@@ -516,11 +530,11 @@ describe('ApiKeyService', () => {
       let storedPrefix = '';
 
       prisma.apiKey.create.mockImplementation(async (args: { data: Record<string, unknown> }) => {
-        storedHash = args.data.keyHash as string;
-        storedPrefix = args.data.prefix as string;
+        storedHash = args.data['keyHash'] as string;
+        storedPrefix = args.data['prefix'] as string;
         return makeApiKeyRecord({
-          prefix: args.data.prefix,
-          keyHash: args.data.keyHash,
+          prefix: args.data['prefix'] as string,
+          keyHash: args.data['keyHash'] as string,
         });
       });
 

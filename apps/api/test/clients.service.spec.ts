@@ -528,7 +528,7 @@ describe('ClientsService', () => {
       const notes = [
         {
           id: 'note-001',
-          content: 'Allergic to certain products',
+          body: 'Allergic to certain products',
           entityType: 'CLIENT',
           entityId: CLIENT_ID,
           createdAt: new Date('2026-02-10T09:00:00Z'),
@@ -552,7 +552,7 @@ describe('ClientsService', () => {
       const result = await service.findById(TENANT_ID, PROFILE_ID);
 
       expect(result.notes).toHaveLength(1);
-      expect(result.notes[0]!.content).toBe('Allergic to certain products');
+      expect(result.notes[0]!.body).toBe('Allergic to certain products');
     });
 
     it('should return default stats when $queryRaw returns empty array', async () => {
