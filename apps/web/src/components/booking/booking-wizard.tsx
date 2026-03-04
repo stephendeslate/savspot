@@ -9,6 +9,7 @@ import { DateTimePickerStep } from './date-time-picker-step';
 import { GuestCountStep } from './guest-count-step';
 import { PricingSummaryStep } from './pricing-summary-step';
 import { PaymentStep } from './payment-step';
+import { GuestInfoStep } from './guest-info-step';
 import { ConfirmationStep } from './confirmation-step';
 import type {
   BookingSession,
@@ -168,6 +169,16 @@ export function BookingWizard({
           />
         );
 
+      case 'CLIENT_INFO':
+        return (
+          <GuestInfoStep
+            sessionData={session.data}
+            onContinue={async (guestData) => {
+              await goToNextStep(guestData);
+            }}
+          />
+        );
+
       case 'PAYMENT':
         return (
           <PaymentStep
@@ -221,6 +232,7 @@ export function BookingWizard({
     currentStepType !== 'DATE_TIME_PICKER' &&
     currentStepType !== 'GUEST_COUNT' &&
     currentStepType !== 'PRICING_SUMMARY' &&
+    currentStepType !== 'CLIENT_INFO' &&
     currentStepType !== 'PAYMENT' &&
     currentStepType !== 'CONFIRMATION';
 

@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import {
-  Building2,
   Bell,
-  CreditCard,
-  Palette,
-  Clock,
+  Building2,
   CalendarSync,
   ChevronRight,
+  Clock,
+  CreditCard,
+  Palette,
+  Tag,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -44,10 +45,16 @@ const settingsSections = [
     icon: Bell,
   },
   {
-    name: 'Appearance',
-    description: 'Customize your booking page theme and colors',
-    href: '/settings/appearance',
+    name: 'Branding',
+    description: 'Customize your booking page appearance',
+    href: '/settings/branding',
     icon: Palette,
+  },
+  {
+    name: 'Discounts',
+    description: 'Create and manage promo codes',
+    href: '/settings/discounts',
+    icon: Tag,
   },
 ];
 

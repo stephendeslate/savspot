@@ -33,6 +33,7 @@
     "class-transformer": "^0.5.0",
     "class-validator": "^0.14.0",
     "cookie-parser": "^1.4.7",
+    "csv-parser": "^3.2.0",
     "eventemitter2": "^6.4.9",
     "googleapis": "^171.4.0",
     "ioredis": "^5.10.0",

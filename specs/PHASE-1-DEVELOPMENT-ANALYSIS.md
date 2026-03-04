@@ -343,23 +343,26 @@ Based on dependency analysis across all spec documents:
 22. **In-app notifications** — NotificationsService with CRUD + browser push via VAPID ✅
 
 ### Sprint 5 (Week 9-10): Client Portal + Admin CRM Completion
-22. **Client portal** — Dashboard, booking detail, cancellation, payment management, profile
-23. **Admin CRM completion** — All Must screens: calendar view, client management, payment management, booking flow config, settings, branding
+22. **Client portal** — `/portal/*` route section: dashboard, booking detail, cancellation, payment management, profile, booking history, GDPR data export/deletion
+23. **Admin CRM completion** — Full interactive calendar (day/week/month), client management with search/detail, payment management page, booking page branding, booking flow configuration
 24. ~~Walk-in booking~~ — Moved to Sprint 3 (natural fit with booking management)
-25. **RBAC enforcement** — Guards, permission matrix (SRS-2 §3)
-26. **Platform admin CLI scripts** — All FR-PADM-* requirements
+25. **RBAC enhancement** — API key auth (FR-AUTH-10), permission matrix enforcement
+26. **Platform admin CLI scripts** — All FR-PADM-* requirements (tenant listing, revenue summary, dead-letter queue, user roles, tenant suspension)
+27. **Should items (if time):** Guest checkout (FR-BFW-17), data import CLI (FR-IMP-1), discount/promo codes (FR-CRM-17)
+    - ~~Team management (FR-CRM-11)~~ — Deferred to Sprint 6
 
 ### Sprint 6 (Week 11-12): Polish + Should Items + Testing
-27. **Guest checkout** (FR-BFW-17)
-28. **Data import CLI** (FR-IMP-1) — Critical for design partner
-29. **Browser push notifications** (FR-NOT-6)
-30. **Feedback widget** (FR-FBK-1)
-31. **Support tickets** (FR-SUP-1)
-32. **E2E testing** — Playwright for critical paths
-33. **Performance optimization** — NFR-PERF targets
-34. **Accessibility audit** — WCAG 2.1 AA
-35. **Security hardening** — Rate limiting, CSRF, CSP headers
-36. **Deployment pipeline** — CI/CD, staging environment
+28. **Team management** (FR-CRM-11) — Invite team members, assign roles, permissions UI
+29. ~~**Guest checkout** (FR-BFW-17)~~ — Pulled into Sprint 5 (Should)
+30. ~~**Data import CLI** (FR-IMP-1)~~ — Pulled into Sprint 5 (Should)
+31. ~~**Browser push notifications** (FR-NOT-6)~~ — Completed in Sprint 4
+32. **Feedback widget** (FR-FBK-1)
+33. **Support tickets** (FR-SUP-1)
+34. **E2E testing** — Playwright for critical paths
+35. **Performance optimization** — NFR-PERF targets
+36. **Accessibility audit** — WCAG 2.1 AA
+37. **Security hardening** — Rate limiting, CSRF, CSP headers
+38. **Deployment pipeline** — CI/CD, staging environment, Fly.io + Vercel Pro
 
 ---
 
@@ -2323,7 +2326,871 @@ pnpm build      ✅ All packages build (API + Web + Shared + UI)
 ### 19.12 What's Next — Sprint 5 Scope
 
 Sprint 5 (Week 9-10): Client Portal + Admin CRM Completion
-- Client portal: dashboard, booking detail, cancellation, payment management, profile, GDPR export/deletion
-- Admin CRM completion: calendar view, client management, team management, booking flow config, branding
-- RBAC enforcement: guards, permission matrix
-- Platform admin CLI scripts
+- **Client portal (`/portal/*`):** Dashboard, booking list/detail, cancellation with policy, payment/invoice management, profile, booking history, GDPR data export, account deletion request
+- **Admin CRM completion:** Full interactive calendar (day/week/month via react-big-calendar), client management (list/detail/search), payment management page, booking page branding, booking flow configuration
+- **RBAC enhancement:** API key auth (FR-AUTH-10), permission matrix enforcement
+- **Platform admin CLI scripts:** Tenant listing, revenue summary, dead-letter queue, user role management, tenant suspension
+- **Should items (if time):** Guest checkout (FR-BFW-17), data import CLI (FR-IMP-1), discount/promo codes (FR-CRM-17)
+- **Deferred to Sprint 6:** Team management (FR-CRM-11)
+
+---
+
+## 20. Sprint 5 Implementation Plan
+
+**Target Start:** March 4, 2026 | **Scope:** Client Portal + Admin CRM Completion + Platform CLI + RBAC | **Status:** DONE
+
+Sprint 5 delivers two major surfaces: (1) the **Client Portal** — an entirely new section of the application where end users (clients who book services) can view their bookings, manage payments, and control their data, and (2) **Admin CRM completion** — filling in the remaining placeholder pages (calendar, clients, payments) and adding booking page branding and flow configuration. Additionally, Sprint 5 implements platform admin CLI scripts for operational management and enhances RBAC with API key authentication.
+
+### 20.1 Sprint 5 Scope — Verified Against Spec Requirements
+
+#### Must Requirements
+
+| Requirement | Source | Description |
+|-------------|--------|-------------|
+| FR-CP-1 | PRD §3.8 | Client portal dashboard (upcoming bookings, recent payments) |
+| FR-CP-2 | PRD §3.8 | Booking detail view (client-facing) |
+| FR-CP-4 | PRD §3.8 | Cancellation with cancellation policy display + confirmation |
+| FR-CP-5 | PRD §3.8 | Payment management (invoices, outstanding balance, payment history) |
+| FR-CP-9 | PRD §3.8 | Profile management (name, email, phone) |
+| FR-CP-10 | PRD §3.8 | Booking history (completed, cancelled, no-show) |
+| FR-CP-13 | PRD §3.8 | GDPR data export request |
+| FR-CP-14 | PRD §3.8 | Account deletion request |
+| FR-CRM-2 | PRD §3.9 | Calendar view (full interactive day/week/month) |
+| FR-CRM-4 | PRD §3.9 | Client management (list, search, detail, notes) |
+| FR-CRM-7 | PRD §3.9 | Payment management (dedicated page, filters, revenue stats) |
+| FR-CRM-9 | PRD §3.9 | Booking flow configuration (steps, confirmation mode) |
+| FR-CRM-19 | PRD §3.9 | Booking page branding (logo, colors, description) |
+| FR-AUTH-10 | PRD §3.5 | API key authentication for agents/integrations |
+| FR-PADM-1 | PRD §3.10 | CLI: tenant listing with stats |
+| FR-PADM-2 | PRD §3.10 | CLI: platform configuration view/set |
+| FR-PADM-3 | PRD §3.10 | CLI: revenue summary report |
+| FR-PADM-4 | PRD §3.10 | CLI: dead-letter queue management |
+| FR-PADM-5 | PRD §3.10 | CLI: user role management |
+| FR-PADM-7 | PRD §3.10 | CLI: tenant suspension/unsuspension |
+
+#### Should Requirements (Included — Stretch Scope)
+
+| Requirement | Source | Description |
+|-------------|--------|-------------|
+| FR-BFW-17 | PRD §3.2 | Guest checkout with optional post-booking account creation |
+| FR-IMP-1 | PRD §3.12 | CLI-based client import (Booksy, Fresha, CSV) — critical for design partner |
+| FR-CRM-17 | PRD §3.9 | Discount/promo code management (CRUD + validation) |
+
+#### Deferred to Sprint 6
+
+| Requirement | Source | Reason |
+|-------------|--------|--------|
+| FR-CRM-11 | PRD §3.9 | Team management (invite, roles) — complex RBAC, not blocking for soft launch |
+
+### 20.2 Architecture Decisions for Sprint 5
+
+#### 20.2.1 Client Portal Route Structure
+
+**Decision:** `/portal/*` routes within the existing Next.js app, using a separate layout from the Admin CRM dashboard.
+
+```
+/portal                    → Client dashboard (upcoming bookings, recent activity)
+/portal/bookings           → All bookings across businesses
+/portal/bookings/[id]      → Booking detail with cancel action
+/portal/payments           → Invoices and payment history
+/portal/profile            → Edit name, email, phone
+/portal/settings           → Notification preferences, data export, account deletion
+```
+
+**Key architectural difference from Admin CRM:** The client portal is NOT tenant-scoped. A client may have bookings with multiple businesses. The portal queries by `clientId` (from JWT) across all tenants. This requires new API endpoints that are auth-protected but NOT tenant-scoped.
+
+**Layout:** Minimal chrome — simple top navbar with logo, navigation links (Dashboard, Bookings, Payments, Profile), and user avatar/logout. No sidebar. Mobile-first responsive design matching the booking page aesthetic.
+
+**Auth routing:** The existing middleware detects user context:
+- Users with `tenant_memberships` → redirect to `/dashboard` (admin)
+- Users without memberships (pure clients) → redirect to `/portal`
+- Users with both → show a role selector or default to admin
+
+#### 20.2.2 Client Portal API Layer
+
+**Decision:** New `/api/portal/*` endpoints, authenticated via JWT but NOT tenant-scoped.
+
+The client portal queries are fundamentally different from admin queries:
+- Admin: `WHERE tenant_id = ?` (single tenant, all bookings)
+- Portal: `WHERE client_id = ?` (single user, all tenants)
+
+This means portal queries bypass the Prisma tenant extension and RLS. Instead, they use direct Prisma queries filtered by `clientId` from the JWT. This is safe because:
+1. The JWT contains the authenticated user's ID
+2. Queries only return data where `clientId = jwt.sub`
+3. No cross-user data exposure possible
+
+#### 20.2.3 Calendar Component
+
+**Decision:** Use `react-big-calendar` (MIT licensed) for the Admin CRM calendar page.
+
+**Why react-big-calendar over alternatives:**
+- MIT license (FullCalendar free core is MIT but premium plugins are paid)
+- Built-in Day/Week/Month/Agenda views
+- React-native component (not a jQuery wrapper)
+- Supports `date-fns` localizer (already in use from Sprint 3 date picker)
+- Lighter than FullCalendar (~40KB vs ~200KB)
+- Customizable event rendering with Tailwind styles
+
+**Data sources for calendar:**
+1. Bookings (PENDING, CONFIRMED, IN_PROGRESS) → colored by status
+2. Blocked dates → gray overlay
+3. INBOUND calendar events → hatched/striped overlay ("External" label)
+4. Availability rules → background shading for available hours
+
+**Interaction model:**
+- Click on event → navigate to booking detail page
+- Click on empty slot → open walk-in dialog pre-filled with time
+- Toolbar: today/back/next, view switcher (Day/Week/Month)
+- Mobile: defaults to Agenda (list) view, swipe for day navigation
+
+#### 20.2.4 Client Management
+
+**Decision:** Build the client list from `ClientProfile` + `User` + booking aggregation.
+
+The `ClientProfile` model (per-tenant) stores tags, preferences, notes, and internal notes. The `User` model stores contact info. Booking aggregation provides:
+- Total bookings count
+- Total revenue
+- Last visit date
+- First visit date
+- No-show count
+
+**Backend approach:**
+- `GET /api/tenants/:tenantId/clients` — Aggregated query joining `client_profiles`, `users`, and `bookings`. Supports search (name, email, phone), filter (tags), sort (lastVisit, totalBookings, totalRevenue), pagination.
+- `GET /api/tenants/:tenantId/clients/:id` — Full client detail with booking history, payment history, notes.
+- `PATCH /api/tenants/:tenantId/clients/:id` — Update tags, notes, internal notes.
+- `POST /api/tenants/:tenantId/clients` — Create client profile manually (optional — clients are auto-created from bookings).
+
+**Auto-creation:** When a booking is created, if no `ClientProfile` exists for that client+tenant pair, create one automatically with empty tags/notes.
+
+#### 20.2.5 API Key Authentication (FR-AUTH-10)
+
+**Decision:** SHA-256 hashed API keys with prefix-based lookup.
+
+**Key format:** `svs_{prefix}_{secret}` (e.g., `svs_abc123_64charrandombytes`)
+- `prefix` (6 chars): Used for lookup (stored in plaintext)
+- `secret` (64 chars): SHA-256 hashed before storage
+- Full key shown only once at creation time
+
+**Implementation:**
+- `ApiKey` model already exists in schema (id, tenantId, creatorId, name, keyPrefix, keyHash, lastUsedAt, expiresAt, isActive, permissions JSONB)
+- New guard: `ApiKeyGuard` — extracts key from `X-API-Key` header, looks up by prefix, verifies hash, sets tenant context
+- API key auth runs in parallel with JWT auth — either is sufficient for protected endpoints
+- API keys are tenant-scoped with optional permission restrictions via `permissions` JSONB
+
+#### 20.2.6 Booking Page Branding (FR-CRM-19)
+
+**Decision:** Extend the existing `Tenant` model's branding fields + new settings page.
+
+The `Tenant` model already has: `brandColor`, `logoUrl`, `coverPhotoUrl`, `description`, `address`, `contactEmail`, `contactPhone`, `websiteUrl`.
+
+**New branding capabilities:**
+- Settings page at `/settings/branding` with live preview
+- Color picker for brand color
+- Logo upload (via existing R2 presigned URL endpoint)
+- Cover photo upload
+- Custom booking page description
+- Toggle: show/hide business address, phone, email on booking page
+- Preview opens `/book/[slug]` in a new tab
+
+**Public booking page updates:** Apply brand color to buttons, headers, progress indicator. Display logo in header. Use cover photo as hero background.
+
+#### 20.2.7 Booking Flow Configuration (FR-CRM-9)
+
+**Decision:** Settings page for per-service booking flow customization.
+
+The `BookingFlow` model exists but is unused. The `resolveSteps()` method in `BookingSessionsService` currently auto-resolves steps from service config (guest_config → GUEST_COUNT, basePrice > 0 + Stripe → PAYMENT, etc.).
+
+**Configuration options:**
+- Confirmation mode (AUTO_CONFIRM / MANUAL_APPROVAL) — already on Service model
+- Step ordering customization — via `BookingFlow` model (optional override)
+- Enable/disable optional steps (guest count, pricing summary)
+- Custom confirmation message
+
+**Phase 1 simplification:** Instead of a full visual flow builder (Phase 3), provide a simple toggle interface per service:
+- Confirmation mode toggle (auto vs manual)
+- Cancellation policy editor (free window hours, late fee type/amount)
+- Deposit configuration (type, amount, due timing)
+- Advanced: intake form fields (drag-to-reorder, add/remove)
+
+This reuses the existing JSONB fields on the Service model — no schema changes needed.
+
+#### 20.2.8 Platform Admin CLI Scripts
+
+**Decision:** TypeScript CLI scripts using `tsx` for direct execution, Prisma client for database access.
+
+**Location:** `scripts/admin/` directory with a shared Prisma client setup.
+
+```
+scripts/admin/
+├── _shared.ts              # Prisma client init, argument parsing, output formatting
+├── list-tenants.ts         # List tenants with stats
+├── platform-config.ts      # View/set platform configuration
+├── revenue-summary.ts      # Revenue report (fees, commissions)
+├── dead-letter.ts          # View/retry dead-letter queue items
+├── manage-roles.ts         # Assign/revoke platform roles
+├── suspend-tenant.ts       # Suspend/unsuspend tenant
+└── import-clients.ts       # Data import CLI (Should item)
+```
+
+**Package.json scripts:**
+```json
+"admin:list-tenants": "tsx scripts/admin/list-tenants.ts",
+"admin:platform-config": "tsx scripts/admin/platform-config.ts",
+"admin:revenue-summary": "tsx scripts/admin/revenue-summary.ts",
+"admin:dead-letter": "tsx scripts/admin/dead-letter.ts",
+"admin:manage-roles": "tsx scripts/admin/manage-roles.ts",
+"admin:suspend-tenant": "tsx scripts/admin/suspend-tenant.ts",
+"admin:import-clients": "tsx scripts/admin/import-clients.ts"
+```
+
+#### 20.2.9 Guest Checkout (FR-BFW-17) — Should Item
+
+**Decision:** Modify the booking session flow to allow unauthenticated bookings with email capture.
+
+**Current flow:** Booking sessions are already public (no auth required). Sessions store a `clientId` which is set when a logged-in user creates a session. For guest checkout:
+1. Session created without `clientId`
+2. New step: `CLIENT_INFO` — captures name, email, phone (added before PAYMENT step)
+3. On session complete: `findOrCreate` user by email, link to booking
+4. Post-booking: show "Create account to manage your bookings" prompt with pre-filled email
+5. If user creates account, link all existing bookings by email
+
+**Key constraint:** Email is required (for booking confirmation and communications). Phone is optional.
+
+#### 20.2.10 Discount/Promo Codes (FR-CRM-17) — Should Item
+
+**Decision:** Use the existing `Discount` model for CRUD + validation in booking flow.
+
+The `Discount` model already exists: id, tenantId, code, type (PERCENTAGE/FIXED/FREE_HOURS), value, application (AUTOMATIC/CODE_REQUIRED/ADMIN_ONLY), minBookingAmount, maxUses, usedCount, validFrom, validTo, isActive.
+
+**Backend:**
+- `POST /api/tenants/:tenantId/discounts` — Create discount
+- `GET /api/tenants/:tenantId/discounts` — List discounts (admin)
+- `PATCH /api/tenants/:tenantId/discounts/:id` — Update discount
+- `DELETE /api/tenants/:tenantId/discounts/:id` — Deactivate discount
+- `POST /api/booking-sessions/:id/apply-discount` — Validate and apply code to session
+
+**Frontend:**
+- Admin: `/settings/discounts` page with CRUD table
+- Public: Optional promo code input field on pricing summary step
+
+#### 20.2.11 Data Import CLI (FR-IMP-1) — Should Item
+
+**Decision:** CLI script that reads CSV/JSON files and imports client records with platform-specific column mappings.
+
+**Supported platforms:** BOOKSY, FRESHA, SQUARE, VAGARO, CSV_GENERIC
+
+Uses `ImportJob` + `ImportRecord` models for tracking. Each import:
+1. Parse file (CSV via `csv-parser` or JSON)
+2. Apply column mapping for platform (e.g., Booksy: "Client Name" → name, "Phone" → phone)
+3. For each row: find-or-create User + ClientProfile, track status (IMPORTED/SKIPPED_DUPLICATE/ERROR)
+4. Summary output: imported, skipped, errors
+
+### 20.3 Execution Strategy — Wave-Based with Parallel Sub-Agents
+
+Sprint 5 is organized into 6 waves. Wave 1 is sequential foundation. Waves 2-3 use parallel sub-agents. Wave 4 handles Should items. Waves 5-6 are sequential integration/verification.
+
+```
+Wave 1: Backend Foundation (Sequential — Main Context)
+  └─ ClientPortalModule scaffolding (controller, service, DTOs)
+  └─ Client management endpoints (admin-side)
+  └─ API key auth guard + endpoints
+  └─ Install dependencies (react-big-calendar, csv-parser)
+  └─ Discount module endpoints (CRUD + validation)
+
+Wave 2: Backend Services (3 Parallel Sub-Agents)
+  ├─ Agent A: Client Portal Backend
+  │   └─ Portal bookings: list (cross-tenant), detail, cancel (policy eval)
+  │   └─ Portal payments: invoice list, payment history
+  │   └─ Portal profile: get, update (name, email, phone)
+  │   └─ GDPR: data export request, account deletion request
+  │   └─ Auto-create ClientProfile on booking creation
+  │   └─ Tests for portal endpoints
+  │
+  ├─ Agent B: Admin CRM Backend Completion
+  │   └─ Client management service (aggregated queries)
+  │   └─ Calendar data endpoint (bookings + blocked dates + inbound events for date range)
+  │   └─ Payment management endpoints (tenant-wide list, stats)
+  │   └─ Branding update endpoint (tenant PATCH with branding fields)
+  │   └─ Booking flow config endpoint (service JSONB fields)
+  │   └─ Tests for admin endpoints
+  │
+  └─ Agent C: Platform Admin CLI Scripts
+      └─ Shared CLI utilities (_shared.ts)
+      └─ list-tenants.ts (with booking/revenue stats)
+      └─ revenue-summary.ts (platform fees, commissions, by period)
+      └─ dead-letter.ts (list, retry, purge dead-letter webhooks)
+      └─ manage-roles.ts (grant/revoke PLATFORM_ADMIN)
+      └─ suspend-tenant.ts (suspend, unsuspend, status check)
+      └─ platform-config.ts (view/set platform settings)
+      └─ Register scripts in root package.json
+
+Wave 3: Frontend (3 Parallel Sub-Agents)
+  ├─ Agent D: Client Portal Frontend (7 pages)
+  │   └─ Portal layout (top navbar, mobile responsive)
+  │   └─ /portal page (dashboard: upcoming bookings, recent activity)
+  │   └─ /portal/bookings page (list with filters, pagination)
+  │   └─ /portal/bookings/[id] page (detail, cancel dialog)
+  │   └─ /portal/payments page (invoices, payment history)
+  │   └─ /portal/profile page (edit form)
+  │   └─ /portal/settings page (data export, account deletion)
+  │   └─ Middleware update for /portal/* route protection
+  │
+  ├─ Agent E: Admin Calendar + Client Management UI
+  │   └─ /calendar page (react-big-calendar, day/week/month/agenda)
+  │   └─ Calendar event rendering (bookings, blocked, inbound)
+  │   └─ Calendar click handlers (event → detail, slot → walk-in)
+  │   └─ /clients page (list with search, tags, stats)
+  │   └─ /clients/[id] page (detail, booking history, notes)
+  │   └─ Client notes editor (inline edit)
+  │
+  └─ Agent F: Admin CRM Remaining Pages
+      └─ /settings/branding page (color picker, logo upload, preview)
+      └─ /settings/discounts page (CRUD table, create dialog)
+      └─ Dedicated /payments page (admin-wide payment list + stats)
+      └─ Booking flow config integration in service edit form
+      └─ Update booking page to apply tenant branding
+
+Wave 4: Should Items (2 Parallel Sub-Agents — if Waves 1-3 succeed)
+  ├─ Agent G: Guest Checkout
+  │   └─ CLIENT_INFO step component
+  │   └─ BookingSessionsService: findOrCreateUser logic
+  │   └─ Post-booking account creation prompt
+  │   └─ Update resolveSteps() for unauthenticated sessions
+  │
+  └─ Agent H: Data Import CLI
+      └─ import-clients.ts CLI script
+      └─ Platform-specific column mappings (Booksy, Fresha, CSV)
+      └─ ImportJob/ImportRecord tracking
+      └─ Deduplication logic (email-based)
+
+Wave 5: Integration + Wiring (Sequential — Main Context)
+  └─ Wire all new modules into app.module.ts
+  └─ Update middleware for /portal/* routes
+  └─ Update auth provider for portal/admin routing
+  └─ Update sidebar navigation (admin)
+  └─ Update .env.example with any new vars
+  └─ Ensure all modules properly registered
+
+Wave 6: Verification (Sequential — Main Context)
+  └─ Write/update tests for new modules
+  └─ pnpm lint — 0 errors
+  └─ pnpm typecheck — 0 errors
+  └─ pnpm test — All tests pass
+  └─ pnpm build — All packages build
+```
+
+### 20.4 Detailed File Plan
+
+#### Backend Files to Create
+
+```
+# Client Portal Module
+apps/api/src/client-portal/
+├── client-portal.module.ts            # NestJS module
+├── client-portal.controller.ts        # All /api/portal/* endpoints
+├── client-portal.service.ts           # Portal business logic (cross-tenant queries)
+└── dto/
+    ├── list-portal-bookings.dto.ts    # Pagination + filters for client bookings
+    ├── cancel-portal-booking.dto.ts   # Cancel reason
+    ├── update-profile.dto.ts          # Name, email, phone
+    ├── request-data-export.dto.ts     # GDPR export request
+    └── request-account-deletion.dto.ts # Account deletion request
+
+# Client Management (Admin)
+apps/api/src/clients/
+├── clients.module.ts                  # NestJS module
+├── clients.controller.ts             # Admin /api/tenants/:tenantId/clients/*
+├── clients.service.ts                # Aggregated client queries
+└── dto/
+    ├── list-clients.dto.ts           # Search, filter, sort, pagination
+    ├── update-client.dto.ts          # Tags, notes, internal notes
+    └── create-client.dto.ts          # Manual client creation
+
+# API Key Auth
+apps/api/src/auth/
+├── api-key.guard.ts                  # @UseGuards(ApiKeyGuard) — X-API-Key header
+├── api-key.service.ts                # Generate, validate, revoke keys
+├── api-key.controller.ts             # CRUD for API keys
+└── dto/
+    ├── create-api-key.dto.ts         # Name, permissions, expiry
+    └── list-api-keys.dto.ts          # Pagination
+
+# Discount Management
+apps/api/src/discounts/
+├── discounts.module.ts               # NestJS module
+├── discounts.controller.ts           # Admin CRUD + public validate
+├── discounts.service.ts              # Discount logic (validation, application)
+└── dto/
+    ├── create-discount.dto.ts
+    ├── update-discount.dto.ts
+    └── apply-discount.dto.ts
+
+# Platform Admin CLI Scripts
+scripts/admin/
+├── _shared.ts                        # Prisma client init, helpers
+├── list-tenants.ts
+├── platform-config.ts
+├── revenue-summary.ts
+├── dead-letter.ts
+├── manage-roles.ts
+├── suspend-tenant.ts
+└── import-clients.ts                 # Should item
+```
+
+#### Backend Files to Modify
+
+```
+apps/api/src/app.module.ts             # Register ClientPortalModule, ClientsModule, DiscountsModule
+apps/api/src/auth/auth.module.ts       # Register ApiKeyService, ApiKeyController
+apps/api/src/common/guards/jwt-auth.guard.ts  # Support ApiKey fallback
+apps/api/src/bookings/bookings.service.ts     # Auto-create ClientProfile on booking
+apps/api/src/booking-sessions/booking-sessions.service.ts  # Guest checkout flow, discount application
+apps/api/src/booking-sessions/booking-sessions.controller.ts  # apply-discount endpoint
+apps/api/src/config/env.validation.ts  # No new env vars expected (all use existing DB)
+apps/api/package.json                  # Add csv-parser dependency
+package.json                           # Add admin:* scripts
+```
+
+#### Frontend Files to Create
+
+```
+# Client Portal Layout + Pages
+apps/web/src/app/(portal)/
+├── layout.tsx                         # Portal layout (top navbar, no sidebar)
+├── page.tsx                           # /portal → dashboard (redirect or render)
+├── bookings/
+│   ├── page.tsx                      # Booking list (cross-business)
+│   └── [id]/
+│       └── page.tsx                  # Booking detail + cancel
+├── payments/
+│   └── page.tsx                      # Invoices + payment history
+├── profile/
+│   └── page.tsx                      # Edit profile form
+└── settings/
+    └── page.tsx                      # Data export, account deletion
+
+# Portal Components
+apps/web/src/components/portal/
+├── portal-navbar.tsx                  # Top navigation bar
+├── portal-booking-card.tsx            # Booking summary card
+├── portal-cancel-dialog.tsx           # Cancel with policy display
+├── portal-invoice-card.tsx            # Invoice summary
+└── portal-account-actions.tsx         # Data export + deletion
+
+# Admin Calendar
+apps/web/src/app/(dashboard)/calendar/
+└── page.tsx                           # REPLACE existing placeholder
+
+apps/web/src/components/calendar/
+├── booking-calendar.tsx               # react-big-calendar wrapper
+├── calendar-event.tsx                 # Custom event rendering
+├── calendar-toolbar.tsx               # Custom toolbar (today, back/next, views)
+└── calendar-sidebar.tsx               # Optional: mini-calendar + legend
+
+# Admin Clients
+apps/web/src/app/(dashboard)/clients/
+├── page.tsx                           # REPLACE existing placeholder
+└── [id]/
+    └── page.tsx                      # Client detail + history
+
+apps/web/src/components/clients/
+├── client-list-table.tsx              # Filterable, searchable table
+├── client-detail-card.tsx             # Client info + stats
+├── client-notes.tsx                   # Editable notes
+└── client-booking-history.tsx         # Per-client booking table
+
+# Admin Payments Page
+apps/web/src/app/(dashboard)/payments/
+└── page.tsx                           # Dedicated payment management page
+
+# Admin Settings
+apps/web/src/app/(dashboard)/settings/branding/
+└── page.tsx                           # Booking page branding editor
+
+apps/web/src/app/(dashboard)/settings/discounts/
+└── page.tsx                           # Discount management CRUD
+
+# Guest Checkout Components (Should item)
+apps/web/src/components/booking/
+└── client-info-step.tsx               # Name, email, phone capture
+```
+
+#### Frontend Files to Modify
+
+```
+apps/web/src/middleware.ts                     # Add /portal/* as protected (requires auth, not admin)
+apps/web/src/components/layout/sidebar.tsx     # Add Clients, Payments nav items
+apps/web/src/lib/constants.ts                  # Add portal + new admin API routes
+apps/web/src/providers/auth-provider.tsx       # Role-based redirect (admin vs portal)
+apps/web/src/app/(dashboard)/settings/page.tsx # Add Branding + Discounts links
+apps/web/src/app/book/[slug]/page.tsx          # Apply tenant branding (brand color, logo)
+apps/web/src/components/booking/booking-wizard.tsx    # Guest checkout step integration
+apps/web/src/components/booking/pricing-summary-step.tsx  # Discount code input
+apps/web/package.json                          # Add react-big-calendar, react-colorful
+```
+
+### 20.5 API Endpoints — Sprint 5
+
+#### Client Portal API (Auth, NOT tenant-scoped)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/portal/dashboard` | Dashboard data (upcoming bookings, recent payments, stats) |
+| GET | `/api/portal/bookings` | List client's bookings across all businesses (paginated, filterable) |
+| GET | `/api/portal/bookings/:id` | Booking detail (includes service, business, payment info) |
+| POST | `/api/portal/bookings/:id/cancel` | Cancel booking (evaluates cancellation policy) |
+| GET | `/api/portal/payments` | List client's invoices + payments across all businesses |
+| GET | `/api/portal/profile` | Get client profile (name, email, phone) |
+| PATCH | `/api/portal/profile` | Update client profile |
+| POST | `/api/portal/data-export` | Request GDPR data export (creates DataRequest, enqueues job) |
+| POST | `/api/portal/account-deletion` | Request account deletion (creates DataRequest) |
+
+#### Client Management API (Auth + TenantRoles)
+
+| Method | Path | Roles | Description |
+|--------|------|-------|-------------|
+| GET | `/api/tenants/:tenantId/clients` | OWNER, ADMIN, STAFF | List clients (aggregated, searchable, sortable) |
+| GET | `/api/tenants/:tenantId/clients/:id` | OWNER, ADMIN, STAFF | Client detail + booking history + payments |
+| PATCH | `/api/tenants/:tenantId/clients/:id` | OWNER, ADMIN | Update tags, notes, internal notes |
+| POST | `/api/tenants/:tenantId/clients` | OWNER, ADMIN | Create client profile manually |
+
+#### API Key Management (Auth + TenantRoles)
+
+| Method | Path | Roles | Description |
+|--------|------|-------|-------------|
+| GET | `/api/tenants/:tenantId/api-keys` | OWNER | List API keys (prefix, name, last used, active) |
+| POST | `/api/tenants/:tenantId/api-keys` | OWNER | Create API key (returns full key once) |
+| DELETE | `/api/tenants/:tenantId/api-keys/:id` | OWNER | Revoke API key |
+
+#### Calendar Data API (Auth + TenantRoles)
+
+| Method | Path | Roles | Description |
+|--------|------|-------|-------------|
+| GET | `/api/tenants/:tenantId/calendar/events` | OWNER, ADMIN, STAFF | Calendar data (bookings + blocked + inbound) for date range |
+
+#### Discount Management API (Auth + TenantRoles)
+
+| Method | Path | Roles | Description |
+|--------|------|-------|-------------|
+| GET | `/api/tenants/:tenantId/discounts` | OWNER, ADMIN | List discounts |
+| POST | `/api/tenants/:tenantId/discounts` | OWNER, ADMIN | Create discount |
+| PATCH | `/api/tenants/:tenantId/discounts/:id` | OWNER, ADMIN | Update discount |
+| DELETE | `/api/tenants/:tenantId/discounts/:id` | OWNER, ADMIN | Deactivate discount |
+| POST | `/api/booking-sessions/:id/apply-discount` | Public | Validate + apply promo code to session |
+
+#### Booking Flow Configuration (existing endpoint enhanced)
+
+| Method | Path | Roles | Description |
+|--------|------|-------|-------------|
+| PATCH | `/api/tenants/:tenantId/services/:id` | OWNER, ADMIN | Update service config (confirmation mode, cancellation policy, deposit config, intake form) — **existing endpoint, expanded validation** |
+
+**Total new endpoints: ~23** (9 portal + 4 clients + 3 API keys + 1 calendar + 5 discounts + 1 apply-discount)
+**Cumulative total: ~99+ endpoints**
+
+### 20.6 Dependencies to Install
+
+**API (`apps/api`):**
+```
+csv-parser                 # CSV parsing for data import CLI
+```
+
+**Web (`apps/web`):**
+```
+react-big-calendar         # Interactive calendar component
+date-fns                   # Already installed (Sprint 3), localizer for react-big-calendar
+react-colorful             # Color picker for branding settings
+@types/react-big-calendar  # TypeScript types
+```
+
+### 20.7 Sub-Agent Assignment Matrix
+
+| Wave | Agent | Type | Scope | Est. Files | Key Outputs |
+|------|-------|------|-------|------------|-------------|
+| 1 | Main | Backend | Module scaffolding, dependencies, discount endpoints | ~10 files | Foundation for all Wave 2 agents |
+| 2A | Parallel Agent A | Backend | Client Portal (controller, service, DTOs, tests) | ~10 files | 9 portal endpoints |
+| 2B | Parallel Agent B | Backend | Admin CRM (clients, calendar data, payments, branding) | ~10 files | 5+ admin endpoints |
+| 2C | Parallel Agent C | Scripts | Platform Admin CLI (7 scripts + shared utils) | ~8 files | 7 CLI commands |
+| 3D | Parallel Agent D | Frontend | Client Portal (layout + 6 pages + 5 components) | ~13 files | /portal/* section |
+| 3E | Parallel Agent E | Frontend | Admin Calendar + Client Management | ~10 files | Calendar view, client pages |
+| 3F | Parallel Agent F | Frontend | Admin Settings (branding, discounts, payments page, booking flow config) | ~6 files | Settings pages |
+| 4G | Parallel Agent G | Full Stack | Guest checkout (backend + frontend) | ~4 files | FR-BFW-17 |
+| 4H | Parallel Agent H | Backend | Data import CLI | ~2 files | FR-IMP-1 |
+| 5 | Main | Integration | Wire modules, update middleware, navigation | ~8 files modified | Everything connected |
+| 6 | Main | Verification | Tests, lint, typecheck, build | Tests | Green CI |
+
+### 20.8 Risk Mitigations
+
+| Risk | Severity | Mitigation |
+|------|----------|------------|
+| Client Portal cross-tenant queries bypassing RLS | High | Portal service uses direct Prisma queries (not tenant-extended client) filtered by `clientId` from JWT. Never expose data from other clients. Unit test with multiple clients to verify isolation. |
+| react-big-calendar bundle size impact | Medium | Dynamic import (`next/dynamic`) with SSR disabled for calendar component. Lazy-load only on calendar page. |
+| Calendar performance with many events | Medium | Fetch events only for visible date range (not all bookings). Use `GET /api/tenants/:tenantId/calendar/events?start=&end=` with date range filtering. Cache aggressively on frontend (TanStack Query). |
+| Admin/Portal routing ambiguity for dual-role users | Medium | Check `tenant_memberships` existence. If user has memberships, default to admin. Add "Switch to Portal View" link in admin header. Portal always accessible regardless of role. |
+| Guest checkout email collisions | Low | `findOrCreateUser` uses upsert pattern. If email exists, link booking to existing user. No duplicate user creation. |
+| CLI scripts database access without RLS | Low | CLI scripts connect as superuser (standard Prisma client, no RLS). This is intentional — platform admin needs cross-tenant access. Scripts are never exposed to end users. |
+| Data import malformed files | Low | csv-parser handles encoding/delimiter issues. Each row wrapped in try/catch with ImportRecord.ERROR status. Never abort entire import for single row failures. |
+| Color picker accessibility | Low | Use react-colorful which provides WAI-ARIA compliant controls. Also offer hex input field for keyboard users. |
+| Large calendar date ranges causing slow queries | Medium | Limit query to max 31 days per request. For month view, fetch entire month. For week view, fetch 7 days. Indexed queries on `start_time` + `tenant_id`. |
+
+### 20.9 Acceptance Criteria
+
+**Client Portal Backend:**
+- [x] 9 portal API endpoints operational with JWT auth (no tenant scoping)
+- [x] Client can list their bookings across all businesses with pagination
+- [x] Client can view booking detail (service, business, payment, status history)
+- [x] Client can cancel a booking (cancellation policy evaluated, refund initiated if applicable)
+- [x] Client can view their invoices and payment history
+- [x] Client can update their profile (name, email, phone)
+- [x] Client can request GDPR data export (DataRequest created)
+- [x] Client can request account deletion (DataRequest created)
+- [x] ClientProfile auto-created when booking is made with a new client
+
+**Client Portal Frontend:**
+- [x] Portal layout with top navbar, mobile-responsive
+- [x] `/portal` dashboard with upcoming bookings and recent activity
+- [x] `/portal/bookings` with list, filters, pagination
+- [x] `/portal/bookings/[id]` with cancel dialog and policy display
+- [x] `/portal/payments` with invoice list and payment history
+- [x] `/portal/profile` with edit form
+- [x] `/portal/settings` with data export and account deletion actions
+- [x] Middleware correctly protects /portal/* routes
+
+**Admin CRM Completion:**
+- [x] Calendar page: full interactive day/week/month views via react-big-calendar
+- [x] Calendar shows bookings (colored by status), blocked dates, INBOUND calendar events
+- [x] Calendar click handlers: event → booking detail, empty slot → walk-in dialog
+- [x] Client management: list with search, filter, sort, pagination
+- [x] Client detail: contact info, stats (total bookings, revenue, last visit), booking history, notes
+- [x] Client notes: editable inline with auto-save
+- [x] Dedicated payments page with filters and revenue stats
+- [x] Booking page branding settings: color picker, logo upload, cover photo
+- [x] Booking page applies tenant branding (brand color on buttons/headers, logo, cover photo)
+- [x] Booking flow configuration: confirmation mode, cancellation policy, deposit config per service
+- [x] Sidebar updated with Clients and Payments navigation items
+
+**RBAC & API Keys:**
+- [x] API key CRUD endpoints (create returns key once, list shows prefix only)
+- [x] API key auth guard validates `X-API-Key` header, sets tenant context
+- [x] API key auth works in parallel with JWT auth
+
+**Platform Admin CLI:**
+- [x] `pnpm admin:list-tenants` — lists tenants with booking/revenue stats
+- [x] `pnpm admin:revenue-summary` — platform fee + commission report by period
+- [x] `pnpm admin:dead-letter` — list/retry/purge dead-letter webhook items
+- [x] `pnpm admin:manage-roles` — grant/revoke PLATFORM_ADMIN role
+- [x] `pnpm admin:suspend-tenant` — suspend/unsuspend with status check
+- [x] `pnpm admin:platform-config` — view/set platform configuration
+
+**Should Items (all completed):**
+- [x] Guest checkout: CLIENT_INFO step, passwordless user creation, guestDetails on Booking
+- [x] Discount codes: admin CRUD, validate + apply in booking flow
+- [x] Data import CLI: CSV parsing, client import with --dry-run/--skip-duplicates/--update-existing
+
+**Verification:**
+- [x] `pnpm lint` — 0 errors
+- [x] `pnpm typecheck` — 0 errors
+- [x] `pnpm test` — 870 tests passing (414 API + 444 shared + 12 UI)
+- [x] `pnpm build` — All packages build successfully
+
+---
+
+## 21. Sprint 5 Implementation Results
+
+**Completed:** March 3, 2026 | **Duration:** Same-day execution via 6-wave parallel sub-agent strategy
+
+### 21.1 Execution Strategy
+
+Sprint 5 was executed in 6 waves with up to 4 parallel sub-agents per wave:
+
+| Wave | Scope | Agents | Status |
+|------|-------|--------|--------|
+| 1 | Install dependencies (react-big-calendar, react-colorful, csv-parser) | 1 | Done |
+| 2 | Backend modules: ClientPortal, Clients, Discounts, API Keys, CLI scripts | 3 parallel | Done |
+| 3 | Frontend pages: Portal (7 pages), Calendar, Clients, Payments, Settings | 4 parallel | Done |
+| 4 | Should items: Guest checkout (backend + frontend), Data import CLI | 3 parallel | Done |
+| 5 | Integration wiring: middleware, routes, module registration | 1 (manual) | Done |
+| 6 | Verification: lint, typecheck, test, build + fix cycle | 1 | Done |
+
+### 21.2 Backend Modules Delivered
+
+**New NestJS Modules (4):**
+
+```
+apps/api/src/client-portal/          # Cross-tenant client portal
+├── client-portal.module.ts
+├── client-portal.controller.ts      # 9 endpoints at /api/portal/*
+├── client-portal.service.ts         # Dashboard, bookings, payments, profile, GDPR
+├── dto/list-portal-bookings.dto.ts
+├── dto/cancel-portal-booking.dto.ts
+└── dto/update-profile.dto.ts
+
+apps/api/src/clients/                # Tenant-scoped client management
+├── clients.module.ts
+├── clients.controller.ts            # 4 endpoints at /api/tenants/:tenantId/clients
+├── clients.service.ts               # List w/ stats, detail, create, update
+├── dto/list-clients.dto.ts
+├── dto/create-client.dto.ts
+└── dto/update-client.dto.ts
+
+apps/api/src/discounts/              # Discount/promo code management
+├── discounts.module.ts
+├── discounts.controller.ts          # 2 controllers: admin CRUD + public validation
+├── discounts.service.ts             # CRUD, validateCode, validateForSession
+├── dto/create-discount.dto.ts
+├── dto/update-discount.dto.ts
+└── dto/apply-discount.dto.ts
+
+apps/api/src/auth/                   # API key auth (added to existing AuthModule)
+├── api-key.service.ts               # Generate, validate, findAll, revoke
+├── api-key.guard.ts                 # Standalone CanActivate guard
+├── api-key.controller.ts            # 3 endpoints at /api/tenants/:tenantId/api-keys
+└── dto/create-api-key.dto.ts
+```
+
+**Modified Modules:**
+- `booking-sessions.service.ts` — Added CLIENT_INFO step type, guest checkout flow (passwordless user creation in `complete()` and `processPayment()`)
+- `auth.module.ts` — Registered ApiKeyService, ApiKeyController
+- `common/guards/jwt-auth.guard.ts` — Added X-API-Key header fallback via ModuleRef lazy resolution
+
+**Platform Admin CLI (7 scripts):**
+```
+scripts/admin/
+├── _shared.ts              # PrismaClient singleton, parseArgs, formatTable
+├── list-tenants.ts         # Tenant listing with booking/revenue stats
+├── revenue-summary.ts      # Revenue report with date ranges
+├── dead-letter.ts          # Webhook dead-letter queue management
+├── manage-roles.ts         # Grant/revoke PLATFORM_ADMIN role
+├── suspend-tenant.ts       # Tenant suspension with AuditLog
+├── platform-config.ts      # JSON file-based platform configuration
+└── import-clients.ts       # CSV client import with dry-run support
+```
+
+### 21.3 Frontend Delivered
+
+**New Pages (11):**
+
+Portal (7 pages):
+- `(portal)/layout.tsx` — Auth guard, PortalNavbar, responsive layout
+- `portal/page.tsx` — Dashboard with upcoming bookings, stats, recent payments
+- `portal/bookings/page.tsx` — Booking list with status filter, pagination
+- `portal/bookings/[id]/page.tsx` — Booking detail with cancel dialog, policy, timeline
+- `portal/payments/page.tsx` — Invoice list with expandable payment history
+- `portal/profile/page.tsx` — Edit form with react-hook-form + zod
+- `portal/settings/page.tsx` — Data export + account deletion
+
+Admin (4 pages):
+- `calendar/page.tsx` — react-big-calendar with 4 views, color-coded events
+- `clients/[id]/page.tsx` — Client detail with stats, tags, notes, history
+- `payments/page.tsx` — Revenue stats cards, filterable payments table
+- `settings/branding/page.tsx` — Color picker (react-colorful), logo/cover upload
+- `settings/discounts/page.tsx` — Discount CRUD table with create/edit dialogs
+
+**Replaced Pages (4):**
+- `calendar/page.tsx` — Upgraded from placeholder to full react-big-calendar
+- `clients/page.tsx` — Upgraded from placeholder to search/filter/sort client list
+- `settings/page.tsx` — Added Branding + Discounts cards to settings hub
+
+**New Components (2):**
+- `components/portal/portal-navbar.tsx` — Sticky top nav with mobile hamburger
+- `components/booking/guest-info-step.tsx` — Guest checkout form (name, email, phone)
+
+**Modified Files:**
+- `components/layout/sidebar.tsx` — Added Payments nav item
+- `components/booking/booking-wizard.tsx` — Added CLIENT_INFO case
+- `components/booking/booking-types.ts` — Added CLIENT_INFO type, guest fields
+- `app/book/[slug]/page.tsx` — Applied tenant branding via CSS custom properties
+- `lib/constants.ts` — Added PAYMENTS, SETTINGS_BRANDING, SETTINGS_DISCOUNTS, portal routes
+- `middleware.ts` — Added /portal, /payments, /bookings to protected prefixes
+- `(dashboard)/layout.tsx` — Added page titles for new routes
+
+### 21.4 API Endpoints Implemented — Sprint 5
+
+| # | Method | Path | Auth | Description |
+|---|--------|------|------|-------------|
+| 1 | GET | `/api/portal/dashboard` | JWT | Client portal dashboard |
+| 2 | GET | `/api/portal/bookings` | JWT | List client's bookings (cross-tenant) |
+| 3 | GET | `/api/portal/bookings/:id` | JWT | Get booking detail |
+| 4 | POST | `/api/portal/bookings/:id/cancel` | JWT | Cancel booking (policy eval) |
+| 5 | GET | `/api/portal/payments` | JWT | List invoices/payments |
+| 6 | GET | `/api/portal/profile` | JWT | Get user profile |
+| 7 | PATCH | `/api/portal/profile` | JWT | Update profile |
+| 8 | POST | `/api/portal/data-export` | JWT | Request GDPR data export |
+| 9 | POST | `/api/portal/account-deletion` | JWT | Request account deletion |
+| 10 | GET | `/api/tenants/:id/clients` | JWT+Role | List clients with stats |
+| 11 | GET | `/api/tenants/:id/clients/:clientId` | JWT+Role | Client detail |
+| 12 | PATCH | `/api/tenants/:id/clients/:clientId` | JWT+Role | Update client profile |
+| 13 | POST | `/api/tenants/:id/clients` | JWT+Role | Create client |
+| 14 | GET | `/api/tenants/:id/discounts` | JWT+Role | List discounts |
+| 15 | POST | `/api/tenants/:id/discounts` | JWT+Role | Create discount |
+| 16 | PATCH | `/api/tenants/:id/discounts/:discountId` | JWT+Role | Update discount |
+| 17 | DELETE | `/api/tenants/:id/discounts/:discountId` | JWT+Role | Deactivate discount |
+| 18 | POST | `/api/booking-sessions/:id/apply-discount` | Public | Validate discount for session |
+| 19 | GET | `/api/tenants/:id/api-keys` | JWT+Owner | List API keys |
+| 20 | POST | `/api/tenants/:id/api-keys` | JWT+Owner | Create API key |
+| 21 | DELETE | `/api/tenants/:id/api-keys/:keyId` | JWT+Owner | Revoke API key |
+
+### 21.5 Dependencies Added
+
+```bash
+# Frontend
+react-big-calendar     # Interactive calendar component (MIT)
+@types/react-big-calendar
+react-colorful         # Color picker for branding settings
+
+# Backend
+csv-parser             # CSV parsing for data import CLI (built-in types)
+```
+
+### 21.6 Key Technical Decisions
+
+1. **Client Portal queries bypass RLS** — Portal endpoints query by clientId across all tenants using direct PrismaService (not the tenant-scoped extension). Safe because queries only return data where clientId matches the authenticated user's JWT.
+
+2. **API key + JWT coexistence** — JwtAuthGuard checks X-API-Key header first via ModuleRef lazy resolution. If API key present and valid, bypasses Passport entirely. Populates request.user with synthetic payload matching JWT structure.
+
+3. **Guest checkout flow** — CLIENT_INFO step always included in public booking flow. When clientId is null at completion, system creates a passwordless user (passwordHash=null, emailVerified=false) or reuses an existing user by email. Booking.guestDetails JSONB stores the collected info.
+
+4. **react-big-calendar** — Chosen over FullCalendar (lighter, MIT licensed, React-native, supports date-fns localizer already in use).
+
+5. **Discount validation** — Two-controller pattern: DiscountsAdminController (tenant-scoped CRUD) and DiscountValidationController (public, session-based). Validates: active status, date range, usage limit, minimum booking amount.
+
+### 21.7 Test Files — Sprint 5
+
+```
+test/client-portal.service.spec.ts   # 46 tests — portal dashboard, bookings, cancellation, payments, profile, GDPR
+test/clients.service.spec.ts         # 43 tests — client list with stats, detail, create, update
+test/discounts.service.spec.ts       # 33 tests — CRUD, code validation, session validation
+test/api-key.service.spec.ts         # 39 tests — key generation, validation, timing-safe comparison, revocation
+```
+
+### 21.8 Verification Results
+
+```
+pnpm lint       ✅  6/6 packages pass (0 errors)
+pnpm typecheck  ✅  6/6 packages pass (0 errors)
+pnpm test       ✅  870 tests pass (414 API across 17 files + 444 shared + 12 UI)
+pnpm build      ✅  5/5 packages build (30 Next.js pages, NestJS API)
+```
+
+### 21.9 Cumulative Sprint Summary
+
+| Metric | Sprint 1 | Sprint 2 | Sprint 3 | Sprint 4 | Sprint 5 | Total |
+|--------|----------|----------|----------|----------|----------|-------|
+| Prisma models | 75 | — | — | — | — | 75 |
+| API modules | 5 | 11 | 15 | 22 (+7) | 26 (+4) | 26 |
+| API endpoints | 1 | 40+ | 22 | 14 | 21 | 97+ |
+| Frontend pages | 0 | 18 | 21 | 24 (+3) | 35 (+11) | 35 |
+| Frontend components | 0 | ~20 | ~33 | ~37 (+4) | ~40 (+3) | ~40 |
+| Test files (API) | 1 | 5 | 8 | 13 (+5) | 17 (+4) | 17 |
+| Tests (API) | 3 | 28 | 123 | 253 (+130) | 414 (+161) | 414 |
+| Tests (total) | 3 | 28 | 123 | 709 | 870 (+161) | 870 |
+| Background jobs | 0 | 0 | 0 | 22 | 22 | 22 |
+| CLI scripts | 0 | 0 | 0 | 0 | 8 | 8 |
+
+### 21.10 What's Next — Sprint 6 Scope
+
+Sprint 6 (Week 11-12): Polish, Team Management, Deployment Prep
+- **Team management (FR-CRM-11):** Staff member CRUD, role assignment, availability per staff, staff assignment to bookings
+- **End-to-end testing:** Playwright/Cypress for critical flows (public booking, admin CRUD, portal)
+- **Performance optimization:** Bundle analysis, lazy loading, API query optimization
+- **Deployment preparation:** Fly.io + Vercel configs, environment variable management, database migrations strategy
+- **Documentation:** API docs (Swagger), user guide, developer onboarding

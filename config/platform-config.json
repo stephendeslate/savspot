@@ -1,0 +1,6 @@
+{
+  "platform_fee_percent": 1,
+  "referral_commission_percent": 5,
+  "max_free_tier_bookings": 50,
+  "maintenance_mode": false
+}

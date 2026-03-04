@@ -17,6 +17,7 @@ type BookingStepType =
   | 'GUEST_COUNT'
   | 'DATE_TIME_PICKER'
   | 'PRICING_SUMMARY'
+  | 'CLIENT_INFO'
   | 'PAYMENT'
   | 'CONFIRMATION';
 
@@ -218,10 +219,47 @@ export class BookingSessionsService {
     }
 
     const sessionData = (session.data ?? {}) as Record<string, unknown>;
-    const clientId = session.clientId ?? (sessionData['clientId'] as string | undefined);
+    let clientId = session.clientId ?? (sessionData['clientId'] as string | undefined);
 
+    // Guest checkout: create a passwordless user if no clientId
     if (!clientId) {
-      throw new BadRequestException('Session must have a client associated');
+      const guestEmail = sessionData['guestEmail'] as string | undefined;
+      const guestName = sessionData['guestName'] as string | undefined;
+
+      if (!guestEmail || !guestName) {
+        throw new BadRequestException(
+          'Guest checkout requires email and name. Complete the contact information step first.',
+        );
+      }
+
+      const guestPhone = (sessionData['guestPhone'] as string | undefined) ?? null;
+
+      // Find existing user by email or create a passwordless one
+      let user = await this.prisma.user.findUnique({
+        where: { email: guestEmail.toLowerCase().trim() },
+      });
+
+      if (!user) {
+        user = await this.prisma.user.create({
+          data: {
+            email: guestEmail.toLowerCase().trim(),
+            name: guestName.trim(),
+            phone: guestPhone,
+            passwordHash: null,
+            emailVerified: false,
+            role: 'USER',
+          },
+        });
+        this.logger.log(`Guest checkout: created passwordless user ${user.id} for ${user.email}`);
+      }
+
+      clientId = user.id;
+
+      // Update session with the resolved clientId
+      await this.prisma.bookingSession.update({
+        where: { id },
+        data: { clientId },
+      });
     }
 
     const guestCount = (sessionData['guestCount'] as number | undefined) ?? null;
@@ -252,6 +290,11 @@ export class BookingSessionsService {
           guestCount,
           notes,
           source: session.source,
+          guestDetails: sessionData['guestEmail'] ? {
+            email: sessionData['guestEmail'],
+            name: sessionData['guestName'],
+            phone: sessionData['guestPhone'] ?? null,
+          } as unknown as Prisma.InputJsonValue : Prisma.JsonNull,
         },
       }),
       this.prisma.dateReservation.update({
@@ -380,6 +423,13 @@ export class BookingSessionsService {
       order: order++,
     });
 
+    // CLIENT_INFO: always included for public booking sessions to collect guest details
+    steps.push({
+      type: 'CLIENT_INFO',
+      label: 'Your Details',
+      order: order++,
+    });
+
     // PAYMENT: if tenant has payment provider onboarded and service price > 0
     if (service) {
       const tenant = await this.prisma.tenant.findUnique({
@@ -479,8 +529,49 @@ export class BookingSessionsService {
     });
 
     const sessionData = (session.data ?? {}) as Record<string, unknown>;
-    const clientId =
+    let clientId =
       session.clientId ?? (sessionData['clientId'] as string | undefined);
+
+    // Guest checkout: create a passwordless user if no clientId
+    if (!clientId) {
+      const guestEmail = sessionData['guestEmail'] as string | undefined;
+      const guestName = sessionData['guestName'] as string | undefined;
+
+      if (!guestEmail || !guestName) {
+        throw new BadRequestException(
+          'Guest checkout requires email and name. Complete the contact information step first.',
+        );
+      }
+
+      const guestPhone = (sessionData['guestPhone'] as string | undefined) ?? null;
+
+      // Find existing user by email or create a passwordless one
+      let user = await this.prisma.user.findUnique({
+        where: { email: guestEmail.toLowerCase().trim() },
+      });
+
+      if (!user) {
+        user = await this.prisma.user.create({
+          data: {
+            email: guestEmail.toLowerCase().trim(),
+            name: guestName.trim(),
+            phone: guestPhone,
+            passwordHash: null,
+            emailVerified: false,
+            role: 'USER',
+          },
+        });
+        this.logger.log(`Guest checkout: created passwordless user ${user.id} for ${user.email}`);
+      }
+
+      clientId = user.id;
+
+      // Update session with the resolved clientId
+      await this.prisma.bookingSession.update({
+        where: { id: sessionId },
+        data: { clientId },
+      });
+    }
 
     if (!booking) {
       if (!clientId) {

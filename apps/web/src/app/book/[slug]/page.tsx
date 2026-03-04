@@ -167,6 +167,10 @@ function ServiceCard({
           className="w-full"
           onClick={() => onBook(service.id)}
           disabled={isStarting}
+          style={{
+            backgroundColor: 'var(--brand-color)',
+            borderColor: 'var(--brand-color)',
+          }}
         >
           {isStarting ? (
             <span className="inline-flex items-center gap-2">
@@ -390,7 +394,9 @@ export default function BookingPage() {
     return null;
   }
 
-  // Brand color accent style
+  // Brand color CSS custom property and accent style
+  const brandColor = tenant.brandColor || '#6366f1';
+  const brandCssVars = { '--brand-color': brandColor } as React.CSSProperties;
   const brandStyle: React.CSSProperties = tenant.brandColor
     ? { backgroundColor: tenant.brandColor, color: '#ffffff' }
     : {};
@@ -398,7 +404,10 @@ export default function BookingPage() {
   // If we have an active booking session, show the wizard
   if (bookingSession) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-6">
+      <div
+        className="mx-auto max-w-3xl px-4 py-6"
+        style={brandCssVars}
+      >
         {/* Back to services */}
         <button
           onClick={exitWizard}
@@ -420,8 +429,8 @@ export default function BookingPage() {
             </div>
           ) : (
             <div
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground"
-              style={brandStyle}
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-sm font-bold text-white"
+              style={{ backgroundColor: brandColor }}
             >
               {tenant.name.charAt(0).toUpperCase()}
             </div>
@@ -441,14 +450,22 @@ export default function BookingPage() {
 
   // Main booking page with service listing
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
+    <div
+      className="mx-auto max-w-5xl px-4 py-8"
+      style={brandCssVars}
+    >
       <HeroSection tenant={tenant} brandStyle={brandStyle} />
 
       <Separator className="my-6" />
 
       {/* Service listing */}
       <section>
-        <h2 className="mb-4 text-xl font-semibold">Our Services</h2>
+        <h2
+          className="mb-4 text-xl font-semibold"
+          style={{ color: brandColor }}
+        >
+          Our Services
+        </h2>
         {tenant.services.length === 0 ? (
           <p className="py-8 text-center text-muted-foreground">
             No services available at this time. Please check back later.
