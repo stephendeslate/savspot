@@ -67,15 +67,20 @@ export class TenantRolesGuard implements CanActivate {
       throw new ForbiddenException('Tenant context required');
     }
 
-    // Look up the membership from the database
-    const membership = await this.prismaService.tenantMembership.findUnique({
-      where: {
-        tenantId_userId: {
-          tenantId,
-          userId,
+    // Look up the membership in an interactive transaction so that
+    // set_config and the query share the same pooled connection.
+    // This is required for FORCE ROW LEVEL SECURITY compatibility.
+    const membership = await this.prismaService.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+      return tx.tenantMembership.findUnique({
+        where: {
+          tenantId_userId: {
+            tenantId,
+            userId,
+          },
         },
-      },
-      select: { role: true },
+        select: { role: true },
+      });
     });
 
     if (!membership) {
