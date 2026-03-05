@@ -28,7 +28,7 @@ interface PaymentRecord {
   id: string;
   status: string;
   amount: string;
-  paymentType: string;
+  type: string;
   createdAt: string;
 }
 
@@ -275,7 +275,7 @@ export default function PortalPaymentsPage() {
                           >
                             <div className="space-y-0.5">
                               <p className="text-xs font-medium">
-                                {formatStatus(payment.paymentType)}
+                                {formatStatus(payment.type)}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 {format(
@@ -398,7 +398,7 @@ export default function PortalPaymentsPage() {
                               Payment
                             </TableCell>
                             <TableCell className="text-muted-foreground">
-                              {formatStatus(payment.paymentType)}
+                              {formatStatus(payment.type)}
                             </TableCell>
                             <TableCell className="whitespace-nowrap text-muted-foreground">
                               {format(

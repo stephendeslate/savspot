@@ -43,7 +43,7 @@ interface Payment {
   amount: string;
   currency: string;
   status: string;
-  paymentType: string;
+  type: string;
   createdAt: string;
   booking: {
     id: string;
@@ -500,7 +500,7 @@ export default function PaymentsPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {formatPaymentType(payment.paymentType)}
+                          {formatPaymentType(payment.type)}
                         </Badge>
                       </TableCell>
                     </TableRow>

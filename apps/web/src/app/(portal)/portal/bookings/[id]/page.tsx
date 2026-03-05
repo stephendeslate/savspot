@@ -48,7 +48,7 @@ interface BookingPayment {
   id: string;
   status: string;
   amount: string;
-  paymentType: string;
+  type: string;
 }
 
 interface CancellationPolicy {
@@ -60,8 +60,8 @@ interface CancellationPolicy {
 
 interface StateHistoryEntry {
   id: string;
-  fromStatus: string | null;
-  toStatus: string;
+  fromState: string | null;
+  toState: string;
   reason: string | null;
   createdAt: string;
 }
@@ -79,7 +79,7 @@ interface PortalBookingDetail {
   business: BookingBusiness;
   payments: BookingPayment[];
   cancellationPolicy: CancellationPolicy | null;
-  stateHistory: StateHistoryEntry[];
+  bookingStateHistory: StateHistoryEntry[];
 }
 
 // ---------- Helpers ----------
@@ -404,17 +404,17 @@ export default function PortalBookingDetailPage() {
           </Card>
 
           {/* Status history timeline */}
-          {booking.stateHistory && booking.stateHistory.length > 0 && (
+          {booking.bookingStateHistory && booking.bookingStateHistory.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Status History</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {booking.stateHistory.map((entry, index) => (
+                  {booking.bookingStateHistory.map((entry, index) => (
                     <div key={entry.id} className="relative flex gap-3">
                       {/* Connector line */}
-                      {index < booking.stateHistory.length - 1 && (
+                      {index < booking.bookingStateHistory.length - 1 && (
                         <div className="absolute left-[7px] top-4 h-full w-px bg-border" />
                       )}
                       {/* Dot */}
@@ -422,13 +422,13 @@ export default function PortalBookingDetailPage() {
                       {/* Content */}
                       <div className="min-w-0 flex-1 pb-4">
                         <div className="flex flex-wrap items-center gap-2">
-                          {entry.fromStatus && (
+                          {entry.fromState && (
                             <>
                               <Badge
                                 variant="outline"
-                                className={`text-xs ${getStatusColor(entry.fromStatus)}`}
+                                className={`text-xs ${getStatusColor(entry.fromState)}`}
                               >
-                                {formatStatus(entry.fromStatus)}
+                                {formatStatus(entry.fromState)}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
                                 &rarr;
@@ -437,9 +437,9 @@ export default function PortalBookingDetailPage() {
                           )}
                           <Badge
                             variant="outline"
-                            className={`text-xs ${getStatusColor(entry.toStatus)}`}
+                            className={`text-xs ${getStatusColor(entry.toState)}`}
                           >
-                            {formatStatus(entry.toStatus)}
+                            {formatStatus(entry.toState)}
                           </Badge>
                         </div>
                         {entry.reason && (
@@ -510,7 +510,7 @@ export default function PortalBookingDetailPage() {
                           Method
                         </span>
                         <span className="text-sm">
-                          {formatStatus(payment.paymentType)}
+                          {formatStatus(payment.type)}
                         </span>
                       </div>
                     </div>
