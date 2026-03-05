@@ -26,6 +26,8 @@ jobs:
       - run: pnpm db:generate
       - run: pnpm lint
       - run: pnpm typecheck
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
 
   test:
     name: Test
