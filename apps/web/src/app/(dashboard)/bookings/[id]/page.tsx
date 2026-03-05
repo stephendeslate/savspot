@@ -55,7 +55,7 @@ interface BookingPayment {
   id: string;
   status: string;
   amount: string;
-  paymentType: string;
+  type: string;
 }
 
 interface StateHistoryEntry {
@@ -80,7 +80,7 @@ interface BookingDetail {
   service: BookingService;
   client: BookingClient | null;
   payments: BookingPayment[];
-  stateHistory: StateHistoryEntry[];
+  bookingStateHistory: StateHistoryEntry[];
 }
 
 // ---------- Helpers ----------
@@ -636,7 +636,7 @@ export default function BookingDetailPage() {
                           Method
                         </span>
                         <span className="text-sm">
-                          {formatStatus(payment.paymentType)}
+                          {formatStatus(payment.type)}
                         </span>
                       </div>
                     </div>
@@ -721,17 +721,17 @@ export default function BookingDetailPage() {
           )}
 
           {/* Timeline */}
-          {booking.stateHistory && booking.stateHistory.length > 0 && (
+          {booking.bookingStateHistory && booking.bookingStateHistory.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Timeline</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {booking.stateHistory.map((entry, index) => (
+                  {booking.bookingStateHistory.map((entry, index) => (
                     <div key={entry.id} className="relative flex gap-3">
                       {/* Connector line */}
-                      {index < booking.stateHistory.length - 1 && (
+                      {index < booking.bookingStateHistory.length - 1 && (
                         <div className="absolute left-[7px] top-4 h-full w-px bg-border" />
                       )}
                       {/* Dot */}
