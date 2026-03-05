@@ -38,11 +38,12 @@ export class AuthService {
     }
 
     const passwordHash = await this.passwordService.hash(dto.password);
+    const name = `${dto.firstName} ${dto.lastName}`.trim();
     const user = await this.prisma.user.create({
       data: {
         email: dto.email.toLowerCase(),
         passwordHash,
-        name: dto.name,
+        name,
       },
     });
 
