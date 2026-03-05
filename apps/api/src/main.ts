@@ -33,9 +33,19 @@ async function bootstrap() {
   // Cookie parsing (for refresh tokens)
   app.use(cookieParser());
 
-  // CORS
+  // CORS — allow configured origin + www variant
+  const webUrl = process.env['WEB_URL'] || 'http://localhost:3000';
+  const corsOrigins = [webUrl];
+  if (webUrl.includes('://') && !webUrl.includes('localhost')) {
+    const url = new URL(webUrl);
+    if (url.hostname.startsWith('www.')) {
+      corsOrigins.push(webUrl.replace('www.', ''));
+    } else {
+      corsOrigins.push(`${url.protocol}//www.${url.hostname}`);
+    }
+  }
   app.enableCors({
-    origin: process.env['WEB_URL'] || 'http://localhost:3000',
+    origin: corsOrigins,
     credentials: true,
   });
 

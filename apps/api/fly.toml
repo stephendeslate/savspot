@@ -9,7 +9,7 @@ primary_region = "iad"
 
 [deploy]
   strategy = "rolling"
-  release_command = "npx prisma migrate deploy --schema /app/prisma/schema.prisma"
+  release_command = "./prisma/node_modules/.bin/prisma migrate deploy --schema /app/prisma/schema.prisma"
 
 [env]
   NODE_ENV = "production"
