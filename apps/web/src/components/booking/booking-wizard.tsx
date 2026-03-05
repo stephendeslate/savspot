@@ -82,8 +82,10 @@ export function BookingWizard({
         }
 
         const json = (await res.json()) as { data: BookingSession };
-        onSessionUpdate(json.data);
-        return json.data;
+        const updated = json.data;
+        updated.data = updated.data ?? {};
+        onSessionUpdate(updated);
+        return updated;
       } catch (err) {
         const message =
           err instanceof Error ? err.message : 'An unexpected error occurred';
@@ -137,8 +139,8 @@ export function BookingWizard({
             tenantId={tenant.id}
             timezone={tenant.timezone}
             sessionId={session.id}
-            serviceId={session.data.serviceId ?? ''}
-            serviceDuration={session.data.serviceDuration ?? 60}
+            serviceId={session.data.serviceId ?? session.serviceId ?? ''}
+            serviceDuration={session.data.serviceDuration ?? session.service?.durationMinutes ?? 60}
             onSlotReserved={async (slotData) => {
               await goToNextStep(slotData);
             }}
@@ -190,7 +192,7 @@ export function BookingWizard({
       }
 
       case 'ADD_ONS': {
-        const selectedServiceId = session.data.serviceId;
+        const selectedServiceId = session.data.serviceId ?? session.serviceId;
         const service = tenant.services.find((s) => s.id === selectedServiceId);
         const addons = service?.addons ?? [];
         return (

@@ -138,6 +138,14 @@ export interface BookingSessionData {
 
 export interface BookingSession {
   id: string;
+  serviceId: string | null;
+  service?: {
+    id: string;
+    name: string;
+    durationMinutes: number;
+    basePrice: number;
+    currency: string;
+  };
   resolvedSteps: BookingStep[];
   status: string;
   currentStep: number;

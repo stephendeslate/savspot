@@ -361,7 +361,9 @@ export default function BookingPage() {
         throw new Error('Failed to start booking session');
       }
       const json = (await res.json()) as { data: BookingSession };
-      setBookingSession(json.data);
+      const session = json.data;
+      session.data = session.data ?? {};
+      setBookingSession(session);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Could not start booking',
