@@ -170,13 +170,13 @@ export class TenantsService {
       // Create default services
       const services = await Promise.all(
         preset.default_services.map(
-          (svc: { name: string; duration_minutes: number; base_price_cents: number }, index: number) =>
+          (svc: { name: string; duration_minutes: number; base_price: number }, index: number) =>
             tx.service.create({
               data: {
                 tenantId,
                 name: svc.name,
                 durationMinutes: svc.duration_minutes,
-                basePrice: svc.base_price_cents / 100,
+                basePrice: svc.base_price,
                 currency: tenant.currency,
                 sortOrder: index,
               },

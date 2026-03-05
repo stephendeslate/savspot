@@ -24,7 +24,7 @@ export async function seedServices(prisma: PrismaClient): Promise<void> {
       name: 'Haircut',
       description: 'Classic men\'s haircut with hot towel finish.',
       durationMinutes: 30,
-      basePrice: '3000', // $30.00 in cents
+      basePrice: '30',
       currency: 'USD',
       pricingModel: 'FIXED' as const,
       isActive: true,
@@ -37,7 +37,7 @@ export async function seedServices(prisma: PrismaClient): Promise<void> {
       name: 'Beard Trim',
       description: 'Professional beard shaping and trim.',
       durationMinutes: 15,
-      basePrice: '1500', // $15.00 in cents
+      basePrice: '15',
       currency: 'USD',
       pricingModel: 'FIXED' as const,
       isActive: true,
@@ -51,7 +51,7 @@ export async function seedServices(prisma: PrismaClient): Promise<void> {
       description:
         'Complete grooming: haircut, beard trim, hot towel shave, and facial.',
       durationMinutes: 60,
-      basePrice: '6000', // $60.00 in cents
+      basePrice: '60',
       currency: 'USD',
       pricingModel: 'FIXED' as const,
       isActive: true,
@@ -71,7 +71,7 @@ export async function seedServices(prisma: PrismaClient): Promise<void> {
       name: 'Personal Training Session',
       description: 'One-on-one personal training with a certified trainer.',
       durationMinutes: 60,
-      basePrice: '8000', // $80.00 in cents
+      basePrice: '80',
       currency: 'USD',
       pricingModel: 'HOURLY' as const,
       pricingUnit: 'PER_HOUR' as const,
@@ -81,7 +81,7 @@ export async function seedServices(prisma: PrismaClient): Promise<void> {
       guestConfig: {
         enabled: true,
         maxGuests: 1,
-        pricePerGuest: '4000', // $40.00 per additional guest
+        pricePerGuest: '40',
       },
     },
     {
@@ -91,7 +91,7 @@ export async function seedServices(prisma: PrismaClient): Promise<void> {
       description:
         'High-energy group class — HIIT, yoga, spin, or bootcamp.',
       durationMinutes: 45,
-      basePrice: '2500', // $25.00 in cents
+      basePrice: '25',
       currency: 'USD',
       pricingModel: 'FIXED' as const,
       isActive: true,
@@ -100,7 +100,7 @@ export async function seedServices(prisma: PrismaClient): Promise<void> {
       guestConfig: {
         enabled: true,
         maxGuests: 3,
-        pricePerGuest: '2000', // $20.00 per additional guest
+        pricePerGuest: '20',
       },
     },
 
@@ -112,7 +112,7 @@ export async function seedServices(prisma: PrismaClient): Promise<void> {
       description:
         'Full venue rental — includes main hall, outdoor terrace, and prep kitchen.',
       durationMinutes: 240,
-      basePrice: '50000', // $500.00 in cents
+      basePrice: '500',
       currency: 'USD',
       pricingModel: 'FIXED' as const,
       isActive: true,
@@ -121,9 +121,9 @@ export async function seedServices(prisma: PrismaClient): Promise<void> {
       approvalDeadlineHours: 48,
       tierConfig: {
         tiers: [
-          { name: 'Basic', guestRange: [1, 50], price: '50000' },
-          { name: 'Standard', guestRange: [51, 100], price: '75000' },
-          { name: 'Premium', guestRange: [101, 200], price: '120000' },
+          { name: 'Basic', guestRange: [1, 50], price: '500' },
+          { name: 'Standard', guestRange: [51, 100], price: '750' },
+          { name: 'Premium', guestRange: [101, 200], price: '1200' },
         ],
       },
       depositConfig: {

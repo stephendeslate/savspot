@@ -23,6 +23,11 @@ export class UpdateTenantDto {
   @IsOptional()
   categoryDescription?: string;
 
+  @ApiPropertyOptional({ example: 'Barbershop' })
+  @IsString()
+  @IsOptional()
+  categoryLabel?: string;
+
   @ApiPropertyOptional({ example: 'https://cdn.example.com/logo.png' })
   @IsString()
   @IsOptional()

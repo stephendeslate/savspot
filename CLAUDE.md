@@ -44,7 +44,7 @@ Prisma Client Extensions with `$allOperations` can create nested transactions th
 
 ## Conventions
 - All timestamps: UTC in database, timezone-aware display
-- All money: Decimal type (minor units / cents)
+- All money: Decimal type (major units / dollars) — only convert to cents at Stripe boundary
 - All IDs: UUID v4
 - API: REST (no GraphQL)
 - Enums: Defined in both Prisma schema AND `@savspot/shared` (must stay in sync)
