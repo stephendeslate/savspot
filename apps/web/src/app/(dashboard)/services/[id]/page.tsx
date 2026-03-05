@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -24,6 +24,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
+
+const ZERO_DECIMAL_CURRENCIES = new Set(['JPY', 'KRW', 'VND']);
+
+function getCurrencySymbol(currency: string): string {
+  const symbols: Record<string, string> = {
+    USD: '$', EUR: '\u20AC', GBP: '\u00A3', CAD: 'CA$', AUD: 'A$', JPY: '\u00A5',
+  };
+  return symbols[currency] ?? currency;
+}
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
@@ -34,12 +43,12 @@ interface ServiceData {
   name: string;
   description: string | null;
   durationMinutes: number;
-  basePriceCents: number;
+  basePrice: number;
   currency: string;
   pricingModel: string;
   confirmationMode: string;
-  bufferBefore: number | null;
-  bufferAfter: number | null;
+  bufferBeforeMinutes: number | null;
+  bufferAfterMinutes: number | null;
   guestConfig: unknown;
   tierConfig: unknown;
   depositConfig: unknown;
@@ -54,12 +63,12 @@ const serviceSchema = z.object({
     .number()
     .min(5, 'Duration must be at least 5 minutes')
     .max(480, 'Duration must be at most 8 hours'),
-  basePriceCents: z.coerce.number().min(0, 'Price cannot be negative'),
+  basePrice: z.coerce.number().min(0, 'Price cannot be negative'),
   currency: z.string().min(3).max(3),
   pricingModel: z.string().min(1, 'Pricing model is required'),
   confirmationMode: z.string().min(1, 'Confirmation mode is required'),
-  bufferBefore: z.coerce.number().min(0).optional(),
-  bufferAfter: z.coerce.number().min(0).optional(),
+  bufferBeforeMinutes: z.coerce.number().min(0).optional(),
+  bufferAfterMinutes: z.coerce.number().min(0).optional(),
   guestConfigJson: z.string().optional(),
   tierConfigJson: z.string().optional(),
   depositConfigJson: z.string().optional(),
@@ -82,10 +91,15 @@ export default function EditServicePage() {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceSchema),
   });
+
+  const selectedCurrency = useWatch({ control, name: 'currency' }) ?? 'USD';
+  const isZeroDecimal = ZERO_DECIMAL_CURRENCIES.has(selectedCurrency);
+  const currencySymbol = getCurrencySymbol(selectedCurrency);
 
   useEffect(() => {
     if (!tenantId || !serviceId) return;
@@ -99,12 +113,12 @@ export default function EditServicePage() {
           name: data.name,
           description: data.description ?? '',
           durationMinutes: data.durationMinutes,
-          basePriceCents: data.basePriceCents,
+          basePrice: Number(data.basePrice),
           currency: data.currency,
           pricingModel: data.pricingModel,
           confirmationMode: data.confirmationMode,
-          bufferBefore: data.bufferBefore ?? 0,
-          bufferAfter: data.bufferAfter ?? 0,
+          bufferBeforeMinutes: data.bufferBeforeMinutes ?? 0,
+          bufferAfterMinutes: data.bufferAfterMinutes ?? 0,
           guestConfigJson: data.guestConfig
             ? JSON.stringify(data.guestConfig, null, 2)
             : '',
@@ -121,8 +135,8 @@ export default function EditServicePage() {
 
         // Show advanced if any advanced fields have values
         if (
-          data.bufferBefore ||
-          data.bufferAfter ||
+          data.bufferBeforeMinutes ||
+          data.bufferAfterMinutes ||
           data.guestConfig ||
           data.tierConfig ||
           data.depositConfig ||
@@ -151,12 +165,12 @@ export default function EditServicePage() {
         name: values.name,
         description: values.description || undefined,
         durationMinutes: values.durationMinutes,
-        basePriceCents: values.basePriceCents,
+        basePrice: values.basePrice,
         currency: values.currency,
         pricingModel: values.pricingModel,
         confirmationMode: values.confirmationMode,
-        bufferBefore: values.bufferBefore ?? 0,
-        bufferAfter: values.bufferAfter ?? 0,
+        bufferBeforeMinutes: values.bufferBeforeMinutes ?? 0,
+        bufferAfterMinutes: values.bufferAfterMinutes ?? 0,
       };
 
       // Parse optional JSON fields
@@ -356,17 +370,18 @@ export default function EditServicePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="basePriceCents">Base Price (in cents) *</Label>
+                <Label htmlFor="basePrice">Base Price ({currencySymbol}) *</Label>
                 <Input
-                  id="basePriceCents"
+                  id="basePrice"
                   type="number"
                   min={0}
-                  placeholder="e.g., 5000 for $50.00"
-                  {...register('basePriceCents')}
+                  step={isZeroDecimal ? '1' : '0.01'}
+                  placeholder={isZeroDecimal ? 'e.g., 5000' : 'e.g., 50.00'}
+                  {...register('basePrice')}
                 />
-                {errors.basePriceCents && (
+                {errors.basePrice && (
                   <p className="text-sm text-destructive">
-                    {errors.basePriceCents.message}
+                    {errors.basePrice.message}
                   </p>
                 )}
               </div>
@@ -406,8 +421,8 @@ export default function EditServicePage() {
                   id="confirmationMode"
                   {...register('confirmationMode')}
                 >
-                  <option value="AUTO">Auto-confirm</option>
-                  <option value="MANUAL">Manual Review</option>
+                  <option value="AUTO_CONFIRM">Auto-confirm</option>
+                  <option value="MANUAL_APPROVAL">Manual Review</option>
                 </Select>
                 {errors.confirmationMode && (
                   <p className="text-sm text-destructive">
@@ -445,26 +460,26 @@ export default function EditServicePage() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="bufferBefore">
+                  <Label htmlFor="bufferBeforeMinutes">
                     Buffer Before (minutes)
                   </Label>
                   <Input
-                    id="bufferBefore"
+                    id="bufferBeforeMinutes"
                     type="number"
                     min={0}
                     placeholder="0"
-                    {...register('bufferBefore')}
+                    {...register('bufferBeforeMinutes')}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="bufferAfter">Buffer After (minutes)</Label>
+                  <Label htmlFor="bufferAfterMinutes">Buffer After (minutes)</Label>
                   <Input
-                    id="bufferAfter"
+                    id="bufferAfterMinutes"
                     type="number"
                     min={0}
                     placeholder="0"
-                    {...register('bufferAfter')}
+                    {...register('bufferAfterMinutes')}
                   />
                 </div>
               </div>

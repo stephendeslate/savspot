@@ -733,7 +733,7 @@ describe('ClientPortalService', () => {
       prisma.user.findUnique.mockResolvedValue(mockUser());
       prisma.user.update.mockResolvedValue(mockUser({ name: 'Jane Smith' }));
 
-      const result = await service.updateProfile(USER_ID, { name: 'Jane Smith' });
+      const result = await service.updateProfile(USER_ID, { firstName: 'Jane', lastName: 'Smith' });
 
       expect(result.name).toBe('Jane Smith');
       expect(prisma.user.update).toHaveBeenCalledWith(
@@ -777,7 +777,7 @@ describe('ClientPortalService', () => {
     it('should throw NotFoundException when user not found', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.updateProfile(USER_ID, { name: 'New Name' }))
+      await expect(service.updateProfile(USER_ID, { firstName: 'New', lastName: 'Name' }))
         .rejects.toThrow(NotFoundException);
     });
 
@@ -799,7 +799,8 @@ describe('ClientPortalService', () => {
       );
 
       await service.updateProfile(USER_ID, {
-        name: 'Updated Name',
+        firstName: 'Updated',
+        lastName: 'Name',
         email: 'new@test.com',
         phone: '+15550000000',
       });

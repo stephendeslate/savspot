@@ -23,7 +23,7 @@ interface Service {
   id: string;
   name: string;
   durationMinutes: number;
-  basePriceCents: number;
+  basePrice: number;
   currency: string;
   isActive: boolean;
 }
@@ -77,11 +77,11 @@ export default function ServicesPage() {
     }
   };
 
-  const formatPrice = (cents: number, currency: string) => {
+  const formatPrice = (amount: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency,
-    }).format(cents / 100);
+    }).format(Number(amount));
   };
 
   const formatDuration = (minutes: number) => {
@@ -180,7 +180,7 @@ export default function ServicesPage() {
                       {formatDuration(service.durationMinutes)}
                     </TableCell>
                     <TableCell>
-                      {formatPrice(service.basePriceCents, service.currency)}
+                      {formatPrice(service.basePrice, service.currency)}
                     </TableCell>
                     <TableCell>
                       <Badge
