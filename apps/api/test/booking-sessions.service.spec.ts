@@ -45,6 +45,15 @@ function makePrisma() {
     service: {
       count: vi.fn().mockResolvedValue(1),
       findFirst: vi.fn(),
+      findUnique: vi.fn().mockResolvedValue({
+        id: SERVICE_ID,
+        name: 'Haircut',
+        durationMinutes: 60,
+        basePrice: 5000,
+        currency: 'USD',
+        pricingModel: 'FIXED',
+        guestConfig: null,
+      }),
     },
     venue: {
       count: vi.fn().mockResolvedValue(0),
