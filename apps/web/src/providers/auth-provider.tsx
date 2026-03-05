@@ -10,6 +10,22 @@ import {
 import { apiClient, ApiError } from '@/lib/api-client';
 import { API_ROUTES, SESSION_COOKIE_NAME } from '@/lib/constants';
 
+interface Membership {
+  tenantId: string;
+  role: string;
+  tenant: { id: string; name: string; slug: string; logoUrl: string | null };
+}
+
+interface UserResponse {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  role: string;
+  avatarUrl: string | null;
+  memberships?: Membership[];
+}
+
 export interface User {
   id: string;
   email: string;
@@ -17,6 +33,7 @@ export interface User {
   role: string;
   tenantId: string | null;
   avatarUrl: string | null;
+  memberships: Membership[];
 }
 
 interface LoginInput {
@@ -65,8 +82,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadUser = useCallback(async () => {
     try {
       apiClient.loadTokens();
-      const userData = await apiClient.get<User>(API_ROUTES.ME);
-      setUser(userData);
+      const data = await apiClient.get<UserResponse>(API_ROUTES.ME);
+      const memberships = data.memberships ?? [];
+      const name = [data.firstName, data.lastName].filter(Boolean).join(' ') || data.email;
+      setUser({
+        id: data.id,
+        email: data.email,
+        name,
+        role: data.role,
+        tenantId: memberships[0]?.tenantId ?? null,
+        avatarUrl: data.avatarUrl,
+        memberships,
+      });
       setSessionCookie(true);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
