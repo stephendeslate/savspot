@@ -287,7 +287,7 @@ export default function BookingDetailPage() {
       await apiClient.post(
         `/api/tenants/${tenantId}/bookings/${bookingId}/mark-paid`,
         {
-          amount: paidAmount,
+          amount: parseFloat(paidAmount),
           currency: paidCurrency,
           paymentMethod: paidMethod,
         },
