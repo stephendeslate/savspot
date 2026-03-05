@@ -29,16 +29,20 @@ type TeamRole = 'OWNER' | 'ADMIN' | 'STAFF';
 
 export interface TeamMember {
   id: string;
-  email: string;
-  firstName: string | null;
-  lastName: string | null;
+  userId: string;
   role: TeamRole;
   createdAt: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    avatarUrl: string | null;
+  };
 }
 
 export interface PendingInvitation {
   id: string;
-  email: string;
+  inviteeEmail: string;
   role: TeamRole;
   expiresAt: string;
   createdAt: string;
@@ -55,10 +59,10 @@ interface MemberListProps {
 // ---------- Helpers ----------
 
 function getMemberName(member: TeamMember): string {
-  if (member.firstName || member.lastName) {
-    return [member.firstName, member.lastName].filter(Boolean).join(' ');
+  if (member.user.name) {
+    return member.user.name;
   }
-  return member.email;
+  return member.user.email;
 }
 
 function getRoleBadge(role: TeamRole) {
@@ -123,11 +127,11 @@ export function MemberList({
   const handleRemoveMember = useCallback(async () => {
     if (!removingMember) return;
     setError(null);
-    setRemovingMemberId(removingMember.id);
+    setRemovingMemberId(removingMember.userId);
 
     try {
       await apiClient.del(
-        `/api/tenants/${tenantId}/team/${removingMember.id}`,
+        `/api/tenants/${tenantId}/team/${removingMember.userId}`,
       );
       setRemoveDialogOpen(false);
       setRemovingMember(null);
@@ -196,7 +200,7 @@ export function MemberList({
             </TableHeader>
             <TableBody>
               {members.map((member) => {
-                const isCurrentUser = member.id === currentUserId;
+                const isCurrentUser = member.userId === currentUserId;
                 const isOwner = member.role === 'OWNER';
 
                 return (
@@ -210,7 +214,7 @@ export function MemberList({
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {member.email}
+                      {member.user.email}
                     </TableCell>
                     <TableCell>
                       {isOwner ? (
@@ -221,20 +225,20 @@ export function MemberList({
                             value={member.role}
                             onChange={(e) =>
                               handleRoleChange(
-                                member.id,
+                                member.userId,
                                 e.target.value as TeamRole,
                               )
                             }
                             disabled={
                               isCurrentUser ||
-                              updatingRoleId === member.id
+                              updatingRoleId === member.userId
                             }
                             className="w-[120px]"
                           >
                             <option value="ADMIN">Admin</option>
                             <option value="STAFF">Staff</option>
                           </Select>
-                          {updatingRoleId === member.id && (
+                          {updatingRoleId === member.userId && (
                             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                           )}
                         </div>
@@ -249,10 +253,10 @@ export function MemberList({
                             setRemovingMember(member);
                             setRemoveDialogOpen(true);
                           }}
-                          disabled={removingMemberId === member.id}
+                          disabled={removingMemberId === member.userId}
                           className="text-destructive hover:text-destructive"
                         >
-                          {removingMemberId === member.id ? (
+                          {removingMemberId === member.userId ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <Trash2 className="h-4 w-4" />
@@ -290,7 +294,7 @@ export function MemberList({
                 return (
                   <TableRow key={invitation.id}>
                     <TableCell className="text-muted-foreground">
-                      {invitation.email}
+                      {invitation.inviteeEmail}
                     </TableCell>
                     <TableCell>{getRoleBadge(invitation.role)}</TableCell>
                     <TableCell>
