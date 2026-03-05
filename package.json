@@ -18,6 +18,8 @@
     "db:migrate:deploy": "pnpm --filter @savspot/prisma migrate:deploy",
     "db:seed": "pnpm --filter @savspot/prisma seed",
     "db:studio": "pnpm --filter @savspot/prisma studio",
+    "start": "./scripts/start.sh",
+    "stop": "./scripts/stop.sh",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "clean": "turbo run clean && rm -rf node_modules",
