@@ -11,7 +11,7 @@
 # ──────────────────────────────────────────────
 
 # ──────────────────────────────────────────────
-# Stage 1: Install dependencies
+# Stage 1: Install production dependencies
 # ──────────────────────────────────────────────
 FROM node:22-alpine AS deps
 
@@ -20,15 +20,14 @@ RUN corepack enable && corepack prepare pnpm@10.30.3 --activate
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
-
 COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
 COPY prisma/package.json prisma/
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --prod
 
 # ──────────────────────────────────────────────
-# Stage 2: Build
+# Stage 2: Build (includes devDependencies)
 # ──────────────────────────────────────────────
 FROM node:22-alpine AS builder
 
@@ -36,7 +35,12 @@ RUN corepack enable && corepack prepare pnpm@10.30.3 --activate
 
 WORKDIR /app
 
-COPY --from=deps /app ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY apps/api/package.json apps/api/
+COPY packages/shared/package.json packages/shared/
+COPY prisma/package.json prisma/
+
+RUN pnpm install --frozen-lockfile
 
 COPY tsconfig.base.json ./
 COPY packages/shared/ packages/shared/
@@ -45,8 +49,7 @@ COPY apps/api/ apps/api/
 
 RUN pnpm --filter @savspot/prisma generate
 RUN pnpm --filter @savspot/shared build
-RUN pnpm --filter @savspot/api build
-RUN pnpm prune --prod
+RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm --filter @savspot/api build
 
 # ──────────────────────────────────────────────
 # Stage 3: Production runner (worker)
@@ -60,9 +63,11 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV WORKER_MODE=true
 
-# Copy pruned node_modules
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
+# Copy production-only node_modules from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+
+# Copy built shared package
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
 
@@ -73,8 +78,7 @@ COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
 # Copy Prisma artifacts
 COPY --from=builder /app/prisma/schema.prisma ./prisma/schema.prisma
 COPY --from=builder /app/prisma/package.json ./prisma/package.json
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/prisma/generated ./prisma/generated
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
