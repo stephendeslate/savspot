@@ -29,6 +29,8 @@
     "@nestjs/throttler": "^6.5.0",
     "@react-pdf/renderer": "^4.3.2",
     "@savspot/shared": "workspace:*",
+    "@sentry/nestjs": "^10.42.0",
+    "@sentry/node": "^10.42.0",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.70.1",
     "class-transformer": "^0.5.0",
