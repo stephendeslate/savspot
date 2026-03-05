@@ -12,6 +12,7 @@ import {
   ApiResponse,
   ApiExcludeEndpoint,
 } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Public } from '../common/decorators/public.decorator';
@@ -26,6 +27,7 @@ import {
  * Google sends POST requests when calendar events change on watched calendars.
  */
 @ApiTags('Webhooks')
+@SkipThrottle()
 @Controller('webhooks/google-calendar')
 export class CalendarWebhookController {
   private readonly logger = new Logger(CalendarWebhookController.name);

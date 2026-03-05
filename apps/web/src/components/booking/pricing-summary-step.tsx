@@ -127,7 +127,22 @@ export function PricingSummaryStep({
       }
     }
 
-    // Use server-provided total if available
+    // Add-on line items
+    const selectedAddons = sessionData.selectedAddons;
+    let addonsTotal = 0;
+    if (selectedAddons && selectedAddons.length > 0) {
+      for (const addon of selectedAddons) {
+        lineItems.push({
+          label: addon.name,
+          amount: addon.price,
+        });
+        addonsTotal += addon.price;
+      }
+    }
+
+    subtotal += addonsTotal;
+
+    // Use server-provided total if available, otherwise use calculated subtotal
     const total = sessionData.totalAmount ?? subtotal;
 
     // Deposit calculation (if applicable from session data)

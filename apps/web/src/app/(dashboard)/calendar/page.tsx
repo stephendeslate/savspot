@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   Calendar as BigCalendar,
   dateFnsLocalizer,
@@ -25,6 +24,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
 import { WalkInDialog } from '@/components/bookings/walk-in-dialog';
+import { BookingPopover } from '@/components/calendar/booking-popover';
 
 // ---------- Localizer ----------
 
@@ -129,7 +129,6 @@ function useIsMobile(): boolean {
 // ---------- Component ----------
 
 export default function CalendarPage() {
-  const router = useRouter();
   const { tenantId } = useTenant();
   const isMobile = useIsMobile();
 
@@ -141,6 +140,10 @@ export default function CalendarPage() {
 
   // Walk-in dialog state
   const [walkInOpen, setWalkInOpen] = useState(false);
+
+  // Booking popover state
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   // Track whether initial mobile check happened
   useEffect(() => {
@@ -236,10 +239,17 @@ export default function CalendarPage() {
   const handleSelectEvent = useCallback(
     (event: CalendarEvent) => {
       if (event.isBlocked) return;
-      router.push(`/bookings/${event.id}`);
+      if (event.resource) {
+        setSelectedBooking(event.resource);
+        setPopoverOpen(true);
+      }
     },
-    [router],
+    [],
   );
+
+  const handlePopoverStatusChange = useCallback(() => {
+    void fetchEvents(dateRange.start, dateRange.end);
+  }, [fetchEvents, dateRange.start, dateRange.end]);
 
   const handleSelectSlot = useCallback((_info: SlotInfo) => {
     void _info;
@@ -323,6 +333,7 @@ export default function CalendarPage() {
         {[
           { label: 'Confirmed', color: 'bg-blue-500' },
           { label: 'Pending', color: 'bg-amber-500' },
+          { label: 'In Progress', color: 'bg-purple-500' },
           { label: 'Completed', color: 'bg-green-500' },
           { label: 'Cancelled', color: 'bg-red-500' },
           { label: 'No Show', color: 'bg-gray-500' },
@@ -441,6 +452,39 @@ export default function CalendarPage() {
             .rbc-day-slot .rbc-time-slot {
               border-color: hsl(var(--border) / 0.3);
             }
+            /* Mobile polish: larger tap targets */
+            @media (max-width: 767px) {
+              .rbc-event {
+                min-height: 44px !important;
+                display: flex !important;
+                align-items: center !important;
+              }
+              .rbc-event-content {
+                font-size: 0.8rem;
+                line-height: 1.2;
+              }
+              .rbc-toolbar {
+                justify-content: center;
+              }
+              .rbc-toolbar button {
+                padding: 0.5rem 0.875rem;
+                min-height: 44px;
+                font-size: 0.8rem;
+              }
+              .rbc-toolbar .rbc-toolbar-label {
+                width: 100%;
+                text-align: center;
+                order: -1;
+                margin-bottom: 0.5rem;
+              }
+              .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
+                padding: 0.75rem 0.5rem;
+                min-height: 44px;
+              }
+              .rbc-agenda-view table.rbc-agenda-table thead > tr > th {
+                padding: 0.75rem 0.5rem;
+              }
+            }
           `}</style>
           <div style={{ minHeight: 600 }}>
             <BigCalendar
@@ -477,6 +521,17 @@ export default function CalendarPage() {
           onOpenChange={setWalkInOpen}
           tenantId={tenantId}
           onSuccess={handleWalkInSuccess}
+        />
+      )}
+
+      {/* Booking Popover */}
+      {tenantId && (
+        <BookingPopover
+          open={popoverOpen}
+          onOpenChange={setPopoverOpen}
+          booking={selectedBooking}
+          tenantId={tenantId}
+          onStatusChange={handlePopoverStatusChange}
         />
       )}
     </div>

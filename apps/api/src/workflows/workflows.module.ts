@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { QUEUE_COMMUNICATIONS } from '../bullmq/queue.constants';
 import { CommunicationsModule } from '../communications/communications.module';
+import { SmsModule } from '../sms/sms.module';
 import { WorkflowEngineService } from './workflow-engine.service';
 import { PostAppointmentService } from './post-appointment.processor';
 
@@ -17,6 +18,7 @@ import { PostAppointmentService } from './post-appointment.processor';
  *
  * Dependencies:
  * - CommunicationsModule: For sending emails via CommunicationsService
+ * - SmsModule: For sending SMS via TwilioService
  * - BullModule (QUEUE_COMMUNICATIONS): For registering repeating jobs
  * - PrismaModule (global): For DB access
  * - EventsModule (global): For @OnEvent decorators
@@ -24,6 +26,7 @@ import { PostAppointmentService } from './post-appointment.processor';
 @Module({
   imports: [
     CommunicationsModule,
+    SmsModule,
     BullModule.registerQueue({ name: QUEUE_COMMUNICATIONS }),
   ],
   providers: [WorkflowEngineService, PostAppointmentService],

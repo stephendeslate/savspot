@@ -8,6 +8,7 @@ const AUTH_PAGES = [
   '/forgot-password',
   '/reset-password',
   '/verify-email',
+  '/accept-invitation',
 ];
 
 const PROTECTED_PREFIXES = [

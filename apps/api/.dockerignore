@@ -1,0 +1,46 @@
+# Dependencies (installed fresh in Docker)
+node_modules
+**/node_modules
+
+# Build output (built fresh in Docker)
+dist
+**/dist
+.next
+
+# Version control
+.git
+.gitignore
+
+# Environment files (secrets set via fly secrets)
+.env
+.env.*
+!.env.example
+
+# Test files
+test/
+**/*.spec.ts
+**/*.test.ts
+coverage/
+
+# IDE / editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files (no need to copy into context)
+Dockerfile
+Dockerfile.worker
+.dockerignore
+docker-compose*.yml
+
+# Turborepo cache
+.turbo
+
+# Misc
+*.md
+LICENSE

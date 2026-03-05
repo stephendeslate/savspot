@@ -6,6 +6,8 @@ import {
   QUEUE_INVOICES,
   QUEUE_GDPR,
 } from '../bullmq/queue.constants';
+import { PaymentsModule } from '../payments/payments.module';
+import { CommunicationsModule } from '../communications/communications.module';
 import { ExpireReservationsProcessor } from './expire-reservations.processor';
 import { AbandonedRecoveryProcessor } from './abandoned-recovery.processor';
 import { ProcessCompletedBookingsProcessor } from './process-completed-bookings.processor';
@@ -31,6 +33,8 @@ import { CleanupRetentionProcessor } from './cleanup-retention.processor';
       { name: QUEUE_INVOICES },
       { name: QUEUE_GDPR },
     ),
+    PaymentsModule,
+    CommunicationsModule,
   ],
   providers: [
     ExpireReservationsProcessor,

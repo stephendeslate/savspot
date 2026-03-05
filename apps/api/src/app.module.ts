@@ -1,5 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -26,8 +28,14 @@ import { BrowserPushModule } from './browser-push/browser-push.module';
 import { ClientPortalModule } from './client-portal/client-portal.module';
 import { ClientsModule } from './clients/clients.module';
 import { DiscountsModule } from './discounts/discounts.module';
+import { TeamModule } from './team/team.module';
+import { SupportModule } from './support/support.module';
+import { NotesModule } from './notes/notes.module';
+import { FeedbackModule } from './feedback/feedback.module';
 import { BullMqModule } from './bullmq/bullmq.module';
 import { EventsModule } from './events/events.module';
+import { CustomThrottlerGuard } from './common/guards/throttle.guard';
+import { SecurityHeadersMiddleware } from './common/middleware/security-headers.middleware';
 import { validateEnv } from './config/env.validation';
 import {
   appConfig,
@@ -48,6 +56,13 @@ import {
       validate: validateEnv,
       load: [appConfig, jwtConfig, googleConfig, resendConfig, r2Config, stripeConfig, twilioConfig, googleCalendarConfig, vapidConfig],
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60_000,
+        limit: 60,
+      },
+    ]),
     PrismaModule,
     RedisModule,
     BullMqModule,
@@ -75,7 +90,21 @@ import {
     ClientPortalModule,
     ClientsModule,
     DiscountsModule,
+    TeamModule,
+    SupportModule,
+    NotesModule,
+    FeedbackModule,
   ],
   controllers: [AppController],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: CustomThrottlerGuard,
+    },
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(SecurityHeadersMiddleware).forRoutes('*');
+  }
+}

@@ -6,6 +6,8 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { PushPrompt } from '@/components/push-prompt';
 import { MobileNav } from '@/components/layout/mobile-nav';
+import { SupportWidget } from '@/components/support/support-widget';
+import { FeedbackWidget } from '@/components/feedback/feedback-widget';
 import { useAuth } from '@/hooks/use-auth';
 import { ROUTES } from '@/lib/constants';
 
@@ -69,6 +71,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <PushPrompt />
         <main className="flex-1 p-4 lg:p-6">{children}</main>
       </div>
+
+      {/* Floating widgets */}
+      <SupportWidget />
+      <FeedbackWidget />
     </div>
   );
 }

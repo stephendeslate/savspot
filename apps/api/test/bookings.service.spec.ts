@@ -153,6 +153,182 @@ describe('BookingsService', () => {
   });
 
   // -----------------------------------------------------------------------
+  // markArrived (CONFIRMED → IN_PROGRESS)
+  // -----------------------------------------------------------------------
+
+  describe('markArrived', () => {
+    it('CONFIRMED → IN_PROGRESS sets status and checkInStatus', async () => {
+      prisma.booking.findFirst.mockResolvedValue(mockBooking({ status: 'CONFIRMED' }));
+      prisma.$transaction.mockImplementation((fns: unknown[]) =>
+        Promise.all((fns as Promise<unknown>[]).map((fn) => fn)),
+      );
+      prisma.booking.update.mockResolvedValue({ ...mockBooking(), status: 'IN_PROGRESS', checkInStatus: 'CHECKED_IN' });
+      prisma.bookingStateHistory.create.mockResolvedValue({});
+
+      const result = await service.markArrived(TENANT_ID, BOOKING_ID, USER_ID);
+      expect(result.status).toBe('IN_PROGRESS');
+      expect(result.checkInStatus).toBe('CHECKED_IN');
+    });
+
+    it('updates booking with IN_PROGRESS status and CHECKED_IN checkInStatus', async () => {
+      prisma.booking.findFirst.mockResolvedValue(mockBooking({ status: 'CONFIRMED' }));
+      prisma.$transaction.mockImplementation((fns: unknown[]) =>
+        Promise.all((fns as Promise<unknown>[]).map((fn) => fn)),
+      );
+      prisma.booking.update.mockResolvedValue({ ...mockBooking(), status: 'IN_PROGRESS' });
+      prisma.bookingStateHistory.create.mockResolvedValue({});
+
+      await service.markArrived(TENANT_ID, BOOKING_ID, USER_ID);
+      expect(prisma.booking.update).toHaveBeenCalledWith({
+        where: { id: BOOKING_ID },
+        data: { status: 'IN_PROGRESS', checkInStatus: 'CHECKED_IN' },
+      });
+    });
+
+    it('creates state history record with correct from/to states', async () => {
+      prisma.booking.findFirst.mockResolvedValue(mockBooking({ status: 'CONFIRMED' }));
+      prisma.$transaction.mockImplementation((fns: unknown[]) =>
+        Promise.all((fns as Promise<unknown>[]).map((fn) => fn)),
+      );
+      prisma.booking.update.mockResolvedValue({ ...mockBooking(), status: 'IN_PROGRESS' });
+      prisma.bookingStateHistory.create.mockResolvedValue({});
+
+      await service.markArrived(TENANT_ID, BOOKING_ID, USER_ID);
+      expect(prisma.bookingStateHistory.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          bookingId: BOOKING_ID,
+          tenantId: TENANT_ID,
+          fromState: 'CONFIRMED',
+          toState: 'IN_PROGRESS',
+          triggeredBy: 'ADMIN',
+        }),
+      });
+    });
+
+    it('PENDING → IN_PROGRESS rejected', async () => {
+      prisma.booking.findFirst.mockResolvedValue(mockBooking({ status: 'PENDING' }));
+      await expect(service.markArrived(TENANT_ID, BOOKING_ID, USER_ID))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it('COMPLETED → IN_PROGRESS rejected', async () => {
+      prisma.booking.findFirst.mockResolvedValue(mockBooking({ status: 'COMPLETED' }));
+      await expect(service.markArrived(TENANT_ID, BOOKING_ID, USER_ID))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it('throws NotFoundException when booking not found', async () => {
+      prisma.booking.findFirst.mockResolvedValue(null);
+      await expect(service.markArrived(TENANT_ID, 'bad-id', USER_ID))
+        .rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // markCompleted (IN_PROGRESS/CONFIRMED → COMPLETED)
+  // -----------------------------------------------------------------------
+
+  describe('markCompleted', () => {
+    let events: ReturnType<typeof makeEvents>;
+
+    beforeEach(() => {
+      events = makeEvents();
+      service = new BookingsService(prisma as never, payments as never, events as never);
+    });
+
+    it('IN_PROGRESS → COMPLETED allowed', async () => {
+      prisma.booking.findFirst.mockResolvedValue(mockBooking({ status: 'IN_PROGRESS' }));
+      prisma.$transaction.mockImplementation((fns: unknown[]) =>
+        Promise.all((fns as Promise<unknown>[]).map((fn) => fn)),
+      );
+      prisma.booking.update.mockResolvedValue({ ...mockBooking(), status: 'COMPLETED' });
+      prisma.bookingStateHistory.create.mockResolvedValue({});
+
+      const result = await service.markCompleted(TENANT_ID, BOOKING_ID, USER_ID);
+      expect(result.status).toBe('COMPLETED');
+    });
+
+    it('CONFIRMED → COMPLETED allowed (auto-complete path)', async () => {
+      prisma.booking.findFirst.mockResolvedValue(mockBooking({ status: 'CONFIRMED' }));
+      prisma.$transaction.mockImplementation((fns: unknown[]) =>
+        Promise.all((fns as Promise<unknown>[]).map((fn) => fn)),
+      );
+      prisma.booking.update.mockResolvedValue({ ...mockBooking(), status: 'COMPLETED' });
+      prisma.bookingStateHistory.create.mockResolvedValue({});
+
+      const result = await service.markCompleted(TENANT_ID, BOOKING_ID, USER_ID);
+      expect(result.status).toBe('COMPLETED');
+    });
+
+    it('creates state history with correct fromState for IN_PROGRESS', async () => {
+      prisma.booking.findFirst.mockResolvedValue(mockBooking({ status: 'IN_PROGRESS' }));
+      prisma.$transaction.mockImplementation((fns: unknown[]) =>
+        Promise.all((fns as Promise<unknown>[]).map((fn) => fn)),
+      );
+      prisma.booking.update.mockResolvedValue({ ...mockBooking(), status: 'COMPLETED' });
+      prisma.bookingStateHistory.create.mockResolvedValue({});
+
+      await service.markCompleted(TENANT_ID, BOOKING_ID, USER_ID);
+      expect(prisma.bookingStateHistory.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          bookingId: BOOKING_ID,
+          fromState: 'IN_PROGRESS',
+          toState: 'COMPLETED',
+          triggeredBy: 'ADMIN',
+        }),
+      });
+    });
+
+    it('emits BookingCompleted event with correct payload', async () => {
+      const booking = mockBooking({ status: 'IN_PROGRESS' });
+      prisma.booking.findFirst.mockResolvedValue(booking);
+      prisma.$transaction.mockImplementation((fns: unknown[]) =>
+        Promise.all((fns as Promise<unknown>[]).map((fn) => fn)),
+      );
+      prisma.booking.update.mockResolvedValue({ ...booking, status: 'COMPLETED' });
+      prisma.bookingStateHistory.create.mockResolvedValue({});
+
+      await service.markCompleted(TENANT_ID, BOOKING_ID, USER_ID);
+      expect(events.emitBookingCompleted).toHaveBeenCalledWith({
+        tenantId: TENANT_ID,
+        bookingId: BOOKING_ID,
+        serviceId: SERVICE_ID,
+        clientId: 'client-001',
+        clientEmail: 'john@test.com',
+        clientName: 'John',
+        serviceName: 'Haircut',
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        source: 'ONLINE',
+      });
+    });
+
+    it('PENDING → COMPLETED rejected', async () => {
+      prisma.booking.findFirst.mockResolvedValue(mockBooking({ status: 'PENDING' }));
+      await expect(service.markCompleted(TENANT_ID, BOOKING_ID, USER_ID))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it('CANCELLED → COMPLETED rejected', async () => {
+      prisma.booking.findFirst.mockResolvedValue(mockBooking({ status: 'CANCELLED' }));
+      await expect(service.markCompleted(TENANT_ID, BOOKING_ID, USER_ID))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it('NO_SHOW → COMPLETED rejected', async () => {
+      prisma.booking.findFirst.mockResolvedValue(mockBooking({ status: 'NO_SHOW' }));
+      await expect(service.markCompleted(TENANT_ID, BOOKING_ID, USER_ID))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it('throws NotFoundException when booking not found', async () => {
+      prisma.booking.findFirst.mockResolvedValue(null);
+      await expect(service.markCompleted(TENANT_ID, 'bad-id', USER_ID))
+        .rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // findAll
   // -----------------------------------------------------------------------
 

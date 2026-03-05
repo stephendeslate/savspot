@@ -1,0 +1,68 @@
+# Fly.io configuration for SavSpot API
+# Docs: https://fly.io/docs/reference/configuration/
+
+app = "savspot-api"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[deploy]
+  strategy = "rolling"
+  release_command = "npx prisma migrate deploy --schema /app/prisma/schema.prisma"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3001"
+  # All sensitive values are set via `fly secrets set`:
+  #   DATABASE_URL
+  #   REDIS_URL
+  #   WEB_URL
+  #   JWT_PRIVATE_KEY_BASE64
+  #   JWT_PUBLIC_KEY_BASE64
+  #   GOOGLE_CLIENT_ID
+  #   GOOGLE_CLIENT_SECRET
+  #   GOOGLE_CALLBACK_URL
+  #   RESEND_API_KEY
+  #   RESEND_FROM_EMAIL
+  #   R2_ACCOUNT_ID
+  #   R2_ACCESS_KEY_ID
+  #   R2_SECRET_ACCESS_KEY
+  #   R2_BUCKET_NAME
+  #   R2_PUBLIC_URL
+  #   STRIPE_SECRET_KEY
+  #   STRIPE_PUBLISHABLE_KEY
+  #   STRIPE_WEBHOOK_SECRET
+  #   STRIPE_CONNECT_WEBHOOK_SECRET
+  #   TWILIO_ACCOUNT_SID
+  #   TWILIO_AUTH_TOKEN
+  #   TWILIO_PHONE_NUMBER
+  #   GOOGLE_CALENDAR_CLIENT_ID
+  #   GOOGLE_CALENDAR_CLIENT_SECRET
+  #   GOOGLE_CALENDAR_REDIRECT_URI
+  #   GOOGLE_CALENDAR_WEBHOOK_URL
+  #   VAPID_PUBLIC_KEY
+  #   VAPID_PRIVATE_KEY
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  timeout = "5s"
+  path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

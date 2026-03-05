@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -11,6 +12,23 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     rawBody: true,
   });
+
+  // Security headers via helmet (configured to allow Swagger UI)
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: [`'self'`],
+          scriptSrc: [`'self'`, `'unsafe-inline'`, `'unsafe-eval'`],
+          styleSrc: [`'self'`, `'unsafe-inline'`],
+          imgSrc: [`'self'`, 'data:', 'https:'],
+          fontSrc: [`'self'`, 'https://fonts.gstatic.com'],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+      xFrameOptions: false, // Handled by SecurityHeadersMiddleware (supports /embed exception)
+    }),
+  );
 
   // Cookie parsing (for refresh tokens)
   app.use(cookieParser());

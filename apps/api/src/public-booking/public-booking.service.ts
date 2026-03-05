@@ -40,6 +40,7 @@ export class PublicBookingService {
             pricingModel: true,
             images: true,
             guestConfig: true,
+            intakeFormConfig: true,
             categoryId: true,
             category: {
               select: { id: true, name: true },
@@ -117,6 +118,16 @@ export class PublicBookingService {
             endTime: true,
           },
           orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+        },
+        serviceAddons: {
+          where: { isActive: true },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            price: true,
+          },
+          orderBy: { sortOrder: 'asc' },
         },
       },
     });
