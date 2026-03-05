@@ -135,6 +135,8 @@ export class CommunicationsService {
         return this.renderMorningSummary(data);
       case 'weekly-digest':
         return this.renderWeeklyDigest(data);
+      case 'abandoned-booking-recovery':
+        return this.renderAbandonedBookingRecovery(data);
       default:
         this.logger.warn(`Unknown template key: ${templateKey}`);
         return {
@@ -388,6 +390,24 @@ export class CommunicationsService {
           <td style="padding:12px;">${this.esc(d['newClients'])}</td>
         </tr>
       </table>
+    `);
+    return { subject, html };
+  }
+
+  private renderAbandonedBookingRecovery(d: Record<string, unknown>): RenderedTemplate {
+    const branding = this.extractBranding(d);
+    const rebookUrl = d['rebookUrl'] ? `${this.webUrl}${String(d['rebookUrl'])}` : this.webUrl;
+
+    const subject = `Complete your booking — ${branding.businessName}`;
+    const html = this.wrapHtml(branding, `
+      <h2 style="color:#333;margin:0 0 16px;">You left something behind!</h2>
+      <p>Hi ${this.esc(d['clientName'])},</p>
+      <p>It looks like you started booking <strong>${this.esc(d['serviceName'])}</strong> with <strong>${this.esc(branding.businessName)}</strong> but didn't finish.</p>
+      <p>No worries — your preferred time might still be available. Pick up right where you left off:</p>
+      <p style="margin:24px 0;">
+        <a href="${this.esc(rebookUrl)}" style="display:inline-block;padding:12px 24px;background:${branding.brandColor ?? '#000'};color:#fff;text-decoration:none;border-radius:6px;">Complete Your Booking</a>
+      </p>
+      <p style="font-size:13px;color:#888;">If you no longer need to book, you can safely ignore this email.</p>
     `);
     return { subject, html };
   }

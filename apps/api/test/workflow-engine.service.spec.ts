@@ -33,6 +33,12 @@ function makeComms() {
   };
 }
 
+function makeTwilio() {
+  return {
+    sendSms: vi.fn().mockResolvedValue({ success: true, sid: 'SM001' }),
+  };
+}
+
 function baseCancelledPayload() {
   return {
     tenantId: TENANT_ID,
@@ -87,12 +93,14 @@ describe('WorkflowEngineService', () => {
   let service: WorkflowEngineService;
   let prisma: ReturnType<typeof makePrisma>;
   let comms: ReturnType<typeof makeComms>;
+  let twilio: ReturnType<typeof makeTwilio>;
 
   beforeEach(() => {
     prisma = makePrisma();
     comms = makeComms();
+    twilio = makeTwilio();
     prisma.tenant.findUniqueOrThrow.mockResolvedValue(TENANT_BRANDING);
-    service = new WorkflowEngineService(prisma as never, comms as never);
+    service = new WorkflowEngineService(prisma as never, comms as never, twilio as never);
   });
 
   // -----------------------------------------------------------------------

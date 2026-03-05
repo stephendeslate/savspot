@@ -441,6 +441,88 @@ export class BookingsService {
   }
 
   /**
+   * Mark a booking as arrived (in-progress).
+   * CONFIRMED -> IN_PROGRESS
+   */
+  async markArrived(tenantId: string, id: string, userId: string) {
+    const booking = await this.findById(tenantId, id);
+    this.validateTransition(booking.status, 'IN_PROGRESS');
+
+    const [updatedBooking] = await this.prisma.$transaction([
+      this.prisma.booking.update({
+        where: { id },
+        data: {
+          status: 'IN_PROGRESS',
+          checkInStatus: 'CHECKED_IN',
+        },
+      }),
+      this.prisma.bookingStateHistory.create({
+        data: {
+          bookingId: id,
+          tenantId,
+          fromState: booking.status as 'CONFIRMED',
+          toState: 'IN_PROGRESS',
+          triggeredBy: 'ADMIN',
+          reason: `Marked arrived by user ${userId}`,
+        },
+      }),
+    ]);
+
+    this.logger.log(`Booking ${id} marked arrived by ${userId}`);
+
+    return updatedBooking;
+  }
+
+  /**
+   * Mark a booking as completed.
+   * IN_PROGRESS -> COMPLETED (or CONFIRMED -> COMPLETED via auto-complete path)
+   */
+  async markCompleted(tenantId: string, id: string, userId: string) {
+    const booking = await this.findById(tenantId, id);
+
+    // Allow both IN_PROGRESS -> COMPLETED and CONFIRMED -> COMPLETED
+    if (!['IN_PROGRESS', 'CONFIRMED'].includes(booking.status)) {
+      throw new BadRequestException(
+        `Invalid state transition: ${booking.status} -> COMPLETED`,
+      );
+    }
+
+    const [updatedBooking] = await this.prisma.$transaction([
+      this.prisma.booking.update({
+        where: { id },
+        data: { status: 'COMPLETED' },
+      }),
+      this.prisma.bookingStateHistory.create({
+        data: {
+          bookingId: id,
+          tenantId,
+          fromState: booking.status as 'CONFIRMED' | 'IN_PROGRESS',
+          toState: 'COMPLETED',
+          triggeredBy: 'ADMIN',
+          reason: `Marked completed by user ${userId}`,
+        },
+      }),
+    ]);
+
+    this.logger.log(`Booking ${id} marked completed by ${userId}`);
+
+    this.eventsService.emitBookingCompleted({
+      tenantId,
+      bookingId: id,
+      serviceId: booking.serviceId,
+      clientId: booking.clientId,
+      clientEmail: booking.client.email,
+      clientName: booking.client.name ?? '',
+      serviceName: booking.service.name,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      source: booking.source as string,
+    });
+
+    return updatedBooking;
+  }
+
+  /**
    * Create a walk-in booking.
    * Bypasses PENDING state — created as CONFIRMED.
    * Performs availability check with pessimistic locking.

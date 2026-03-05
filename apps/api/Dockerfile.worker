@@ -1,0 +1,88 @@
+# ──────────────────────────────────────────────
+# Worker Dockerfile — BullMQ background job processing
+# ──────────────────────────────────────────────
+# Uses the same multi-stage build as the API Dockerfile.
+# The NestJS app boots with all modules (including @Processor classes),
+# so the same binary works for both HTTP and worker roles.
+#
+# Fly.io runs this as a separate machine (process group "worker")
+# without an HTTP service. The WORKER_MODE env var can be used by
+# application code to skip HTTP-only middleware if needed.
+# ──────────────────────────────────────────────
+
+# ──────────────────────────────────────────────
+# Stage 1: Install dependencies
+# ──────────────────────────────────────────────
+FROM node:22-alpine AS deps
+
+RUN corepack enable && corepack prepare pnpm@10.30.3 --activate
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+
+COPY apps/api/package.json apps/api/
+COPY packages/shared/package.json packages/shared/
+COPY prisma/package.json prisma/
+
+RUN pnpm install --frozen-lockfile
+
+# ──────────────────────────────────────────────
+# Stage 2: Build
+# ──────────────────────────────────────────────
+FROM node:22-alpine AS builder
+
+RUN corepack enable && corepack prepare pnpm@10.30.3 --activate
+
+WORKDIR /app
+
+COPY --from=deps /app ./
+
+COPY tsconfig.base.json ./
+COPY packages/shared/ packages/shared/
+COPY prisma/ prisma/
+COPY apps/api/ apps/api/
+
+RUN pnpm --filter @savspot/prisma generate
+RUN pnpm --filter @savspot/shared build
+RUN pnpm --filter @savspot/api build
+RUN pnpm prune --prod
+
+# ──────────────────────────────────────────────
+# Stage 3: Production runner (worker)
+# ──────────────────────────────────────────────
+FROM node:22-alpine AS runner
+
+RUN apk add --no-cache dumb-init
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV WORKER_MODE=true
+
+# Copy pruned node_modules
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
+
+# Copy compiled API output (same binary, worker processors included)
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
+
+# Copy Prisma artifacts
+COPY --from=builder /app/prisma/schema.prisma ./prisma/schema.prisma
+COPY --from=builder /app/prisma/package.json ./prisma/package.json
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nestjs
+USER nestjs
+
+# Workers do not need an exposed port, but NestJS still binds one.
+# Fly.io will not route traffic to this machine (no [http_service]).
+EXPOSE 3001
+
+CMD ["dumb-init", "node", "apps/api/dist/main.js"]

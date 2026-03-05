@@ -9,6 +9,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiExcludeEndpoint } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { Prisma } from '../../../../prisma/generated/prisma';
@@ -19,6 +20,7 @@ import { StripeConnectService } from './stripe-connect.service';
 import { StripeProvider } from './providers/stripe.provider';
 
 @ApiTags('Webhooks')
+@SkipThrottle()
 @Controller('webhooks/stripe')
 export class StripeWebhookController {
   private readonly logger = new Logger(StripeWebhookController.name);

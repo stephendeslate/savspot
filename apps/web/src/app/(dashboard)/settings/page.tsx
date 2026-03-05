@@ -7,9 +7,11 @@ import {
   CalendarSync,
   ChevronRight,
   Clock,
+  Code,
   CreditCard,
   Palette,
   Tag,
+  Users,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -55,6 +57,18 @@ const settingsSections = [
     description: 'Create and manage promo codes',
     href: '/settings/discounts',
     icon: Tag,
+  },
+  {
+    name: 'Team',
+    description: 'Invite and manage team members',
+    href: '/settings/team',
+    icon: Users,
+  },
+  {
+    name: 'Embed Widget',
+    description: 'Add a "Book Now" button to your website',
+    href: '/settings/embed',
+    icon: Code,
   },
 ];
 

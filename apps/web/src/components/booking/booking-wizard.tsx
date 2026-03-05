@@ -7,6 +7,8 @@ import { BookingProgress } from './booking-progress';
 import { ServiceSelectionStep } from './service-selection-step';
 import { DateTimePickerStep } from './date-time-picker-step';
 import { GuestCountStep } from './guest-count-step';
+import { QuestionnaireStep } from './questionnaire-step';
+import { AddonSelectionStep } from './addon-selection-step';
 import { PricingSummaryStep } from './pricing-summary-step';
 import { PaymentStep } from './payment-step';
 import { GuestInfoStep } from './guest-info-step';
@@ -15,6 +17,7 @@ import type {
   BookingSession,
   BookingSessionData,
   TenantData,
+  IntakeFormConfig,
 } from './booking-types';
 import { API_URL } from './booking-types';
 
@@ -157,6 +160,62 @@ export function BookingWizard({
           />
         );
 
+      case 'QUESTIONNAIRE': {
+        const stepConfig = steps[currentStepIndex]?.config;
+        const formConfig = stepConfig?.formConfig as IntakeFormConfig | undefined;
+        if (!formConfig || !formConfig.fields?.length) {
+          return (
+            <div className="py-12 text-center text-muted-foreground">
+              <p>No questionnaire configured.</p>
+              <Button className="mt-4" onClick={() => goToNextStep()}>
+                Continue
+              </Button>
+            </div>
+          );
+        }
+        return (
+          <QuestionnaireStep
+            formConfig={formConfig}
+            initialValues={
+              session.data.questionnaireResponses as
+                | Record<string, unknown>
+                | undefined
+            }
+            onSubmit={async (responses) => {
+              await goToNextStep({ questionnaireResponses: responses });
+            }}
+            onBack={goToPrevStep}
+          />
+        );
+      }
+
+      case 'ADD_ONS': {
+        const selectedServiceId = session.data.serviceId;
+        const service = tenant.services.find((s) => s.id === selectedServiceId);
+        const addons = service?.addons ?? [];
+        return (
+          <AddonSelectionStep
+            addons={addons}
+            selectedAddonIds={
+              (session.data.selectedAddonIds as string[]) ?? []
+            }
+            onSubmit={async (selectedIds) => {
+              const selectedAddons = addons.filter((a) =>
+                selectedIds.includes(a.id),
+              );
+              await goToNextStep({
+                selectedAddonIds: selectedIds,
+                selectedAddons,
+              });
+            }}
+            onBack={goToPrevStep}
+            currencyCode={
+              session.data.serviceCurrency ?? tenant.currency
+            }
+          />
+        );
+      }
+
       case 'PRICING_SUMMARY':
         return (
           <PricingSummaryStep
@@ -231,6 +290,8 @@ export function BookingWizard({
     currentStepType !== 'SERVICE_SELECTION' &&
     currentStepType !== 'DATE_TIME_PICKER' &&
     currentStepType !== 'GUEST_COUNT' &&
+    currentStepType !== 'QUESTIONNAIRE' &&
+    currentStepType !== 'ADD_ONS' &&
     currentStepType !== 'PRICING_SUMMARY' &&
     currentStepType !== 'CLIENT_INFO' &&
     currentStepType !== 'PAYMENT' &&

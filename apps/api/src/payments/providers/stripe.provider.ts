@@ -163,6 +163,30 @@ export class StripeProvider implements PaymentProviderInterface {
   }
 
   /**
+   * Retrieve a PaymentIntent by ID.
+   * Used by the retry processor to check current status before confirming.
+   */
+  async retrievePaymentIntent(
+    intentId: string,
+  ): Promise<{ id: string; status: string }> {
+    const stripe = this.ensureStripe();
+    const intent = await stripe.paymentIntents.retrieve(intentId);
+    return { id: intent.id, status: intent.status };
+  }
+
+  /**
+   * Confirm a PaymentIntent by ID.
+   * Used by the retry processor to re-attempt failed payments.
+   */
+  async confirmPaymentIntent(
+    intentId: string,
+  ): Promise<{ id: string; status: string }> {
+    const stripe = this.ensureStripe();
+    const intent = await stripe.paymentIntents.confirm(intentId);
+    return { id: intent.id, status: intent.status };
+  }
+
+  /**
    * Construct a webhook event from the raw body and signature header.
    * Used by the webhook controller.
    */

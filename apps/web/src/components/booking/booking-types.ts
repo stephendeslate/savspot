@@ -26,6 +26,7 @@ export interface TenantService {
   pricingModel: string;
   imageUrl: string | null;
   guestConfig: GuestConfig | null;
+  addons?: ServiceAddon[];
 }
 
 export interface TenantData {
@@ -49,6 +50,52 @@ export interface BookingStep {
   type: BookingStepType;
   label: string;
   order: number;
+  config?: BookingStepConfig;
+}
+
+export interface BookingStepConfig {
+  formConfig?: IntakeFormConfig;
+  [key: string]: unknown;
+}
+
+// ---------------------------------------------------------------------------
+// Questionnaire / Intake Form
+// ---------------------------------------------------------------------------
+
+export interface IntakeFormField {
+  id: string;
+  label: string;
+  type: IntakeFormFieldType;
+  required: boolean;
+  options?: string[];
+  placeholder?: string;
+  validation?: Record<string, unknown>;
+}
+
+export type IntakeFormFieldType =
+  | 'TEXT'
+  | 'TEXTAREA'
+  | 'SELECT'
+  | 'MULTI_SELECT'
+  | 'CHECKBOX'
+  | 'NUMBER'
+  | 'DATE'
+  | 'EMAIL'
+  | 'PHONE';
+
+export interface IntakeFormConfig {
+  fields: IntakeFormField[];
+}
+
+// ---------------------------------------------------------------------------
+// Add-ons
+// ---------------------------------------------------------------------------
+
+export interface ServiceAddon {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number; // in cents
 }
 
 export type BookingStepType =
@@ -56,6 +103,8 @@ export type BookingStepType =
   | 'VENUE_SELECTION'
   | 'DATE_TIME_PICKER'
   | 'GUEST_COUNT'
+  | 'QUESTIONNAIRE'
+  | 'ADD_ONS'
   | 'PRICING_SUMMARY'
   | 'CLIENT_INFO'
   | 'PAYMENT'
@@ -81,6 +130,9 @@ export interface BookingSessionData {
   totalAmount?: number;
   depositAmount?: number;
   bookingId?: string;
+  questionnaireResponses?: Record<string, unknown>;
+  selectedAddonIds?: string[];
+  selectedAddons?: ServiceAddon[];
   [key: string]: unknown;
 }
 

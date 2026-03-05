@@ -28,6 +28,11 @@ export const ROUTES = {
   SETTINGS_NOTIFICATIONS: '/settings/notifications',
   SETTINGS_BRANDING: '/settings/branding',
   SETTINGS_DISCOUNTS: '/settings/discounts',
+  SETTINGS_TEAM: '/settings/team',
+  SETTINGS_EMBED: '/settings/embed',
+
+  // Auth (public)
+  ACCEPT_INVITATION: '/accept-invitation',
 
   // Client Portal
   PORTAL: '/portal',

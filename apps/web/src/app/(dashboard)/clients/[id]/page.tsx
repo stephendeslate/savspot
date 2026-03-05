@@ -38,6 +38,7 @@ import {
 import { apiClient } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
 import { useTenant } from '@/hooks/use-tenant';
+import { NotesPanel } from '@/components/notes/notes-panel';
 
 // ---------- Types ----------
 
@@ -602,6 +603,15 @@ export default function ClientDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Structured Notes (multi-user) */}
+          {tenantId && (
+            <NotesPanel
+              entityType="CLIENT"
+              entityId={clientId}
+              tenantId={tenantId}
+            />
+          )}
         </div>
       </div>
     </div>

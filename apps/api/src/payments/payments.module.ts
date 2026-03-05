@@ -14,6 +14,6 @@ import { OfflineProvider } from './providers/offline.provider';
     PaymentsService,
     StripeConnectService,
   ],
-  exports: [PaymentsService, StripeConnectService],
+  exports: [PaymentsService, StripeConnectService, StripeProvider],
 })
 export class PaymentsModule {}

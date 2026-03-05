@@ -3,6 +3,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { WorkflowTriggerEvent } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationsService, CreateAndSendParams } from '../communications/communications.service';
+import { TwilioService } from '../sms/sms.service';
 import {
   BOOKING_CONFIRMED,
   BOOKING_CANCELLED,
@@ -33,6 +34,7 @@ export class WorkflowEngineService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly communicationsService: CommunicationsService,
+    private readonly twilioService: TwilioService,
   ) {}
 
   // ---- Hardcoded Platform Handlers ----
@@ -294,21 +296,95 @@ export class WorkflowEngineService {
   }
 
   /**
-   * SEND_SMS action — enqueues deliverProviderSMS job.
-   * SMS delivery requires Twilio integration (Sprint 5+).
-   * For now, log the intent and create a Communication record.
+   * SEND_SMS action — sends an SMS to the client via TwilioService.
+   * Looks up the client's phone number from the DB, formats the message
+   * from actionConfig or a default template, and records the communication.
    */
-  /* eslint-disable @typescript-eslint/no-unused-vars */
   private async executeSendSms(
     automation: { id: string },
-    _config: Record<string, unknown>,
-    _payload: BookingEventPayload,
+    config: Record<string, unknown>,
+    payload: BookingEventPayload,
   ): Promise<void> {
-    /* eslint-enable @typescript-eslint/no-unused-vars */
-    this.logger.warn(
-      `SEND_SMS not fully implemented yet — automation=${automation.id}. SMS delivery requires Twilio integration.`,
+    this.logger.log(
+      `Executing SEND_SMS: automation=${automation.id} client=${payload.clientId}`,
     );
-    // TODO: Sprint 5 — enqueue JOB_DELIVER_PROVIDER_SMS with Twilio
+
+    try {
+      // Look up the client's phone number
+      const client = await this.prisma.user.findUnique({
+        where: { id: payload.clientId },
+        select: { phone: true, name: true },
+      });
+
+      if (!client?.phone) {
+        this.logger.log(
+          `Client ${payload.clientId} has no phone number — skipping SMS for automation=${automation.id}`,
+        );
+        return;
+      }
+
+      // Load tenant name for the message
+      const tenant = await this.loadTenantBranding(payload.tenantId);
+      const dateTime = this.formatDateTime(payload.startTime);
+
+      // Build message from config or default template
+      const messageTemplate = config['message'] ? String(config['message']) : null;
+      const message = messageTemplate
+        ? this.interpolateSmsTemplate(messageTemplate, {
+            clientName: payload.clientName,
+            serviceName: payload.serviceName,
+            dateTime,
+            businessName: tenant.name,
+          })
+        : `[${tenant.name}] Hi ${payload.clientName}, your booking for ${payload.serviceName} on ${dateTime} has been updated.`;
+
+      // Send via Twilio
+      const result = await this.twilioService.sendSms(client.phone, message);
+
+      // Record the communication in the DB
+      await this.prisma.communication.create({
+        data: {
+          tenantId: payload.tenantId,
+          recipientId: payload.clientId,
+          bookingId: payload.bookingId,
+          channel: 'SMS',
+          templateKey: `workflow-sms-${automation.id}`,
+          body: message,
+          status: result.success ? 'SENT' : 'FAILED',
+          providerMessageId: result.sid ?? null,
+          sentAt: result.success ? new Date() : null,
+          failureReason: result.success ? null : 'Twilio delivery failed',
+        },
+      });
+
+      if (result.success) {
+        this.logger.log(
+          `SMS sent for automation=${automation.id} to ${client.phone}`,
+        );
+      } else {
+        this.logger.error(
+          `SMS delivery failed for automation=${automation.id} to ${client.phone}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to execute SEND_SMS for automation ${automation.id}: ${error}`,
+      );
+    }
+  }
+
+  /**
+   * Interpolates simple {{variable}} placeholders in an SMS template.
+   */
+  private interpolateSmsTemplate(
+    template: string,
+    variables: Record<string, string>,
+  ): string {
+    return Object.entries(variables).reduce(
+      (result, [key, value]) =>
+        result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value),
+      template,
+    );
   }
 
   /**

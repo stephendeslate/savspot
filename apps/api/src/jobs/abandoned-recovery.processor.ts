@@ -2,23 +2,25 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
+import { CommunicationsService } from '../communications/communications.service';
 import {
   QUEUE_BOOKINGS,
   JOB_ABANDONED_BOOKING_RECOVERY,
 } from '../bullmq/queue.constants';
 
 /**
- * Marks stale booking sessions as ABANDONED and releases their held reservations.
+ * Marks stale booking sessions as ABANDONED, releases their held reservations,
+ * and sends recovery emails to clients encouraging them to complete their booking.
  * Scheduled hourly via BullMQ repeatable job.
- *
- * In future sprints, this processor will also enqueue recovery emails
- * via the deliverCommunication job.
  */
 @Processor(QUEUE_BOOKINGS)
 export class AbandonedRecoveryProcessor extends WorkerHost {
   private readonly logger = new Logger(AbandonedRecoveryProcessor.name);
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly communicationsService: CommunicationsService,
+  ) {
     super();
   }
 
@@ -32,13 +34,29 @@ export class AbandonedRecoveryProcessor extends WorkerHost {
     try {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
-      // Find stale in-progress sessions
+      // Find stale in-progress sessions with client and service info
       const staleSessions = await this.prisma.bookingSession.findMany({
         where: {
           status: 'IN_PROGRESS',
           updatedAt: { lt: oneHourAgo },
         },
-        select: { id: true, tenantId: true, clientId: true },
+        select: {
+          id: true,
+          tenantId: true,
+          clientId: true,
+          serviceId: true,
+          service: {
+            select: { name: true },
+          },
+          tenant: {
+            select: {
+              name: true,
+              slug: true,
+              logoUrl: true,
+              brandColor: true,
+            },
+          },
+        },
       });
 
       if (staleSessions.length === 0) {
@@ -74,13 +92,65 @@ export class AbandonedRecoveryProcessor extends WorkerHost {
         `Abandoned ${updatedSessions.count} session(s), released ${releasedReservations.count} reservation(s)`,
       );
 
-      // TODO: In a future sprint, enqueue recovery emails for sessions
-      // that have a clientId with a valid email address.
-      // staleSessions.filter(s => s.clientId).forEach(session => {
-      //   queue.add(JOB_DELIVER_COMMUNICATION, { ... });
-      // });
+      // Send recovery emails to sessions that have a clientId with a valid email
+      let emailsSent = 0;
+      let emailsSkipped = 0;
+
+      const sessionsWithClients = staleSessions.filter((s) => s.clientId);
+
+      for (const session of sessionsWithClients) {
+        try {
+          // Look up the client email
+          const client = await this.prisma.user.findUnique({
+            where: { id: session.clientId! },
+            select: { id: true, email: true, name: true },
+          });
+
+          if (!client?.email) {
+            this.logger.debug(
+              `Session ${session.id}: client ${session.clientId} has no email — skipping recovery email`,
+            );
+            emailsSkipped++;
+            continue;
+          }
+
+          // Build the rebooking URL using the tenant slug and service
+          const rebookUrl = session.tenant.slug && session.serviceId
+            ? `/${session.tenant.slug}?service=${session.serviceId}`
+            : `/${session.tenant.slug ?? ''}`;
+
+          await this.communicationsService.createAndSend({
+            tenantId: session.tenantId,
+            recipientId: client.id,
+            recipientEmail: client.email,
+            recipientName: client.name,
+            channel: 'EMAIL',
+            templateKey: 'abandoned-booking-recovery',
+            templateData: {
+              clientName: client.name,
+              serviceName: session.service?.name ?? 'your selected service',
+              businessName: session.tenant.name,
+              logoUrl: session.tenant.logoUrl,
+              brandColor: session.tenant.brandColor,
+              rebookUrl,
+            },
+          });
+
+          emailsSent++;
+
+          this.logger.log(
+            `Recovery email enqueued for session ${session.id} to ${client.email}`,
+          );
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          this.logger.error(
+            `Failed to send recovery email for session ${session.id}: ${message}`,
+          );
+        }
+      }
+
       this.logger.log(
-        'Recovery email enqueueing deferred to future sprint (deliverCommunication)',
+        `Recovery emails: sent=${emailsSent} skipped=${emailsSkipped} (of ${sessionsWithClients.length} with clients)`,
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';

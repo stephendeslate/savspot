@@ -15,6 +15,8 @@ type BookingStepType =
   | 'SERVICE_SELECTION'
   | 'VENUE_SELECTION'
   | 'GUEST_COUNT'
+  | 'QUESTIONNAIRE'
+  | 'ADD_ONS'
   | 'DATE_TIME_PICKER'
   | 'PRICING_SUMMARY'
   | 'CLIENT_INFO'
@@ -25,6 +27,8 @@ interface ResolvedStep {
   type: BookingStepType;
   label: string;
   order: number;
+  description?: string;
+  config?: Record<string, unknown>;
 }
 
 @Injectable()
@@ -369,12 +373,13 @@ export class BookingSessionsService {
       venueId: string | null;
       guestConfig: unknown;
       basePrice: { toNumber: () => number } | number;
+      intakeFormConfig: unknown;
     } | null = null;
 
     if (serviceId) {
       service = await this.prisma.service.findFirst({
         where: { id: serviceId, tenantId, isActive: true },
-        select: { venueId: true, guestConfig: true, basePrice: true },
+        select: { venueId: true, guestConfig: true, basePrice: true, intakeFormConfig: true },
       });
     }
 
@@ -406,6 +411,34 @@ export class BookingSessionsService {
         type: 'GUEST_COUNT',
         label: 'Guest Count',
         order: order++,
+      });
+    }
+
+    // QUESTIONNAIRE: when service has intake form config
+    if (service?.intakeFormConfig) {
+      steps.push({
+        type: 'QUESTIONNAIRE',
+        order: order++,
+        label: 'Questionnaire',
+        description: 'Please answer the following questions',
+        config: { formConfig: service.intakeFormConfig },
+      });
+    }
+
+    // ADD_ONS: when service has active add-ons
+    const addonCount = serviceId
+      ? await this.prisma.serviceAddon.count({
+          where: { serviceId, tenantId, isActive: true },
+        })
+      : 0;
+
+    if (addonCount > 0) {
+      steps.push({
+        type: 'ADD_ONS',
+        order: order++,
+        label: 'Add-ons',
+        description: 'Select optional add-ons',
+        config: {},
       });
     }
 
