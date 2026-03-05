@@ -13,8 +13,7 @@ import { API_ROUTES, SESSION_COOKIE_NAME } from '@/lib/constants';
 export interface User {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   role: string;
   tenantId: string | null;
   avatarUrl: string | null;

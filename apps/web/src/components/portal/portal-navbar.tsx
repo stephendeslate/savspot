@@ -41,9 +41,7 @@ export function PortalNavbar() {
     return pathname.startsWith(href);
   };
 
-  const fullName = user
-    ? `${user.firstName} ${user.lastName}`.trim()
-    : 'User';
+  const fullName = user?.name || 'User';
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-white">

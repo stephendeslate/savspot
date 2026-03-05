@@ -7,20 +7,24 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "default": "./dist/index.js"
     },
     "./enums": {
+      "types": "./dist/enums/index.d.ts",
       "import": "./dist/enums/index.js",
-      "types": "./dist/enums/index.d.ts"
+      "default": "./dist/enums/index.js"
     },
     "./constants": {
+      "types": "./dist/constants/index.d.ts",
       "import": "./dist/constants/index.js",
-      "types": "./dist/constants/index.d.ts"
+      "default": "./dist/constants/index.js"
     },
     "./types": {
+      "types": "./dist/types/index.d.ts",
       "import": "./dist/types/index.js",
-      "types": "./dist/types/index.d.ts"
+      "default": "./dist/types/index.js"
     }
   },
   "scripts": {

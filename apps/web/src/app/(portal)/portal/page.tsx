@@ -194,7 +194,7 @@ export default function PortalDashboardPage() {
       {/* Welcome header */}
       <div>
         <h1 className="text-2xl font-semibold">
-          Welcome back{user?.firstName ? `, ${user.firstName}` : ''}!
+          Welcome back{user?.name ? `, ${user.name.split(' ')[0]}` : ''}!
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Here&apos;s a summary of your upcoming appointments and activity.

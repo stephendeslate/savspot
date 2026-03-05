@@ -13,9 +13,7 @@ interface HeaderProps {
 export function Header({ title, onMenuClick }: HeaderProps) {
   const { user } = useAuth();
 
-  const displayName = user
-    ? `${user.firstName} ${user.lastName}`
-    : 'Loading...';
+  const displayName = user ? user.name : 'Loading...';
 
   return (
     <header className="flex h-16 items-center justify-between border-b bg-card px-4 lg:px-6">
