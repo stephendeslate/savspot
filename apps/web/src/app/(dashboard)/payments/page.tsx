@@ -61,10 +61,13 @@ interface Payment {
 }
 
 interface PaymentsResponse {
-  payments: Payment[];
-  total: number;
-  page: number;
-  limit: number;
+  data: Payment[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 interface PaymentStats {
@@ -175,12 +178,12 @@ export default function PaymentsPage() {
         if (endDate) params.set('endDate', endDate);
         if (search) params.set('search', search);
 
-        const data = await apiClient.get<PaymentsResponse>(
+        const res = await apiClient.getRaw<PaymentsResponse>(
           `/api/tenants/${tenantId}/payments?${params.toString()}`,
         );
-        setPayments(data.payments);
-        setTotal(data.total);
-        setPage(data.page);
+        setPayments(res.data);
+        setTotal(res.meta.total);
+        setPage(res.meta.page);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : 'Failed to load payments',

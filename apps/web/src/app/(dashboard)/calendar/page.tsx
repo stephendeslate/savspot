@@ -66,10 +66,13 @@ interface Booking {
 }
 
 interface BookingsResponse {
-  bookings: Booking[];
-  total: number;
-  page: number;
-  limit: number;
+  data: Booking[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 interface CalendarEvent extends Event {
@@ -195,11 +198,11 @@ export default function CalendarPage() {
         params.set('endDate', endDate.toISOString());
         params.set('limit', '500');
 
-        const data = await apiClient.get<BookingsResponse>(
+        const res = await apiClient.getRaw<BookingsResponse>(
           `/api/tenants/${tenantId}/bookings?${params.toString()}`,
         );
 
-        const bookingEvents: CalendarEvent[] = data.bookings.map((booking) => ({
+        const bookingEvents: CalendarEvent[] = res.data.map((booking) => ({
           id: booking.id,
           title: `${booking.service.name} - ${getClientDisplayName(booking)}`,
           start: new Date(booking.startTime),

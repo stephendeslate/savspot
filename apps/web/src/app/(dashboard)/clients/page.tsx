@@ -37,10 +37,13 @@ interface Client {
 }
 
 interface ClientsResponse {
-  clients: Client[];
-  total: number;
-  page: number;
-  limit: number;
+  data: Client[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 // ---------- Helpers ----------
@@ -99,16 +102,16 @@ export default function ClientsPage() {
         if (sortBy) params.set('sortBy', sortBy);
         if (tagFilter) params.set('tag', tagFilter);
 
-        const data = await apiClient.get<ClientsResponse>(
+        const res = await apiClient.getRaw<ClientsResponse>(
           `/api/tenants/${tenantId}/clients?${params.toString()}`,
         );
-        setClients(data.clients);
-        setTotal(data.total);
-        setPage(data.page);
+        setClients(res.data);
+        setTotal(res.meta.total);
+        setPage(res.meta.page);
 
         // Collect unique tags
         const tags = new Set<string>();
-        data.clients.forEach((client) => {
+        res.data.forEach((client) => {
           client.tags?.forEach((tag) => tags.add(tag));
         });
         setAllTags((prev) => {

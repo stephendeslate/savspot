@@ -46,10 +46,13 @@ interface PortalInvoice {
 }
 
 interface PaymentsResponse {
-  invoices: PortalInvoice[];
-  total: number;
-  page: number;
-  limit: number;
+  data: PortalInvoice[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 // ---------- Helpers ----------
@@ -126,12 +129,12 @@ export default function PortalPaymentsPage() {
       params.set('page', String(pageNum));
       params.set('limit', String(PAGE_LIMIT));
 
-      const data = await apiClient.get<PaymentsResponse>(
+      const res = await apiClient.getRaw<PaymentsResponse>(
         `/api/portal/payments?${params.toString()}`,
       );
-      setInvoices(data.invoices);
-      setTotal(data.total);
-      setPage(data.page);
+      setInvoices(res.data);
+      setTotal(res.meta.total);
+      setPage(res.meta.page);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to load payments',

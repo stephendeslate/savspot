@@ -98,6 +98,39 @@ class ApiClient {
     return this.request<T>(path);
   }
 
+  /** Like request() but returns the full JSON body without unwrapping `data`. */
+  async requestRaw<T>(path: string, options?: RequestInit): Promise<T> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options?.headers as Record<string, string>),
+    };
+    if (this.accessToken) {
+      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    }
+
+    const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+
+    if (res.status === 401 && this.refreshToken) {
+      const refreshed = await this.tryRefresh();
+      if (refreshed) {
+        headers['Authorization'] = `Bearer ${this.accessToken}`;
+        const retry = await fetch(`${API_URL}${path}`, {
+          ...options,
+          headers,
+        });
+        if (!retry.ok) throw new ApiError(retry.status, await retry.text());
+        return (await retry.json()) as T;
+      }
+    }
+
+    if (!res.ok) throw new ApiError(res.status, await res.text());
+    return (await res.json()) as T;
+  }
+
+  getRaw<T>(path: string) {
+    return this.requestRaw<T>(path);
+  }
+
   post<T>(path: string, body?: unknown) {
     return this.request<T>(path, {
       method: 'POST',

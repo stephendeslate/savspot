@@ -59,7 +59,7 @@ export class BookingsService {
     if (endDate) {
       where.endTime = {
         ...(where.endTime as Prisma.DateTimeFilter ?? {}),
-        lte: new Date(endDate + 'T23:59:59.999Z'),
+        lte: endDate.includes('T') ? new Date(endDate) : new Date(endDate + 'T23:59:59.999Z'),
       };
     }
 

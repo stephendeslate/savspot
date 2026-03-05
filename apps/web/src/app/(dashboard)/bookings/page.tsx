@@ -69,10 +69,13 @@ interface Booking {
 }
 
 interface BookingsResponse {
-  bookings: Booking[];
-  total: number;
-  page: number;
-  limit: number;
+  data: Booking[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 // ---------- Helpers ----------
@@ -171,12 +174,12 @@ export default function BookingsPage() {
         if (endDate) params.set('endDate', endDate);
         if (search) params.set('search', search);
 
-        const data = await apiClient.get<BookingsResponse>(
+        const res = await apiClient.getRaw<BookingsResponse>(
           `/api/tenants/${tenantId}/bookings?${params.toString()}`,
         );
-        setBookings(data.bookings);
-        setTotal(data.total);
-        setPage(data.page);
+        setBookings(res.data);
+        setTotal(res.meta.total);
+        setPage(res.meta.page);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : 'Failed to load bookings',
