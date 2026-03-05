@@ -11,7 +11,7 @@ import {
 /**
  * Processor for the sendMorningSummary job.
  * Sends a daily morning SMS to tenant owners summarizing today's bookings.
- * Will be registered as a repeating job in Wave 4.
+ * Repeating schedule is registered by JobSchedulerService.
  */
 @Processor(QUEUE_COMMUNICATIONS)
 export class MorningSummaryProcessor extends WorkerHost {

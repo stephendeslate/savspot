@@ -6,8 +6,8 @@ export default defineConfig({
     globals: true,
     root: './',
     environment: 'node',
-    include: ['{src,test}/**/*.{test,spec}.ts'],
-    exclude: ['**/*.integration.spec.ts', '**/node_modules/**'],
+    include: ['test/**/*.integration.spec.ts'],
+    testTimeout: 30_000,
     passWithNoTests: true,
   },
   resolve: {

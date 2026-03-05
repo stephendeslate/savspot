@@ -10,7 +10,20 @@ export class PublicBookingService {
    * Used for the public booking widget.
    */
   async getTenantBySlug(slug: string) {
+    // Resolve tenant first (tenants table is not tenant-scoped, no RLS issue)
     const tenant = await this.prisma.tenant.findUnique({
+      where: { slug },
+      select: { id: true, status: true },
+    });
+
+    if (!tenant || tenant.status !== 'ACTIVE') {
+      throw new NotFoundException('Business not found');
+    }
+
+    // Set RLS context so tenant-scoped queries (services) work with FORCE RLS
+    await this.prisma.$executeRaw`SELECT set_config('app.current_tenant', ${tenant.id}, FALSE)`;
+
+    const fullTenant = await this.prisma.tenant.findUnique({
       where: { slug },
       select: {
         id: true,
@@ -27,7 +40,7 @@ export class PublicBookingService {
         contactEmail: true,
         contactPhone: true,
         category: true,
-        status: true,
+        categoryLabel: true,
         services: {
           where: { isActive: true },
           select: {
@@ -51,13 +64,11 @@ export class PublicBookingService {
       },
     });
 
-    if (!tenant || tenant.status !== 'ACTIVE') {
+    if (!fullTenant) {
       throw new NotFoundException('Business not found');
     }
 
-    // Remove status from the public response
-    const { status: _, ...publicTenant } = tenant; // eslint-disable-line @typescript-eslint/no-unused-vars
-    return publicTenant;
+    return fullTenant;
   }
 
   /**
@@ -80,6 +91,9 @@ export class PublicBookingService {
     if (!tenant || tenant.status !== 'ACTIVE') {
       throw new NotFoundException('Business not found');
     }
+
+    // Set RLS context so tenant-scoped queries (services, availability_rules, service_addons) work with FORCE RLS
+    await this.prisma.$executeRaw`SELECT set_config('app.current_tenant', ${tenant.id}, FALSE)`;
 
     const service = await this.prisma.service.findFirst({
       where: {

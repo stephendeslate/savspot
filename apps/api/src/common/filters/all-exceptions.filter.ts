@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import * as Sentry from '@sentry/nestjs';
 
 interface ErrorResponseBody {
   statusCode: number;
@@ -66,8 +67,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
       this.logger.error(`Unhandled non-Error exception: ${String(exception)}`);
     }
 
-    // Log non-5xx errors at warn level, 5xx at error level
+    // Report 5xx errors to Sentry
     if (statusCode >= 500) {
+      Sentry.captureException(exception, {
+        extra: { method: request.method, url: request.url, statusCode },
+      });
       this.logger.error(
         `${request.method} ${request.url} ${statusCode} - ${JSON.stringify(message)}`,
       );

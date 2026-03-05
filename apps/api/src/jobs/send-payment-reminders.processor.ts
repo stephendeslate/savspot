@@ -9,6 +9,11 @@ import {
   JOB_DELIVER_COMMUNICATION,
 } from '../bullmq/queue.constants';
 
+/**
+ * TODO: When migrating to a non-superuser DB role, this processor's raw SQL queries
+ * must set app.current_tenant per-tenant because FORCE ROW LEVEL SECURITY will
+ * block cross-tenant access to invoices, payments, bookings, and users.
+ */
 interface DueInvoiceRow {
   id: string;
   tenant_id: string;

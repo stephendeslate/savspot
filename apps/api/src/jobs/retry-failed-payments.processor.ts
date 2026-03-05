@@ -8,6 +8,11 @@ import {
   JOB_RETRY_FAILED_PAYMENTS,
 } from '../bullmq/queue.constants';
 
+/**
+ * TODO: When migrating to a non-superuser DB role, this processor's raw SQL queries
+ * must set app.current_tenant per-tenant because FORCE ROW LEVEL SECURITY will
+ * block cross-tenant access to payments.
+ */
 interface FailedPaymentRow {
   id: string;
   tenant_id: string;
