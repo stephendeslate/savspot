@@ -3,8 +3,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class MarkPaidDto {
   @ApiProperty({
-    example: 5000,
-    description: 'Payment amount in minor units (cents)',
+    example: 50,
+    description: 'Payment amount in major units (e.g. dollars)',
   })
   @IsNumber()
   @Min(1)
