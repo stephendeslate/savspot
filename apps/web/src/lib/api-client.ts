@@ -18,6 +18,7 @@ class ApiClient {
     this.accessToken = access;
     this.refreshToken = refresh;
     if (typeof window !== 'undefined') {
+      localStorage.setItem('savspot_access_token', access);
       localStorage.setItem('savspot_refresh_token', refresh);
     }
   }
@@ -26,12 +27,14 @@ class ApiClient {
     this.accessToken = null;
     this.refreshToken = null;
     if (typeof window !== 'undefined') {
+      localStorage.removeItem('savspot_access_token');
       localStorage.removeItem('savspot_refresh_token');
     }
   }
 
   loadTokens() {
     if (typeof window !== 'undefined') {
+      this.accessToken = localStorage.getItem('savspot_access_token');
       this.refreshToken = localStorage.getItem('savspot_refresh_token');
     }
   }
