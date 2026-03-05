@@ -80,9 +80,19 @@ export default function PaymentsSettingsPage() {
     setError(null);
 
     try {
+      // If no account exists yet, create one first
+      if (!status?.accountId) {
+        await apiClient.post(
+          `/api/tenants/${tenantId}/payments/connect`,
+          {},
+        );
+      }
+
+      // Get onboarding link and redirect
+      const returnUrl = `${window.location.origin}${ROUTES.SETTINGS_PAYMENTS}`;
       const data = await apiClient.post<{ url: string }>(
-        `/api/tenants/${tenantId}/payments/connect`,
-        {},
+        `/api/tenants/${tenantId}/payments/connect/onboarding`,
+        { returnUrl },
       );
       window.location.href = data.url;
     } catch (err) {
