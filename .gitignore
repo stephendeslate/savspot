@@ -48,5 +48,12 @@ yarn-error.log*
 # Sentry
 .sentryclirc
 
+# Keys & secrets
+.keys/
+
+# Playwright
+playwright-report/
+test-results/
+
 # Misc
 *.tsbuildinfo
