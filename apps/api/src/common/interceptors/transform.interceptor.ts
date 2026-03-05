@@ -17,6 +17,9 @@ export interface ApiResponse<T> {
 /**
  * Global response transformer that wraps all successful responses
  * in a consistent `{ data, meta }` envelope.
+ *
+ * Paginated responses that already return `{ data, meta }` are passed
+ * through as-is to avoid double-wrapping.
  */
 @Injectable()
 export class TransformInterceptor<T>
@@ -27,12 +30,24 @@ export class TransformInterceptor<T>
     next: CallHandler<T>,
   ): Observable<ApiResponse<T>> {
     return next.handle().pipe(
-      map((data) => ({
-        data,
-        meta: {
-          timestamp: new Date().toISOString(),
-        },
-      })),
+      map((data) => {
+        // If the service already returned { data, meta }, pass through as-is
+        if (
+          data &&
+          typeof data === 'object' &&
+          'data' in data &&
+          'meta' in data
+        ) {
+          return data as unknown as ApiResponse<T>;
+        }
+
+        return {
+          data,
+          meta: {
+            timestamp: new Date().toISOString(),
+          },
+        };
+      }),
     );
   }
 }

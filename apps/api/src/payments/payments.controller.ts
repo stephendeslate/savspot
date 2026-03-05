@@ -93,6 +93,19 @@ export class PaymentsController {
   }
 
   /**
+   * Get payment stats for the tenant.
+   */
+  @Get('stats')
+  @TenantRoles('OWNER', 'ADMIN')
+  @ApiOperation({ summary: 'Get payment stats for a tenant' })
+  @ApiResponse({ status: 200, description: 'Payment statistics' })
+  async getStats(
+    @Param('tenantId', UuidValidationPipe) tenantId: string,
+  ) {
+    return this.paymentsService.getStats(tenantId);
+  }
+
+  /**
    * List payments for the tenant.
    */
   @Get()

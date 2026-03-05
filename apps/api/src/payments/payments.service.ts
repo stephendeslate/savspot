@@ -474,6 +474,45 @@ export class PaymentsService {
   }
 
   /**
+   * Get aggregated payment stats for a tenant.
+   */
+  async getStats(tenantId: string) {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [totalRevenue, thisMonth, pendingPayments, refunded] =
+      await Promise.all([
+        this.prisma.payment.aggregate({
+          where: { tenantId, status: 'SUCCEEDED' },
+          _sum: { amount: true },
+        }),
+        this.prisma.payment.aggregate({
+          where: {
+            tenantId,
+            status: 'SUCCEEDED',
+            createdAt: { gte: startOfMonth },
+          },
+          _sum: { amount: true },
+        }),
+        this.prisma.payment.aggregate({
+          where: { tenantId, status: { in: ['CREATED', 'PENDING'] } },
+          _sum: { amount: true },
+        }),
+        this.prisma.payment.aggregate({
+          where: { tenantId, status: 'REFUNDED' },
+          _sum: { amount: true },
+        }),
+      ]);
+
+    return {
+      totalRevenue: String(totalRevenue._sum.amount ?? 0),
+      thisMonth: String(thisMonth._sum.amount ?? 0),
+      pendingPayments: String(pendingPayments._sum.amount ?? 0),
+      refunded: String(refunded._sum.amount ?? 0),
+    };
+  }
+
+  /**
    * List payments for a tenant with optional filters.
    */
   async findAll(
