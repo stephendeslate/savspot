@@ -115,7 +115,7 @@ function formatDiscountValue(type: DiscountType, value: number): string {
     case 'PERCENTAGE':
       return `${value}%`;
     case 'FIXED':
-      return `$${(value / 100).toFixed(2)}`;
+      return `$${value.toFixed(2)}`;
     case 'FREE_HOURS':
       return `${value} hrs`;
     default:
@@ -239,13 +239,10 @@ export default function DiscountsSettingsPage() {
     setFormData({
       code: discount.code,
       type: discount.type,
-      value:
-        discount.type === 'FIXED'
-          ? (discount.value / 100).toString()
-          : discount.value.toString(),
+      value: discount.value.toString(),
       application: discount.application,
       minBookingAmount: discount.minBookingAmount
-        ? (discount.minBookingAmount / 100).toString()
+        ? discount.minBookingAmount.toString()
         : '',
       maxUses: discount.maxUses?.toString() ?? '',
       validFrom: discount.validFrom
@@ -297,13 +294,10 @@ export default function DiscountsSettingsPage() {
       const payload = {
         code,
         type: formData.type,
-        value:
-          formData.type === 'FIXED'
-            ? Math.round(numValue * 100)
-            : numValue,
+        value: numValue,
         application: formData.application,
         minBookingAmount: formData.minBookingAmount
-          ? Math.round(parseFloat(formData.minBookingAmount) * 100)
+          ? parseFloat(formData.minBookingAmount)
           : null,
         maxUses: formData.maxUses ? parseInt(formData.maxUses, 10) : null,
         validFrom: formData.validFrom || null,

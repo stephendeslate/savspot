@@ -75,8 +75,8 @@ describe('BUSINESS_PRESETS', () => {
       for (const service of preset.default_services) {
         expect(service.name).toBeTruthy();
         expect(service.duration_minutes).toBeGreaterThan(0);
-        expect(service.base_price_cents).toBeGreaterThanOrEqual(0);
-        expect(Number.isInteger(service.base_price_cents)).toBe(true);
+        expect(service.base_price).toBeGreaterThanOrEqual(0);
+        expect(Number.isInteger(service.base_price)).toBe(true);
       }
     });
 
@@ -112,9 +112,9 @@ describe('BUSINESS_PRESETS', () => {
 
   it('VENUE preset should have high-value services (events are expensive)', () => {
     const venuePreset = BUSINESS_PRESETS.VENUE;
-    const maxPrice = Math.max(...venuePreset.default_services.map((s) => s.base_price_cents));
-    // Venue full-day rental should be at least $1000 (100000 cents)
-    expect(maxPrice).toBeGreaterThanOrEqual(100000);
+    const maxPrice = Math.max(...venuePreset.default_services.map((s) => s.base_price));
+    // Venue full-day rental should be at least $1000
+    expect(maxPrice).toBeGreaterThanOrEqual(1000);
   });
 
   it('SALON preset should have shorter duration services than VENUE', () => {

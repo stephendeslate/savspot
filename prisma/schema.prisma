@@ -622,6 +622,7 @@ model Tenant {
   description              String?
   category                 BusinessCategory
   categoryDescription      String?                  @map("category_description")
+  categoryLabel            String?                  @map("category_label")
   logoUrl                  String?                  @map("logo_url")
   coverPhotoUrl            String?                  @map("cover_photo_url")
   brandColor               String?                  @map("brand_color")

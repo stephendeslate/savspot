@@ -41,7 +41,18 @@ interface TenantBranding {
   logoUrl: string | null;
   coverPhotoUrl: string | null;
   description: string | null;
+  category: string | null;
+  categoryLabel: string | null;
 }
+
+const CATEGORY_LABELS: Record<string, string> = {
+  VENUE: 'Venue / Event Space',
+  SALON: 'Salon / Barbershop',
+  STUDIO: 'Studio',
+  FITNESS: 'Fitness / Wellness',
+  PROFESSIONAL: 'Professional Services',
+  OTHER: 'Other',
+};
 
 interface PresignedUrlResponse {
   url: string;
@@ -58,6 +69,7 @@ const brandingSchema = z.object({
     .optional()
     .or(z.literal('')),
   description: z.string().max(500, 'Description must be 500 characters or less').optional(),
+  categoryLabel: z.string().max(50, 'Category label must be 50 characters or less').optional().or(z.literal('')),
 });
 
 type BrandingFormValues = z.infer<typeof brandingSchema>;
@@ -120,6 +132,7 @@ export default function BrandingSettingsPage() {
         reset({
           brandColor: data.brandColor || '',
           description: data.description || '',
+          categoryLabel: data.categoryLabel || '',
         });
       } catch (err) {
         setError(
@@ -249,6 +262,7 @@ export default function BrandingSettingsPage() {
         logoUrl: logoUrl || null,
         coverPhotoUrl: coverPhotoUrl || null,
         description: values.description || null,
+        categoryLabel: values.categoryLabel || null,
       });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 4000);
@@ -556,6 +570,41 @@ export default function BrandingSettingsPage() {
               )}
               <p className="text-xs text-muted-foreground">
                 Maximum 500 characters
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Category Label */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-base">Business Category Label</CardTitle>
+            <CardDescription>
+              Customize how your business type appears on your booking page
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="categoryLabel">Display Label</Label>
+              <Input
+                id="categoryLabel"
+                placeholder={
+                  tenant?.category
+                    ? CATEGORY_LABELS[tenant.category] ?? tenant.category
+                    : 'e.g. Barbershop'
+                }
+                maxLength={50}
+                {...register('categoryLabel')}
+              />
+              {errors.categoryLabel && (
+                <p className="text-sm text-destructive">
+                  {errors.categoryLabel.message}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {tenant?.category
+                  ? `Default: ${CATEGORY_LABELS[tenant.category] ?? tenant.category}. Leave blank to use the default.`
+                  : 'Override the default category label shown on your booking page.'}
               </p>
             </div>
           </CardContent>

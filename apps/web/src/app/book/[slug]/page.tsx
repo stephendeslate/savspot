@@ -32,6 +32,15 @@ import { API_URL } from '@/components/booking/booking-types';
 // Helpers
 // ---------------------------------------------------------------------------
 
+const CATEGORY_LABELS: Record<string, string> = {
+  VENUE: 'Venue / Event Space',
+  SALON: 'Salon / Barbershop',
+  STUDIO: 'Studio',
+  FITNESS: 'Fitness / Wellness',
+  PROFESSIONAL: 'Professional Services',
+  OTHER: 'Other',
+};
+
 function formatDuration(minutes: number): string {
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
@@ -45,7 +54,7 @@ function formatPrice(amount: number, currency: string): string {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
-  }).format(amount / 100);
+  }).format(amount);
 }
 
 // ---------------------------------------------------------------------------
@@ -247,7 +256,7 @@ function HeroSection({
           )}
           {tenant.category && (
             <Badge variant="secondary" className="mt-2">
-              {tenant.category}
+              {tenant.categoryLabel || CATEGORY_LABELS[tenant.category] || tenant.category}
             </Badge>
           )}
         </div>

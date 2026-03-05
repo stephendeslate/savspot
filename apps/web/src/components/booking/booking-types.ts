@@ -43,6 +43,7 @@ export interface TenantData {
   contactEmail: string | null;
   contactPhone: string | null;
   category: string | null;
+  categoryLabel: string | null;
   services: TenantService[];
 }
 
@@ -95,7 +96,7 @@ export interface ServiceAddon {
   id: string;
   name: string;
   description: string | null;
-  price: number; // in cents
+  price: number;
 }
 
 export type BookingStepType =

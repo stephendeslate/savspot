@@ -8,8 +8,8 @@ export interface ServiceTemplate {
   name: string;
   /** Duration in minutes */
   duration_minutes: number;
-  /** Starting price in cents (USD) */
-  base_price_cents: number;
+  /** Starting price in dollars (USD) */
+  base_price: number;
 }
 
 export interface AvailabilityHours {
@@ -99,10 +99,10 @@ export const BUSINESS_PRESETS: Record<BusinessCategory, BusinessPreset> = {
     label: 'Venue / Event Space',
     description: 'Wedding venues, banquet halls, conference centers, and event spaces',
     default_services: [
-      { name: 'Full-Day Venue Rental', duration_minutes: 720, base_price_cents: 500000 },
-      { name: 'Half-Day Venue Rental', duration_minutes: 360, base_price_cents: 300000 },
-      { name: 'Ceremony-Only Package', duration_minutes: 120, base_price_cents: 150000 },
-      { name: 'Venue Tour', duration_minutes: 60, base_price_cents: 0 },
+      { name: 'Full-Day Venue Rental', duration_minutes: 720, base_price: 5000 },
+      { name: 'Half-Day Venue Rental', duration_minutes: 360, base_price: 3000 },
+      { name: 'Ceremony-Only Package', duration_minutes: 120, base_price: 1500 },
+      { name: 'Venue Tour', duration_minutes: 60, base_price: 0 },
     ],
     default_availability: SEVEN_DAYS,
     default_workflows: [
@@ -121,11 +121,11 @@ export const BUSINESS_PRESETS: Record<BusinessCategory, BusinessPreset> = {
     label: 'Salon / Barbershop',
     description: 'Hair salons, barbershops, nail salons, and beauty services',
     default_services: [
-      { name: 'Haircut', duration_minutes: 45, base_price_cents: 4500 },
-      { name: 'Hair Color', duration_minutes: 120, base_price_cents: 12000 },
-      { name: 'Blowout / Styling', duration_minutes: 45, base_price_cents: 5500 },
-      { name: 'Manicure', duration_minutes: 30, base_price_cents: 3500 },
-      { name: 'Pedicure', duration_minutes: 45, base_price_cents: 5000 },
+      { name: 'Haircut', duration_minutes: 45, base_price: 45 },
+      { name: 'Hair Color', duration_minutes: 120, base_price: 120 },
+      { name: 'Blowout / Styling', duration_minutes: 45, base_price: 55 },
+      { name: 'Manicure', duration_minutes: 30, base_price: 35 },
+      { name: 'Pedicure', duration_minutes: 45, base_price: 50 },
     ],
     default_availability: WEEKDAY_PLUS_SATURDAY,
     default_workflows: STANDARD_WORKFLOWS,
@@ -136,10 +136,10 @@ export const BUSINESS_PRESETS: Record<BusinessCategory, BusinessPreset> = {
     label: 'Studio',
     description: 'Photography studios, recording studios, art studios, and creative spaces',
     default_services: [
-      { name: 'Portrait Session', duration_minutes: 60, base_price_cents: 25000 },
-      { name: 'Mini Session', duration_minutes: 30, base_price_cents: 15000 },
-      { name: 'Studio Rental (Hourly)', duration_minutes: 60, base_price_cents: 10000 },
-      { name: 'Full-Day Studio Rental', duration_minutes: 480, base_price_cents: 60000 },
+      { name: 'Portrait Session', duration_minutes: 60, base_price: 250 },
+      { name: 'Mini Session', duration_minutes: 30, base_price: 150 },
+      { name: 'Studio Rental (Hourly)', duration_minutes: 60, base_price: 100 },
+      { name: 'Full-Day Studio Rental', duration_minutes: 480, base_price: 600 },
     ],
     default_availability: WEEKDAY_PLUS_SATURDAY,
     default_workflows: [
@@ -158,11 +158,11 @@ export const BUSINESS_PRESETS: Record<BusinessCategory, BusinessPreset> = {
     label: 'Fitness / Wellness',
     description: 'Gyms, yoga studios, personal trainers, spas, and wellness centers',
     default_services: [
-      { name: 'Personal Training Session', duration_minutes: 60, base_price_cents: 8000 },
-      { name: 'Group Class', duration_minutes: 60, base_price_cents: 2500 },
-      { name: 'Yoga Session', duration_minutes: 75, base_price_cents: 2000 },
-      { name: 'Massage (60 min)', duration_minutes: 60, base_price_cents: 9000 },
-      { name: 'Massage (90 min)', duration_minutes: 90, base_price_cents: 12000 },
+      { name: 'Personal Training Session', duration_minutes: 60, base_price: 80 },
+      { name: 'Group Class', duration_minutes: 60, base_price: 25 },
+      { name: 'Yoga Session', duration_minutes: 75, base_price: 20 },
+      { name: 'Massage (60 min)', duration_minutes: 60, base_price: 90 },
+      { name: 'Massage (90 min)', duration_minutes: 90, base_price: 120 },
     ],
     default_availability: SEVEN_DAYS,
     default_workflows: STANDARD_WORKFLOWS,
@@ -173,9 +173,9 @@ export const BUSINESS_PRESETS: Record<BusinessCategory, BusinessPreset> = {
     label: 'Professional Services',
     description: 'Consultants, lawyers, accountants, therapists, and advisors',
     default_services: [
-      { name: 'Initial Consultation', duration_minutes: 60, base_price_cents: 15000 },
-      { name: 'Follow-Up Session', duration_minutes: 30, base_price_cents: 7500 },
-      { name: 'Strategy Session', duration_minutes: 90, base_price_cents: 25000 },
+      { name: 'Initial Consultation', duration_minutes: 60, base_price: 150 },
+      { name: 'Follow-Up Session', duration_minutes: 30, base_price: 75 },
+      { name: 'Strategy Session', duration_minutes: 90, base_price: 250 },
     ],
     default_availability: WEEKDAY_9_TO_5,
     default_workflows: [
@@ -194,10 +194,22 @@ export const BUSINESS_PRESETS: Record<BusinessCategory, BusinessPreset> = {
     label: 'Other',
     description: 'Custom or uncategorized service businesses',
     default_services: [
-      { name: 'Service Appointment', duration_minutes: 60, base_price_cents: 10000 },
-      { name: 'Consultation', duration_minutes: 30, base_price_cents: 0 },
+      { name: 'Service Appointment', duration_minutes: 60, base_price: 100 },
+      { name: 'Consultation', duration_minutes: 30, base_price: 0 },
     ],
     default_availability: WEEKDAY_9_TO_5,
     default_workflows: STANDARD_WORKFLOWS,
   },
 } as const;
+
+/**
+ * Returns the display label for a business category.
+ * Priority: custom categoryLabel > preset label > raw enum value.
+ */
+export function getCategoryDisplayLabel(
+  category: BusinessCategory,
+  categoryLabel?: string | null,
+): string {
+  if (categoryLabel) return categoryLabel;
+  return BUSINESS_PRESETS[category]?.label ?? category;
+}
