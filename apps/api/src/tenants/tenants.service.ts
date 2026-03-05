@@ -4,6 +4,7 @@ import {
   ConflictException,
   Logger,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { SlugService } from './slug.service';
@@ -47,37 +48,46 @@ export class TenantsService {
    */
   async create(userId: string, dto: CreateTenantDto) {
     const slug = await this.slugService.generateSlug(dto.name);
+    const tenantId = randomUUID();
 
-    const tenant = await this.prisma.tenant.create({
-      data: {
-        name: dto.name,
-        slug,
-        description: dto.description,
-        category: dto.category as BusinessCategory,
-        timezone: dto.timezone,
-        currency: dto.currency,
-        country: dto.country,
-        contactEmail: dto.contactEmail,
-        contactPhone: dto.contactPhone,
-        address: dto.address
-          ? (dto.address as Prisma.InputJsonValue)
-          : undefined,
-        memberships: {
-          create: {
-            userId,
-            role: 'OWNER',
+    // Use an interactive transaction to set the RLS context before inserting.
+    // Without this, the nested tenant_memberships insert fails because
+    // app.current_tenant is NULL for users creating their first tenant.
+    const tenant = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+
+      return tx.tenant.create({
+        data: {
+          id: tenantId,
+          name: dto.name,
+          slug,
+          description: dto.description,
+          category: dto.category as BusinessCategory,
+          timezone: dto.timezone,
+          currency: dto.currency,
+          country: dto.country,
+          contactEmail: dto.contactEmail,
+          contactPhone: dto.contactPhone,
+          address: dto.address
+            ? (dto.address as Prisma.InputJsonValue)
+            : undefined,
+          memberships: {
+            create: {
+              userId,
+              role: 'OWNER',
+            },
           },
         },
-      },
-      include: {
-        memberships: {
-          select: {
-            id: true,
-            userId: true,
-            role: true,
+        include: {
+          memberships: {
+            select: {
+              id: true,
+              userId: true,
+              role: true,
+            },
           },
         },
-      },
+      });
     });
 
     this.logger.log(
