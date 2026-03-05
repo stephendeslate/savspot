@@ -166,7 +166,7 @@ export default function DashboardPage() {
       {/* Welcome */}
       <div>
         <h2 className="text-lg font-semibold">
-          Welcome back{user?.firstName ? `, ${user.firstName}` : ''}!
+          Welcome back{user?.name ? `, ${user.name.split(' ')[0]}` : ''}!
         </h2>
         <p className="text-sm text-muted-foreground">
           Here&apos;s an overview of your business.
