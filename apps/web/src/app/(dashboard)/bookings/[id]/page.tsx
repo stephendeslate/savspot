@@ -60,8 +60,8 @@ interface BookingPayment {
 
 interface StateHistoryEntry {
   id: string;
-  fromStatus: string | null;
-  toStatus: string;
+  fromState: string | null;
+  toState: string;
   reason: string | null;
   createdAt: string;
 }
@@ -739,13 +739,13 @@ export default function BookingDetailPage() {
                       {/* Content */}
                       <div className="min-w-0 flex-1 pb-4">
                         <div className="flex flex-wrap items-center gap-2">
-                          {entry.fromStatus && (
+                          {entry.fromState && (
                             <>
                               <Badge
                                 variant="outline"
-                                className={`text-xs ${getStatusColor(entry.fromStatus)}`}
+                                className={`text-xs ${getStatusColor(entry.fromState)}`}
                               >
-                                {formatStatus(entry.fromStatus)}
+                                {formatStatus(entry.fromState)}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
                                 &rarr;
@@ -754,9 +754,9 @@ export default function BookingDetailPage() {
                           )}
                           <Badge
                             variant="outline"
-                            className={`text-xs ${getStatusColor(entry.toStatus)}`}
+                            className={`text-xs ${getStatusColor(entry.toState)}`}
                           >
-                            {formatStatus(entry.toStatus)}
+                            {formatStatus(entry.toState)}
                           </Badge>
                         </div>
                         {entry.reason && (
