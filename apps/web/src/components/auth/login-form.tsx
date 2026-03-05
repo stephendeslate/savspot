@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/use-auth';
 import { ROUTES } from '@/lib/constants';
-import { ApiError } from '@/lib/api-client';
+import { apiClient, ApiError } from '@/lib/api-client';
 import { GoogleButton } from './google-button';
 import { Separator } from '@/components/ui/separator';
 
@@ -23,8 +23,28 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const router = useRouter();
-  const { login } = useAuth();
+  const searchParams = useSearchParams();
+  const { login, loadUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
+
+  // Handle Google OAuth callback tokens
+  useEffect(() => {
+    const accessToken = searchParams.get('accessToken');
+    const refreshToken = searchParams.get('refreshToken');
+    const oauthError = searchParams.get('error');
+
+    if (oauthError) {
+      setError('Google sign-in failed. Please try again.');
+      return;
+    }
+
+    if (accessToken && refreshToken) {
+      apiClient.setTokens(accessToken, refreshToken);
+      void loadUser().then(() => {
+        router.push(ROUTES.DASHBOARD);
+      });
+    }
+  }, [searchParams, loadUser, router]);
 
   const {
     register,
