@@ -1,4 +1,10 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  BadGatewayException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import {
@@ -38,26 +44,53 @@ export class StripeProvider implements PaymentProviderInterface {
     return this.stripe;
   }
 
+  /**
+   * Convert Stripe SDK errors into appropriate NestJS HttpExceptions
+   * so the global exception filter returns proper status codes.
+   */
+  private handleStripeError(error: unknown): never {
+    if (error instanceof Stripe.errors.StripeAuthenticationError) {
+      throw new BadRequestException('Stripe authentication failed — check your API key');
+    }
+    if (error instanceof Stripe.errors.StripeInvalidRequestError) {
+      throw new BadRequestException(`Stripe: ${error.message}`);
+    }
+    if (error instanceof Stripe.errors.StripeConnectionError) {
+      throw new BadGatewayException('Unable to connect to Stripe');
+    }
+    if (error instanceof Stripe.errors.StripeRateLimitError) {
+      throw new BadGatewayException('Stripe rate limit exceeded — try again shortly');
+    }
+    if (error instanceof Stripe.errors.StripeAPIError) {
+      throw new InternalServerErrorException('Stripe service error — try again later');
+    }
+    throw error;
+  }
+
   async createConnectedAccount(
     email: string,
     country: string,
   ): Promise<ConnectedAccount> {
     const stripe = this.ensureStripe();
 
-    const account = await stripe.accounts.create({
-      type: 'express',
-      email,
-      country,
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
-      },
-    });
+    try {
+      const account = await stripe.accounts.create({
+        type: 'express',
+        email,
+        country,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+      });
 
-    return {
-      accountId: account.id,
-      onboardingComplete: account.details_submitted ?? false,
-    };
+      return {
+        accountId: account.id,
+        onboardingComplete: account.details_submitted ?? false,
+      };
+    } catch (error) {
+      this.handleStripeError(error);
+    }
   }
 
   async getOnboardingLink(
@@ -67,34 +100,46 @@ export class StripeProvider implements PaymentProviderInterface {
   ): Promise<string> {
     const stripe = this.ensureStripe();
 
-    const accountLink = await stripe.accountLinks.create({
-      account: accountId,
-      refresh_url: refreshUrl,
-      return_url: returnUrl,
-      type: 'account_onboarding',
-    });
+    try {
+      const accountLink = await stripe.accountLinks.create({
+        account: accountId,
+        refresh_url: refreshUrl,
+        return_url: returnUrl,
+        type: 'account_onboarding',
+      });
 
-    return accountLink.url;
+      return accountLink.url;
+    } catch (error) {
+      this.handleStripeError(error);
+    }
   }
 
   async getDashboardLink(accountId: string): Promise<string> {
     const stripe = this.ensureStripe();
 
-    const loginLink = await stripe.accounts.createLoginLink(accountId);
-    return loginLink.url;
+    try {
+      const loginLink = await stripe.accounts.createLoginLink(accountId);
+      return loginLink.url;
+    } catch (error) {
+      this.handleStripeError(error);
+    }
   }
 
   async getAccountStatus(accountId: string): Promise<AccountStatus> {
     const stripe = this.ensureStripe();
 
-    const account = await stripe.accounts.retrieve(accountId);
+    try {
+      const account = await stripe.accounts.retrieve(accountId);
 
-    return {
-      accountId: account.id,
-      chargesEnabled: account.charges_enabled ?? false,
-      payoutsEnabled: account.payouts_enabled ?? false,
-      detailsSubmitted: account.details_submitted ?? false,
-    };
+      return {
+        accountId: account.id,
+        chargesEnabled: account.charges_enabled ?? false,
+        payoutsEnabled: account.payouts_enabled ?? false,
+        detailsSubmitted: account.details_submitted ?? false,
+      };
+    } catch (error) {
+      this.handleStripeError(error);
+    }
   }
 
   async createPaymentIntent(
@@ -116,20 +161,28 @@ export class StripeProvider implements PaymentProviderInterface {
       intentParams.customer = params.customerId;
     }
 
-    const intent = await stripe.paymentIntents.create(intentParams);
+    try {
+      const intent = await stripe.paymentIntents.create(intentParams);
 
-    return {
-      id: intent.id,
-      clientSecret: intent.client_secret ?? '',
-      status: intent.status,
-      amount: intent.amount,
-      currency: intent.currency,
-    };
+      return {
+        id: intent.id,
+        clientSecret: intent.client_secret ?? '',
+        status: intent.status,
+        amount: intent.amount,
+        currency: intent.currency,
+      };
+    } catch (error) {
+      this.handleStripeError(error);
+    }
   }
 
   async cancelPaymentIntent(intentId: string): Promise<void> {
     const stripe = this.ensureStripe();
-    await stripe.paymentIntents.cancel(intentId);
+    try {
+      await stripe.paymentIntents.cancel(intentId);
+    } catch (error) {
+      this.handleStripeError(error);
+    }
   }
 
   async createRefund(params: CreateRefundParams): Promise<RefundResult> {
@@ -153,13 +206,17 @@ export class StripeProvider implements PaymentProviderInterface {
       refundParams.reason = reasonMap[params.reason] ?? 'requested_by_customer';
     }
 
-    const refund = await stripe.refunds.create(refundParams);
+    try {
+      const refund = await stripe.refunds.create(refundParams);
 
-    return {
-      id: refund.id,
-      amount: refund.amount,
-      status: refund.status ?? 'pending',
-    };
+      return {
+        id: refund.id,
+        amount: refund.amount,
+        status: refund.status ?? 'pending',
+      };
+    } catch (error) {
+      this.handleStripeError(error);
+    }
   }
 
   /**
@@ -170,8 +227,12 @@ export class StripeProvider implements PaymentProviderInterface {
     intentId: string,
   ): Promise<{ id: string; status: string }> {
     const stripe = this.ensureStripe();
-    const intent = await stripe.paymentIntents.retrieve(intentId);
-    return { id: intent.id, status: intent.status };
+    try {
+      const intent = await stripe.paymentIntents.retrieve(intentId);
+      return { id: intent.id, status: intent.status };
+    } catch (error) {
+      this.handleStripeError(error);
+    }
   }
 
   /**
@@ -182,8 +243,12 @@ export class StripeProvider implements PaymentProviderInterface {
     intentId: string,
   ): Promise<{ id: string; status: string }> {
     const stripe = this.ensureStripe();
-    const intent = await stripe.paymentIntents.confirm(intentId);
-    return { id: intent.id, status: intent.status };
+    try {
+      const intent = await stripe.paymentIntents.confirm(intentId);
+      return { id: intent.id, status: intent.status };
+    } catch (error) {
+      this.handleStripeError(error);
+    }
   }
 
   /**
@@ -196,6 +261,10 @@ export class StripeProvider implements PaymentProviderInterface {
     secret: string,
   ): Stripe.Event {
     const stripe = this.ensureStripe();
-    return stripe.webhooks.constructEvent(rawBody, signature, secret);
+    try {
+      return stripe.webhooks.constructEvent(rawBody, signature, secret);
+    } catch (error) {
+      this.handleStripeError(error);
+    }
   }
 }
