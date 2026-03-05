@@ -8,6 +8,11 @@ import {
   JOB_PROCESS_COMPLETED_BOOKINGS,
 } from '../bullmq/queue.constants';
 
+/**
+ * TODO: When migrating to a non-superuser DB role, this processor's raw SQL queries
+ * must set app.current_tenant per-tenant because FORCE ROW LEVEL SECURITY will
+ * block cross-tenant access to bookings.
+ */
 interface CompletedBookingRow {
   id: string;
   tenant_id: string;

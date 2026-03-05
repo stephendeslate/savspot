@@ -1,6 +1,8 @@
+import './instrument';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
@@ -8,19 +10,31 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 
 async function bootstrap() {
-  const logger = new Logger('Bootstrap');
+  const isProduction = process.env['NODE_ENV'] === 'production';
   const app = await NestFactory.create(AppModule, {
     rawBody: true,
+    bufferLogs: true,
   });
 
-  // Security headers via helmet (configured to allow Swagger UI)
+  const logger = app.get(Logger);
+  app.useLogger(logger);
+
+  // Enable graceful shutdown (fires OnModuleDestroy hooks on SIGTERM/SIGINT)
+  app.enableShutdownHooks();
+
+  // Security headers via helmet
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: [`'self'`],
-          scriptSrc: [`'self'`, `'unsafe-inline'`, `'unsafe-eval'`],
-          styleSrc: [`'self'`, `'unsafe-inline'`],
+          // Relax CSP only in dev for Swagger UI
+          scriptSrc: isProduction
+            ? [`'self'`]
+            : [`'self'`, `'unsafe-inline'`, `'unsafe-eval'`],
+          styleSrc: isProduction
+            ? [`'self'`]
+            : [`'self'`, `'unsafe-inline'`],
           imgSrc: [`'self'`, 'data:', 'https:'],
           fontSrc: [`'self'`, 'https://fonts.gstatic.com'],
         },
@@ -54,16 +68,18 @@ async function bootstrap() {
     exclude: ['health'],
   });
 
-  // Swagger
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('SavSpot API')
-    .setDescription('SavSpot multi-tenant booking platform API')
-    .setVersion('0.1.0')
-    .addBearerAuth()
-    .build();
+  // Swagger (disabled in production — exposes full API schema)
+  if (!isProduction) {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('SavSpot API')
+      .setDescription('SavSpot multi-tenant booking platform API')
+      .setVersion('0.1.0')
+      .addBearerAuth()
+      .build();
 
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('docs', app, document);
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('docs', app, document);
+  }
 
   // Global exception filter
   app.useGlobalFilters(new AllExceptionsFilter());
@@ -83,7 +99,9 @@ async function bootstrap() {
   const port = process.env['PORT'] || 3001;
   await app.listen(port);
   logger.log(`SavSpot API running on http://localhost:${port}`);
-  logger.log(`Swagger docs available at http://localhost:${port}/docs`);
+  if (!isProduction) {
+    logger.log(`Swagger docs available at http://localhost:${port}/docs`);
+  }
 }
 
 bootstrap();

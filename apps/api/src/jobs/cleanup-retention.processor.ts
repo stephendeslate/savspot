@@ -11,6 +11,10 @@ import {
  * Cleans up expired and stale data per GDPR retention policies.
  * Scheduled daily at 3 AM UTC via BullMQ repeatable job.
  *
+ * TODO: When migrating to a non-superuser DB role, this processor's raw SQL deletes
+ * must set app.current_tenant per-tenant because FORCE ROW LEVEL SECURITY will
+ * block cross-tenant access to date_reservations, booking_sessions, and audit_logs.
+ *
  * Retention rules:
  *   - DateReservation (EXPIRED/RELEASED): hard delete after 30 days
  *   - BookingSession (ABANDONED/EXPIRED): hard delete after 90 days

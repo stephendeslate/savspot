@@ -12,6 +12,10 @@ import {
  * Marks stale booking sessions as ABANDONED, releases their held reservations,
  * and sends recovery emails to clients encouraging them to complete their booking.
  * Scheduled hourly via BullMQ repeatable job.
+ *
+ * TODO: When migrating to a non-superuser DB role, this processor must set
+ * app.current_tenant per-tenant (iterate tenants) because FORCE ROW LEVEL SECURITY
+ * will block cross-tenant findMany/updateMany on booking_sessions and date_reservations.
  */
 @Processor(QUEUE_BOOKINGS)
 export class AbandonedRecoveryProcessor extends WorkerHost {

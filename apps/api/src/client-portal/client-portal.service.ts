@@ -16,6 +16,14 @@ interface CancellationPolicy {
   late_cancellation_flat_fee?: number;
 }
 
+/**
+ * TODO: When migrating to a non-superuser DB role, all methods in this service
+ * must be refactored for FORCE ROW LEVEL SECURITY compatibility. The client portal
+ * intentionally queries cross-tenant (by clientId across all tenants). Options:
+ * 1. Iterate the client's tenant memberships and set app.current_tenant per-tenant
+ * 2. Add a separate RLS policy for client-scoped access (e.g. client_id = current_setting)
+ * 3. Use a service-role connection that bypasses RLS for trusted server-side queries
+ */
 @Injectable()
 export class ClientPortalService {
   private readonly logger = new Logger(ClientPortalService.name);

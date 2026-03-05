@@ -2,6 +2,9 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { SentryModule } from '@sentry/nestjs/setup';
+import { LoggerModule } from 'nestjs-pino';
+import { randomUUID } from 'node:crypto';
 import { AppController } from './app.controller';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -55,6 +58,16 @@ import {
       isGlobal: true,
       validate: validateEnv,
       load: [appConfig, jwtConfig, googleConfig, resendConfig, r2Config, stripeConfig, twilioConfig, googleCalendarConfig, vapidConfig],
+    }),
+    SentryModule.forRoot(),
+    LoggerModule.forRoot({
+      pinoHttp: {
+        level: process.env['NODE_ENV'] === 'production' ? 'info' : 'debug',
+        transport: process.env['NODE_ENV'] !== 'production'
+          ? { target: 'pino-pretty', options: { colorize: true } }
+          : undefined,
+        genReqId: (req) => (req.headers['x-request-id'] as string) || randomUUID(),
+      },
     }),
     ThrottlerModule.forRoot([
       {

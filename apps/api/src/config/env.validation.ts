@@ -143,6 +143,12 @@ export const envSchema = z.object({
     .string()
     .optional(),
 
+  // ---- Sentry (Error Tracking) ----
+  SENTRY_DSN: z
+    .string()
+    .url()
+    .optional(),
+
   // ---- VAPID (Browser Push) ----
   VAPID_PUBLIC_KEY: z
     .string()

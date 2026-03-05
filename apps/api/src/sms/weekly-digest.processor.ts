@@ -215,7 +215,7 @@ export class WeeklyDigestProcessor extends WorkerHost {
       style: 'currency',
       currency: currency || 'USD',
       minimumFractionDigits: 2,
-    }).format(digest.revenueCollected / 100); // Convert from cents
+    }).format(digest.revenueCollected);
 
     return `
       <h2>${tenantName} — Weekly Summary</h2>

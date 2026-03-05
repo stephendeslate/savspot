@@ -15,6 +15,7 @@ function makePrisma() {
     tenant: { findUnique: vi.fn() },
     service: { findFirst: vi.fn() },
     availabilityRule: { findMany: vi.fn() },
+    $executeRaw: vi.fn().mockResolvedValue(0),
   };
 }
 
@@ -36,7 +37,8 @@ describe('PublicBookingService', () => {
   // -----------------------------------------------------------------------
 
   describe('getTenantBySlug', () => {
-    const activeTenant = {
+    const tenantSummary = { id: TENANT_ID, status: 'ACTIVE' };
+    const fullTenant = {
       id: TENANT_ID,
       name: 'Acme Salon',
       slug: SLUG,
@@ -51,7 +53,7 @@ describe('PublicBookingService', () => {
       contactEmail: 'info@acme.com',
       contactPhone: null,
       category: 'SALON',
-      status: 'ACTIVE',
+      categoryLabel: null,
       services: [
         {
           id: SERVICE_ID,
@@ -63,6 +65,7 @@ describe('PublicBookingService', () => {
           pricingModel: 'FIXED',
           images: null,
           guestConfig: null,
+          intakeFormConfig: null,
           categoryId: null,
           category: null,
         },
@@ -70,15 +73,21 @@ describe('PublicBookingService', () => {
     };
 
     it('should return tenant profile with active services', async () => {
-      prisma.tenant.findUnique.mockResolvedValue(activeTenant);
+      // First call returns { id, status }, second returns full tenant
+      prisma.tenant.findUnique
+        .mockResolvedValueOnce(tenantSummary)
+        .mockResolvedValueOnce(fullTenant);
 
       const result = await service.getTenantBySlug(SLUG);
       expect(result.name).toBe('Acme Salon');
       expect(result.services).toHaveLength(1);
+      expect(prisma.$executeRaw).toHaveBeenCalled();
     });
 
-    it('should strip status from response', async () => {
-      prisma.tenant.findUnique.mockResolvedValue(activeTenant);
+    it('should not include status in response', async () => {
+      prisma.tenant.findUnique
+        .mockResolvedValueOnce(tenantSummary)
+        .mockResolvedValueOnce(fullTenant);
 
       const result = await service.getTenantBySlug(SLUG);
       expect((result as Record<string, unknown>)['status']).toBeUndefined();
@@ -91,8 +100,8 @@ describe('PublicBookingService', () => {
     });
 
     it('should throw NotFoundException when tenant is inactive', async () => {
-      prisma.tenant.findUnique.mockResolvedValue({
-        ...activeTenant,
+      prisma.tenant.findUnique.mockResolvedValueOnce({
+        ...tenantSummary,
         status: 'SUSPENDED',
       });
       await expect(service.getTenantBySlug(SLUG))

@@ -3,6 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import {
   QUEUE_BOOKINGS,
   QUEUE_PAYMENTS,
+  QUEUE_COMMUNICATIONS,
   QUEUE_INVOICES,
   QUEUE_GDPR,
 } from '../bullmq/queue.constants';
@@ -17,19 +18,21 @@ import { EnforcePaymentDeadlinesProcessor } from './enforce-payment-deadlines.pr
 import { RetryFailedPaymentsProcessor } from './retry-failed-payments.processor';
 import { GenerateInvoicePdfProcessor } from './generate-invoice-pdf.processor';
 import { CleanupRetentionProcessor } from './cleanup-retention.processor';
+import { JobSchedulerService } from './job-scheduler.service';
 
 /**
  * Module that registers all scheduled background job processors.
  * Each processor handles one or more recurring or event-driven BullMQ jobs.
  *
- * Queue registration is handled by the global BullMqModule;
- * this module only wires up the processor classes.
+ * JobSchedulerService registers all repeatable cron schedules on module init.
+ * Queue registration is handled here; processor classes handle execution logic.
  */
 @Module({
   imports: [
     BullModule.registerQueue(
       { name: QUEUE_BOOKINGS },
       { name: QUEUE_PAYMENTS },
+      { name: QUEUE_COMMUNICATIONS },
       { name: QUEUE_INVOICES },
       { name: QUEUE_GDPR },
     ),
@@ -37,6 +40,7 @@ import { CleanupRetentionProcessor } from './cleanup-retention.processor';
     CommunicationsModule,
   ],
   providers: [
+    JobSchedulerService,
     ExpireReservationsProcessor,
     AbandonedRecoveryProcessor,
     ProcessCompletedBookingsProcessor,
