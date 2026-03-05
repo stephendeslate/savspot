@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ChevronLeft, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
@@ -22,6 +22,16 @@ import { apiClient } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
 import { useTenant } from '@/hooks/use-tenant';
 
+/** Currencies that use zero-decimal (no minor units) */
+const ZERO_DECIMAL_CURRENCIES = new Set(['JPY', 'KRW', 'VND']);
+
+function getCurrencySymbol(currency: string): string {
+  const symbols: Record<string, string> = {
+    USD: '$', EUR: '\u20AC', GBP: '\u00A3', CAD: 'CA$', AUD: 'A$', JPY: '\u00A5',
+  };
+  return symbols[currency] ?? currency;
+}
+
 const serviceSchema = z.object({
   name: z.string().min(2, 'Service name must be at least 2 characters'),
   description: z.string().optional(),
@@ -29,14 +39,14 @@ const serviceSchema = z.object({
     .number()
     .min(5, 'Duration must be at least 5 minutes')
     .max(480, 'Duration must be at most 8 hours'),
-  basePriceCents: z.coerce
+  basePrice: z.coerce
     .number()
     .min(0, 'Price cannot be negative'),
   currency: z.string().min(3).max(3),
   pricingModel: z.string().min(1, 'Pricing model is required'),
   confirmationMode: z.string().min(1, 'Confirmation mode is required'),
-  bufferBefore: z.coerce.number().min(0).optional(),
-  bufferAfter: z.coerce.number().min(0).optional(),
+  bufferBeforeMinutes: z.coerce.number().min(0).optional(),
+  bufferAfterMinutes: z.coerce.number().min(0).optional(),
   guestConfigJson: z.string().optional(),
   tierConfigJson: z.string().optional(),
   depositConfigJson: z.string().optional(),
@@ -54,6 +64,7 @@ export default function NewServicePage() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceSchema),
@@ -61,18 +72,22 @@ export default function NewServicePage() {
       name: '',
       description: '',
       durationMinutes: 60,
-      basePriceCents: 0,
+      basePrice: 0,
       currency: 'USD',
       pricingModel: 'FIXED',
-      confirmationMode: 'AUTO',
-      bufferBefore: 0,
-      bufferAfter: 0,
+      confirmationMode: 'AUTO_CONFIRM',
+      bufferBeforeMinutes: 0,
+      bufferAfterMinutes: 0,
       guestConfigJson: '',
       tierConfigJson: '',
       depositConfigJson: '',
       cancellationPolicyJson: '',
     },
   });
+
+  const selectedCurrency = useWatch({ control, name: 'currency' }) ?? 'USD';
+  const isZeroDecimal = ZERO_DECIMAL_CURRENCIES.has(selectedCurrency);
+  const currencySymbol = getCurrencySymbol(selectedCurrency);
 
   const onSubmit = async (values: ServiceFormValues) => {
     if (!tenantId) return;
@@ -83,17 +98,17 @@ export default function NewServicePage() {
         name: values.name,
         description: values.description || undefined,
         durationMinutes: values.durationMinutes,
-        basePriceCents: values.basePriceCents,
+        basePrice: values.basePrice,
         currency: values.currency,
         pricingModel: values.pricingModel,
         confirmationMode: values.confirmationMode,
       };
 
-      if (values.bufferBefore && values.bufferBefore > 0) {
-        payload['bufferBefore'] = values.bufferBefore;
+      if (values.bufferBeforeMinutes && values.bufferBeforeMinutes > 0) {
+        payload['bufferBeforeMinutes'] = values.bufferBeforeMinutes;
       }
-      if (values.bufferAfter && values.bufferAfter > 0) {
-        payload['bufferAfter'] = values.bufferAfter;
+      if (values.bufferAfterMinutes && values.bufferAfterMinutes > 0) {
+        payload['bufferAfterMinutes'] = values.bufferAfterMinutes;
       }
 
       // Parse optional JSON fields
@@ -215,17 +230,18 @@ export default function NewServicePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="basePriceCents">Base Price (in cents) *</Label>
+                <Label htmlFor="basePrice">Base Price ({currencySymbol}) *</Label>
                 <Input
-                  id="basePriceCents"
+                  id="basePrice"
                   type="number"
                   min={0}
-                  placeholder="e.g., 5000 for $50.00"
-                  {...register('basePriceCents')}
+                  step={isZeroDecimal ? '1' : '0.01'}
+                  placeholder={isZeroDecimal ? 'e.g., 5000' : 'e.g., 50.00'}
+                  {...register('basePrice')}
                 />
-                {errors.basePriceCents && (
+                {errors.basePrice && (
                   <p className="text-sm text-destructive">
-                    {errors.basePriceCents.message}
+                    {errors.basePrice.message}
                   </p>
                 )}
               </div>
@@ -265,8 +281,8 @@ export default function NewServicePage() {
                   id="confirmationMode"
                   {...register('confirmationMode')}
                 >
-                  <option value="AUTO">Auto-confirm</option>
-                  <option value="MANUAL">Manual Review</option>
+                  <option value="AUTO_CONFIRM">Auto-confirm</option>
+                  <option value="MANUAL_APPROVAL">Manual Review</option>
                 </Select>
                 {errors.confirmationMode && (
                   <p className="text-sm text-destructive">
@@ -304,26 +320,26 @@ export default function NewServicePage() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="bufferBefore">
+                  <Label htmlFor="bufferBeforeMinutes">
                     Buffer Before (minutes)
                   </Label>
                   <Input
-                    id="bufferBefore"
+                    id="bufferBeforeMinutes"
                     type="number"
                     min={0}
                     placeholder="0"
-                    {...register('bufferBefore')}
+                    {...register('bufferBeforeMinutes')}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="bufferAfter">Buffer After (minutes)</Label>
+                  <Label htmlFor="bufferAfterMinutes">Buffer After (minutes)</Label>
                   <Input
-                    id="bufferAfter"
+                    id="bufferAfterMinutes"
                     type="number"
                     min={0}
                     placeholder="0"
-                    {...register('bufferAfter')}
+                    {...register('bufferAfterMinutes')}
                   />
                 </div>
               </div>

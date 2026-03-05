@@ -410,7 +410,14 @@ export class ClientPortalService {
       throw new NotFoundException('User not found');
     }
 
-    return user;
+    const [firstName, ...lastParts] = user.name.split(' ');
+    const lastName = lastParts.join(' ');
+
+    return {
+      ...user,
+      firstName: firstName ?? '',
+      lastName: lastName ?? '',
+    };
   }
 
   /**
@@ -418,7 +425,7 @@ export class ClientPortalService {
    */
   async updateProfile(
     userId: string,
-    data: { name?: string; email?: string; phone?: string },
+    data: { firstName?: string; lastName?: string; email?: string; phone?: string },
   ) {
     // Verify user exists
     const user = await this.prisma.user.findUnique({
@@ -440,10 +447,20 @@ export class ClientPortalService {
       }
     }
 
+    // Combine firstName/lastName into name if either is provided
+    let name: string | undefined;
+    if (data.firstName !== undefined || data.lastName !== undefined) {
+      const [currentFirst, ...currentLastParts] = user.name.split(' ');
+      const currentLast = currentLastParts.join(' ');
+      const first = data.firstName ?? currentFirst;
+      const last = data.lastName ?? currentLast;
+      name = `${first} ${last}`.trim();
+    }
+
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: {
-        ...(data.name !== undefined && { name: data.name }),
+        ...(name !== undefined && { name }),
         ...(data.email !== undefined && { email: data.email }),
         ...(data.phone !== undefined && { phone: data.phone }),
       },

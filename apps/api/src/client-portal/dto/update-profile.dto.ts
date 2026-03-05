@@ -3,13 +3,22 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateProfileDto {
   @ApiPropertyOptional({
-    example: 'Jane Doe',
-    description: 'Display name',
+    example: 'Jane',
+    description: 'First name',
   })
   @IsString()
   @MaxLength(255)
   @IsOptional()
-  name?: string;
+  firstName?: string;
+
+  @ApiPropertyOptional({
+    example: 'Doe',
+    description: 'Last name',
+  })
+  @IsString()
+  @MaxLength(255)
+  @IsOptional()
+  lastName?: string;
 
   @ApiPropertyOptional({
     example: 'jane@example.com',
