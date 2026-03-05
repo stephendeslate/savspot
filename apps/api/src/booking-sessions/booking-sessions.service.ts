@@ -49,6 +49,26 @@ export class BookingSessionsService {
   async create(tenantId: string, dto: CreateSessionDto) {
     const resolvedSteps = await this.resolveSteps(tenantId, dto.serviceId);
 
+    // Pre-populate session data with service info when serviceId is provided
+    let initialData: Record<string, unknown> = {};
+    if (dto.serviceId) {
+      const service = await this.prisma.service.findUnique({
+        where: { id: dto.serviceId },
+        select: { id: true, name: true, durationMinutes: true, basePrice: true, currency: true, pricingModel: true, guestConfig: true },
+      });
+      if (service) {
+        initialData = {
+          serviceId: service.id,
+          serviceName: service.name,
+          serviceDuration: service.durationMinutes,
+          servicePrice: Number(service.basePrice),
+          serviceCurrency: service.currency,
+          servicePricingModel: service.pricingModel,
+          guestConfig: service.guestConfig ?? null,
+        };
+      }
+    }
+
     return this.prisma.bookingSession.create({
       data: {
         tenantId,
@@ -56,6 +76,7 @@ export class BookingSessionsService {
         source: (dto.source as 'DIRECT' | 'DIRECTORY' | 'API' | 'WIDGET' | 'REFERRAL' | 'WALK_IN') ?? 'DIRECT',
         currentStep: 0,
         resolvedSteps: resolvedSteps as unknown as Prisma.InputJsonValue,
+        data: Object.keys(initialData).length > 0 ? initialData as unknown as Prisma.InputJsonValue : undefined,
         status: 'IN_PROGRESS',
       },
       include: {
