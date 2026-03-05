@@ -72,17 +72,24 @@ export default function BookingLayout({
     <div className="min-h-screen bg-background">
       {children}
       <footer className="border-t py-6 text-center text-sm text-muted-foreground">
-        <p>
-          Powered by{' '}
-          <a
-            href="https://savspot.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-foreground hover:underline"
-          >
-            SavSpot
+        <div className="flex items-center justify-center gap-4">
+          <p>
+            Powered by{' '}
+            <a
+              href="/"
+              className="font-medium text-foreground hover:underline"
+            >
+              SavSpot
+            </a>
+          </p>
+          <span className="text-border">|</span>
+          <a href="/privacy" className="hover:text-foreground">
+            Privacy
           </a>
-        </p>
+          <a href="/terms" className="hover:text-foreground">
+            Terms
+          </a>
+        </div>
       </footer>
     </div>
   );
