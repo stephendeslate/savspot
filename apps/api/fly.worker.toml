@@ -1,0 +1,24 @@
+# Fly.io configuration for SavSpot Worker (BullMQ background jobs)
+# Docs: https://fly.io/docs/reference/configuration/
+
+app = "savspot-worker"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile.worker"
+
+[env]
+  NODE_ENV = "production"
+  WORKER_MODE = "true"
+
+# No [http_service] — worker processes jobs from Redis queues, not HTTP requests.
+# Auto-stop is disabled so the worker is always running.
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  autostart = true
+  auto_destroy = false
+
+[processes]
+  worker = "dumb-init node apps/api/dist/main.js"

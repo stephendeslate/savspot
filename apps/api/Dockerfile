@@ -80,12 +80,19 @@ COPY --from=builder /app/prisma/schema.prisma ./prisma/schema.prisma
 COPY --from=builder /app/prisma/migrations ./prisma/migrations
 COPY --from=builder /app/prisma/package.json ./prisma/package.json
 
+# Copy prisma workspace node_modules (contains prisma CLI symlinks into root .pnpm store)
+COPY --from=deps /app/prisma/node_modules ./prisma/node_modules
+
 # Copy generated Prisma client (custom output path)
 COPY --from=builder /app/prisma/generated ./prisma/generated
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs
+
+# Fix permissions for Prisma engines (needed for migrate deploy release command)
+RUN chown -R nestjs:nodejs /app/node_modules/.pnpm/@prisma+engines*/node_modules/@prisma/engines || true
+
 USER nestjs
 
 EXPOSE 3001
