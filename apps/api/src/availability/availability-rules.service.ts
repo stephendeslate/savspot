@@ -42,6 +42,7 @@ export class AvailabilityRulesService {
         endTime: this.parseTime(dto.endTime),
         serviceId: dto.serviceId ?? null,
         venueId: dto.venueId ?? null,
+        ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
       },
     });
   }

@@ -3,6 +3,7 @@ import {
   IsString,
   IsOptional,
   IsUUID,
+  IsBoolean,
   Min,
   Max,
   Matches,
@@ -38,4 +39,9 @@ export class CreateRuleDto {
   @IsUUID('4')
   @IsOptional()
   venueId?: string;
+
+  @ApiPropertyOptional({ example: true, description: 'Whether the rule is active' })
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
 }
