@@ -61,5 +61,14 @@ Located in `specs/` directory:
 - SRS-3-BOOKING-PAYMENTS.md — Booking state machine, availability, payments
 - SRS-4-COMMS-SECURITY-WORKFLOWS.md — Auth, comms, security, background jobs
 
+## Sub-Agent Instructions
+When spawning sub-agents for parallel work:
+- Use worktree isolation for any task that writes files
+- Each sub-agent should run tests within its scope before completing
+- Prefer 3-4 focused sub-agents over many small ones
+- Group related file changes into the same sub-agent scope
+- Local model sub-agents (fast-explorer, fast-editor) are available
+  for high-volume, low-complexity work at zero token cost
+
 ## Local Development Note
 Stop local PostgreSQL before using Docker: `brew services stop postgresql@14`
