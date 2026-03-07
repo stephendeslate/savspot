@@ -92,7 +92,7 @@ BookingsDispatcher
 
 ## Implementation Status: COMPLETE
 
-All 5 queues consolidated. `@Processor` count reduced from 21 to 6 (one per queue).
+All 6 queues consolidated. `@Processor` count reduced from 21 to 6 (5 dispatchers + 1 standalone processor for QUEUE_INVOICES).
 
 | Queue | Dispatcher | Location |
 |-------|-----------|----------|

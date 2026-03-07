@@ -140,7 +140,7 @@ External messaging leads with outcomes, not technology:
 | Registered Businesses | 1,000 |
 | Monthly Active Bookings | 10,000 |
 | GMV | $2M |
-| Platform Revenue | $100K |
+| Platform Revenue | $40K (base) / $100K (stretch) |
 | 90-day Retention | >70% |
 | NPS | >40 |
 
@@ -258,7 +258,7 @@ Paid marketing, content strategy, and partnership development are deferred until
 
 **Soft Launch (~1 week, immediately post Phase 1):** Personally onboard 5–10 businesses across 1–2 verticals. Observe real usage, booking completion, payment flow, and organic sharing. Gather signal to inform Phase 2 priorities. See §8a for full strategy.
 
-**Phase 2 -- Communications, Growth & Invisible Intelligence (Months 2.5-4):** Mobile app (React Native + Expo -- client booking, push notifications, biometric auth), email/SMS with template sandbox, contracts with multi-party signatures, notifications with type registry, advanced booking steps (questionnaires, add-ons), reviews, two-way calendar sync, check-in/check-out management, booking flow builder, embeddable widget (premium). **Invisible AI operations:** smart reminder timing, no-show risk indicators, rebooking interval detection, slot demand analysis, smart morning summaries, cross-tenant benchmarking pipeline (data collection). See [AI-STRATEGY.md](AI-STRATEGY.md) §8 for definitive Phase 2 AI scope.
+**Phase 2 -- Communications, Growth & Invisible Intelligence (Months 2.5-4):** Mobile app (React Native + Expo -- client booking, push notifications, biometric auth), email/SMS with template sandbox, contracts with multi-party signatures, notifications with type registry, advanced booking steps (questionnaires, add-ons), reviews, check-in/check-out management, booking flow builder, iCal feed export (FR-CAL-16), embeddable widget (premium). **Invisible AI operations:** smart reminder timing, no-show risk indicators, rebooking interval detection, slot demand analysis, smart morning summaries, cross-tenant benchmarking pipeline (data collection). See [AI-STRATEGY.md](AI-STRATEGY.md) §8 for definitive Phase 2 AI scope.
 
 **Phase 3 -- AI Distribution & Automation (Months 4-6):** MCP server + public REST API (headless booking engine) for AI agent discoverability and booking, AI Voice Receptionist (premium), cross-tenant benchmarking UI, natural language business Q&A, workflow automation with triggers and overrides, alternative payment providers (Adyen, PayPal Commerce Platform) via PaymentProvider abstraction, advanced analytics (premium), QuickBooks/Xero integration (premium), i18n, multi-currency. See [AI-STRATEGY.md](AI-STRATEGY.md) §4 for feature taxonomy.
 

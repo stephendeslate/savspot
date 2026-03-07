@@ -840,7 +840,7 @@ id (PK), tenant_id (FK->tenants, RLS), author_id (FK->users, NOT NULL), entity_t
 | Column | Type | Constraints | Notes |
 |--------|------|-------------|-------|
 | id | UUID | PK | |
-| business_category | ENUM | NOT NULL | Maps to `tenants.business_category` |
+| business_category | ENUM | NOT NULL | Maps to `tenants.category` |
 | metric_key | VARCHAR | NOT NULL | e.g., `no_show_rate`, `avg_rebooking_days`, `utilization_rate` |
 | p25 | DECIMAL | NOT NULL | 25th percentile |
 | p50 | DECIMAL | NOT NULL | Median |
