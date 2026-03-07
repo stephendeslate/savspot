@@ -253,7 +253,7 @@ export default function BookingsPage() {
   // ---------- Render ----------
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -375,11 +375,11 @@ export default function BookingsPage() {
                   <TableRow>
                     <TableHead>Client</TableHead>
                     <TableHead>Service</TableHead>
-                    <TableHead>Date/Time</TableHead>
+                    <TableHead className="hidden sm:table-cell">Date/Time</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead className="w-[80px]">Actions</TableHead>
+                    <TableHead className="hidden md:table-cell">Amount</TableHead>
+                    <TableHead className="hidden lg:table-cell">Source</TableHead>
+                    <TableHead className="w-[60px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -387,11 +387,17 @@ export default function BookingsPage() {
                     <TableRow key={booking.id}>
                       <TableCell>
                         {booking.client ? (
-                          <div>
-                            <div className="font-medium">
+                          <div className="min-w-0">
+                            <div className="truncate font-medium">
                               {booking.client.name}
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="truncate text-xs text-muted-foreground sm:hidden">
+                              {format(
+                                new Date(booking.startTime),
+                                'MMM d, h:mm a',
+                              )}
+                            </div>
+                            <div className="hidden text-xs text-muted-foreground sm:block">
                               {booking.client.email}
                             </div>
                           </div>
@@ -404,7 +410,7 @@ export default function BookingsPage() {
                         )}
                       </TableCell>
                       <TableCell>{booking.service.name}</TableCell>
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className="hidden whitespace-nowrap sm:table-cell">
                         {format(
                           new Date(booking.startTime),
                           'MMM d, yyyy h:mm a',
@@ -418,13 +424,13 @@ export default function BookingsPage() {
                           {formatStatus(booking.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className="hidden whitespace-nowrap md:table-cell">
                         {formatAmount(
                           booking.totalAmount,
                           booking.currency,
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <Badge
                           variant="outline"
                           className={getSourceColor(booking.source)}

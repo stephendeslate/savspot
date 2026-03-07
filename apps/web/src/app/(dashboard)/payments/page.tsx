@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import {
   CreditCard,
   DollarSign,
+  Filter,
   Search,
   ChevronLeft,
   ChevronRight,
@@ -161,6 +162,7 @@ export default function PaymentsPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [search, setSearch] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
 
   const fetchPayments = useCallback(
     async (pageNum: number) => {
@@ -311,13 +313,24 @@ export default function PaymentsPage() {
   // ---------- Render ----------
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-lg font-semibold">Payments</h2>
-        <p className="text-sm text-muted-foreground">
-          Track revenue, payments, and refunds
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Payments</h2>
+          <p className="text-sm text-muted-foreground">
+            Track revenue, payments, and refunds
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="lg:hidden"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <Filter className="mr-2 h-4 w-4" />
+          Filters
+        </Button>
       </div>
 
       {error && (
@@ -364,7 +377,7 @@ export default function PaymentsPage() {
       )}
 
       {/* Filters */}
-      <Card>
+      <Card className={showFilters ? '' : 'hidden lg:block'}>
         <CardContent className="pt-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
             <div className="flex-1 space-y-2">
@@ -447,12 +460,12 @@ export default function PaymentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
+                    <TableHead className="hidden sm:table-cell">Date</TableHead>
                     <TableHead>Client</TableHead>
-                    <TableHead>Service</TableHead>
+                    <TableHead className="hidden md:table-cell">Service</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Type</TableHead>
+                    <TableHead className="hidden lg:table-cell">Type</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -464,7 +477,7 @@ export default function PaymentsPage() {
                         router.push(`/bookings/${payment.booking.id}`)
                       }
                     >
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className="hidden whitespace-nowrap sm:table-cell">
                         {format(
                           new Date(payment.createdAt),
                           'MMM d, yyyy',
@@ -472,11 +485,17 @@ export default function PaymentsPage() {
                       </TableCell>
                       <TableCell>
                         {payment.booking.client ? (
-                          <div>
-                            <div className="font-medium">
+                          <div className="min-w-0">
+                            <div className="truncate font-medium">
                               {payment.booking.client.name}
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="truncate text-xs text-muted-foreground sm:hidden">
+                              {format(
+                                new Date(payment.createdAt),
+                                'MMM d, yyyy',
+                              )}
+                            </div>
+                            <div className="hidden text-xs text-muted-foreground sm:block">
                               {payment.booking.client.email}
                             </div>
                           </div>
@@ -484,7 +503,7 @@ export default function PaymentsPage() {
                           <span className="text-muted-foreground">Guest</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         {payment.booking.service.name}
                       </TableCell>
                       <TableCell className="whitespace-nowrap font-medium">
@@ -498,7 +517,7 @@ export default function PaymentsPage() {
                           {formatStatus(payment.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <Badge variant="outline">
                           {formatPaymentType(payment.type)}
                         </Badge>
