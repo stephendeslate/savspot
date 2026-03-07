@@ -150,7 +150,7 @@ export class WorkflowEngineService {
           tenantId: payload.tenantId,
           role: { in: ['OWNER', 'ADMIN'] as never[] },
         },
-        include: { user: { select: { email: true, firstName: true } } },
+        include: { user: { select: { email: true, name: true } } },
       });
 
       if (members.length === 0) return;
@@ -163,18 +163,18 @@ export class WorkflowEngineService {
           tenantId: payload.tenantId,
           recipientId: member.userId,
           recipientEmail: member.user.email,
-          recipientName: member.user.firstName ?? 'Admin',
+          recipientName: member.user.name ?? 'Admin',
           channel: 'EMAIL',
           templateKey: 'staff-approval-required',
           templateData: {
-            staffName: member.user.firstName ?? 'Admin',
+            staffName: member.user.name ?? 'Admin',
             clientName: payload.clientName,
             serviceName: payload.serviceName,
             dateTime,
             businessName: tenant.name,
             logoUrl: tenant.logoUrl,
             brandColor: tenant.brandColor,
-            approveUrl: `${process.env.WEB_URL || 'https://app.savspot.co'}/bookings/${payload.bookingId}`,
+            approveUrl: `${process.env['WEB_URL'] || 'https://app.savspot.co'}/bookings/${payload.bookingId}`,
           },
           bookingId: payload.bookingId,
         });

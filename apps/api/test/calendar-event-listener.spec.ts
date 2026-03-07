@@ -93,9 +93,9 @@ describe('CalendarEventListener', () => {
       await listener.onBookingConfirmed(basePayload());
 
       const jobData = queue.add.mock.calls[0]![1] as Record<string, unknown>;
-      expect(jobData.startTime).toBe('2026-04-01T10:00:00.000Z');
-      expect(jobData.endTime).toBe('2026-04-01T11:00:00.000Z');
-      expect(typeof jobData.startTime).toBe('string');
+      expect(jobData['startTime']).toBe('2026-04-01T10:00:00.000Z');
+      expect(jobData['endTime']).toBe('2026-04-01T11:00:00.000Z');
+      expect(typeof jobData['startTime']).toBe('string');
     });
 
     it('only queries ACTIVE connections', async () => {

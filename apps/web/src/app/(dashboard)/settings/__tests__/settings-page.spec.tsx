@@ -66,11 +66,12 @@ describe('SettingsPage', () => {
       'Tax Rates': '/settings/tax-rates',
       Gallery: '/settings/gallery',
       Team: '/settings/team',
+      'Booking Flow': '/settings/booking-flow',
       'Embed Widget': '/settings/embed',
     };
 
     const links = screen.getAllByRole('link');
-    expect(links).toHaveLength(11);
+    expect(links).toHaveLength(12);
 
     for (const [name, href] of Object.entries(expectedLinks)) {
       const link = screen.getByText(name).closest('a');
