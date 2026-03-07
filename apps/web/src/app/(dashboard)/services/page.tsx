@@ -118,7 +118,7 @@ export default function ServicesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">Services</h2>
@@ -164,25 +164,31 @@ export default function ServicesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Duration</TableHead>
+                  <TableHead className="hidden sm:table-cell">Duration</TableHead>
                   <TableHead>Price</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[120px]">Actions</TableHead>
+                  <TableHead className="hidden sm:table-cell">Status</TableHead>
+                  <TableHead className="w-[80px] sm:w-[120px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {services.map((service) => (
                   <TableRow key={service.id}>
-                    <TableCell className="font-medium">
-                      {service.name}
-                    </TableCell>
                     <TableCell>
+                      <div className="min-w-0">
+                        <div className="truncate font-medium">{service.name}</div>
+                        <div className="text-xs text-muted-foreground sm:hidden">
+                          {formatDuration(service.durationMinutes)}
+                          {!service.isActive && ' · Inactive'}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       {formatDuration(service.durationMinutes)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       {formatPrice(service.basePrice, service.currency)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <Badge
                         variant={service.isActive ? 'default' : 'secondary'}
                       >
@@ -190,7 +196,7 @@ export default function ServicesPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <Button
                           variant="ghost"
                           size="sm"

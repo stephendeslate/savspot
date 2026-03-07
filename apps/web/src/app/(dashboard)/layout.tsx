@@ -63,13 +63,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       />
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col lg:pl-64">
+      <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
         <Header
           title={title}
           onMenuClick={() => setMobileNavOpen(true)}
         />
         <PushPrompt />
-        <main className="flex-1 p-4 lg:p-6">{children}</main>
+        <main className="min-w-0 flex-1 p-4 lg:p-6">{children}</main>
       </div>
 
       {/* Floating widgets */}
