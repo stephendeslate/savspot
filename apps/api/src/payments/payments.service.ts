@@ -107,8 +107,8 @@ export class PaymentsService {
       where: {
         tenantId,
         clientId,
-        source: { in: COMMISSION_SOURCES },
-        status: { notIn: ['CANCELLED'] },
+        source: { in: COMMISSION_SOURCES as never[] },
+        status: { notIn: ['CANCELLED'] as never[] },
       },
       select: { id: true },
       orderBy: { createdAt: 'asc' },

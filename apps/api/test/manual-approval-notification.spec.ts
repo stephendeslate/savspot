@@ -62,7 +62,7 @@ describe('WorkflowEngineService — handleBookingCreated (M4)', () => {
   it('sends staff notification for PENDING booking (MANUAL_APPROVAL)', async () => {
     prisma.booking.findUnique.mockResolvedValue({ status: 'PENDING' });
     prisma.tenantMembership.findMany.mockResolvedValue([
-      { userId: 'owner-1', role: 'OWNER', user: { email: 'owner@test.com', firstName: 'Sam' } },
+      { userId: 'owner-1', role: 'OWNER', user: { email: 'owner@test.com', name: 'Sam' } },
     ]);
     prisma.tenant.findUniqueOrThrow.mockResolvedValue(TENANT);
 
@@ -95,8 +95,8 @@ describe('WorkflowEngineService — handleBookingCreated (M4)', () => {
   it('sends separate email to each OWNER/ADMIN member', async () => {
     prisma.booking.findUnique.mockResolvedValue({ status: 'PENDING' });
     prisma.tenantMembership.findMany.mockResolvedValue([
-      { userId: 'owner-1', role: 'OWNER', user: { email: 'owner@test.com', firstName: 'Sam' } },
-      { userId: 'admin-1', role: 'ADMIN', user: { email: 'admin@test.com', firstName: 'Alex' } },
+      { userId: 'owner-1', role: 'OWNER', user: { email: 'owner@test.com', name: 'Sam' } },
+      { userId: 'admin-1', role: 'ADMIN', user: { email: 'admin@test.com', name: 'Alex' } },
     ]);
     prisma.tenant.findUniqueOrThrow.mockResolvedValue(TENANT);
 
@@ -116,14 +116,14 @@ describe('WorkflowEngineService — handleBookingCreated (M4)', () => {
   it('includes approve URL in template data', async () => {
     prisma.booking.findUnique.mockResolvedValue({ status: 'PENDING' });
     prisma.tenantMembership.findMany.mockResolvedValue([
-      { userId: 'owner-1', role: 'OWNER', user: { email: 'owner@test.com', firstName: 'Sam' } },
+      { userId: 'owner-1', role: 'OWNER', user: { email: 'owner@test.com', name: 'Sam' } },
     ]);
     prisma.tenant.findUniqueOrThrow.mockResolvedValue(TENANT);
 
     await service.handleBookingCreated(basePayload());
 
     const call = comms.createAndSend.mock.calls[0]![0] as Record<string, unknown>;
-    const templateData = call.templateData as Record<string, unknown>;
-    expect(templateData.approveUrl).toContain('/bookings/booking-1');
+    const templateData = call['templateData'] as Record<string, unknown>;
+    expect(templateData['approveUrl']).toContain('/bookings/booking-1');
   });
 });
