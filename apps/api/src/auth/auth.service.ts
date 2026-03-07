@@ -240,7 +240,7 @@ export class AuthService {
     });
   }
 
-  async loginGoogleUser(userId: string) {
+  async loginOAuthUser(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -297,6 +297,43 @@ export class AuthService {
             name: profile.name,
             googleId: profile.googleId,
             avatarUrl: profile.avatarUrl,
+            emailVerified: true,
+          },
+        });
+      }
+    }
+
+    return this.sanitizeUser(user);
+  }
+
+  async validateAppleUser(profile: {
+    appleId: string;
+    email: string;
+    name: string;
+  }): Promise<Record<string, unknown>> {
+    let user = await this.prisma.user.findUnique({
+      where: { appleId: profile.appleId },
+    });
+
+    if (!user) {
+      user = await this.prisma.user.findUnique({
+        where: { email: profile.email.toLowerCase() },
+      });
+
+      if (user) {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            appleId: profile.appleId,
+            emailVerified: true,
+          },
+        });
+      } else {
+        user = await this.prisma.user.create({
+          data: {
+            email: profile.email.toLowerCase(),
+            name: profile.name || 'Apple User',
+            appleId: profile.appleId,
             emailVerified: true,
           },
         });

@@ -29,7 +29,8 @@
     "admin:manage-roles": "tsx scripts/admin/manage-roles.ts",
     "admin:suspend-tenant": "tsx scripts/admin/suspend-tenant.ts",
     "admin:platform-config": "tsx scripts/admin/platform-config.ts",
-    "admin:import-clients": "tsx scripts/admin/import-clients.ts"
+    "admin:import-clients": "tsx scripts/admin/import-clients.ts",
+    "admin:feedback": "tsx scripts/admin/feedback.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

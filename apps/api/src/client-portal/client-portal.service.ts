@@ -4,8 +4,14 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  QUEUE_GDPR,
+  JOB_PROCESS_DATA_EXPORT,
+} from '../bullmq/queue.constants';
 
 /**
  * Cancellation policy shape stored in service.cancellationPolicy JSONB.
@@ -28,7 +34,10 @@ interface CancellationPolicy {
 export class ClientPortalService {
   private readonly logger = new Logger(ClientPortalService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @InjectQueue(QUEUE_GDPR) private readonly gdprQueue: Queue,
+  ) {}
 
   /**
    * Dashboard: upcoming bookings (next 7 days), recent payments, aggregate stats.
@@ -506,6 +515,13 @@ export class ClientPortalService {
     });
 
     this.logger.log(`Data export requested by user ${userId}: ${dataRequest.id}`);
+
+    // Enqueue background job to process the export
+    await this.gdprQueue.add(
+      JOB_PROCESS_DATA_EXPORT,
+      { dataRequestId: dataRequest.id, userId },
+      { removeOnComplete: { count: 10 }, removeOnFail: { count: 50 } },
+    );
 
     return dataRequest;
   }

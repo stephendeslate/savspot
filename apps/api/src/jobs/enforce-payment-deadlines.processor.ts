@@ -1,11 +1,6 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  QUEUE_PAYMENTS,
-  JOB_ENFORCE_PAYMENT_DEADLINES,
-} from '../bullmq/queue.constants';
 
 /**
  * TODO: When migrating to a non-superuser DB role, this processor's raw SQL queries
@@ -25,19 +20,13 @@ interface OverdueInvoiceRow {
  * optionally cancelling associated bookings.
  * Scheduled daily at 6 AM UTC via BullMQ repeatable job.
  */
-@Processor(QUEUE_PAYMENTS)
-export class EnforcePaymentDeadlinesProcessor extends WorkerHost {
-  private readonly logger = new Logger(EnforcePaymentDeadlinesProcessor.name);
+@Injectable()
+export class EnforcePaymentDeadlinesHandler {
+  private readonly logger = new Logger(EnforcePaymentDeadlinesHandler.name);
 
-  constructor(private readonly prisma: PrismaService) {
-    super();
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
-  async process(job: Job): Promise<void> {
-    if (job.name !== JOB_ENFORCE_PAYMENT_DEADLINES) {
-      return;
-    }
-
+  async handle(_job: Job): Promise<void> {
     this.logger.log('Running enforce payment deadlines job...');
 
     try {

@@ -158,7 +158,7 @@ export class AuthController {
     }
 
     try {
-      const result = await this.authService.loginGoogleUser(user['id'] as string);
+      const result = await this.authService.loginOAuthUser(user['id'] as string);
       const params = new URLSearchParams({
         accessToken: result.accessToken as string,
         refreshToken: result.refreshToken as string,
@@ -166,6 +166,42 @@ export class AuthController {
       return res.redirect(`${webUrl}/login?${params.toString()}`);
     } catch {
       return res.redirect(`${webUrl}/login?error=google_auth_failed`);
+    }
+  }
+
+  @Public()
+  @Post('apple')
+  @UseGuards(AuthGuard('apple'))
+  @ApiOperation({ summary: 'Initiate Apple Sign-In' })
+  async appleAuth() {
+    // Guard redirects to Apple
+  }
+
+  @Public()
+  @SkipThrottle()
+  @Post('apple/callback')
+  @UseGuards(AuthGuard('apple'))
+  @ApiOperation({ summary: 'Apple Sign-In callback' })
+  async appleCallback(
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const webUrl = this.configService.get<string>('WEB_URL', 'http://localhost:3000');
+    const user = req.user as Record<string, unknown> | undefined;
+
+    if (!user || !user['id']) {
+      return res.redirect(`${webUrl}/login?error=apple_auth_failed`);
+    }
+
+    try {
+      const result = await this.authService.loginOAuthUser(user['id'] as string);
+      const params = new URLSearchParams({
+        accessToken: result.accessToken as string,
+        refreshToken: result.refreshToken as string,
+      });
+      return res.redirect(`${webUrl}/login?${params.toString()}`);
+    } catch {
+      return res.redirect(`${webUrl}/login?error=apple_auth_failed`);
     }
   }
 }

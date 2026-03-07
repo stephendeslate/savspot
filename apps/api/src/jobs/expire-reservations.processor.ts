@@ -1,11 +1,6 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  QUEUE_BOOKINGS,
-  JOB_EXPIRE_RESERVATIONS,
-} from '../bullmq/queue.constants';
 
 /**
  * Expires held date reservations that have passed their expiry time.
@@ -15,19 +10,13 @@ import {
  * app.current_tenant per-tenant (iterate tenants or use raw SQL that bypasses RLS)
  * because FORCE ROW LEVEL SECURITY will block cross-tenant updateMany.
  */
-@Processor(QUEUE_BOOKINGS)
-export class ExpireReservationsProcessor extends WorkerHost {
-  private readonly logger = new Logger(ExpireReservationsProcessor.name);
+@Injectable()
+export class ExpireReservationsHandler {
+  private readonly logger = new Logger(ExpireReservationsHandler.name);
 
-  constructor(private readonly prisma: PrismaService) {
-    super();
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
-  async process(job: Job): Promise<void> {
-    if (job.name !== JOB_EXPIRE_RESERVATIONS) {
-      return;
-    }
-
+  async handle(_job: Job): Promise<void> {
     this.logger.log('Running expire reservations job...');
 
     try {

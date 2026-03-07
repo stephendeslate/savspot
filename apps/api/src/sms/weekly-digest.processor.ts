@@ -1,11 +1,9 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   QUEUE_COMMUNICATIONS,
-  JOB_SEND_WEEKLY_DIGEST,
   JOB_DELIVER_COMMUNICATION,
 } from '../bullmq/queue.constants';
 
@@ -15,22 +13,16 @@ import {
  * a deliverCommunication job with the 'weekly-digest' template
  * to the OWNER's email.
  */
-@Processor(QUEUE_COMMUNICATIONS)
-export class WeeklyDigestProcessor extends WorkerHost {
-  private readonly logger = new Logger(WeeklyDigestProcessor.name);
+@Injectable()
+export class WeeklyDigestHandler {
+  private readonly logger = new Logger(WeeklyDigestHandler.name);
 
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue(QUEUE_COMMUNICATIONS) private readonly commsQueue: Queue,
-  ) {
-    super();
-  }
+  ) {}
 
-  async process(job: Job): Promise<void> {
-    if (job.name !== JOB_SEND_WEEKLY_DIGEST) {
-      return; // Not our job
-    }
-
+  async handle(_job: Job): Promise<void> {
     this.logger.log('Starting weekly digest generation');
 
     // Find all active tenants

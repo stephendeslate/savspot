@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Bell, CalendarCheck, CreditCard, CalendarSync, AlertCircle, Loader2 } from 'lucide-react';
+import { apiClient } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -60,15 +61,37 @@ const CATEGORIES = [
 export default function NotificationPreferencesPage() {
   const router = useRouter();
 
-  const [preferences, setPreferences] = useState<NotificationPreferences>({
+  const defaultPrefs: NotificationPreferences = {
     BOOKING: { email: true, push: true },
     PAYMENT: { email: true, push: true },
     SYSTEM: { email: true, push: false },
     CALENDAR: { email: false, push: true },
-  });
+  };
 
+  const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPrefs);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const loadPreferences = useCallback(async () => {
+    try {
+      const data = await apiClient.get<{ preferences: NotificationPreferences | null }>(
+        '/api/users/me/notification-preferences',
+      );
+      if (data?.preferences) {
+        setPreferences({ ...defaultPrefs, ...data.preferences });
+      }
+    } catch {
+      // Use defaults on error
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadPreferences();
+  }, [loadPreferences]);
 
   const handleToggle = (
     category: keyof NotificationPreferences,
@@ -85,11 +108,21 @@ export default function NotificationPreferencesPage() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    // API not ready yet — simulate save
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setIsSaving(false);
-    setSuccessMessage('Preferences saved. Note: Full notification preferences are coming soon.');
-    setTimeout(() => setSuccessMessage(null), 4000);
+    setErrorMessage(null);
+    try {
+      await apiClient.request('/api/users/me/notification-preferences', {
+        method: 'PUT',
+        body: JSON.stringify(preferences),
+      });
+      setSuccessMessage('Preferences saved successfully.');
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : 'Failed to save preferences',
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -117,6 +150,12 @@ export default function NotificationPreferencesPage() {
         </div>
       )}
 
+      {errorMessage && (
+        <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">
+          {errorMessage}
+        </div>
+      )}
+
       <div className="rounded-md bg-muted p-3">
         <div className="flex items-start gap-2">
           <Bell className="mt-0.5 h-4 w-4 text-muted-foreground" />
@@ -128,7 +167,13 @@ export default function NotificationPreferencesPage() {
       </div>
 
       {/* Category Cards */}
-      {CATEGORIES.map((category) => {
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : null}
+
+      {!isLoading && CATEGORIES.map((category) => {
         const prefs = preferences[category.key];
         return (
           <Card key={category.key}>
@@ -182,7 +227,7 @@ export default function NotificationPreferencesPage() {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={isSaving}>
+        <Button onClick={handleSave} disabled={isSaving || isLoading}>
           {isSaving ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

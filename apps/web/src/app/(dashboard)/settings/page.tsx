@@ -9,7 +9,9 @@ import {
   Clock,
   Code,
   CreditCard,
+  Image,
   Palette,
+  Receipt,
   Tag,
   Users,
 } from 'lucide-react';
@@ -57,6 +59,18 @@ const settingsSections = [
     description: 'Create and manage promo codes',
     href: '/settings/discounts',
     icon: Tag,
+  },
+  {
+    name: 'Tax Rates',
+    description: 'Manage tax rates for invoices',
+    href: '/settings/tax-rates',
+    icon: Receipt,
+  },
+  {
+    name: 'Gallery',
+    description: 'Manage photos for your booking page',
+    href: '/settings/gallery',
+    icon: Image,
   },
   {
     name: 'Team',

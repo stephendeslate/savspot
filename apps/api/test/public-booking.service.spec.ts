@@ -19,6 +19,10 @@ function makePrisma() {
   };
 }
 
+function makeConfig() {
+  return { get: vi.fn() };
+}
+
 // ---------------------------------------------------------------------------
 // Suite
 // ---------------------------------------------------------------------------
@@ -29,7 +33,7 @@ describe('PublicBookingService', () => {
 
   beforeEach(() => {
     prisma = makePrisma();
-    service = new PublicBookingService(prisma as never);
+    service = new PublicBookingService(prisma as never, makeConfig() as never);
   });
 
   // -----------------------------------------------------------------------

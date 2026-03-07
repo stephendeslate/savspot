@@ -11,6 +11,7 @@ import { ApiKeyService } from './api-key.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { AppleOAuthStrategy } from './strategies/apple.strategy';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { UsersModule } from '../users/users.module';
 
@@ -29,6 +30,7 @@ import { UsersModule } from '../users/users.module';
     JwtStrategy,
     LocalStrategy,
     GoogleStrategy,
+    AppleOAuthStrategy,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

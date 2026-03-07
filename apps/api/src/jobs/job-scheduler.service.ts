@@ -17,11 +17,13 @@ import {
   JOB_SEND_MORNING_SUMMARY,
   JOB_SEND_WEEKLY_DIGEST,
   JOB_CLEANUP_RETENTION,
+  JOB_PROCESS_ACCOUNT_DELETION,
   CRON_EVERY_5_MIN,
   CRON_EVERY_15_MIN,
   CRON_EVERY_30_MIN,
   CRON_HOURLY,
   CRON_DAILY_3AM_UTC,
+  CRON_DAILY_5AM_UTC,
   CRON_DAILY_6AM_UTC,
   CRON_MONDAY_8AM_UTC,
 } from '../bullmq/queue.constants';
@@ -64,6 +66,7 @@ export class JobSchedulerService implements OnModuleInit {
       { queue: this.commsQueue, name: JOB_SEND_WEEKLY_DIGEST, pattern: CRON_MONDAY_8AM_UTC },
       // GDPR queue
       { queue: this.gdprQueue, name: JOB_CLEANUP_RETENTION, pattern: CRON_DAILY_3AM_UTC },
+      { queue: this.gdprQueue, name: JOB_PROCESS_ACCOUNT_DELETION, pattern: CRON_DAILY_5AM_UTC },
     ];
 
     for (const { queue, name, pattern } of schedules) {

@@ -1,11 +1,6 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  QUEUE_GDPR,
-  JOB_CLEANUP_RETENTION,
-} from '../bullmq/queue.constants';
 
 /**
  * Cleans up expired and stale data per GDPR retention policies.
@@ -20,23 +15,17 @@ import {
  *   - BookingSession (ABANDONED/EXPIRED): hard delete after 90 days
  *   - Notification: hard delete after 1 year
  */
-@Processor(QUEUE_GDPR)
-export class CleanupRetentionProcessor extends WorkerHost {
-  private readonly logger = new Logger(CleanupRetentionProcessor.name);
+@Injectable()
+export class CleanupRetentionHandler {
+  private readonly logger = new Logger(CleanupRetentionHandler.name);
 
   private static readonly RESERVATION_RETENTION_DAYS = 30;
   private static readonly SESSION_RETENTION_DAYS = 90;
   private static readonly NOTIFICATION_RETENTION_DAYS = 365;
 
-  constructor(private readonly prisma: PrismaService) {
-    super();
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
-  async process(job: Job): Promise<void> {
-    if (job.name !== JOB_CLEANUP_RETENTION) {
-      return;
-    }
-
+  async handle(_job: Job): Promise<void> {
     this.logger.log('Running GDPR cleanup retention policy job...');
 
     try {
@@ -44,7 +33,7 @@ export class CleanupRetentionProcessor extends WorkerHost {
 
       // 1. Clean up expired/released date reservations older than 30 days
       const reservationCutoff = new Date(
-        now - CleanupRetentionProcessor.RESERVATION_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+        now - CleanupRetentionHandler.RESERVATION_RETENTION_DAYS * 24 * 60 * 60 * 1000,
       );
 
       const deletedReservations = await this.prisma.dateReservation.deleteMany({
@@ -56,7 +45,7 @@ export class CleanupRetentionProcessor extends WorkerHost {
 
       // 2. Clean up abandoned/expired booking sessions older than 90 days
       const sessionCutoff = new Date(
-        now - CleanupRetentionProcessor.SESSION_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+        now - CleanupRetentionHandler.SESSION_RETENTION_DAYS * 24 * 60 * 60 * 1000,
       );
 
       const deletedSessions = await this.prisma.bookingSession.deleteMany({
@@ -68,7 +57,7 @@ export class CleanupRetentionProcessor extends WorkerHost {
 
       // 3. Clean up notifications older than 1 year
       const notificationCutoff = new Date(
-        now - CleanupRetentionProcessor.NOTIFICATION_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+        now - CleanupRetentionHandler.NOTIFICATION_RETENTION_DAYS * 24 * 60 * 60 * 1000,
       );
 
       const deletedNotifications = await this.prisma.notification.deleteMany({

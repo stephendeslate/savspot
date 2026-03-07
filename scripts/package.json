@@ -1,0 +1,11 @@
+{
+  "name": "@savspot/scripts",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "test": "vitest run --config vitest.config.ts"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0"
+  }
+}

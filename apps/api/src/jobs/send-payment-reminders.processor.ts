@@ -1,11 +1,9 @@
-import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import {
-  QUEUE_PAYMENTS,
   QUEUE_COMMUNICATIONS,
-  JOB_SEND_PAYMENT_REMINDERS,
   JOB_DELIVER_COMMUNICATION,
 } from '../bullmq/queue.constants';
 
@@ -33,24 +31,18 @@ interface DueInvoiceRow {
  * Deduplicates via the booking_reminders table.
  * Scheduled every 15 minutes via BullMQ repeatable job.
  */
-@Processor(QUEUE_PAYMENTS)
-export class SendPaymentRemindersProcessor extends WorkerHost {
-  private readonly logger = new Logger(SendPaymentRemindersProcessor.name);
+@Injectable()
+export class SendPaymentRemindersHandler {
+  private readonly logger = new Logger(SendPaymentRemindersHandler.name);
 
   private static readonly REMINDER_INTERVALS = [7, 3, 1] as const;
 
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue(QUEUE_COMMUNICATIONS) private readonly communicationsQueue: Queue,
-  ) {
-    super();
-  }
+  ) {}
 
-  async process(job: Job): Promise<void> {
-    if (job.name !== JOB_SEND_PAYMENT_REMINDERS) {
-      return;
-    }
-
+  async handle(_job: Job): Promise<void> {
     this.logger.log('Running send payment reminders job...');
 
     try {
@@ -90,7 +82,7 @@ export class SendPaymentRemindersProcessor extends WorkerHost {
           (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
         );
 
-        for (const intervalDays of SendPaymentRemindersProcessor.REMINDER_INTERVALS) {
+        for (const intervalDays of SendPaymentRemindersHandler.REMINDER_INTERVALS) {
           if (daysUntilDue > intervalDays) {
             continue;
           }

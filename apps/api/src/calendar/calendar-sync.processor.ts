@@ -1,11 +1,6 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { GoogleCalendarService } from './calendar.service';
-import {
-  QUEUE_CALENDAR,
-  JOB_CALENDAR_TWO_WAY_SYNC,
-} from '../bullmq/queue.constants';
 
 interface CalendarSyncJobData {
   connectionId: string;
@@ -20,19 +15,13 @@ interface CalendarSyncJobData {
  * Processor for the calendarTwoWaySync job.
  * Performs incremental inbound sync from Google Calendar and logs results.
  */
-@Processor(QUEUE_CALENDAR)
-export class CalendarSyncProcessor extends WorkerHost {
-  private readonly logger = new Logger(CalendarSyncProcessor.name);
+@Injectable()
+export class CalendarSyncHandler {
+  private readonly logger = new Logger(CalendarSyncHandler.name);
 
-  constructor(private readonly calendarService: GoogleCalendarService) {
-    super();
-  }
+  constructor(private readonly calendarService: GoogleCalendarService) {}
 
-  async process(job: Job<CalendarSyncJobData>): Promise<void> {
-    if (job.name !== JOB_CALENDAR_TWO_WAY_SYNC) {
-      return; // Not our job — let other processors handle it
-    }
-
+  async handle(job: Job<CalendarSyncJobData>): Promise<void> {
     const { connectionId, tenantId, manual, triggeredBy } = job.data;
 
     this.logger.log(

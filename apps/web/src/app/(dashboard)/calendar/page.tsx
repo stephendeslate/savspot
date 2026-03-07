@@ -8,6 +8,10 @@ import {
   type Event,
   type SlotInfo,
 } from 'react-big-calendar';
+import withDragAndDrop, {
+  type EventInteractionArgs,
+} from 'react-big-calendar/lib/addons/dragAndDrop';
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import {
@@ -20,11 +24,21 @@ import {
 } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
 import { WalkInDialog } from '@/components/bookings/walk-in-dialog';
 import { BookingPopover } from '@/components/calendar/booking-popover';
+import { getStatusStyle, getClientDisplayName } from './calendar-helpers';
 
 // ---------- Localizer ----------
 
@@ -85,36 +99,14 @@ interface CalendarEvent extends Event {
   isBlocked?: boolean;
 }
 
+// ---------- DnD Calendar ----------
+
+const DnDCalendar = withDragAndDrop<CalendarEvent>(BigCalendar as never);
+
+// Statuses that can be dragged to reschedule
+const DRAGGABLE_STATUSES = new Set(['CONFIRMED', 'PENDING']);
+
 // ---------- Helpers ----------
-
-function getStatusStyle(status: string): React.CSSProperties {
-  switch (status) {
-    case 'CONFIRMED':
-      return { backgroundColor: '#3b82f6', color: '#ffffff', borderColor: '#2563eb' };
-    case 'PENDING':
-      return { backgroundColor: '#f59e0b', color: '#ffffff', borderColor: '#d97706' };
-    case 'COMPLETED':
-      return { backgroundColor: '#22c55e', color: '#ffffff', borderColor: '#16a34a' };
-    case 'CANCELLED':
-      return {
-        backgroundColor: '#ef4444',
-        color: '#ffffff',
-        borderColor: '#dc2626',
-        textDecoration: 'line-through',
-      };
-    case 'NO_SHOW':
-      return { backgroundColor: '#6b7280', color: '#ffffff', borderColor: '#4b5563' };
-    case 'IN_PROGRESS':
-      return { backgroundColor: '#8b5cf6', color: '#ffffff', borderColor: '#7c3aed' };
-    default:
-      return { backgroundColor: '#3b82f6', color: '#ffffff', borderColor: '#2563eb' };
-  }
-}
-
-function getClientDisplayName(booking: Booking): string {
-  if (booking.client) return booking.client.name;
-  return booking.source === 'WALK_IN' ? 'Walk-in' : 'Guest';
-}
 
 function useIsMobile(): boolean {
   const [isMobile, setIsMobile] = useState(false);
@@ -147,6 +139,18 @@ export default function CalendarPage() {
   // Booking popover state
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+
+  // DnD reschedule state
+  const [rescheduleConfirm, setRescheduleConfirm] = useState<{
+    bookingId: string;
+    title: string;
+    oldStart: Date;
+    oldEnd: Date;
+    newStart: Date;
+    newEnd: Date;
+  } | null>(null);
+  const [isRescheduling, setIsRescheduling] = useState(false);
+  const [rescheduleError, setRescheduleError] = useState<string | null>(null);
 
   // Track whether initial mobile check happened
   useEffect(() => {
@@ -262,6 +266,73 @@ export default function CalendarPage() {
   const handleWalkInSuccess = useCallback(() => {
     void fetchEvents(dateRange.start, dateRange.end);
   }, [fetchEvents, dateRange.start, dateRange.end]);
+
+  const handleEventDrop = useCallback(
+    ({ event, start, end }: EventInteractionArgs<CalendarEvent>) => {
+      if (!event.resource || !DRAGGABLE_STATUSES.has(event.resource.status)) {
+        return;
+      }
+      setRescheduleConfirm({
+        bookingId: event.id,
+        title: event.title,
+        oldStart: event.start as Date,
+        oldEnd: event.end as Date,
+        newStart: start as Date,
+        newEnd: end as Date,
+      });
+    },
+    [],
+  );
+
+  const handleEventResize = useCallback(
+    ({ event, start, end }: EventInteractionArgs<CalendarEvent>) => {
+      if (!event.resource || !DRAGGABLE_STATUSES.has(event.resource.status)) {
+        return;
+      }
+      setRescheduleConfirm({
+        bookingId: event.id,
+        title: event.title,
+        oldStart: event.start as Date,
+        oldEnd: event.end as Date,
+        newStart: start as Date,
+        newEnd: end as Date,
+      });
+    },
+    [],
+  );
+
+  const confirmReschedule = useCallback(async () => {
+    if (!rescheduleConfirm || !tenantId) return;
+
+    setIsRescheduling(true);
+    setRescheduleError(null);
+
+    try {
+      await apiClient.post(
+        `/api/tenants/${tenantId}/bookings/${rescheduleConfirm.bookingId}/reschedule`,
+        {
+          startTime: rescheduleConfirm.newStart.toISOString(),
+          endTime: rescheduleConfirm.newEnd.toISOString(),
+        },
+      );
+
+      setRescheduleConfirm(null);
+      void fetchEvents(dateRange.start, dateRange.end);
+    } catch (err) {
+      setRescheduleError(
+        err instanceof Error ? err.message : 'Failed to reschedule booking',
+      );
+    } finally {
+      setIsRescheduling(false);
+    }
+  }, [rescheduleConfirm, tenantId, fetchEvents, dateRange.start, dateRange.end]);
+
+  const draggableAccessor = useCallback(
+    (event: CalendarEvent) => {
+      return DRAGGABLE_STATUSES.has(event.resource?.status ?? '');
+    },
+    [],
+  );
 
   const eventStyleGetter = useCallback(
     (event: CalendarEvent) => {
@@ -490,7 +561,7 @@ export default function CalendarPage() {
             }
           `}</style>
           <div style={{ minHeight: 600 }}>
-            <BigCalendar
+            <DnDCalendar
               localizer={localizer}
               events={events}
               startAccessor="start"
@@ -503,6 +574,10 @@ export default function CalendarPage() {
               onView={handleViewChange}
               onSelectEvent={handleSelectEvent}
               onSelectSlot={handleSelectSlot}
+              onEventDrop={handleEventDrop}
+              onEventResize={handleEventResize}
+              draggableAccessor={draggableAccessor}
+              resizable
               selectable
               eventPropGetter={eventStyleGetter}
               style={{ height: 650 }}
@@ -537,6 +612,60 @@ export default function CalendarPage() {
           onStatusChange={handlePopoverStatusChange}
         />
       )}
+
+      {/* Reschedule Confirmation Dialog */}
+      <Dialog
+        open={!!rescheduleConfirm}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRescheduleConfirm(null);
+            setRescheduleError(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reschedule Booking</DialogTitle>
+            <DialogDescription>
+              {rescheduleConfirm && (
+                <>
+                  Move <strong>{rescheduleConfirm.title}</strong> from{' '}
+                  <strong>
+                    {format(rescheduleConfirm.oldStart, 'MMM d, h:mm a')} -{' '}
+                    {format(rescheduleConfirm.oldEnd, 'h:mm a')}
+                  </strong>{' '}
+                  to{' '}
+                  <strong>
+                    {format(rescheduleConfirm.newStart, 'MMM d, h:mm a')} -{' '}
+                    {format(rescheduleConfirm.newEnd, 'h:mm a')}
+                  </strong>
+                  ?
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          {rescheduleError && (
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              {rescheduleError}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRescheduleConfirm(null);
+                setRescheduleError(null);
+              }}
+              disabled={isRescheduling}
+            >
+              Cancel
+            </Button>
+            <Button onClick={confirmReschedule} disabled={isRescheduling}>
+              {isRescheduling ? 'Rescheduling...' : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

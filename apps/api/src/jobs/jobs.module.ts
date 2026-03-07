@@ -9,23 +9,36 @@ import {
 } from '../bullmq/queue.constants';
 import { PaymentsModule } from '../payments/payments.module';
 import { CommunicationsModule } from '../communications/communications.module';
-import { ExpireReservationsProcessor } from './expire-reservations.processor';
-import { AbandonedRecoveryProcessor } from './abandoned-recovery.processor';
-import { ProcessCompletedBookingsProcessor } from './process-completed-bookings.processor';
-import { EnforceApprovalDeadlinesProcessor } from './enforce-approval-deadlines.processor';
-import { SendPaymentRemindersProcessor } from './send-payment-reminders.processor';
-import { EnforcePaymentDeadlinesProcessor } from './enforce-payment-deadlines.processor';
-import { RetryFailedPaymentsProcessor } from './retry-failed-payments.processor';
+import { UploadModule } from '../upload/upload.module';
+// Dispatchers (one @Processor per queue)
+import { BookingsDispatcher } from './bookings.dispatcher';
+import { PaymentsDispatcher } from './payments.dispatcher';
+import { GdprDispatcher } from './gdpr.dispatcher';
+// Bookings handlers
+import { ExpireReservationsHandler } from './expire-reservations.processor';
+import { AbandonedRecoveryHandler } from './abandoned-recovery.processor';
+import { ProcessCompletedBookingsHandler } from './process-completed-bookings.processor';
+import { EnforceApprovalDeadlinesHandler } from './enforce-approval-deadlines.processor';
+// Payments handlers
+import { SendPaymentRemindersHandler } from './send-payment-reminders.processor';
+import { EnforcePaymentDeadlinesHandler } from './enforce-payment-deadlines.processor';
+import { RetryFailedPaymentsHandler } from './retry-failed-payments.processor';
+// Invoice processor (single worker — no dispatcher needed)
 import { GenerateInvoicePdfProcessor } from './generate-invoice-pdf.processor';
-import { CleanupRetentionProcessor } from './cleanup-retention.processor';
+// GDPR handlers
+import { CleanupRetentionHandler } from './cleanup-retention.processor';
+import { DataExportHandler } from './data-export.processor';
+import { AccountDeletionHandler } from './account-deletion.processor';
 import { JobSchedulerService } from './job-scheduler.service';
 
 /**
  * Module that registers all scheduled background job processors.
- * Each processor handles one or more recurring or event-driven BullMQ jobs.
+ *
+ * Each queue has a single Dispatcher (@Processor) that routes jobs by name
+ * to Injectable handler classes. This prevents BullMQ from creating competing
+ * workers that silently drop jobs.
  *
  * JobSchedulerService registers all repeatable cron schedules on module init.
- * Queue registration is handled here; processor classes handle execution logic.
  */
 @Module({
   imports: [
@@ -38,18 +51,29 @@ import { JobSchedulerService } from './job-scheduler.service';
     ),
     PaymentsModule,
     CommunicationsModule,
+    UploadModule,
   ],
   providers: [
     JobSchedulerService,
-    ExpireReservationsProcessor,
-    AbandonedRecoveryProcessor,
-    ProcessCompletedBookingsProcessor,
-    EnforceApprovalDeadlinesProcessor,
-    SendPaymentRemindersProcessor,
-    EnforcePaymentDeadlinesProcessor,
-    RetryFailedPaymentsProcessor,
+    // Dispatchers
+    BookingsDispatcher,
+    PaymentsDispatcher,
+    GdprDispatcher,
+    // Bookings handlers
+    ExpireReservationsHandler,
+    AbandonedRecoveryHandler,
+    ProcessCompletedBookingsHandler,
+    EnforceApprovalDeadlinesHandler,
+    // Payments handlers
+    SendPaymentRemindersHandler,
+    EnforcePaymentDeadlinesHandler,
+    RetryFailedPaymentsHandler,
+    // Invoice (single processor, no dispatcher)
     GenerateInvoicePdfProcessor,
-    CleanupRetentionProcessor,
+    // GDPR handlers
+    CleanupRetentionHandler,
+    DataExportHandler,
+    AccountDeletionHandler,
   ],
 })
 export class JobsModule {}

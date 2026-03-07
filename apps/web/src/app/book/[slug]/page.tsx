@@ -27,6 +27,7 @@ import type {
   BookingSession,
 } from '@/components/booking/booking-types';
 import { API_URL } from '@/components/booking/booking-types';
+import { formatDuration, formatPrice } from './helpers';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -40,22 +41,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   PROFESSIONAL: 'Professional Services',
   OTHER: 'Other',
 };
-
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const remaining = minutes % 60;
-  if (remaining === 0) return `${hours}h`;
-  return `${hours}h ${remaining}min`;
-}
-
-function formatPrice(amount: number, currency: string): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
-}
 
 // ---------------------------------------------------------------------------
 // Loading skeleton
@@ -459,12 +444,42 @@ export default function BookingPage() {
     );
   }
 
+  // JSON-LD structured data for SEO
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    name: tenant.name,
+    ...(tenant.description && { description: tenant.description }),
+    url: `${typeof window !== 'undefined' ? window.location.origin : ''}/book/${slug}`,
+    ...(tenant.address && { address: tenant.address }),
+    ...(tenant.contactEmail && { email: tenant.contactEmail }),
+    ...(tenant.contactPhone && { telephone: tenant.contactPhone }),
+    ...(tenant.logoUrl && { image: tenant.logoUrl }),
+    ...(tenant.services.length > 0 && {
+      hasOfferCatalog: {
+        '@type': 'OfferCatalog',
+        name: 'Services',
+        itemListElement: tenant.services.map((s) => ({
+          '@type': 'Offer',
+          name: s.name,
+          ...(s.description && { description: s.description }),
+          price: s.basePrice,
+          priceCurrency: s.currency || tenant.currency,
+        })),
+      },
+    }),
+  };
+
   // Main booking page with service listing
   return (
     <div
       className="mx-auto max-w-5xl px-4 py-8"
       style={brandCssVars}
     >
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <HeroSection tenant={tenant} brandStyle={brandStyle} />
 
       <Separator className="my-6" />

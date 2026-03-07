@@ -6,6 +6,7 @@ import { PaymentsService } from '../payments/payments.service';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
 import { EventsService } from '../events/events.service';
+import { ConsentService } from '../consent/consent.service';
 
 /**
  * Booking flow step types.
@@ -40,6 +41,7 @@ export class BookingSessionsService {
     private readonly reservationService: ReservationService,
     private readonly paymentsService: PaymentsService,
     private readonly eventsService: EventsService,
+    private readonly consentService: ConsentService,
   ) {}
 
   /**
@@ -353,6 +355,13 @@ export class BookingSessionsService {
     if (bookingStatus === 'CONFIRMED') {
       this.eventsService.emitBookingConfirmed(eventPayload);
     }
+
+    // Create DATA_PROCESSING consent record (GDPR requirement)
+    this.consentService
+      .createBookingConsent(clientId)
+      .catch((err) =>
+        this.logger.warn(`Failed to create booking consent for user ${clientId}: ${err.message}`),
+      );
 
     return booking;
   }

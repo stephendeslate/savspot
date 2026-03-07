@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ExpireReservationsProcessor } from '@/jobs/expire-reservations.processor';
-import { CleanupRetentionProcessor } from '@/jobs/cleanup-retention.processor';
-import { ProcessCompletedBookingsProcessor } from '@/jobs/process-completed-bookings.processor';
+import { ExpireReservationsHandler } from '@/jobs/expire-reservations.processor';
+import { CleanupRetentionHandler } from '@/jobs/cleanup-retention.processor';
+import { ProcessCompletedBookingsHandler } from '@/jobs/process-completed-bookings.processor';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -24,27 +24,27 @@ function makeEvents() {
   };
 }
 
-function makeJob(name: string, data: Record<string, unknown> = {}) {
-  return { name, data } as never;
+function makeJob(data: Record<string, unknown> = {}) {
+  return { data } as never;
 }
 
 // ---------------------------------------------------------------------------
-// ExpireReservationsProcessor
+// ExpireReservationsHandler
 // ---------------------------------------------------------------------------
 
-describe('ExpireReservationsProcessor', () => {
-  let processor: ExpireReservationsProcessor;
+describe('ExpireReservationsHandler', () => {
+  let handler: ExpireReservationsHandler;
   let prisma: ReturnType<typeof makePrisma>;
 
   beforeEach(() => {
     prisma = makePrisma();
-    processor = new ExpireReservationsProcessor(prisma as never);
+    handler = new ExpireReservationsHandler(prisma as never);
   });
 
   it('should expire HELD reservations past their expiresAt time', async () => {
     prisma.dateReservation.updateMany.mockResolvedValue({ count: 3 });
 
-    await processor.process(makeJob('expireReservations'));
+    await handler.handle(makeJob());
 
     expect(prisma.dateReservation.updateMany).toHaveBeenCalledTimes(1);
     const call = prisma.dateReservation.updateMany.mock.calls[0]![0];
@@ -53,26 +53,20 @@ describe('ExpireReservationsProcessor', () => {
     expect(call.data.status).toBe('EXPIRED');
   });
 
-  it('should skip processing for non-matching job names', async () => {
-    await processor.process(makeJob('someOtherJob'));
-
-    expect(prisma.dateReservation.updateMany).not.toHaveBeenCalled();
-  });
-
   it('should re-throw errors from the database', async () => {
     prisma.dateReservation.updateMany.mockRejectedValue(new Error('DB error'));
 
-    await expect(processor.process(makeJob('expireReservations')))
+    await expect(handler.handle(makeJob()))
       .rejects.toThrow('DB error');
   });
 });
 
 // ---------------------------------------------------------------------------
-// CleanupRetentionProcessor
+// CleanupRetentionHandler
 // ---------------------------------------------------------------------------
 
-describe('CleanupRetentionProcessor', () => {
-  let processor: CleanupRetentionProcessor;
+describe('CleanupRetentionHandler', () => {
+  let handler: CleanupRetentionHandler;
   let prisma: ReturnType<typeof makePrisma>;
 
   beforeEach(() => {
@@ -80,13 +74,13 @@ describe('CleanupRetentionProcessor', () => {
     prisma.dateReservation.deleteMany.mockResolvedValue({ count: 0 });
     prisma.bookingSession.deleteMany.mockResolvedValue({ count: 0 });
     prisma.notification.deleteMany.mockResolvedValue({ count: 0 });
-    processor = new CleanupRetentionProcessor(prisma as never);
+    handler = new CleanupRetentionHandler(prisma as never);
   });
 
   it('should delete expired/released reservations older than 30 days', async () => {
     prisma.dateReservation.deleteMany.mockResolvedValue({ count: 5 });
 
-    await processor.process(makeJob('cleanupRetentionPolicy'));
+    await handler.handle(makeJob());
 
     expect(prisma.dateReservation.deleteMany).toHaveBeenCalledTimes(1);
     const call = prisma.dateReservation.deleteMany.mock.calls[0]![0];
@@ -103,14 +97,13 @@ describe('CleanupRetentionProcessor', () => {
   it('should delete abandoned/expired sessions older than 90 days', async () => {
     prisma.bookingSession.deleteMany.mockResolvedValue({ count: 2 });
 
-    await processor.process(makeJob('cleanupRetentionPolicy'));
+    await handler.handle(makeJob());
 
     expect(prisma.bookingSession.deleteMany).toHaveBeenCalledTimes(1);
     const call = prisma.bookingSession.deleteMany.mock.calls[0]![0];
     expect(call.where.status).toEqual({ in: ['ABANDONED', 'EXPIRED'] });
     expect(call.where.createdAt).toEqual({ lt: expect.any(Date) });
 
-    // Verify the cutoff is approximately 90 days ago
     const cutoff = call.where.createdAt.lt as Date;
     const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000;
     const expectedCutoff = Date.now() - ninetyDaysMs;
@@ -120,25 +113,16 @@ describe('CleanupRetentionProcessor', () => {
   it('should delete notifications older than 365 days', async () => {
     prisma.notification.deleteMany.mockResolvedValue({ count: 100 });
 
-    await processor.process(makeJob('cleanupRetentionPolicy'));
+    await handler.handle(makeJob());
 
     expect(prisma.notification.deleteMany).toHaveBeenCalledTimes(1);
     const call = prisma.notification.deleteMany.mock.calls[0]![0];
     expect(call.where.createdAt).toEqual({ lt: expect.any(Date) });
 
-    // Verify the cutoff is approximately 365 days ago
     const cutoff = call.where.createdAt.lt as Date;
     const yearMs = 365 * 24 * 60 * 60 * 1000;
     const expectedCutoff = Date.now() - yearMs;
     expect(Math.abs(cutoff.getTime() - expectedCutoff)).toBeLessThan(5000);
-  });
-
-  it('should skip processing for non-matching job names', async () => {
-    await processor.process(makeJob('someOtherJob'));
-
-    expect(prisma.dateReservation.deleteMany).not.toHaveBeenCalled();
-    expect(prisma.bookingSession.deleteMany).not.toHaveBeenCalled();
-    expect(prisma.notification.deleteMany).not.toHaveBeenCalled();
   });
 
   it('should execute all three cleanup steps in a single run', async () => {
@@ -146,7 +130,7 @@ describe('CleanupRetentionProcessor', () => {
     prisma.bookingSession.deleteMany.mockResolvedValue({ count: 2 });
     prisma.notification.deleteMany.mockResolvedValue({ count: 3 });
 
-    await processor.process(makeJob('cleanupRetentionPolicy'));
+    await handler.handle(makeJob());
 
     expect(prisma.dateReservation.deleteMany).toHaveBeenCalledTimes(1);
     expect(prisma.bookingSession.deleteMany).toHaveBeenCalledTimes(1);
@@ -156,30 +140,30 @@ describe('CleanupRetentionProcessor', () => {
   it('should re-throw errors from the database', async () => {
     prisma.dateReservation.deleteMany.mockRejectedValue(new Error('Permission denied'));
 
-    await expect(processor.process(makeJob('cleanupRetentionPolicy')))
+    await expect(handler.handle(makeJob()))
       .rejects.toThrow('Permission denied');
   });
 });
 
 // ---------------------------------------------------------------------------
-// ProcessCompletedBookingsProcessor
+// ProcessCompletedBookingsHandler
 // ---------------------------------------------------------------------------
 
-describe('ProcessCompletedBookingsProcessor', () => {
-  let processor: ProcessCompletedBookingsProcessor;
+describe('ProcessCompletedBookingsHandler', () => {
+  let handler: ProcessCompletedBookingsHandler;
   let prisma: ReturnType<typeof makePrisma>;
   let events: ReturnType<typeof makeEvents>;
 
   beforeEach(() => {
     prisma = makePrisma();
     events = makeEvents();
-    processor = new ProcessCompletedBookingsProcessor(prisma as never, events as never);
+    handler = new ProcessCompletedBookingsHandler(prisma as never, events as never);
   });
 
   it('should query for confirmed bookings past end time', async () => {
     prisma.$queryRaw.mockResolvedValue([]);
 
-    await processor.process(makeJob('processCompletedBookings'));
+    await handler.handle(makeJob());
 
     expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
   });
@@ -208,12 +192,10 @@ describe('ProcessCompletedBookingsProcessor', () => {
       fn(mockTx),
     );
 
-    await processor.process(makeJob('processCompletedBookings'));
+    await handler.handle(makeJob());
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-    // Two $executeRaw calls: set_config + UPDATE bookings
     expect(mockTx.$executeRaw).toHaveBeenCalledTimes(2);
-    // BookingStateHistory record created
     expect(mockTx.bookingStateHistory.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         bookingId: 'booking-001',
@@ -247,7 +229,7 @@ describe('ProcessCompletedBookingsProcessor', () => {
       }),
     );
 
-    await processor.process(makeJob('processCompletedBookings'));
+    await handler.handle(makeJob());
 
     expect(events.emitBookingCompleted).toHaveBeenCalledTimes(1);
     expect(events.emitBookingCompleted).toHaveBeenCalledWith({
@@ -267,16 +249,10 @@ describe('ProcessCompletedBookingsProcessor', () => {
   it('should handle empty result (no eligible bookings)', async () => {
     prisma.$queryRaw.mockResolvedValue([]);
 
-    await processor.process(makeJob('processCompletedBookings'));
+    await handler.handle(makeJob());
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(events.emitBookingCompleted).not.toHaveBeenCalled();
-  });
-
-  it('should skip processing for non-matching job names', async () => {
-    await processor.process(makeJob('someOtherJob'));
-
-    expect(prisma.$queryRaw).not.toHaveBeenCalled();
   });
 
   it('should continue processing remaining bookings when one fails', async () => {
@@ -319,9 +295,8 @@ describe('ProcessCompletedBookingsProcessor', () => {
       });
     });
 
-    await processor.process(makeJob('processCompletedBookings'));
+    await handler.handle(makeJob());
 
-    // First booking failed, second succeeded
     expect(prisma.$transaction).toHaveBeenCalledTimes(2);
     expect(events.emitBookingCompleted).toHaveBeenCalledTimes(1);
     expect(events.emitBookingCompleted).toHaveBeenCalledWith(
@@ -332,7 +307,7 @@ describe('ProcessCompletedBookingsProcessor', () => {
   it('should re-throw when the top-level query fails', async () => {
     prisma.$queryRaw.mockRejectedValue(new Error('Connection refused'));
 
-    await expect(processor.process(makeJob('processCompletedBookings')))
+    await expect(handler.handle(makeJob()))
       .rejects.toThrow('Connection refused');
   });
 });

@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Body } from '@nestjs/common';
+import { Controller, Get, Patch, Put, Body } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -30,5 +30,22 @@ export class UsersController {
     @Body() dto: UpdateUserDto,
   ) {
     return this.usersService.update(userId, dto);
+  }
+
+  @Get('me/notification-preferences')
+  @ApiOperation({ summary: 'Get notification preferences' })
+  @ApiResponse({ status: 200, description: 'Notification preferences' })
+  async getNotificationPreferences(@CurrentUser('sub') userId: string) {
+    return this.usersService.getNotificationPreferences(userId);
+  }
+
+  @Put('me/notification-preferences')
+  @ApiOperation({ summary: 'Update notification preferences' })
+  @ApiResponse({ status: 200, description: 'Preferences updated' })
+  async updateNotificationPreferences(
+    @CurrentUser('sub') userId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.usersService.updateNotificationPreferences(userId, body);
   }
 }

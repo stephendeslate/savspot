@@ -30,6 +30,8 @@ export const ROUTES = {
   SETTINGS_DISCOUNTS: '/settings/discounts',
   SETTINGS_TEAM: '/settings/team',
   SETTINGS_EMBED: '/settings/embed',
+  SETTINGS_TAX_RATES: '/settings/tax-rates',
+  SETTINGS_GALLERY: '/settings/gallery',
 
   // Auth (public)
   ACCEPT_INVITATION: '/accept-invitation',

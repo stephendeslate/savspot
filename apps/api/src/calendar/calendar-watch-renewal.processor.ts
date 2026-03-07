@@ -1,34 +1,23 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { GoogleCalendarService } from './calendar.service';
-import {
-  QUEUE_CALENDAR,
-  JOB_CALENDAR_WATCH_RENEWAL,
-} from '../bullmq/queue.constants';
 
 /**
  * Processor for the calendarWatchRenewal job.
  * Runs daily to renew Google Calendar watch channels that are expiring
  * within the next 7 days, ensuring continuous push notifications.
  */
-@Processor(QUEUE_CALENDAR)
-export class CalendarWatchRenewalProcessor extends WorkerHost {
-  private readonly logger = new Logger(CalendarWatchRenewalProcessor.name);
+@Injectable()
+export class CalendarWatchRenewalHandler {
+  private readonly logger = new Logger(CalendarWatchRenewalHandler.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly calendarService: GoogleCalendarService,
-  ) {
-    super();
-  }
+  ) {}
 
-  async process(job: Job): Promise<void> {
-    if (job.name !== JOB_CALENDAR_WATCH_RENEWAL) {
-      return; // Not our job
-    }
-
+  async handle(_job: Job): Promise<void> {
     this.logger.log('Starting daily calendar watch channel renewal');
 
     // Find all active connections that have watch channels

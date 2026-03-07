@@ -53,4 +53,24 @@ export class UsersService {
 
     return sanitizeUser(user);
   }
+
+  async getNotificationPreferences(userId: string) {
+    const pref = await this.prisma.notificationPreference.findUnique({
+      where: { userId },
+    });
+    return pref ?? { preferences: null };
+  }
+
+  async updateNotificationPreferences(userId: string, preferences: Record<string, unknown>) {
+    return this.prisma.notificationPreference.upsert({
+      where: { userId },
+      create: {
+        userId,
+        preferences: preferences as object,
+      },
+      update: {
+        preferences: preferences as object,
+      },
+    });
+  }
 }

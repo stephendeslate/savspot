@@ -136,13 +136,21 @@ function makePrisma() {
 // Suite
 // ---------------------------------------------------------------------------
 
+function makeQueue() {
+  return {
+    add: vi.fn().mockResolvedValue({}),
+  };
+}
+
 describe('ClientPortalService', () => {
   let service: ClientPortalService;
   let prisma: ReturnType<typeof makePrisma>;
+  let queue: ReturnType<typeof makeQueue>;
 
   beforeEach(() => {
     prisma = makePrisma();
-    service = new ClientPortalService(prisma as never);
+    queue = makeQueue();
+    service = new ClientPortalService(prisma as never, queue as never);
   });
 
   // -----------------------------------------------------------------------
