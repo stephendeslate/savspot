@@ -1,12 +1,7 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { GoogleCalendarService } from './calendar.service';
-import {
-  QUEUE_CALENDAR,
-  JOB_CALENDAR_EVENT_PUSH,
-} from '../bullmq/queue.constants';
 import {
   BOOKING_CONFIRMED,
   BOOKING_RESCHEDULED,
@@ -31,22 +26,16 @@ interface CalendarEventPushJobData {
  * Processor for the calendarEventPush job.
  * Pushes booking events (confirmed, rescheduled, cancelled) to Google Calendar.
  */
-@Processor(QUEUE_CALENDAR)
-export class CalendarPushProcessor extends WorkerHost {
-  private readonly logger = new Logger(CalendarPushProcessor.name);
+@Injectable()
+export class CalendarPushHandler {
+  private readonly logger = new Logger(CalendarPushHandler.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly calendarService: GoogleCalendarService,
-  ) {
-    super();
-  }
+  ) {}
 
-  async process(job: Job<CalendarEventPushJobData>): Promise<void> {
-    if (job.name !== JOB_CALENDAR_EVENT_PUSH) {
-      return; // Not our job
-    }
-
+  async handle(job: Job<CalendarEventPushJobData>): Promise<void> {
     const {
       eventType,
       tenantId,

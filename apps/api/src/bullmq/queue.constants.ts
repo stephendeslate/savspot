@@ -63,6 +63,11 @@ export const JOB_GENERATE_INVOICE_PDF = 'generateInvoicePdf';
 
 // GDPR queue jobs (SRS-4 §41a)
 export const JOB_CLEANUP_RETENTION = 'cleanupRetentionPolicy';
+export const JOB_PROCESS_DATA_EXPORT = 'processDataExportRequest';
+export const JOB_PROCESS_ACCOUNT_DELETION = 'processAccountDeletion';
+
+// Support queue jobs
+export const JOB_SUPPORT_TRIAGE = 'supportTriage';
 
 // ---- Cron Schedules ----
 export const CRON_EVERY_5_MIN = '*/5 * * * *';
@@ -70,5 +75,6 @@ export const CRON_EVERY_15_MIN = '*/15 * * * *';
 export const CRON_EVERY_30_MIN = '*/30 * * * *';
 export const CRON_HOURLY = '0 * * * *';
 export const CRON_DAILY_3AM_UTC = '0 3 * * *';
+export const CRON_DAILY_5AM_UTC = '0 5 * * *';
 export const CRON_DAILY_6AM_UTC = '0 6 * * *';
 export const CRON_MONDAY_8AM_UTC = '0 8 * * 1';

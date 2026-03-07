@@ -4,14 +4,20 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
+import { QUEUE_COMMUNICATIONS, JOB_SUPPORT_TRIAGE } from '../bullmq/queue.constants';
 
 @Injectable()
 export class SupportService {
   private readonly logger = new Logger(SupportService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @InjectQueue(QUEUE_COMMUNICATIONS) private readonly commsQueue: Queue,
+  ) {}
 
   /**
    * Create a new support ticket for the authenticated user.
@@ -37,6 +43,17 @@ export class SupportService {
     this.logger.log(
       `Support ticket ${ticket.id} created by user ${userId}`,
     );
+
+    // Enqueue AI triage job
+    this.commsQueue
+      .add(
+        JOB_SUPPORT_TRIAGE,
+        { ticketId: ticket.id },
+        { removeOnComplete: { count: 10 }, removeOnFail: { count: 50 } },
+      )
+      .catch((err) =>
+        this.logger.warn(`Failed to enqueue triage for ticket ${ticket.id}: ${err.message}`),
+      );
 
     return ticket;
   }

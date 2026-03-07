@@ -1,9 +1,49 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class PublicBookingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  /**
+   * List all active tenant slugs for sitemap generation.
+   */
+  async listActiveBookingSlugs(): Promise<string[]> {
+    const tenants = await this.prisma.tenant.findMany({
+      where: { status: 'ACTIVE' },
+      select: { slug: true },
+      orderBy: { slug: 'asc' },
+    });
+    return tenants.map((t) => t.slug);
+  }
+
+  /**
+   * Generate a QR code PNG for a booking page URL.
+   */
+  async generateQrCode(slug: string): Promise<Buffer> {
+    // Verify slug exists
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { slug },
+      select: { id: true, status: true },
+    });
+    if (!tenant || tenant.status !== 'ACTIVE') {
+      throw new NotFoundException('Business not found');
+    }
+
+    const QRCode = await import('qrcode');
+    const webUrl = this.configService.get<string>('WEB_URL', 'http://localhost:3000');
+    const bookingUrl = `${webUrl}/book/${slug}`;
+    return QRCode.toBuffer(bookingUrl, {
+      type: 'png',
+      width: 300,
+      margin: 2,
+      color: { dark: '#000000', light: '#FFFFFF' },
+    });
+  }
 
   /**
    * Get a tenant's public profile and active services by slug.

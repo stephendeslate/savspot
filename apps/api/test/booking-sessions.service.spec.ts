@@ -108,11 +108,13 @@ describe('BookingSessionsService', () => {
     const reservation = makeReservation();
     const payments = makePayments();
     const events = makeEvents();
+    const consent = { createBookingConsent: vi.fn() };
     service = new BookingSessionsService(
       prisma as never,
       reservation as never,
       payments as never,
       events as never,
+      consent as never,
     );
   });
 

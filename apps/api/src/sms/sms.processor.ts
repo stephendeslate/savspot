@@ -1,5 +1,5 @@
-import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable, Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { TwilioService } from './sms.service';
@@ -40,23 +40,17 @@ const QUIET_HOURS_END = 8; // 8 AM
  * Sends SMS notifications to tenant owners for booking events.
  * Respects quiet hours: re-enqueues with delay if in quiet period.
  */
-@Processor(QUEUE_COMMUNICATIONS)
-export class SmsProcessor extends WorkerHost {
-  private readonly logger = new Logger(SmsProcessor.name);
+@Injectable()
+export class SmsHandler {
+  private readonly logger = new Logger(SmsHandler.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly twilioService: TwilioService,
     @InjectQueue(QUEUE_COMMUNICATIONS) private readonly commsQueue: Queue,
-  ) {
-    super();
-  }
+  ) {}
 
-  async process(job: Job<DeliverProviderSmsJobData>): Promise<void> {
-    if (job.name !== JOB_DELIVER_PROVIDER_SMS) {
-      return; // Not our job
-    }
-
+  async handle(job: Job<DeliverProviderSmsJobData>): Promise<void> {
     const { tenantId, eventType, bookingData } = job.data;
 
     this.logger.log(

@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { ROUTES } from '@/lib/constants';
 import { apiClient, ApiError } from '@/lib/api-client';
 import { GoogleButton } from './google-button';
+import { AppleButton } from './apple-button';
 import { Separator } from '@/components/ui/separator';
 
 const loginSchema = z.object({
@@ -34,7 +35,7 @@ export function LoginForm() {
     const oauthError = searchParams.get('error');
 
     if (oauthError) {
-      setError('Google sign-in failed. Please try again.');
+      setError('Social sign-in failed. Please try again.');
       return;
     }
 
@@ -79,6 +80,7 @@ export function LoginForm() {
   return (
     <div className="space-y-6">
       <GoogleButton />
+      <AppleButton />
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">

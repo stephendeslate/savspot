@@ -1,12 +1,7 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsService } from '../events/events.service';
-import {
-  QUEUE_BOOKINGS,
-  JOB_PROCESS_COMPLETED_BOOKINGS,
-} from '../bullmq/queue.constants';
 
 /**
  * TODO: When migrating to a non-superuser DB role, this processor's raw SQL queries
@@ -39,22 +34,16 @@ interface CompletedBookingRow {
  *
  * Uses raw SQL with tenant context for RLS compatibility.
  */
-@Processor(QUEUE_BOOKINGS)
-export class ProcessCompletedBookingsProcessor extends WorkerHost {
-  private readonly logger = new Logger(ProcessCompletedBookingsProcessor.name);
+@Injectable()
+export class ProcessCompletedBookingsHandler {
+  private readonly logger = new Logger(ProcessCompletedBookingsHandler.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventsService: EventsService,
-  ) {
-    super();
-  }
+  ) {}
 
-  async process(job: Job): Promise<void> {
-    if (job.name !== JOB_PROCESS_COMPLETED_BOOKINGS) {
-      return;
-    }
-
+  async handle(_job: Job): Promise<void> {
     this.logger.log('Running process completed bookings job...');
 
     try {

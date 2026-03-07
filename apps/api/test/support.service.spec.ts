@@ -21,6 +21,12 @@ function makePrisma() {
   };
 }
 
+function makeQueue() {
+  return {
+    add: vi.fn().mockResolvedValue({}),
+  };
+}
+
 function makeTicket(overrides: Record<string, unknown> = {}) {
   return {
     id: TICKET_ID,
@@ -53,10 +59,12 @@ function makeTicket(overrides: Record<string, unknown> = {}) {
 describe('SupportService', () => {
   let service: SupportService;
   let prisma: ReturnType<typeof makePrisma>;
+  let queue: ReturnType<typeof makeQueue>;
 
   beforeEach(() => {
     prisma = makePrisma();
-    service = new SupportService(prisma as never);
+    queue = makeQueue();
+    service = new SupportService(prisma as never, queue as never);
   });
 
   // -----------------------------------------------------------------------
@@ -89,6 +97,26 @@ describe('SupportService', () => {
           sourceContext: { page: '/bookings/123' },
         },
       });
+    });
+
+    it('should enqueue AI triage job after creating ticket', async () => {
+      const ticket = makeTicket();
+      prisma.supportTicket.create.mockResolvedValue(ticket);
+
+      await service.createTicket(USER_ID, TENANT_ID, {
+        category: 'BUG',
+        subject: 'Test',
+        body: 'Test body',
+      });
+
+      expect(queue.add).toHaveBeenCalledWith(
+        'supportTriage',
+        { ticketId: TICKET_ID },
+        expect.objectContaining({
+          removeOnComplete: { count: 10 },
+          removeOnFail: { count: 50 },
+        }),
+      );
     });
 
     it('should default severity to MEDIUM when not provided', async () => {

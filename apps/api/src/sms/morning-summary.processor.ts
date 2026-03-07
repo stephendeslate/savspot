@@ -1,34 +1,23 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { TwilioService } from './sms.service';
-import {
-  QUEUE_COMMUNICATIONS,
-  JOB_SEND_MORNING_SUMMARY,
-} from '../bullmq/queue.constants';
 
 /**
  * Processor for the sendMorningSummary job.
  * Sends a daily morning SMS to tenant owners summarizing today's bookings.
  * Repeating schedule is registered by JobSchedulerService.
  */
-@Processor(QUEUE_COMMUNICATIONS)
-export class MorningSummaryProcessor extends WorkerHost {
-  private readonly logger = new Logger(MorningSummaryProcessor.name);
+@Injectable()
+export class MorningSummaryHandler {
+  private readonly logger = new Logger(MorningSummaryHandler.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly twilioService: TwilioService,
-  ) {
-    super();
-  }
+  ) {}
 
-  async process(job: Job): Promise<void> {
-    if (job.name !== JOB_SEND_MORNING_SUMMARY) {
-      return; // Not our job
-    }
-
+  async handle(_job: Job): Promise<void> {
     this.logger.log('Starting morning summary delivery');
 
     // Find all active tenants with an OWNER who has a phone number

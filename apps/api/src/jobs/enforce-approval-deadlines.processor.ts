@@ -1,11 +1,9 @@
-import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import {
-  QUEUE_BOOKINGS,
   QUEUE_PAYMENTS,
-  JOB_ENFORCE_APPROVAL_DEADLINES,
 } from '../bullmq/queue.constants';
 
 /**
@@ -31,22 +29,16 @@ interface BookingPaymentRow {
  * approval deadline (default 48 hours for MANUAL_APPROVAL services).
  * Scheduled hourly via BullMQ repeatable job.
  */
-@Processor(QUEUE_BOOKINGS)
-export class EnforceApprovalDeadlinesProcessor extends WorkerHost {
-  private readonly logger = new Logger(EnforceApprovalDeadlinesProcessor.name);
+@Injectable()
+export class EnforceApprovalDeadlinesHandler {
+  private readonly logger = new Logger(EnforceApprovalDeadlinesHandler.name);
 
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue(QUEUE_PAYMENTS) private readonly paymentsQueue: Queue,
-  ) {
-    super();
-  }
+  ) {}
 
-  async process(job: Job): Promise<void> {
-    if (job.name !== JOB_ENFORCE_APPROVAL_DEADLINES) {
-      return;
-    }
-
+  async handle(_job: Job): Promise<void> {
     this.logger.log('Running enforce approval deadlines job...');
 
     try {

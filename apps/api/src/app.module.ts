@@ -37,7 +37,14 @@ import { NotesModule } from './notes/notes.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { BullMqModule } from './bullmq/bullmq.module';
 import { EventsModule } from './events/events.module';
+import { TaxRatesModule } from './tax-rates/tax-rates.module';
+import { ConsentModule } from './consent/consent.module';
+import { BookingFlowModule } from './booking-flow/booking-flow.module';
+import { AuditModule } from './audit/audit.module';
+import { GalleryModule } from './gallery/gallery.module';
+import { OnboardingToursModule } from './onboarding-tours/onboarding-tours.module';
 import { CustomThrottlerGuard } from './common/guards/throttle.guard';
+import { CsrfGuard } from './common/guards/csrf.guard';
 import { SecurityHeadersMiddleware } from './common/middleware/security-headers.middleware';
 import { validateEnv } from './config/env.validation';
 import {
@@ -107,12 +114,22 @@ import {
     SupportModule,
     NotesModule,
     FeedbackModule,
+    TaxRatesModule,
+    ConsentModule,
+    BookingFlowModule,
+    AuditModule,
+    GalleryModule,
+    OnboardingToursModule,
   ],
   controllers: [AppController],
   providers: [
     {
       provide: APP_GUARD,
       useClass: CustomThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: CsrfGuard,
     },
   ],
 })

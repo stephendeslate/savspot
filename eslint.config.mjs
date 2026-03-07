@@ -7,6 +7,14 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   eslintConfigPrettier,
   {
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+    },
+  },
+  {
     ignores: ['**/dist/**', '**/.next/**', '**/node_modules/**', '**/.turbo/**', '**/generated/**'],
   },
 );

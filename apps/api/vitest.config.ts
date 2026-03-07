@@ -13,6 +13,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '../../../../prisma/generated/prisma': path.resolve(
+        __dirname,
+        './test/__mocks__/prisma-generated.ts',
+      ),
     },
   },
 });

@@ -1,12 +1,7 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeProvider } from '../payments/providers/stripe.provider';
-import {
-  QUEUE_PAYMENTS,
-  JOB_RETRY_FAILED_PAYMENTS,
-} from '../bullmq/queue.constants';
 
 /**
  * TODO: When migrating to a non-superuser DB role, this processor's raw SQL queries
@@ -34,24 +29,18 @@ interface FailedPaymentRow {
  * 4. On success, updates local payment status to SUCCEEDED
  * 5. On failure, increments retry_count and schedules next retry with exponential backoff
  */
-@Processor(QUEUE_PAYMENTS)
-export class RetryFailedPaymentsProcessor extends WorkerHost {
-  private readonly logger = new Logger(RetryFailedPaymentsProcessor.name);
+@Injectable()
+export class RetryFailedPaymentsHandler {
+  private readonly logger = new Logger(RetryFailedPaymentsHandler.name);
 
   private static readonly MAX_RETRY_ATTEMPTS = 3;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly stripeProvider: StripeProvider,
-  ) {
-    super();
-  }
+  ) {}
 
-  async process(job: Job): Promise<void> {
-    if (job.name !== JOB_RETRY_FAILED_PAYMENTS) {
-      return;
-    }
-
+  async handle(_job: Job): Promise<void> {
     this.logger.log('Running retry failed payments job...');
 
     try {
@@ -70,7 +59,7 @@ export class RetryFailedPaymentsProcessor extends WorkerHost {
           currency
         FROM payments
         WHERE status = 'FAILED'
-          AND retry_count < ${RetryFailedPaymentsProcessor.MAX_RETRY_ATTEMPTS}
+          AND retry_count < ${RetryFailedPaymentsHandler.MAX_RETRY_ATTEMPTS}
           AND (
             next_retry_at IS NULL
             OR next_retry_at < NOW()
@@ -127,7 +116,7 @@ export class RetryFailedPaymentsProcessor extends WorkerHost {
 
     this.logger.log(
       `Retrying Stripe payment ${intentId} ` +
-      `(attempt ${attemptNumber}/${RetryFailedPaymentsProcessor.MAX_RETRY_ATTEMPTS})`,
+      `(attempt ${attemptNumber}/${RetryFailedPaymentsHandler.MAX_RETRY_ATTEMPTS})`,
     );
 
     // Step 1: Retrieve current PaymentIntent status from Stripe
@@ -237,7 +226,7 @@ export class RetryFailedPaymentsProcessor extends WorkerHost {
   ): Promise<void> {
     await this.prisma.$executeRaw`
       UPDATE payments
-      SET retry_count = ${RetryFailedPaymentsProcessor.MAX_RETRY_ATTEMPTS},
+      SET retry_count = ${RetryFailedPaymentsHandler.MAX_RETRY_ATTEMPTS},
           next_retry_at = NULL
       WHERE id = ${payment.id}
     `;

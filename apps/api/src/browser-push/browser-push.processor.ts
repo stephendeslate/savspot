@@ -1,10 +1,5 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import {
-  QUEUE_COMMUNICATIONS,
-  JOB_DELIVER_BROWSER_PUSH,
-} from '../bullmq/queue.constants';
 import { BrowserPushService } from './browser-push.service';
 
 interface DeliverBrowserPushPayload {
@@ -22,21 +17,15 @@ interface DeliverBrowserPushPayload {
  * Processes browser push delivery jobs from the communications queue.
  * Sends push notifications to all OWNER and ADMIN members of the tenant.
  */
-@Processor(QUEUE_COMMUNICATIONS)
-export class BrowserPushProcessor extends WorkerHost {
-  private readonly logger = new Logger(BrowserPushProcessor.name);
+@Injectable()
+export class BrowserPushHandler {
+  private readonly logger = new Logger(BrowserPushHandler.name);
 
   constructor(
     private readonly browserPushService: BrowserPushService,
-  ) {
-    super();
-  }
+  ) {}
 
-  async process(job: Job<DeliverBrowserPushPayload>): Promise<void> {
-    if (job.name !== JOB_DELIVER_BROWSER_PUSH) {
-      return;
-    }
-
+  async handle(job: Job<DeliverBrowserPushPayload>): Promise<void> {
     const { tenantId, title, body, data } = job.data;
 
     this.logger.log(

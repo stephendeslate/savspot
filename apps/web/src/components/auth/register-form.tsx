@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { ROUTES } from '@/lib/constants';
 import { ApiError } from '@/lib/api-client';
 import { GoogleButton } from './google-button';
+import { AppleButton } from './apple-button';
 import { Separator } from '@/components/ui/separator';
 
 const registerSchema = z
@@ -83,6 +84,7 @@ export function RegisterForm() {
   return (
     <div className="space-y-6">
       <GoogleButton label="Sign up with Google" />
+      <AppleButton label="Sign up with Apple" />
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">

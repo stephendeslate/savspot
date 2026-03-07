@@ -1,14 +1,13 @@
-import { Logger } from '@nestjs/common';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationsService } from './communications.service';
 import {
-  QUEUE_COMMUNICATIONS,
   JOB_DELIVER_COMMUNICATION,
   JOB_PROCESS_POST_APPOINTMENT,
+  JOB_SEND_BOOKING_REMINDERS,
 } from '../bullmq/queue.constants';
 
 interface DeliverCommunicationPayload {
@@ -28,9 +27,9 @@ const SCAN_WINDOW_MS = 15 * 60 * 1000;
  * - deliverCommunication: Sends email via Resend
  * - processPostAppointmentTriggers: Scans completed bookings and enqueues follow-ups
  */
-@Processor(QUEUE_COMMUNICATIONS)
-export class CommunicationsProcessor extends WorkerHost {
-  private readonly logger = new Logger(CommunicationsProcessor.name);
+@Injectable()
+export class CommunicationsHandler {
+  private readonly logger = new Logger(CommunicationsHandler.name);
   private readonly resend: Resend | null;
   private readonly fromEmail: string;
 
@@ -39,7 +38,6 @@ export class CommunicationsProcessor extends WorkerHost {
     private readonly configService: ConfigService,
     private readonly communicationsService: CommunicationsService,
   ) {
-    super();
 
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
     this.fromEmail = this.configService.get<string>(
@@ -55,16 +53,17 @@ export class CommunicationsProcessor extends WorkerHost {
     }
   }
 
-  async process(job: Job): Promise<void> {
+  async handle(job: Job): Promise<void> {
     switch (job.name) {
       case JOB_DELIVER_COMMUNICATION:
         await this.handleDeliverCommunication(job as Job<DeliverCommunicationPayload>);
         break;
       case JOB_PROCESS_POST_APPOINTMENT:
+      case JOB_SEND_BOOKING_REMINDERS:
         await this.handleProcessPostAppointment();
         break;
       default:
-        this.logger.warn(`Unknown job name: ${job.name}`);
+        this.logger.warn(`Unknown job name routed to CommunicationsHandler: ${job.name}`);
     }
   }
 

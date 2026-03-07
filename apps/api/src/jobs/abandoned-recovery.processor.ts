@@ -1,12 +1,7 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationsService } from '../communications/communications.service';
-import {
-  QUEUE_BOOKINGS,
-  JOB_ABANDONED_BOOKING_RECOVERY,
-} from '../bullmq/queue.constants';
 
 /**
  * Marks stale booking sessions as ABANDONED, releases their held reservations,
@@ -17,22 +12,16 @@ import {
  * app.current_tenant per-tenant (iterate tenants) because FORCE ROW LEVEL SECURITY
  * will block cross-tenant findMany/updateMany on booking_sessions and date_reservations.
  */
-@Processor(QUEUE_BOOKINGS)
-export class AbandonedRecoveryProcessor extends WorkerHost {
-  private readonly logger = new Logger(AbandonedRecoveryProcessor.name);
+@Injectable()
+export class AbandonedRecoveryHandler {
+  private readonly logger = new Logger(AbandonedRecoveryHandler.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly communicationsService: CommunicationsService,
-  ) {
-    super();
-  }
+  ) {}
 
-  async process(job: Job): Promise<void> {
-    if (job.name !== JOB_ABANDONED_BOOKING_RECOVERY) {
-      return;
-    }
-
+  async handle(_job: Job): Promise<void> {
     this.logger.log('Running abandoned booking recovery job...');
 
     try {

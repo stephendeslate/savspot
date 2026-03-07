@@ -1,34 +1,23 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { GoogleCalendarService } from './calendar.service';
-import {
-  QUEUE_CALENDAR,
-  JOB_CALENDAR_TOKEN_REFRESH,
-} from '../bullmq/queue.constants';
 
 /**
  * Processor for the calendarTokenRefresh job.
  * Runs hourly to proactively refresh access tokens for all active connections,
  * preventing token expiry during scheduled syncs.
  */
-@Processor(QUEUE_CALENDAR)
-export class CalendarTokenProcessor extends WorkerHost {
-  private readonly logger = new Logger(CalendarTokenProcessor.name);
+@Injectable()
+export class CalendarTokenHandler {
+  private readonly logger = new Logger(CalendarTokenHandler.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly calendarService: GoogleCalendarService,
-  ) {
-    super();
-  }
+  ) {}
 
-  async process(job: Job): Promise<void> {
-    if (job.name !== JOB_CALENDAR_TOKEN_REFRESH) {
-      return; // Not our job
-    }
-
+  async handle(_job: Job): Promise<void> {
     this.logger.log('Starting hourly calendar token refresh cycle');
 
     const connections = await this.prisma.calendarConnection.findMany({
