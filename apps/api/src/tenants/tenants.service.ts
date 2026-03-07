@@ -4,12 +4,18 @@ import {
   ConflictException,
   Logger,
 } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { randomUUID } from 'crypto';
 import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { SlugService } from './slug.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
+import {
+  QUEUE_GDPR,
+  JOB_PROCESS_DATA_EXPORT,
+} from '../bullmq/queue.constants';
 
 /**
  * BusinessCategory type mirrored from @savspot/shared.
@@ -41,6 +47,7 @@ export class TenantsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly slugService: SlugService,
+    @InjectQueue(QUEUE_GDPR) private readonly gdprQueue: Queue,
   ) {}
 
   /**
@@ -92,6 +99,9 @@ export class TenantsService {
 
     this.logger.log(
       `Tenant created: ${tenant.id} (${tenant.slug}) by user ${userId}`,
+    );
+    this.logger.log(
+      `[telemetry] category_selected: ${dto.category} tenant=${tenant.id}`,
     );
 
     return tenant;
@@ -266,5 +276,37 @@ export class TenantsService {
     );
 
     return result;
+  }
+
+  /**
+   * Request a business data export for a tenant.
+   * Creates a DataRequest and enqueues a background job.
+   */
+  async requestExport(tenantId: string, userId: string) {
+    await this.findById(tenantId);
+
+    const now = new Date();
+    const deadline = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    const dataRequest = await this.prisma.dataRequest.create({
+      data: {
+        userId,
+        requestType: 'EXPORT',
+        status: 'PENDING',
+        requestedAt: now,
+        deadlineAt: deadline,
+        notes: `Tenant export for ${tenantId}`,
+      },
+    });
+
+    await this.gdprQueue.add(
+      JOB_PROCESS_DATA_EXPORT,
+      { dataRequestId: dataRequest.id, userId, tenantId, type: 'TENANT_EXPORT' },
+      { removeOnComplete: { count: 10 }, removeOnFail: { count: 50 } },
+    );
+
+    this.logger.log(`Tenant export requested: ${dataRequest.id} for tenant ${tenantId}`);
+
+    return dataRequest;
   }
 }

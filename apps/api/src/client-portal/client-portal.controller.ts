@@ -20,6 +20,7 @@ import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
 import { ClientPortalService } from './client-portal.service';
 import { ListPortalBookingsDto } from './dto/list-portal-bookings.dto';
 import { CancelPortalBookingDto } from './dto/cancel-portal-booking.dto';
+import { ReschedulePortalBookingDto } from './dto/reschedule-portal-booking.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @ApiTags('Client Portal')
@@ -98,6 +99,36 @@ export class ClientPortalController {
     @Body() dto: CancelPortalBookingDto,
   ) {
     return this.clientPortalService.cancelBooking(userId, id, dto.reason);
+  }
+
+  @Post('bookings/:id/reschedule')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Request booking reschedule',
+    description:
+      'Reschedules a PENDING or CONFIRMED booking to a new date/time. Enforces max reschedule count from service config.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Booking rescheduled with previous and new times',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid state or max reschedules reached',
+  })
+  @ApiResponse({ status: 404, description: 'Booking not found' })
+  async rescheduleBooking(
+    @CurrentUser('sub') userId: string,
+    @Param('id', UuidValidationPipe) id: string,
+    @Body() dto: ReschedulePortalBookingDto,
+  ) {
+    return this.clientPortalService.requestReschedule(
+      userId,
+      id,
+      dto.startTime,
+      dto.endTime,
+      dto.reason,
+    );
   }
 
   // ──────────────────────────────────────────────

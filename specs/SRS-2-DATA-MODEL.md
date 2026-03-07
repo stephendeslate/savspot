@@ -1,6 +1,6 @@
 # Savspot -- Software Requirements Specification: Data Model & API Reference
 
-**Version:** 1.1 | **Date:** February 27, 2026 | **Author:** SD Solutions, LLC
+**Version:** 1.2 | **Date:** March 7, 2026 | **Author:** SD Solutions, LLC
 **Document:** SRS Part 2 of 4
 
 ---
@@ -307,6 +307,7 @@ The `permissions` column on `tenant_memberships` allows OWNER to **restrict** a 
 | cancellation_reason | ENUM | | CLIENT_REQUEST, PAYMENT_TIMEOUT, APPROVAL_TIMEOUT, DATE_TAKEN, ADMIN |
 | cancelled_at | TIMESTAMPTZ | | |
 | excess_hours, excess_hour_fee | DECIMAL | DEFAULT 0 | Late checkout overage |
+| no_show_risk_score | DECIMAL(3,2) | | **(Phase 2, FR-AI-2)** AI-computed no-show probability (0.00-1.00) for upcoming bookings. Null = not yet computed. See SRS-4 §45.2. |
 | created_at, updated_at | TIMESTAMPTZ | NOT NULL | |
 
 ### `booking_state_history`
@@ -484,6 +485,8 @@ id (PK), tenant_id (FK->tenants, RLS), name (VARCHAR, NOT NULL), description (TE
 | preferences | JSONB | | Structured preference data, e.g., `{"hairType": "4C", "preferredStyle": "Mid skin fade", "beardStyle": "Lined up", "productAllergies": "None", "notes": "Prefers clippers on neck"}` |
 | tags | JSONB | | Array of custom tags for CRM filtering, e.g., `["VIP", "Regular"]` |
 | internal_rating | INT | CHECK 1-5 | Private staff rating; not visible to client |
+| optimal_reminder_lead_hours | DECIMAL | | **(Phase 2, FR-AI-1)** AI-computed optimal hours before appointment to send reminder. Null = use default (24h). See SRS-4 §45.1. |
+| rebooking_interval_days | INT | | **(Phase 2, FR-AI-3)** AI-computed median days between appointments for this client at this tenant. Null = use default rebooking prompt timing. See SRS-4 §45.3. |
 | created_at | TIMESTAMPTZ | NOT NULL | |
 | updated_at | TIMESTAMPTZ | NOT NULL | |
 
@@ -554,6 +557,11 @@ id (PK), user_id (FK), token (UNIQUE, ExponentPushToken format), device_type (IO
 
 > **Phase 2:** Push notification delivery requires the native mobile app (PRD §4.5, Phase 2). The `device_push_tokens` table schema is included in Phase 1 migrations for completeness, but token registration and push delivery are Phase 2 features. See SRS-4 §10 for push token lifecycle.
 
+### `browser_push_subscriptions`
+id (PK), user_id (FK->users, NOT NULL), tenant_id (FK->tenants, NOT NULL, RLS key), endpoint (VARCHAR, NOT NULL), p256dh (VARCHAR, NOT NULL), auth (VARCHAR, NOT NULL), last_used_at (TIMESTAMPTZ), created_at (TIMESTAMPTZ, NOT NULL).
+
+> **Web Push (Phase 1):** Stores browser push subscription data for Admin CRM real-time notifications (new booking alerts, payment confirmations). Multiple subscriptions per user supported (different browsers/devices). See SRS-4 §26a for registration flow and delivery mechanics.
+
 ## 8. Contract & Quote Domain
 
 ### `contract_templates`
@@ -587,7 +595,7 @@ Simple, flat automation records created by business-type presets during onboardi
 |--------|------|-------------|-------|
 | id | UUID | PK | |
 | tenant_id | UUID | FK->tenants, NOT NULL | RLS key |
-| trigger_event | ENUM | NOT NULL | BOOKING_CREATED, BOOKING_CONFIRMED, BOOKING_CANCELLED, BOOKING_RESCHEDULED, BOOKING_COMPLETED, PAYMENT_RECEIVED, REMINDER_DUE (subset of 18 workflow events; BOOKING_CREATED included for MANUAL_APPROVAL notification use cases) |
+| trigger_event | ENUM | NOT NULL | BOOKING_CREATED, BOOKING_CONFIRMED, BOOKING_CANCELLED, BOOKING_RESCHEDULED, BOOKING_COMPLETED, BOOKING_NO_SHOW, BOOKING_WALK_IN, PAYMENT_RECEIVED, REMINDER_DUE (subset of 20 workflow events -- see SRS-4 §21 for canonical list; BOOKING_CREATED included for MANUAL_APPROVAL notification use cases) |
 | action_type | ENUM | NOT NULL | SEND_EMAIL, SEND_SMS, SEND_PUSH, SEND_NOTIFICATION |
 | action_config | JSONB | NOT NULL | `{template_key, channel, timing: {type: "immediate"\|"before_booking"\|"after_event", minutes}}` |
 | is_active | BOOLEAN | DEFAULT true | Business can disable without deleting |
@@ -596,7 +604,7 @@ Simple, flat automation records created by business-type presets during onboardi
 > **Relationship to workflow_templates:** `workflow_automations` is the simple path -- flat trigger-action pairs with no stages, no progression conditions, no ordering. When a business needs multi-stage workflows (e.g., send quote -> wait for acceptance -> send contract -> wait for signature -> send invoice), they use `workflow_templates` + `workflow_stages`. Both systems can coexist for the same tenant; `workflow_automations` handles simple event-driven actions while `workflow_templates` handles complex multi-step processes.
 
 ### `workflow_templates`
-id (PK), tenant_id (FK, RLS), name, description, trigger_event (ENUM -- 18 events; see SRS-4), is_default, is_active, created_at, updated_at.
+id (PK), tenant_id (FK, RLS), name, description, trigger_event (ENUM -- 20 events; see SRS-4 §21 for canonical list), is_default, is_active, created_at, updated_at.
 
 ### `workflow_stages`
 id (PK), template_id (FK), name, order (INT, UNIQUE per template), automation_type (EMAIL/TASK/QUOTE/CONTRACT/QUESTIONNAIRE/REMINDER/NOTIFICATION), automation_config (JSONB), trigger_time (ON_CREATION/AFTER_X_DAYS/X_DAYS_BEFORE_BOOKING), trigger_days, progression_condition (QUOTE_ACCEPTED/PAYMENT_RECEIVED/CONTRACT_SIGNED/TASKS_COMPLETED), is_optional, created_at.
@@ -825,6 +833,40 @@ id (PK), tenant_id (FK->tenants, RLS), author_id (FK->users, NOT NULL), entity_t
 > **Phase 1 CLI:** `pnpm admin:import-clients --file /path/to/clients.csv --platform BOOKSY --tenant {slug} [--commit]`. Without `--commit`, prints validation report only. With `--commit`, executes import. Wraps the NestJS ImportService, same RLS and validation logic as the API.
 >
 > **Phase 2 self-service:** POST `/api/tenants/:id/import` (multipart/form-data: file + source_platform). Creates `import_job` with status MAPPING. GET `/api/import-jobs/:id` returns job status and stats for polling. Background BullMQ job (`processImportJob`) handles deduplication and row creation.
+
+## 13b. Intelligent Operations Domain (Phase 2) [NEW]
+
+### `category_benchmarks` (Phase 2-3, FR-AI-5)
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| id | UUID | PK | |
+| business_category | ENUM | NOT NULL | Maps to `tenants.business_category` |
+| metric_key | VARCHAR | NOT NULL | e.g., `no_show_rate`, `avg_rebooking_days`, `utilization_rate` |
+| p25 | DECIMAL | NOT NULL | 25th percentile |
+| p50 | DECIMAL | NOT NULL | Median |
+| p75 | DECIMAL | NOT NULL | 75th percentile |
+| sample_size | INT | NOT NULL | Number of tenants in sample (must be ≥4 per BR-RULE-9) |
+| computed_at | TIMESTAMPTZ | NOT NULL | |
+
+**Unique:** (business_category, metric_key)
+
+> **Privacy controls (BR-RULE-9):** Minimum 4-tenant threshold per category before benchmarks are computed. Uses median (not mean) to prevent single-tenant skew. Tenants may opt out via `tenants.benchmark_opt_out`. Data is aggregated — no individual tenant data is exposed. Computed by `computeCategoryBenchmarks` BullMQ job (QUEUE_GDPR, daily 5 AM UTC). Phase 3 activation at 50+ tenants. See SRS-4 §45.5 and [AI-STRATEGY.md](AI-STRATEGY.md) §4.
+
+### `slot_demand_insights` (Phase 2, FR-AI-4)
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| id | UUID | PK | |
+| tenant_id | UUID | FK->tenants, NOT NULL | RLS key |
+| insight_type | ENUM | NOT NULL | HIGH_DEMAND_SLOT, LOW_FILL_SLOT, CANCELLATION_PATTERN |
+| day_of_week | INT | | 0-6 (Sunday-Saturday) |
+| time_slot | TIME | | Start time of analyzed slot |
+| metric_value | DECIMAL | NOT NULL | Fill rate, cancellation rate, or days-to-fill depending on type |
+| recommendation | TEXT | | Human-readable actionable insight |
+| is_dismissed | BOOLEAN | DEFAULT false | Tenant dismissed this card |
+| computed_at | TIMESTAMPTZ | NOT NULL | |
+| expires_at | TIMESTAMPTZ | NOT NULL | Insights expire after 7 days to force re-computation |
+
+> **Dashboard integration (FR-AI-4):** Max 3 active (non-dismissed, non-expired) insights per tenant. Displayed as dismissible cards on the Admin CRM dashboard. Computed by `computeSlotDemandAnalysis` BullMQ job (QUEUE_BOOKINGS, weekly Sunday 2 AM UTC). See SRS-4 §45.4.
 
 ## 13. API Architecture
 

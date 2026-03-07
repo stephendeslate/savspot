@@ -60,8 +60,85 @@ export class PaymentsService {
   }
 
   /**
+   * Resolve the payment amount based on service deposit configuration.
+   * Returns the payment type and amount to charge.
+   */
+  resolvePaymentAmount(
+    totalAmount: number,
+    depositConfig: { type: 'PERCENTAGE' | 'FIXED'; amount: number } | null,
+  ): { paymentType: 'DEPOSIT' | 'FULL_PAYMENT'; amount: number } {
+    if (!depositConfig) {
+      return { paymentType: 'FULL_PAYMENT', amount: totalAmount };
+    }
+
+    let depositAmount: number;
+    if (depositConfig.type === 'PERCENTAGE') {
+      depositAmount =
+        Math.round(((totalAmount * depositConfig.amount) / 100) * 100) / 100;
+    } else {
+      depositAmount = Math.min(depositConfig.amount, totalAmount);
+    }
+
+    // If deposit >= total or deposit is 0, just charge full amount
+    if (depositAmount >= totalAmount || depositAmount <= 0) {
+      return { paymentType: 'FULL_PAYMENT', amount: totalAmount };
+    }
+
+    return { paymentType: 'DEPOSIT', amount: depositAmount };
+  }
+
+  /**
+   * Calculate referral commission for a platform-sourced booking.
+   * Commission is collected on the first booking per client per tenant
+   * from platform channels (DIRECTORY, API, REFERRAL).
+   * Returns commission in cents, or null if not applicable.
+   */
+  async calculateReferralCommission(
+    tenantId: string,
+    clientId: string,
+    bookingSource: string,
+    bookingTotalCents: number,
+  ): Promise<number | null> {
+    const COMMISSION_SOURCES = ['DIRECTORY', 'API', 'REFERRAL'];
+    if (!COMMISSION_SOURCES.includes(bookingSource)) return null;
+
+    // Check if client has any prior platform-sourced, non-cancelled booking at this tenant
+    const priorBooking = await this.prisma.booking.findFirst({
+      where: {
+        tenantId,
+        clientId,
+        source: { in: COMMISSION_SOURCES },
+        status: { notIn: ['CANCELLED'] },
+      },
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
+      take: 1,
+    });
+
+    // Not first platform booking — no commission
+    if (priorBooking) return null;
+
+    const commissionPercent = this.configService.get<number>(
+      'referral_commission_percent',
+      20,
+    );
+    const commissionCapCents = this.configService.get<number>(
+      'referral_commission_cap_cents',
+      50000,
+    );
+
+    const commissionCents = Math.min(
+      Math.round((bookingTotalCents * commissionPercent) / 100),
+      commissionCapCents,
+    );
+
+    return commissionCents > 0 ? commissionCents : null;
+  }
+
+  /**
    * Process a PaymentIntent for a booking session.
    * Creates Stripe PaymentIntent, creates Payment record with PENDING status.
+   * Applies deposit config and referral commission where applicable.
    * Returns the client_secret for frontend confirmation.
    */
   async processPaymentIntent(
@@ -69,11 +146,16 @@ export class PaymentsService {
     bookingId: string,
     sessionId: string,
   ) {
-    // Load the booking with service and tenant info
+    // Load the booking with service (including depositConfig) and tenant info
     const booking = await this.prisma.booking.findFirst({
       where: { id: bookingId, tenantId },
       include: {
-        service: true,
+        service: {
+          select: {
+            id: true,
+            depositConfig: true,
+          },
+        },
         tenant: {
           select: {
             paymentProvider: true,
@@ -96,28 +178,51 @@ export class PaymentsService {
       throw new BadRequestException('Tenant has no connected payment account');
     }
 
-    const amount = booking.totalAmount.toNumber();
-    const amountInCents = Math.round(amount * 100);
+    const totalAmount = booking.totalAmount.toNumber();
+    const totalAmountCents = Math.round(totalAmount * 100);
 
-    if (amountInCents <= 0) {
+    if (totalAmountCents <= 0) {
       throw new BadRequestException('Payment amount must be greater than zero');
     }
 
-    // Calculate platform fee
+    // Resolve deposit vs full payment
+    const depositConfig = booking.service?.depositConfig as {
+      type: 'PERCENTAGE' | 'FIXED';
+      amount: number;
+    } | null;
+    const { paymentType, amount: chargeAmount } = this.resolvePaymentAmount(
+      totalAmount,
+      depositConfig,
+    );
+    const chargeAmountCents = Math.round(chargeAmount * 100);
+
+    // Calculate platform processing fee on the charge amount
     const platformFeePercent = this.configService.get<number>(
       'stripe.platformFeePercent',
       1,
     );
-    const platformFeeAmount = Math.round(
-      (amountInCents * platformFeePercent) / 100,
+    const processingFeeCents = Math.round(
+      (chargeAmountCents * platformFeePercent) / 100,
     );
+
+    // Calculate referral commission (on total booking amount, not deposit)
+    const referralCommissionCents = await this.calculateReferralCommission(
+      tenantId,
+      booking.clientId,
+      booking.source,
+      totalAmountCents,
+    );
+
+    // Total platform fee = processing fee + referral commission
+    const totalPlatformFee =
+      processingFeeCents + (referralCommissionCents ?? 0);
 
     // Create Stripe PaymentIntent
     const intentResult = await this.stripeProvider.createPaymentIntent({
-      amount: amountInCents,
+      amount: chargeAmountCents,
       currency: booking.currency.toLowerCase(),
       connectedAccountId: booking.tenant.paymentProviderAccountId,
-      platformFeeAmount,
+      platformFeeAmount: totalPlatformFee,
       metadata: {
         tenantId,
         bookingId,
@@ -131,15 +236,19 @@ export class PaymentsService {
       data: {
         tenantId,
         bookingId,
-        amount: amountInCents,
-        platformFee: platformFeeAmount,
+        amount: chargeAmountCents,
+        platformFee: processingFeeCents,
+        processingFee: processingFeeCents,
+        referralCommission: referralCommissionCents,
         currency: booking.currency,
-        type: 'FULL_PAYMENT',
+        type: paymentType,
         status: 'PENDING',
         providerTransactionId: intentResult.id,
         metadata: {
           stripePaymentIntentId: intentResult.id,
           sessionId,
+          totalBookingAmount: totalAmountCents,
+          depositConfig: depositConfig ?? undefined,
         } as Prisma.InputJsonValue,
       },
     });
@@ -152,7 +261,7 @@ export class PaymentsService {
         fromState: 'CREATED',
         toState: 'PENDING',
         triggeredBy: 'SYSTEM',
-        reason: 'Stripe PaymentIntent created',
+        reason: `Stripe PaymentIntent created (${paymentType})`,
         metadata: {
           stripePaymentIntentId: intentResult.id,
         } as Prisma.InputJsonValue,
@@ -160,14 +269,15 @@ export class PaymentsService {
     });
 
     this.logger.log(
-      `PaymentIntent created: ${intentResult.id} for booking ${bookingId}`,
+      `PaymentIntent created: ${intentResult.id} for booking ${bookingId} (${paymentType}, ${chargeAmountCents} cents)`,
     );
 
     return {
       clientSecret: intentResult.clientSecret,
       paymentId: payment.id,
-      amount: amountInCents,
+      amount: chargeAmountCents,
       currency: booking.currency,
+      paymentType,
     };
   }
 

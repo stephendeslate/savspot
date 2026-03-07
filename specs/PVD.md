@@ -1,6 +1,6 @@
 # Savspot -- Product Vision Document
 
-**Version:** 1.2 | **Date:** March 1, 2026 | **Author:** SD Solutions, LLC
+**Version:** 1.3 | **Date:** March 7, 2026 | **Author:** SD Solutions, LLC
 **Document:** PVD
 
 ---
@@ -74,37 +74,50 @@ Savspot envisions a world where every bookable business -- from wedding venues t
 
 ## 5. Competitive Landscape
 
-| Competitor | Pricing | AI-Ready | Universal |
-|-----------|---------|----------|-----------|
-| Fresha | Free + 20% commission | No | Beauty only |
+| Competitor | Pricing | AI Capabilities (Verified March 2026) | Universal |
+|-----------|---------|---------------------------------------|-----------|
+| Fresha | Free + 20% commission | **Leading:** Google AI Mode partner; 1.2M appointments/month via Google integration; AI-referred bookings (Gemini, ChatGPT, Claude) growing 50% MoM; AI Receptionist (2026) | Beauty only |
+| Zenoti | Enterprise pricing | **Leading:** AI Workforce (Sept 2025) -- AI Receptionist (40%+ missed call conversion, $3-4K/month lift), AI Concierge, AI Lead Manager; trained on 30K+ businesses | Beauty/wellness/fitness |
+| GlossGenius | $24-$48/mo | **Emerging:** AI Analyst (natural language business queries); AI email marketing | Beauty only |
+| Boulevard | Custom pricing | **Emerging:** Precision Scheduling; $80M Series D at ~$800M valuation | Beauty/wellness |
 | Mindbody | $139-$699/mo | Limited | Fitness only |
-| Calendly | Free-$20/seat/mo | No | Meetings only |
-| SimplyBook.me | $9.90-$59.90/mo | No | General |
-| Square Appointments | Free + 2.6%/txn | No | General |
-| Acuity (Squarespace) | Free-$36/mo | No | General |
-| Setmore | Free-$12/seat/mo | No | General |
+| Calendly | Free-$20/seat/mo | AI platform team scaling; Notetaker (beta) | Meetings only |
+| Square Appointments | Free + 2.6%/txn | Square Assistant (auto-respond); Square AI (beta, business insights) | General |
+| ServiceTitan | Enterprise pricing | **Leading:** Titan Intelligence + Atlas AI sidekick; AI Voice Agents (24/7 call handling + booking) | Trades (not booking) |
+| Booksy | $29.99/mo | Google AI Mode partner; Zowie AI (internal CS) | Beauty only |
+| SimplyBook.me | $9.90-$59.90/mo | None | General |
+| Acuity (Squarespace) | Free-$36/mo | None | General |
+| Setmore | Free-$12/seat/mo | None | General |
 
 ### Differentiation
-1. **AI-Agent-First Architecture** -- MCP + structured APIs from day one
-2. **Universal Booking Engine** -- all businesses, not niche-locked
+1. **Invisible Intelligence** -- AI that works silently within existing workflows to fill more slots, reduce no-shows, and optimize scheduling. Not marketed as "AI" -- delivered as outcomes. The platform gets smarter with every booking across all tenants. See [AI-STRATEGY.md](AI-STRATEGY.md) for competitive analysis and implementation details.
+2. **Universal Booking Engine** -- all businesses, not niche-locked. Fresha (beauty), Zenoti (beauty/wellness/fitness), ServiceTitan (trades) are all vertical-locked. Savspot's cross-vertical data is richer for benchmarking and pattern detection.
 3. **Progressive Complexity** -- zero-config for freelancers, full-featured for venues; complexity scales with need, not with onboarding
 4. **Free + Outcome-Aligned** -- revenue from transaction fees, not subscriptions; no upfront cost means zero psychological barrier for new businesses that haven't earned revenue yet
 5. **Greenfield-Ready** -- designed for first-time business owners, not just businesses switching from another tool; onboarding friction (<5 min to live booking page) matches the speed at which AI-enabled entrepreneurs expect to operate
-6. **Payment Provider Abstraction** -- provider-agnostic from Day 1; Stripe Connect in Phase 1, alternative providers (Adyen, PayPal, regional) in Phase 3+; offline payment as a first-class path
-7. **Multi-Tenant by Design** -- shared infrastructure, isolated data
-8. **Full Lifecycle** -- booking -> payment -> contracts -> comms -> CRM -> analytics
+6. **AI Agent Discoverability** -- MCP server + structured APIs enabling AI agents (Claude, Gemini, ChatGPT) to discover, check availability, and book on behalf of users. Fresha's data shows AI-referred bookings growing 50% MoM -- this is a distribution channel, not just a feature.
+7. **Payment Provider Abstraction** -- provider-agnostic from Day 1; Stripe Connect in Phase 1, alternative providers (Adyen, PayPal, regional) in Phase 3+; offline payment as a first-class path
+8. **Multi-Tenant by Design** -- shared infrastructure, isolated data; cross-tenant anonymized intelligence benefits all businesses
+9. **Full Lifecycle** -- booking -> payment -> contracts -> comms -> CRM -> analytics
 
-### Phase 1 Positioning
+### Phase 1-2 Positioning
 
-Until AI-agent features ship in Phase 3, the go-to-market positioning leads with:
+External messaging leads with outcomes, not technology:
 
-- **Free universal booking** — not niche-locked like Fresha (beauty) or Mindbody (fitness)
-- **Zero-config to live booking page in under 5 minutes** — lower friction than any competitor; matches the speed at which AI-enabled new business owners expect to operate
-- **No per-seat pricing, no monthly fee for core features** — outcome-aligned revenue model; zero financial risk for businesses that haven't earned revenue yet
-- **Offline payment as a first-class path** — serves markets competitors ignore
-- **Built for businesses that don't exist yet** — as AI tooling drives new business formation, Savspot is the default choice for first-time business owners with no incumbent solution to defend
+- **Free universal booking** -- not niche-locked like Fresha (beauty) or Mindbody (fitness)
+- **Zero-config to live booking page in under 5 minutes** -- lower friction than any competitor; matches the speed at which AI-enabled new business owners expect to operate
+- **No per-seat pricing, no monthly fee for core features** -- outcome-aligned revenue model; zero financial risk for businesses that haven't earned revenue yet
+- **Offline payment as a first-class path** -- serves markets competitors ignore
+- **Built for businesses that don't exist yet** -- as AI tooling drives new business formation, Savspot is the default choice for first-time business owners with no incumbent solution to defend
+- **Fill more slots. Lose fewer clients. Work less.** -- Phase 2 invisible intelligence features deliver measurable outcomes that businesses experience as "this platform just works better" without needing to understand or engage with AI
 
-The AI-agent architecture (MCP-ready schema, API-first design) is foundational infrastructure from Phase 1, but AI-facing features (MCP server, public API, AI recommendations) are Phase 3+. Phase 1-2 marketing should not lead with AI claims. The positioning statement for Phase 1: *"The free booking platform that works for any business in under 5 minutes."*
+**Positioning statement (Phase 1):** *"The free booking platform that works for any business in under 5 minutes."*
+
+**Positioning statement (Phase 2):** *"The booking platform that fills more slots, loses fewer clients, and runs itself."*
+
+**AI positioning guidance:** AI is the mechanism, not the message. Phase 1-2 marketing anchors to specific, measurable outcomes (fewer no-shows, fuller calendars, less admin work). The word "AI" appears in technical documentation and investor/press materials, not in business-owner-facing copy. This is a deliberate strategy informed by market data: Shopify Sidekick's broad "AI assistant" positioning failed initial adoption; Toast IQ succeeds because it anchors to specific tasks. See [AI-STRATEGY.md](AI-STRATEGY.md) §3 for full positioning framework.
+
+**Phase 3+ positioning evolution:** When MCP server and AI agent discoverability ship (Phase 3), positioning expands to include distribution: "The booking platform AI agents recommend." This is justified by Fresha's verified data showing 50% MoM growth in AI-referred bookings and 1 in 4 APAC bookings from AI agents (Feb 2026). AI-as-distribution is concrete and measurable, unlike AI-as-feature which has a 22-28% adoption ceiling (Toast 2025 data).
 
 ---
 
@@ -172,7 +185,7 @@ Savspot bets on a different dynamic. AI tooling (Claude, GPT, local models, AI-p
 These new businesses have three properties that make them structurally favorable for Savspot:
 
 1. **No incumbent solution to displace.** They aren't switching from Fresha or Calendly. They're choosing for the first time. Savspot doesn't need to overcome switching inertia — it needs to be discoverable and frictionless at the moment of first search.
-2. **AI-native expectations.** Founders who start businesses *because* AI tools made it feasible already live in a world where AI agents do things for them. When their AI assistant says "I can manage your bookings if your platform supports it," they will expect that to work. MCP compatibility isn't a premium feature for this cohort — it's an expected baseline. This makes Savspot's AI-agent-first architecture a natural fit rather than a speculative differentiator.
+2. **AI-native expectations.** Founders who start businesses *because* AI tools made it feasible already live in a world where AI agents do things for them. When their AI assistant says "I can manage your bookings if your platform supports it," they will expect that to work. MCP compatibility isn't a premium feature for this cohort — it's an expected baseline. This makes Savspot's MCP-compatible architecture and invisible intelligence a natural fit rather than a speculative differentiator.
 3. **Zero-friction price sensitivity.** Someone who just launched a service business and hasn't booked their first client won't pay $30/month for Booksy. But they will set up a free booking page in 5 minutes and share the link on Instagram. Savspot's revenue model (earn when they earn) is psychologically aligned with founders who aren't yet sure the business will work.
 
 This thesis does not replace the need to serve established businesses — the LifePlace proof-of-concept validates the platform for existing venues and service providers. But it reframes the distribution challenge from "how do we convert incumbents in a crowded market?" to "how do we become the default for businesses that don't exist yet?" The latter is a fundamentally more favorable position for a solo-operator bootstrap.
@@ -206,7 +219,7 @@ Rather than scaling acquisition during active development or deferring it entire
 
 **The middle path:**
 
-1. **Phase 1 completion (Month 2.5):** Ship the web-only platform (no mobile app in Phase 1 — see BRD §8). Booking page, onboarding, booking flow, payments, admin CRM, client portal, calendar sync (Phase 1 two-way per FR-CAL-10), transactional email, provider SMS (FR-COM-2a), browser push (FR-NOT-6), walk-in booking (FR-BFW-18), support triage.
+1. **Phase 1 completion ~~(Month 2.5)~~ COMPLETE (March 2026):** Shipped the web-only platform (no mobile app in Phase 1 — see BRD §8). Booking page, onboarding, booking flow, payments, admin CRM, client portal, calendar sync (two-way per FR-CAL-10), transactional email, provider SMS (FR-COM-2a), browser push (FR-NOT-6), walk-in booking (FR-BFW-18), support triage. **920 tests, live at savspot.co.**
 
 2. **Soft launch (~1 week, immediately post Phase 1):** Onboard 5–10 businesses using the following structured cohort (see also savspot-gtm-distribution-strategy.md §7):
 
@@ -241,13 +254,13 @@ Paid marketing, content strategy, and partnership development are deferred until
 
 ## 9. Roadmap
 
-**Phase 1 -- Foundation (Months 1-2.5):** Multi-tenant platform, business-type preset onboarding (zero-config to working booking page), dynamic booking flow wizard (steps determined by service configuration), PaymentProvider abstraction interface with Stripe Connect implementation, offline payment as first-class path, admin CRM with progressive disclosure, client portal, booking page, one-way calendar sync, basic transactional email (confirmation, receipt, reminders, follow-ups), AI-powered support triage via Open Claw. Web-only; mobile-responsive design covers client booking scenarios.
+**Phase 1 -- Foundation ~~(Months 1-2.5)~~ COMPLETE (March 2026):** Multi-tenant platform, business-type preset onboarding (zero-config to working booking page), dynamic booking flow wizard (steps determined by service configuration), PaymentProvider abstraction interface with Stripe Connect implementation, offline payment as first-class path, admin CRM with progressive disclosure, client portal, booking page, two-way calendar sync (FR-CAL-10 for parallel-run design partner support), basic transactional email (confirmation, receipt, reminders, follow-ups), AI-powered support triage via Open Claw. Web-only; mobile-responsive design covers client booking scenarios. **920 tests, live at savspot.co.**
 
 **Soft Launch (~1 week, immediately post Phase 1):** Personally onboard 5–10 businesses across 1–2 verticals. Observe real usage, booking completion, payment flow, and organic sharing. Gather signal to inform Phase 2 priorities. See §8a for full strategy.
 
-**Phase 2 -- Communications & Growth (Months 2.5-4):** Mobile app (React Native + Expo — client booking, push notifications, biometric auth), email/SMS with template sandbox, contracts with multi-party signatures, notifications with type registry, advanced booking steps (questionnaires, add-ons), reviews, two-way calendar sync, check-in/check-out management, booking flow builder, embeddable widget (premium).
+**Phase 2 -- Communications, Growth & Invisible Intelligence (Months 2.5-4):** Mobile app (React Native + Expo -- client booking, push notifications, biometric auth), email/SMS with template sandbox, contracts with multi-party signatures, notifications with type registry, advanced booking steps (questionnaires, add-ons), reviews, two-way calendar sync, check-in/check-out management, booking flow builder, embeddable widget (premium). **Invisible AI operations:** smart reminder timing, no-show risk indicators, rebooking interval detection, slot demand analysis, smart morning summaries, cross-tenant benchmarking pipeline (data collection). See [AI-STRATEGY.md](AI-STRATEGY.md) §8 for definitive Phase 2 AI scope.
 
-**Phase 3 -- AI & Automation (Months 4-6):** MCP server + public REST API (headless booking engine), workflow automation with triggers and overrides, alternative payment providers (Adyen, PayPal Commerce Platform) via PaymentProvider abstraction, advanced analytics (premium), QuickBooks/Xero integration (premium), i18n, multi-currency.
+**Phase 3 -- AI Distribution & Automation (Months 4-6):** MCP server + public REST API (headless booking engine) for AI agent discoverability and booking, AI Voice Receptionist (premium), cross-tenant benchmarking UI, natural language business Q&A, workflow automation with triggers and overrides, alternative payment providers (Adyen, PayPal Commerce Platform) via PaymentProvider abstraction, advanced analytics (premium), QuickBooks/Xero integration (premium), i18n, multi-currency. See [AI-STRATEGY.md](AI-STRATEGY.md) §4 for feature taxonomy.
 
 **Phase 4 -- Scale (Demand-driven, post-launch):** AI recommendations, platform directory, custom domains, multi-location, regional payment providers, partner program, geographic expansion. Phase 4 features ship on demand based on user base metrics, not on a fixed calendar:
 

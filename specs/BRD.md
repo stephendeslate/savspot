@@ -1,6 +1,6 @@
 # Savspot -- Business Requirements Document
 
-**Version:** 1.3 | **Date:** March 1, 2026 | **Author:** SD Solutions, LLC
+**Version:** 1.4 | **Date:** March 7, 2026 | **Author:** SD Solutions, LLC
 **Document:** BRD
 
 ---
@@ -12,7 +12,7 @@
 | Stream | Model | Rate | When |
 |--------|-------|------|------|
 | **Payment Processing** | Platform fee on all Savspot Pay transactions (in addition to the payment provider's standard processing fee borne by the connected account) | 1.0% | Every payment |
-| **Platform Referral Commission** | One-time fee on bookings from platform-sourced clients (AI agents, directory, referrals) | 15-20% of first booking (capped at $500 default) | Only first booking from a new platform-sourced client |
+| **Platform Referral Commission** | One-time fee on bookings from platform-sourced clients (AI agents, directory, referrals) | 15-20% of first booking (default 20%, capped at $500 default) | Only first booking from a new platform-sourced client |
 | **Premium Features** | Optional add-ons | $9-$49/mo per feature | Monthly subscription |
 
 ### Premium Features
@@ -24,6 +24,9 @@
 - Team/staff management beyond basic
 - API access for custom integrations (headless booking engine)
 - QuickBooks / Xero accounting integration
+- AI Voice Receptionist (after-hours call handling, availability checking, and appointment booking via voice AI). Industry data: Zenoti reports $3-4K/month revenue lift per location from AI receptionist; 34% of appointment requests come after hours (Zenoti 2025 consumer survey). See [AI-STRATEGY.md](AI-STRATEGY.md) §4, Tier 3.
+
+> **Free vs. premium AI boundary:** Invisible operational intelligence (smart reminder timing, no-show risk indicators, rebooking interval detection, slot demand analysis, smart morning summaries) is included in the free tier -- these features improve outcomes for all tenants and strengthen the platform's data flywheel. Cross-tenant benchmarking is free when activated (Phase 3, 50+ tenants). AI Voice Receptionist and advanced AI analytics are premium. This boundary ensures that AI amplifies the free-tier value proposition (outcome-aligned revenue model) while creating premium upsell for high-value AI capabilities that have direct, measurable ROI.
 
 ### Why This Model Works
 - Zero barrier to entry (free core software)
@@ -40,7 +43,7 @@
 
 | Tier | Price | Features |
 |------|-------|----------|
-| **Free** | $0 | Booking page, CRM, client portal, one-way calendar sync, basic metrics, basic embed widget (redirect mode) |
+| **Free** | $0 | Booking page, CRM, client portal, two-way calendar sync (including INBOUND blocking per FR-CAL-10), basic metrics, basic embed widget (redirect mode), invisible AI operations (smart reminders, no-show risk indicators, rebooking optimization, slot demand analysis -- Phase 2) |
 | **Premium** | $9-$49/mo per feature | Embeddable widget, custom domain, advanced analytics, advanced multi-stage workflow automation, accounting integrations, headless API access |
 | **Enterprise** | Custom | Multi-location, dedicated support, custom integrations |
 
@@ -107,6 +110,22 @@ No business (tenant) may access, view, or modify another tenant's data under any
 - **Business-type presets:** During onboarding, category selection (VENUE, SALON, STUDIO, FITNESS, PROFESSIONAL, OTHER) applies a one-time preset function that writes sensible defaults (availability rules, default automations, pricing model). Presets are not stored as persistent configuration -- they write concrete data that the business can freely modify afterward.
 - **Onboarding friction target:** Initial setup (Phase A) to a working booking page must require no more than 4 required fields (business name, service name, duration, price) and 1 decision (business type category). Additional configuration (payments, policies, advanced features) is staged into Phase B, not front-loaded.
 - **Progressive disclosure in UI:** Basic settings are always visible. Advanced options are collapsed by default and revealed on demand. When a feature is inactive (no data configured), its UI section is hidden entirely -- no grayed-out or "upgrade to unlock" placeholders for core features.
+
+### BR-RULE-9: Cross-Tenant Data Intelligence
+- Savspot may aggregate de-identified, anonymized booking data across tenants for platform intelligence, benchmarking, and operational optimization
+- No individual tenant's data is identifiable in any aggregated output
+- Aggregation uses median (not mean) to prevent outlier inference, following the Zendesk Benchmark methodology
+- Minimum aggregation threshold: benchmarks are only displayed when 4+ tenants exist in a business category filter. Categories with fewer than 4 tenants show no benchmark data
+- Tenant opt-out available in business settings. Opting out excludes the tenant's data from aggregation and hides benchmark comparisons from their dashboard
+- Authorized via Terms of Service acceptance. Standard in modern SaaS agreements (precedent: Zendesk, Gusto, ADP, ServiceNow, Apptio)
+- Data aggregated: no-show rates, slot utilization rates, rebooking rates, average booking values, reminder effectiveness -- by business category. No PII, no revenue figures, no client data included in aggregation
+- See [AI-STRATEGY.md](AI-STRATEGY.md) §5.3 for implementation privacy requirements
+
+### BR-RULE-10: AI Transparency and Boundaries
+- AI-powered features that affect booking outcomes (reminder timing, risk scoring) must have deterministic fallback behavior when insufficient data exists
+- AI Voice Receptionist must clearly identify as an automated system at the start of every call
+- AI support triage (FR-SUP-3) must escalate to human review for payment disputes, refund approvals, and CRITICAL severity issues -- AI may never approve refunds autonomously
+- Invisible AI features (FR-AI-1 through FR-AI-6) are not marketed or labeled as "AI" in the business-owner-facing UI. They are delivered as platform capabilities. This is a positioning decision, not a transparency concern -- the features are deterministic computations on the business's own data, not generative AI making autonomous decisions. See [AI-STRATEGY.md](AI-STRATEGY.md) §3 for positioning rationale.
 
 ---
 

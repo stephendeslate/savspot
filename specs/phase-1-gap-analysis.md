@@ -1,6 +1,7 @@
 # Phase 1 Gap Analysis & Implementation Plan
 
-**Date:** 2026-03-06 | **Completion estimate:** ~82% built, ~18% remaining
+**Date:** 2026-03-06 | **Updated:** 2026-03-07
+**Completion estimate:** Phase 1 COMPLETE — all Must gaps closed, all Should gaps addressed (785 tests passing)
 
 ---
 
@@ -417,3 +418,73 @@ The remaining work is primarily boilerplate CRUD modules, background job process
 | AI triage quality (C3) | Start with conservative auto-resolve (high confidence only), escalate everything else |
 | Calendar DnD conflicts | Show confirmation dialog before reschedule, handle 409 gracefully |
 | Data export for large accounts | Stream JSON generation, set reasonable size limits, use R2 multipart upload |
+
+---
+
+## 9. Round 2 Verification (March 7, 2026)
+
+After all 17 Round 1 gaps were implemented (commit `74ecfc4`), a full requirement-by-requirement audit was conducted. Every Phase 1 Must and Should requirement from the PRD was verified against actual source code by domain (onboarding, booking flow, calendar, payments, communications, auth, CRM, client portal, booking page). This audit revealed 14 additional gaps — items where infrastructure existed (schema fields, enum values, processor shells) but functional wiring or business logic was missing.
+
+**Round 2 gaps are documented in:** `specs/phase-1-closure-plan.md`
+
+### Round 2 Must Gaps (5)
+
+| # | Item | PRD | Root Cause |
+|---|------|-----|------------|
+| CM1 | Calendar event push not wired | FR-CAL-3/4/5 | CalendarPushHandler exists but no @OnEvent listeners enqueue JOB_CALENDAR_EVENT_PUSH |
+| CM2 | Deposit payments | FR-PAY-3 | processPaymentIntent() hardcodes FULL_PAYMENT; never reads service depositConfig |
+| CM3 | Referral commission | FR-PAY-11 | referralCommission field on Payment exists but no calculation or eligibility logic |
+| CM4 | Manual approval notification | FR-COM-1a | BOOKING_CREATED fires for PENDING but no staff email sent |
+| CM5 | Booking flow config frontend | FR-CRM-9 | Backend API exists but no settings page |
+
+### Round 2 Should Gaps (9)
+
+| # | Item | PRD |
+|---|------|-----|
+| CS1 | Post-setup prompts | FR-ONB-6 |
+| CS2 | Setup progress tracking | FR-ONB-10 |
+| CS3 | Booking modification request | FR-CP-3 |
+| CS4 | Business data export | FR-CRM-26 |
+| CS5 | Scheduled calendar sync | FR-CAL-12 |
+| CS6 | Calendar re-auth prompt | FR-CAL-9 |
+| CS7 | Calendar conflict notification | FR-CAL-14 |
+| CS8 | Invoice PDF to R2 | FR-PAY-8 |
+| CS9 | Category selection telemetry | FR-ONB-12 |
+
+### Why Round 1 Missed These
+
+Round 1 focused on modules that were entirely absent (no API module, no controller, no service). Round 2 caught gaps where:
+1. **Infrastructure existed but wiring was missing** (calendar push — processor exists, dispatcher routes it, but no event listener enqueues jobs)
+2. **Schema fields existed but business logic was absent** (deposit payments, referral commission — columns in place, no code reads or writes them)
+3. **Backend existed but frontend was missing** (booking flow config — API returns data, no page renders it)
+4. **Cross-cutting concerns were incomplete** (manual approval notification — event fires, nobody listens)
+
+---
+
+## 10. Round 2 Closure (March 7, 2026)
+
+All 14 Round 2 gaps were implemented and tested. 785 tests pass across 51 test files.
+
+### Must Gaps Closed
+
+| # | Item | Implementation | Tests |
+|---|------|---------------|-------|
+| CM1 | Calendar event push wiring | `CalendarEventListener` with @OnEvent for CONFIRMED/RESCHEDULED/CANCELLED → enqueues JOB_CALENDAR_EVENT_PUSH per active connection | 6 tests in calendar-event-listener.spec.ts |
+| CM2 | Deposit payments | `resolvePaymentAmount()` in PaymentsService; processPaymentIntent reads service.depositConfig; DEPOSIT vs FULL_PAYMENT type | 9 tests in deposit-payments.spec.ts |
+| CM3 | Referral commission | `calculateReferralCommission()` in PaymentsService; first-booking-only check; configurable rate (20%) and cap ($500); added to Stripe application_fee_amount | 11 tests in referral-commission.spec.ts |
+| CM4 | Manual approval notification | `handleBookingCreated()` in WorkflowEngineService; checks PENDING status; sends staff-approval-required email to OWNER/ADMIN | 5 tests in manual-approval-notification.spec.ts |
+| CM5 | Booking flow config frontend | Settings page at /settings/booking-flow; global steps with active/inactive indicators; per-service accordion; config links for inactive steps | Page created + nav link added |
+
+### Should Gaps Closed
+
+| # | Item | Implementation |
+|---|------|---------------|
+| CS1 | Post-setup prompts | Dashboard page shows "Complete Your Setup" card when services/availability/Stripe/calendar are missing |
+| CS2 | Setup progress tracking | Integrated into dashboard stats (hasStripe, hasCalendar checks) |
+| CS3 | Booking modification request | `POST portal/bookings/:id/reschedule` endpoint + service method with max-reschedule enforcement | 6 tests |
+| CS4 | Business data export | `POST tenants/:id/export` endpoint; enqueues GDPR export job with tenant context |
+| CS5 | Scheduled calendar sync | Calendar queue registered in JobSchedulerService with CRON_EVERY_15_MIN for two-way sync + CRON_HOURLY for token refresh |
+| CS6 | Calendar re-auth prompt | "Reconnect Google Calendar" button shown on settings/calendar page when connection status is ERROR |
+| CS7 | Calendar conflict notification | CalendarSyncHandler.detectConflicts() checks inbound events vs bookings after sync; creates in-app notifications for OWNER/ADMIN | 4 tests |
+| CS8 | Invoice PDF to R2 | GenerateInvoicePdfProcessor uploads HTML to R2 via UploadService; falls back to data URI if R2 not configured | 4 tests |
+| CS9 | Category selection telemetry | Logger.log with `[telemetry] category_selected` tag in TenantsService.create() |

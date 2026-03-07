@@ -1,6 +1,6 @@
 # Savspot -- Software Requirements Specification: Architecture & Infrastructure
 
-**Version:** 1.1 | **Date:** February 27, 2026 | **Author:** SD Solutions, LLC
+**Version:** 1.2 | **Date:** March 7, 2026 | **Author:** SD Solutions, LLC
 **Document:** SRS Part 1 of 4
 
 ---
@@ -169,7 +169,7 @@ CREATE POLICY tenant_isolation ON bookings
 ### Implementation Steps
 
 1. **Resolve tenant** from JWT claims or URL slug on every request.
-2. **NestJS middleware** sets `app.current_tenant` on the PostgreSQL session via `SET LOCAL`.
+2. **NestJS middleware** sets `app.current_tenant` on the PostgreSQL session via `select set_config('app.current_tenant', tenantId, TRUE)` (not `SET LOCAL` -- `set_config` with `TRUE` is transaction-local and compatible with Prisma interactive transactions).
 3. **Prisma Client Extension** auto-filters all queries by `tenant_id` at the application layer.
 4. **RLS acts as a database-level safety net** -- even if application code has a bug, data cannot leak across tenants.
 
@@ -405,7 +405,7 @@ Install ──> Lint + Typecheck ──> Test ──> Build ──> Deploy
 |----|-------------|--------|
 | NFR-I18N-1 | Date/time storage | UTC in database, always |
 | NFR-I18N-2 | Date/time display | Timezone-aware rendering per business and client locale |
-| NFR-I18N-3 | Currency support | 10+ currencies via payment providers (Stripe Phase 1, expanded coverage Phase 3+), stored as minor units (cents) |
+| NFR-I18N-3 | Currency support | 10+ currencies via payment providers (Stripe Phase 1, expanded coverage Phase 3+), stored as Decimal (major units / dollars); convert to minor units (cents) only at payment provider boundary |
 | NFR-I18N-4 | String externalization | All user-facing strings externalized; ICU MessageFormat |
 | NFR-I18N-5 | RTL layout | Infrastructure for right-to-left languages from day one |
 | NFR-I18N-6 | Locale-aware formatting | Numbers, dates, times formatted per user locale |

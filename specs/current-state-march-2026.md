@@ -511,9 +511,9 @@ All 17 feature gaps are implemented. Remaining blockers are external:
 
 ## 11. Phase 1 Completion Status
 
-### Implementation Progress
+### Gap Analysis Round 1 (March 6, 2026)
 
-Based on `specs/phase-1-gap-analysis.md` and verified against the codebase:
+Based on `specs/phase-1-gap-analysis.md`, 17 gaps were identified and implemented:
 
 | Gap | Item | Status |
 |-----|------|--------|
@@ -535,12 +535,63 @@ Based on `specs/phase-1-gap-analysis.md` and verified against the codebase:
 | S6 | admin:feedback CLI | **Done** — `scripts/admin/feedback.ts` |
 | S7 | Notification Preferences Wiring | **Done** — frontend wired with loading/error states |
 
-**Summary:** All 17 gaps implemented. Phase 1 feature development is complete.
-
 ### BullMQ Consolidation (cross-cutting)
 
 - **Status:** Complete — all 5 multi-handler queues consolidated into dispatcher pattern
 - **Result:** 21 `@Processor` classes → 6 (one per queue)
+
+### Verification Audit (March 7, 2026)
+
+A full requirement-by-requirement audit of all Phase 1 Must and Should items against actual source code revealed additional gaps not caught in the original gap analysis. These items had infrastructure (schema fields, processor shells, enum values) but were missing functional wiring or business logic.
+
+**Must-Priority Gaps Found:**
+
+| # | Gap | PRD Ref | Issue |
+|---|-----|---------|-------|
+| CM1 | Calendar event push not wired | FR-CAL-3/4/5 | CalendarPushHandler exists but no @OnEvent listeners enqueue jobs; Google Calendar events never created/updated/deleted on booking changes |
+| CM2 | Deposit payments not implemented | FR-PAY-3 | PaymentType.DEPOSIT exists, depositConfig on Service exists, but no resolvePaymentAmount() logic; processPaymentIntent() hardcodes FULL_PAYMENT |
+| CM3 | Referral commission not implemented | FR-PAY-11 | referralCommission column exists on Payment but no eligibility check or calculation; platform fee only includes processing_fee |
+| CM4 | Manual approval staff notification | FR-COM-1a | BOOKING_CREATED emitted for PENDING bookings but no listener sends notification to OWNER/ADMIN staff |
+| CM5 | Booking flow config frontend | FR-CRM-9 | Backend GET/PATCH endpoints exist but no frontend settings page |
+
+**Should-Priority Gaps Found:**
+
+| # | Gap | PRD Ref | Issue |
+|---|-----|---------|-------|
+| CS1 | Post-setup prompts | FR-ONB-6 | No structured post-onboarding guidance on dashboard |
+| CS2 | Setup progress tracking | FR-ONB-10 | No resume capability for incomplete onboarding |
+| CS3 | Booking modification request | FR-CP-3 | Client portal has cancel but no reschedule request flow |
+| CS4 | Business data export | FR-CRM-26 | GDPR user export exists; TENANT_EXPORT type not implemented |
+| CS5 | Scheduled calendar sync | FR-CAL-12 | UI configurable frequency but no cron job runs periodic syncs |
+| CS6 | Calendar re-auth prompt | FR-CAL-9 | Error status shown but no "Re-authenticate" button |
+| CS7 | Calendar conflict notification | FR-CAL-14 | No detection when inbound event overlaps existing booking |
+| CS8 | Invoice PDF to R2 | FR-PAY-8 | HTML stored as data URI; actual PDF + R2 upload not done |
+| CS9 | Category selection telemetry | FR-ONB-12 | Category stored but no analytics event emitted |
+
+**Closure Plan:** See `specs/phase-1-closure-plan.md` for implementation details, test specifications, and execution order.
+
+### Round 2 Closure (March 7, 2026)
+
+All 14 Round 2 gaps have been implemented and verified with 785 tests passing across 51 test files.
+
+**Must gaps closed:**
+- CM1: `CalendarEventListener` with @OnEvent for CONFIRMED/RESCHEDULED/CANCELLED (6 tests)
+- CM2: `resolvePaymentAmount()` with PERCENTAGE/FIXED deposit support (9 tests)
+- CM3: `calculateReferralCommission()` with first-booking-only eligibility (11 tests)
+- CM4: `handleBookingCreated()` sends staff-approval-required email (5 tests)
+- CM5: Booking flow settings page + nav link
+
+**Should gaps closed:**
+- CS1: Dashboard "Complete Your Setup" prompts for missing services/availability/Stripe/calendar
+- CS3: `POST portal/bookings/:id/reschedule` with max-reschedule enforcement (6 tests)
+- CS4: `POST tenants/:id/export` endpoint with GDPR queue job
+- CS5: Calendar sync + token refresh cron schedules in JobSchedulerService
+- CS6: "Reconnect Google Calendar" button on ERROR state
+- CS7: `CalendarSyncHandler.detectConflicts()` with in-app notifications (4 tests)
+- CS8: Invoice HTML upload to R2 via UploadService with data URI fallback (4 tests)
+- CS9: `[telemetry] category_selected` log in TenantsService.create()
+
+**Summary:** Phase 1 is COMPLETE. All Must and Should requirements have been implemented and tested.
 
 ---
 

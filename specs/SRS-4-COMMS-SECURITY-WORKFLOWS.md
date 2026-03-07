@@ -1,6 +1,6 @@
 # Savspot -- Software Requirements Specification: Communications, Security & Workflows
 
-**Version:** 1.1 | **Date:** February 27, 2026 | **Author:** SD Solutions, LLC
+**Version:** 1.2 | **Date:** March 7, 2026 | **Author:** SD Solutions, LLC
 **Document:** SRS Part 4 of 4
 
 ---
@@ -192,7 +192,7 @@ Multiple `quote_options` per quote (e.g., "Standard", "Premium"), each with chil
 
 > **Rebooking prompt (FR-BFW-19):** Included in the BOOKING_COMPLETED follow-up email for all recurring-service presets (PROFESSIONAL, SALON, STUDIO, FITNESS, OTHER). The prompt is a prominently placed link in the follow-up email body: "Ready for your next appointment? Book in seconds → [savspot.co/{slug}?service={id}&provider={id}]". The deep-link URL parameters pre-select the same service and provider so the client begins on the date/time picker step. This is a communication enhancement, not a separate workflow automation step — it is rendered conditionally in the follow-up email template based on the service's preset category.
 
-These are concrete `workflow_automations` rows. **In Phases 1-2, preset automation configuration is locked** — businesses cannot add new automations, delete existing ones, or modify trigger/action configuration. The `is_active` toggle is the one exception: businesses can disable or re-enable individual automations via the Admin CRM. The preset function is not stored — it writes data and is forgotten. In Phase 3 (FR-CRM-16: Workflow automation builder), businesses gain full CRUD control over automations and can add advanced automation (17 trigger types, multi-stage workflows with progression conditions).
+These are concrete `workflow_automations` rows. **In Phases 1-2, preset automation configuration is locked** — businesses cannot add new automations, delete existing ones, or modify trigger/action configuration. The `is_active` toggle is the one exception: businesses can disable or re-enable individual automations via the Admin CRM. The preset function is not stored — it writes data and is forgotten. In Phase 3 (FR-CRM-16: Workflow automation builder), businesses gain full CRUD control over automations and can add advanced automation (20 trigger types -- see §21 for canonical list, multi-stage workflows with progression conditions).
 
 > **Hardcoded platform communications** (not part of the automation system — always sent, not configurable or disableable):
 > - **Payment receipt:** On `payment_intent.succeeded` webhook, sends receipt email via `deliverCommunication` (FR-PAY-9).
@@ -553,4 +553,207 @@ React Native + Expo. **MMKV** (key-value) + **TanStack Query** persistence. Offl
 
 ---
 
-*End of SRS Part 4 of 4. Cross-references: SRS-1 (Architecture & Infrastructure, including Progressive Complexity in Section 8), SRS-2 (Data Model & API Reference), SRS-3 (Booking, Payments & Availability Logic).*
+## 45. Intelligent Operations (Phase 2)
+
+> **Design principle:** All features in this section are deterministic computations on structured data, not generative AI. They require no LLM inference in production and have zero marginal cost per tenant. They are implemented as BullMQ scheduled jobs following the existing dispatcher pattern (see `specs/bullmq-processor-consolidation.md`). Full strategic rationale in [AI-STRATEGY.md](AI-STRATEGY.md).
+
+### 45.1 Smart Reminder Timing (FR-AI-1)
+
+**Problem:** Fixed-interval reminders (24h before) are suboptimal. Some clients confirm immediately when reminded 2 hours before; others need 48 hours to rearrange their schedule. One-size-fits-all timing leads to unnecessary no-shows.
+
+**Solution:** Compute per-client optimal reminder timing from historical data.
+
+**Data inputs:**
+- `communications` table: delivery timestamps and confirmation responses for past reminders
+- `bookings` table: no-show vs. attended outcomes correlated with reminder timing
+- Minimum data threshold: 5+ prior bookings with reminder history for a client before personalized timing activates
+
+**Algorithm:**
+1. For each client with sufficient history, compute the reminder lead time that correlates with the highest attendance rate
+2. Bucket into intervals: 2h, 4h, 12h, 24h, 48h (discrete buckets, not continuous)
+3. Select the bucket with the highest attendance correlation
+4. Store as `client_profiles.optimalReminderLeadHours` (nullable Int)
+5. When null or insufficient data, fall back to default (24h)
+
+**Job specification:**
+
+| Field | Value |
+|-------|-------|
+| Job name | `computeOptimalReminderTiming` |
+| Queue | `QUEUE_COMMUNICATIONS` |
+| Schedule | Daily 3 AM UTC |
+| Scope | All clients with 5+ bookings where reminder was sent |
+| Output | Updates `client_profiles.optimalReminderLeadHours` |
+| Tenant context | Iterates all active tenants; `tenant_id` in job payload per existing convention |
+
+**Integration point:** The existing reminder scheduling logic (hourly job) checks `clientProfile.optimalReminderLeadHours` when scheduling the next reminder for a booking. If the value exists, it overrides the default interval. If null, default behavior is unchanged.
+
+**New data field:**
+- `client_profiles.optimalReminderLeadHours` -- nullable Int, default null. Computed daily. Not user-editable. Tenant-scoped (a client may have different response patterns at different businesses).
+
+### 45.2 No-Show Risk Scoring (FR-AI-2)
+
+**Problem:** Business owners have no advance warning about which appointments are likely to result in no-shows. Proactive confirmation for high-risk bookings can reduce no-show rates.
+
+**Solution:** Compute a no-show risk score for each upcoming booking based on historical patterns.
+
+**Data inputs:**
+- Client's historical no-show rate (already computed as `noShowCount` in CRM aggregation)
+- Client's total booking count (existing)
+- Booking lead time (days between booking creation and appointment date)
+- Day of week of the appointment
+- First-time vs. returning client flag
+- Service type (some services have inherently higher no-show rates)
+
+**Algorithm:**
+1. Base risk from client no-show rate: `clientNoShowRate = noShowCount / totalBookings`
+2. Adjust for lead time: bookings made >14 days in advance have 1.3x risk multiplier; <24h have 0.7x
+3. Adjust for first-time client: 1.5x multiplier (industry data: first-time clients no-show at higher rates)
+4. Compute composite score: weighted combination normalized to 0.0-1.0
+5. Map to display tier: LOW (0-0.3), MEDIUM (0.3-0.6), HIGH (0.6-1.0)
+
+**Job specification:**
+
+| Field | Value |
+|-------|-------|
+| Job name | `computeNoShowRiskScores` |
+| Queue | `QUEUE_BOOKINGS` |
+| Schedule | Daily 4 AM UTC |
+| Scope | All CONFIRMED bookings in next 7 days |
+| Output | Updates `bookings.noShowRiskScore` (Float, 0.0-1.0) |
+
+**Frontend integration:** Calendar events (FR-CRM-2) and appointment list (FR-CRM-27) read `booking.noShowRiskScore` and render:
+- LOW (0-0.3): no indicator (default state)
+- MEDIUM (0.3-0.6): amber dot
+- HIGH (0.6-1.0): red dot
+
+No tooltip or explanation text referencing "AI" or "prediction." The indicator is presented the same way a "first-time client" badge would be -- a factual visual cue.
+
+**New data field:**
+- `bookings.noShowRiskScore` -- nullable Float, default null. Computed daily for upcoming bookings. Not user-editable. Null for historical bookings (not backfilled).
+
+### 45.3 Rebooking Interval Detection (FR-AI-3)
+
+**Problem:** The rebooking prompt (FR-BFW-19) sends at a fixed delay after appointment completion. Clients have individual rebooking cadences -- a haircut client rebooks every 3 weeks, a massage client every 6 weeks. Fixed timing misses the optimal window.
+
+**Solution:** Compute per-client-service rebooking interval from booking history.
+
+**Data inputs:**
+- `bookings` table: all COMPLETED bookings for a given client-service pair, ordered by appointment date
+- Minimum data threshold: 3+ completed bookings of the same service by the same client
+
+**Algorithm:**
+1. For each client-service pair with 3+ completed bookings, compute intervals between consecutive appointments
+2. Take the median interval (days) -- median is robust to outliers (e.g., a vacation gap)
+3. Store as `client_profiles.reBookingIntervalDays` -- this is the client's dominant interval across their most-booked service at this tenant
+4. For multi-service clients, compute per-service intervals and store the primary (most-booked) service interval on the client profile. Per-service intervals stored in a `client_rebooking_intervals` join or JSONB if granularity is needed in Phase 3.
+
+**Job specification:**
+
+| Field | Value |
+|-------|-------|
+| Job name | `computeRebookingIntervals` |
+| Queue | `QUEUE_BOOKINGS` |
+| Schedule | Daily 3 AM UTC (can share with reminder timing job) |
+| Scope | All clients with 3+ COMPLETED bookings |
+| Output | Updates `client_profiles.reBookingIntervalDays` |
+
+**Integration point:** The follow-up email/SMS (FR-COM-4) that includes the rebooking prompt (FR-BFW-19) is currently sent at a fixed delay (24h after completion). When `clientProfile.reBookingIntervalDays` is populated, the rebooking prompt is instead scheduled for `completionDate + reBookingIntervalDays - 3 days` (3-day lead time to allow scheduling). If the computed send date is in the past (interval shorter than 3 days), send immediately. If null, fall back to default 24h.
+
+**New data field:**
+- `client_profiles.reBookingIntervalDays` -- nullable Int, default null. Computed daily. Not user-editable. Tenant-scoped (a client's rebooking cadence at a barber differs from their cadence at a spa).
+
+### 45.4 Slot Demand Analysis (FR-AI-4)
+
+**Problem:** Business owners set availability rules once and rarely revisit them. Some slots sit consistently empty while others fill immediately. Without data, owners can't make informed scheduling decisions.
+
+**Solution:** Weekly analysis of booking patterns that surfaces actionable insights as dashboard cards.
+
+**Data inputs:**
+- `bookings` table: booking timestamps (day of week, hour) for the last 90 days
+- `availability_rules` table: which slots are currently offered
+- Minimum data threshold: 30+ bookings in analysis window
+
+**Algorithm:**
+1. For each offered time slot (day-of-week + hour block), compute:
+   - Fill rate: bookings / weeks offered (0.0-1.0)
+   - Average days-to-fill: how far in advance the slot is typically booked
+   - Cancellation rate for that slot
+2. Flag slots with:
+   - Fill rate < 0.2 for 6+ consecutive weeks → "Consistently empty" card
+   - Fill rate > 0.9 AND average days-to-fill < 2 → "High demand, fills fast" card
+   - Cancellation rate > 0.3 → "High cancellation" card
+3. Generate max 3 cards per tenant per week (avoid noise)
+4. Cards include the data ("Tuesday 3-5pm: 12% filled over 6 weeks") and a suggested action ("Consider blocking this slot or running a promotion")
+
+**Job specification:**
+
+| Field | Value |
+|-------|-------|
+| Job name | `computeSlotDemandAnalysis` |
+| Queue | `QUEUE_BOOKINGS` |
+| Schedule | Weekly, Sunday 2 AM UTC |
+| Scope | All tenants with 30+ bookings in last 90 days |
+| Output | Writes to `slot_demand_insights` table (see SRS-2 §13b) |
+
+**Frontend integration:** Dashboard (FR-CRM-1) reads slot demand insights and renders as dismissible cards in a "Schedule Insights" section. Cards are shown below the existing metrics (today's bookings, revenue, new clients). Dismissed cards are recorded (user ID + insight hash) and not shown again for the same data pattern.
+
+**New data storage:**
+- `slot_demand_insights` table (SRS-2 §13b) -- stores computed insights with `is_dismissed` tracking. Max 3 active per tenant, 7-day expiry.
+
+### 45.5 Cross-Tenant Benchmarking Pipeline (FR-AI-5)
+
+**Problem:** Individual businesses operate in isolation with no visibility into how they compare against peers. A barber with a 20% no-show rate doesn't know if that's normal or terrible for their category.
+
+**Solution:** Aggregate anonymized metrics across tenants by business category. Phase 2 builds the data collection pipeline; Phase 3 activates user-facing comparisons when sufficient data exists.
+
+**Pipeline specification:**
+
+| Field | Value |
+|-------|-------|
+| Job name | `computeCategoryBenchmarks` |
+| Queue | `QUEUE_GDPR` (reuse -- low-frequency analytics jobs) |
+| Schedule | Daily 5 AM UTC |
+| Scope | All active tenants grouped by `tenants.category` |
+| Output | Refreshes `category_benchmarks` table |
+
+**Metrics aggregated:**
+
+| Metric | Computation | Display Format |
+|--------|------------|----------------|
+| No-show rate | Median of per-tenant no-show rates | "Your no-show rate: 18%. Category median: 12%." |
+| Slot utilization | Median of (booked slots / offered slots) per tenant | "Your utilization: 65%. Category median: 72%." |
+| Rebooking rate | Median of (returning clients / total unique clients) per tenant | "Returning client rate: 45%. Category median: 58%." |
+| Average booking value | Median of per-tenant average booking value | "Your avg booking: $42. Category median: $38." |
+
+**Privacy controls (see also BR-RULE-9):**
+1. Minimum 4 tenants per category before any benchmarks are computed
+2. Use median (not mean) to prevent outlier inference
+3. No tenant identifiers in the `category_benchmarks` table
+4. Tenants with `benchmarkOptOut = true` excluded from both contributing data and viewing benchmarks
+5. Terms of Service clause required before activation (Phase 3)
+
+**`category_benchmarks` table:** See SRS-2 §13b for canonical schema. Key columns: `business_category`, `metric_key`, `p25`/`p50`/`p75` (percentile distribution), `sample_size` (must be ≥4), `computed_at`.
+
+**Phase 3 activation:** When `tenantCount >= 50` for a category, the dashboard (FR-CRM-1) renders benchmark comparison cards. Cards show the tenant's own metric alongside the category median, with directional indicator (above/below/at median). No ranking or percentile -- just "you vs. median" to avoid competitive anxiety.
+
+### 45.6 Smart Morning Summary (FR-AI-6)
+
+**Problem:** The existing morning summary (FR-COM-10) is a flat list of the day's bookings. It doesn't highlight what the business owner should pay attention to.
+
+**Solution:** Enrich the existing morning summary payload with contextual intelligence derived from data already computed by other jobs (no-show risk, first-time client flags, schedule gaps).
+
+**Enrichment fields added to the morning summary template:**
+
+| Field | Source | Example |
+|-------|--------|---------|
+| High-risk appointments | `bookings.noShowRiskScore > 0.6` | "Heads up: your 2pm has a history of cancellations" |
+| First-time clients | `bookings` joined with client booking count = 1 | "First visit: Sarah M. at 11am" |
+| Schedule gaps | Comparison of booked vs. available slots | "Gap: 1-3pm is open" |
+| Yesterday's no-shows | `bookings` with status NO_SHOW from prior day | "Yesterday: 1 no-show (James D. at 4pm)" |
+
+**Implementation:** This is not a new BullMQ job. The existing `morningDigest` handler in `CommunicationsDispatcher` is enhanced to query additional data when building the summary payload. The SMS/email template adds conditional sections that render only when enrichment data exists. Tenants with insufficient data (no risk scores computed, no prior bookings) receive the standard flat list -- no degraded experience.
+
+---
+
+*End of SRS Part 4 of 4. Cross-references: SRS-1 (Architecture & Infrastructure, including Progressive Complexity in Section 8), SRS-2 (Data Model & API Reference), SRS-3 (Booking, Payments & Availability Logic), [AI-STRATEGY.md](AI-STRATEGY.md) (AI Strategy & Competitive Intelligence).*

@@ -1,6 +1,6 @@
 # Savspot -- Software Requirements Specification: Booking, Payments & Availability Logic
 
-**Version:** 1.1 | **Date:** February 27, 2026 | **Author:** SD Solutions, LLC
+**Version:** 1.2 | **Date:** March 7, 2026 | **Author:** SD Solutions, LLC
 **Document:** SRS Part 3 of 4
 
 ---
@@ -251,6 +251,8 @@ All availability is computed in the tenant's configured timezone and stored in U
 ### One-Way Push (Outbound)
 
 On booking confirm, reschedule, or cancel, the `calendarEventPush` job creates, updates, or deletes an event in the connected Google or Outlook calendar. Events include: client name, service, time, location, and a Savspot deep link.
+
+**Event Listener Wiring (implementation note, added 2026-03-07):** A `CalendarEventListener` service in the CalendarModule listens to `BOOKING_CONFIRMED`, `BOOKING_RESCHEDULED`, and `BOOKING_CANCELLED` domain events via `@OnEvent()` decorators. For each event, it queries all ACTIVE `calendar_connections` for the tenant and enqueues a `JOB_CALENDAR_EVENT_PUSH` job per connection. Job data includes `eventType`, `connectionId`, `bookingId`, `serviceName`, `clientName`, `startTime` (ISO string), and `endTime` (ISO string). For rescheduled events, `previousStartTime`/`previousEndTime` and `newStartTime`/`newEndTime` are also included. The `CalendarDispatcher` routes these jobs to `CalendarPushHandler`, which performs the Google Calendar API calls.
 
 ### Two-Way Sync (Inbound)
 
@@ -524,6 +526,12 @@ resolvePaymentAmount(service, booking_total):
 - For `AUTO_CONFIRM` services: booking transitions to CONFIRMED immediately on deposit receipt (full payment is not required for confirmation).
 - For `MANUAL_APPROVAL` services: booking remains PENDING until staff confirms, regardless of deposit status.
 
+**Implementation Notes (added 2026-03-07):**
+
+The `resolvePaymentAmount()` function must be called in `PaymentsService.processPaymentIntent()` before creating the Stripe PaymentIntent. The resolved amount (deposit or full) determines the PaymentIntent amount and the `payments.type` field. The `depositConfig` JSON on the Service model uses the structure `{ type: "PERCENTAGE" | "FIXED", amount: number }` where `amount` is a percentage (0-100) for PERCENTAGE type or a major-unit currency amount for FIXED type.
+
+Referral commission (when eligible per Section 11) is always calculated on `booking_total`, not the deposit amount. The full commission is collected on the first payment (deposit). Balance payments carry only processing_fee. This means a deposit payment may have a disproportionately high `platform_fee` relative to its amount — this is by design to ensure commission collection is not deferred.
+
 ---
 
 ## 12. Over-payment Prevention
@@ -630,6 +638,7 @@ Default `base_delay = 30 min`, `max_retries = 5`. After max retries, payment is 
 | 9 | `gdpr` | Data export generation, account deletion processing (see SRS-4 §41a) | 2 |
 | 10 | `analytics` | Daily analytics aggregation into `booking_flow_analytics` **(Phase 3)** | 2 |
 | 11 | `workflows` | Workflow stage processing, quote/contract expiry, outbound webhook delivery (see SRS-4 §41) | 3 |
+| 12 | `support` | AI triage pipeline for support tickets (see SRS-4 §41b) | 2 |
 
 ---
 

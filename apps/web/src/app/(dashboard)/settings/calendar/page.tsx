@@ -409,11 +409,30 @@ export default function CalendarSettingsPage() {
                 </div>
 
                 {connection.status === 'ERROR' && connection.errorMessage && (
-                  <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3">
-                    <AlertCircle className="mt-0.5 h-4 w-4 text-destructive" />
-                    <p className="text-sm text-destructive">
-                      {connection.errorMessage}
-                    </p>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3">
+                      <AlertCircle className="mt-0.5 h-4 w-4 text-destructive" />
+                      <p className="text-sm text-destructive">
+                        {connection.errorMessage}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={handleConnect}
+                      disabled={connectLoading}
+                    >
+                      {connectLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Reconnecting...
+                        </>
+                      ) : (
+                        <>
+                          <CalendarSync className="mr-2 h-4 w-4" />
+                          Reconnect Google Calendar
+                        </>
+                      )}
+                    </Button>
                   </div>
                 )}
               </div>

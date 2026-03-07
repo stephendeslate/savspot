@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationsService, CreateAndSendParams } from '../communications/communications.service';
 import { TwilioService } from '../sms/sms.service';
 import {
+  BOOKING_CREATED,
   BOOKING_CONFIRMED,
   BOOKING_CANCELLED,
   BOOKING_COMPLETED,
@@ -121,6 +122,66 @@ export class WorkflowEngineService {
     } catch (error) {
       this.logger.error(
         `Failed to send payment receipt for payment ${payload.paymentId}: ${error}`,
+      );
+    }
+  }
+
+  /**
+   * BOOKING_CREATED — For MANUAL_APPROVAL services, sends notification to staff
+   * when a new booking requires approval. Skips AUTO_CONFIRM bookings.
+   */
+  @OnEvent(BOOKING_CREATED)
+  async handleBookingCreated(payload: BookingEventPayload): Promise<void> {
+    try {
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: payload.bookingId },
+        select: { status: true },
+      });
+
+      // Only notify staff for PENDING bookings (MANUAL_APPROVAL services)
+      if (!booking || booking.status !== 'PENDING') return;
+
+      this.logger.log(
+        `[Hardcoded] Pending approval: booking=${payload.bookingId} tenant=${payload.tenantId}`,
+      );
+
+      const members = await this.prisma.tenantMembership.findMany({
+        where: {
+          tenantId: payload.tenantId,
+          role: { in: ['OWNER', 'ADMIN'] as never[] },
+        },
+        include: { user: { select: { email: true, firstName: true } } },
+      });
+
+      if (members.length === 0) return;
+
+      const tenant = await this.loadTenantBranding(payload.tenantId);
+      const dateTime = this.formatDateTime(payload.startTime);
+
+      for (const member of members) {
+        await this.communicationsService.createAndSend({
+          tenantId: payload.tenantId,
+          recipientId: member.userId,
+          recipientEmail: member.user.email,
+          recipientName: member.user.firstName ?? 'Admin',
+          channel: 'EMAIL',
+          templateKey: 'staff-approval-required',
+          templateData: {
+            staffName: member.user.firstName ?? 'Admin',
+            clientName: payload.clientName,
+            serviceName: payload.serviceName,
+            dateTime,
+            businessName: tenant.name,
+            logoUrl: tenant.logoUrl,
+            brandColor: tenant.brandColor,
+            approveUrl: `${process.env.WEB_URL || 'https://app.savspot.co'}/bookings/${payload.bookingId}`,
+          },
+          bookingId: payload.bookingId,
+        });
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to send approval notification for booking ${payload.bookingId}: ${error}`,
       );
     }
   }

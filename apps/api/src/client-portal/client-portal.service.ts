@@ -357,6 +357,110 @@ export class ClientPortalService {
   }
 
   /**
+   * Request a reschedule for a booking from the client portal.
+   * Creates a reschedule request that the business can approve/deny.
+   * For bookings with AUTO_CONFIRM, the reschedule is applied immediately.
+   */
+  async requestReschedule(
+    userId: string,
+    bookingId: string,
+    newStartTime: string,
+    newEndTime: string,
+    reason?: string,
+  ) {
+    const booking = await this.prisma.booking.findFirst({
+      where: { id: bookingId, clientId: userId },
+      include: {
+        service: {
+          select: {
+            id: true,
+            name: true,
+            confirmationMode: true,
+            maxRescheduleCount: true,
+          },
+        },
+      },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    if (!['PENDING', 'CONFIRMED'].includes(booking.status)) {
+      throw new BadRequestException(
+        `Cannot reschedule a booking with status ${booking.status}`,
+      );
+    }
+
+    // Check max reschedule count
+    const rescheduleCount = await this.prisma.bookingStateHistory.count({
+      where: { bookingId, toState: 'CONFIRMED', reason: { contains: 'Rescheduled' } },
+    });
+
+    const maxReschedules = booking.service.maxRescheduleCount ?? 3;
+    if (rescheduleCount >= maxReschedules) {
+      throw new BadRequestException(
+        `Maximum reschedule limit (${maxReschedules}) reached for this booking`,
+      );
+    }
+
+    // Verify the new time is in the future
+    const newStart = new Date(newStartTime);
+    if (newStart <= new Date()) {
+      throw new BadRequestException('New start time must be in the future');
+    }
+
+    // Store the reschedule request in booking state history
+    const previousStartTime = booking.startTime;
+    const previousEndTime = booking.endTime;
+
+    await this.prisma.bookingStateHistory.create({
+      data: {
+        bookingId,
+        tenantId: booking.tenantId,
+        fromState: booking.status as 'PENDING' | 'CONFIRMED',
+        toState: booking.status as 'PENDING' | 'CONFIRMED',
+        triggeredBy: 'CLIENT',
+        reason: `Rescheduled by client: ${reason ?? 'No reason provided'}`,
+        metadata: {
+          type: 'RESCHEDULE_REQUEST',
+          previousStartTime: previousStartTime.toISOString(),
+          previousEndTime: previousEndTime.toISOString(),
+          newStartTime,
+          newEndTime,
+        } as unknown as Record<string, string>,
+      },
+    });
+
+    // Update the booking times
+    const updatedBooking = await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        startTime: new Date(newStartTime),
+        endTime: new Date(newEndTime),
+      },
+      include: {
+        service: {
+          select: { id: true, name: true, durationMinutes: true },
+        },
+        tenant: {
+          select: { id: true, name: true, slug: true },
+        },
+      },
+    });
+
+    this.logger.log(
+      `Booking ${bookingId} rescheduled by client ${userId}: ${previousStartTime.toISOString()} -> ${newStartTime}`,
+    );
+
+    return {
+      booking: updatedBooking,
+      previousStartTime,
+      previousEndTime,
+    };
+  }
+
+  /**
    * List invoices with payments for a client across all tenants.
    */
   async findAllPayments(

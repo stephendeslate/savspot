@@ -1,6 +1,6 @@
 # Savspot -- Product Requirements Document
 
-**Version:** 1.1 | **Date:** February 27, 2026 | **Author:** SD Solutions, LLC
+**Version:** 1.2 | **Date:** March 7, 2026 | **Author:** SD Solutions, LLC
 **Document:** PRD
 
 ---
@@ -19,10 +19,10 @@
 
 | Phase | Timeline | Key Deliverables |
 |-------|----------|-----------------|
-| **Phase 1** | Months 1-2.5 | Multi-tenant platform, business-type preset onboarding (zero-config to live booking page), dynamic booking flow (steps determined by service config), PaymentProvider abstraction interface with Stripe Connect as Phase 1 implementation, offline payment as first-class path, admin CRM with progressive disclosure, client portal, booking page, basic embed widget (redirect mode), one-way calendar, basic transactional email (confirmation, receipt, reminders, follow-ups), platform admin CLI scripts |
+| **Phase 1** | ~~Months 1-2.5~~ **COMPLETE** (March 2026) | Multi-tenant platform, business-type preset onboarding (zero-config to live booking page), dynamic booking flow (steps determined by service config), PaymentProvider abstraction interface with Stripe Connect as Phase 1 implementation, offline payment as first-class path, admin CRM with progressive disclosure, client portal, booking page, basic embed widget (redirect mode), two-way calendar sync (FR-CAL-10 moved to Phase 1), basic transactional email (confirmation, receipt, reminders, follow-ups), platform admin CLI scripts. **920 tests passing, live at savspot.co.** |
 | **Soft Launch** | ~1 week post Phase 1 | Personally onboard 5–10 businesses across 1–2 verticals; observe real usage, booking completion, payment flow, and organic sharing behavior; gather signal to inform Phase 2 priorities (see PVD §8a) |
-| **Phase 2** | Months 2.5-4 | Mobile app (React Native + Expo — client booking experience, push notifications, biometric auth), subscription billing infrastructure, advanced email/SMS templates, contracts, check-in/check-out, booking flow builder, notifications, questionnaires, add-ons, reviews, two-way calendar, advanced widget (premium) |
-| **Phase 3** | Months 4-6 | MCP server, public API, workflow automation, advanced analytics (premium), accounting (premium), i18n, multi-currency, alternative payment providers (Adyen, PayPal Commerce Platform) via PaymentProvider abstraction |
+| **Phase 2** | Months 2.5-4 | Mobile app (React Native + Expo -- client booking experience, push notifications, biometric auth), subscription billing infrastructure, advanced email/SMS templates, contracts, check-in/check-out, booking flow builder, notifications, questionnaires, add-ons, reviews, iCal feed export (FR-CAL-16), advanced widget (premium), invisible AI operations (FR-AI-1 through FR-AI-6 -- see §3.15 and [AI-STRATEGY.md](AI-STRATEGY.md)) |
+| **Phase 3** | Months 4-6 | MCP server (FR-AI-8), public API, AI Voice Receptionist (FR-AI-7, premium), cross-tenant benchmarking UI, natural language business Q&A, workflow automation, advanced analytics (premium), accounting (premium), i18n, multi-currency, alternative payment providers (Adyen, PayPal Commerce Platform) via PaymentProvider abstraction |
 | **Phase 4** | Demand-driven (post-launch) | AI recommendations, directory, custom domains, multi-location, partner program, regional payment providers — shipped when user base metrics justify each feature |
 
 ---
@@ -63,7 +63,7 @@
 | FR-BFW-11 | Back/next navigation, progress indicator, step validation (adapts to actual steps in flow) | Must | 1 |
 | FR-BFW-12 | Real-time availability check preventing double-booking | Must | 1 |
 | FR-BFW-13 | Reservation token system holding slot for configurable duration | Must | 1 |
-| FR-BFW-14 | Abandoned booking recovery (save progress, send reminder) | Should | 2 |
+| FR-BFW-14 | Abandoned booking recovery (save progress, send reminder) | Should | 1 |
 | FR-BFW-15 | Booking flow preview mode for business owners | Must | 1 |
 | FR-BFW-16 | Conditional step logic based on previous selections | Could | 3 |
 | FR-BFW-17 | Guest checkout with optional post-booking account creation | Should | 1 |
@@ -185,7 +185,7 @@
 | *(FR-COM-4)* | *(See §3.6 Communications -- automated triggers are a communications requirement delivered via workflow infrastructure)* | Must | 1 |
 | GAP-7.1 | WorkflowTemplate with stages and trigger conditions | Must | 3 |
 | GAP-7.2 | WorkflowStage with 7 automation types and 4 progression conditions | Must | 3 |
-| GAP-7.3 | WorkflowTrigger with 18 event types | Must | 3 |
+| GAP-7.3 | WorkflowTrigger with 20 event types (see SRS-4 §21 for canonical list) | Must | 3 |
 | GAP-7.4 | Per-booking overrides (skip, disable, custom timing, add stage) | Should | 3 |
 | GAP-7.5 | Outgoing webhooks with HMAC signature verification | Should | 3 |
 | GAP-12.1 | Payment deadline automation with auto-cancel | Must | 1 |
@@ -248,6 +248,21 @@
 | FR-SUP-2 | Static help center with FAQ articles (10-15 articles covering onboarding, payments, booking management, cancellations, account management) hosted on marketing site | Should | 1 |
 | FR-SUP-3 | AI-powered L1 support triage: Open Claw monitors incoming support tickets 24/7 (`support_tickets` with `status = 'NEW'`), routes to AI pipeline (Qwen3 local for known patterns; Claude Code for complex diagnostic) for investigation (`AI_INVESTIGATING`) and resolution. Auto-resolves common issues with drafted responses (`AI_RESOLVED`). Escalates unresolvable tickets to developer (`NEEDS_MANUAL_REVIEW`). CRITICAL severity tickets and PAYMENT_ISSUE refund approvals always escalate. See BRD §8a for full pipeline specification. Data model: SRS-2 §12a. | Must | 1 |
 | FR-SUP-4 | Support ticket lifecycle management: `support_tickets` table with status tracking (NEW, AI_INVESTIGATING, AI_RESOLVED, NEEDS_MANUAL_REVIEW, RESOLVED, CLOSED), AI resolution notes, user satisfaction tracking ("Was this helpful?"), and repeat-ticket detection (same user + category within 7 days triggers auto-escalation). Developer dashboard (CLI in Phase 1, web in Phase 2) showing ticket queue by status, AI resolution rate, and escalation queue. Weekly quality digest of AI-resolved tickets. Data model: SRS-2 §12a. Background jobs: SRS-4 §41b. | Should | 1 |
+
+### 3.15 Intelligent Operations (FR-AI-*)
+
+> **Design principle:** AI features in this section deliver outcomes -- fewer no-shows, fuller calendars, less admin work -- without requiring user engagement with "AI." They are not labeled as AI in the UI. They modify existing workflows, not create new UI surfaces. This approach is informed by market data: explicit AI features see 22-28% adoption even in best cases (Toast 2025); invisible operational improvements have universal impact. See [AI-STRATEGY.md](AI-STRATEGY.md) for full strategic rationale.
+
+| ID | Requirement | Pri | Phase |
+|----|------------|-----|-------|
+| FR-AI-1 | Smart reminder timing: determine optimal reminder send time per client based on booking history, confirmation response patterns, and day-of-week behavior. Overrides default fixed-interval timing (24h before) when sufficient client data exists (5+ prior bookings). Falls back to default when data is insufficient. Implemented as enhancement to existing BullMQ communication jobs, not a new system. | Should | 2 |
+| FR-AI-2 | No-show risk indicator: compute risk level (low/medium/high) for upcoming bookings based on client no-show history, booking lead time, day-of-week patterns, and first-time vs. returning client status. Display as subtle colored indicator in calendar view (FR-CRM-2) and appointment list view (FR-CRM-27). Not labeled as "AI prediction" -- presented as a native UI element (e.g., amber dot). Computed by daily BullMQ job for next 7 days of bookings. | Should | 2 |
+| FR-AI-3 | Rebooking interval detection: compute per-client-service rebooking cadence from booking history (median interval between consecutive bookings of same service by same client). When interval is established (3+ data points), trigger rebooking prompt (FR-BFW-19) at optimal timing rather than fixed delay. Store computed interval on client record. Recompute daily. | Should | 2 |
+| FR-AI-4 | Slot demand analysis: weekly background job analyzing historical booking patterns to identify consistently empty vs. high-demand time slots per tenant. Surface as actionable dashboard card on admin dashboard (FR-CRM-1): "Tuesday 3-5pm has been empty for 6 weeks" or "Saturday 10am fills within 2 hours of opening -- consider extending morning hours." Cards are dismissible. Rendered only when analysis produces actionable signals (not noise). | Should | 2 |
+| FR-AI-5 | Cross-tenant benchmarking pipeline: aggregate anonymized booking metrics (no-show rate, slot utilization, rebooking rate, average booking value) across tenants by business category. Data collection begins in Phase 2 (background job, daily refresh). User-facing benchmark comparisons activate in Phase 3 when 50+ tenants exist in a business category. Minimum aggregation threshold of 4 tenants per filter before benchmarks display. Tenant opt-out available in settings. Requires Terms of Service clause authorizing de-identified data aggregation. Legal precedent: Zendesk Benchmark, Gusto compensation benchmarking. See [AI-STRATEGY.md](AI-STRATEGY.md) §5.3 for privacy requirements. | Should | 2 |
+| FR-AI-6 | Smart morning summary: upgrade existing morning summary (FR-COM-10) with contextual intelligence. In addition to the day's booking list, include: high no-show-risk appointments flagged, first-time clients noted, schedule gaps identified, yesterday's no-shows highlighted for follow-up. Same delivery channel (SMS or email) and BullMQ job as FR-COM-10 -- this is an enhancement, not a new feature. | Should | 2 |
+| FR-AI-7 | AI Voice Receptionist: voice agent powered by local AI (Ollama in development, cloud inference in production) that answers business phone line after hours, checks real-time availability via existing availability resolver, and books appointments via existing booking session flow. Premium feature gated behind subscription (FR-PAY-18). Validated by industry data: 34% of appointment requests come after hours; Zenoti reports $3-4K/month revenue lift per location from AI receptionist. Phase 3 to allow prototype validation and subscription billing infrastructure (Phase 2) to be in place. | Should | 3 |
+| FR-AI-8 | MCP server: expose booking, availability, and service data via Model Context Protocol for AI agent discoverability and booking. AI agents can discover businesses by category/location, check real-time availability, and complete bookings programmatically following the same business rules as human users (BR-RULE-6). Fresha reports 50% MoM growth in AI-referred bookings (Feb 2026) -- this is a distribution strategy, not a feature. API-first architecture from Phase 1 means implementation requires building the public interface, not re-architecting. | Must | 3 |
 
 ---
 

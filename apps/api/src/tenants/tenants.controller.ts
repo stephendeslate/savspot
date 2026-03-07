@@ -5,6 +5,8 @@ import {
   Patch,
   Body,
   Param,
+  HttpCode,
+  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -76,5 +78,21 @@ export class TenantsController {
     @Body() dto: ApplyPresetDto,
   ) {
     return this.tenantsService.applyPreset(id, dto.category);
+  }
+
+  @Post(':id/export')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(TenantRolesGuard)
+  @TenantRoles('OWNER', 'ADMIN')
+  @ApiOperation({
+    summary: 'Request business data export',
+    description: 'Creates a data export request for the tenant. Processing runs asynchronously.',
+  })
+  @ApiResponse({ status: 201, description: 'Export request created' })
+  async requestExport(
+    @Param('id', UuidValidationPipe) id: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.tenantsService.requestExport(id, userId);
   }
 }

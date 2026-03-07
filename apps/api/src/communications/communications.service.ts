@@ -137,6 +137,8 @@ export class CommunicationsService {
         return this.renderWeeklyDigest(data);
       case 'abandoned-booking-recovery':
         return this.renderAbandonedBookingRecovery(data);
+      case 'staff-approval-required':
+        return this.renderStaffApprovalRequired(data);
       default:
         this.logger.warn(`Unknown template key: ${templateKey}`);
         return {
@@ -408,6 +410,27 @@ export class CommunicationsService {
         <a href="${this.esc(rebookUrl)}" style="display:inline-block;padding:12px 24px;background:${branding.brandColor ?? '#000'};color:#fff;text-decoration:none;border-radius:6px;">Complete Your Booking</a>
       </p>
       <p style="font-size:13px;color:#888;">If you no longer need to book, you can safely ignore this email.</p>
+    `);
+    return { subject, html };
+  }
+
+  private renderStaffApprovalRequired(d: Record<string, unknown>): RenderedTemplate {
+    const branding = this.extractBranding(d);
+    const approveUrl = String(d['approveUrl'] ?? '#');
+    const subject = `Booking requires approval — ${branding.businessName}`;
+    const html = this.wrapHtml(branding, `
+      <h2 style="color:#333;margin:0 0 16px;">New booking awaiting your approval</h2>
+      <p>Hi ${this.esc(d['staffName'])},</p>
+      <p>A new booking requires your review and approval:</p>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+        <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666;">Client</td><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">${this.esc(d['clientName'])}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666;">Service</td><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">${this.esc(d['serviceName'])}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666;">Date/Time</td><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">${this.esc(d['dateTime'])}</td></tr>
+      </table>
+      <p style="margin:24px 0;">
+        <a href="${this.esc(approveUrl)}" style="display:inline-block;padding:12px 24px;background:${branding.brandColor ?? '#000'};color:#fff;text-decoration:none;border-radius:6px;">Review Booking</a>
+      </p>
+      <p style="font-size:13px;color:#888;">This booking will be automatically cancelled if not approved within the configured deadline.</p>
     `);
     return { subject, html };
   }

@@ -125,7 +125,7 @@ export class CalendarPushHandler {
       connectionId,
       {
         summary: `${serviceName} — ${clientName}`,
-        description: `SavSpot Booking: ${bookingId}\nService: ${serviceName}\nClient: ${clientName}`,
+        description: `SavSpot Booking: ${bookingId}\nService: ${serviceName}\nClient: ${clientName}\nView: ${process.env.WEB_URL || 'https://app.savspot.co'}/bookings/${bookingId}`,
         startTime: new Date(startTime),
         endTime: new Date(endTime),
       },
@@ -196,7 +196,7 @@ export class CalendarPushHandler {
       calEvent.externalEventId,
       {
         summary: `${serviceName} — ${clientName}`,
-        description: `SavSpot Booking: ${bookingId} (Rescheduled)\nService: ${serviceName}\nClient: ${clientName}`,
+        description: `SavSpot Booking: ${bookingId} (Rescheduled)\nService: ${serviceName}\nClient: ${clientName}\nView: ${process.env.WEB_URL || 'https://app.savspot.co'}/bookings/${bookingId}`,
         startTime: new Date(newStartTime),
         endTime: new Date(newEndTime),
       },
