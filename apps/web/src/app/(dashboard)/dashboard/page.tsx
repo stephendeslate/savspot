@@ -4,10 +4,13 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  AlertCircle,
   Briefcase,
   CheckCircle,
   Clock,
   Calendar,
+  CreditCard,
+  CalendarSync,
   Plus,
   ArrowRight,
 } from 'lucide-react';
@@ -30,6 +33,8 @@ interface DashboardStats {
   activeServices: number;
   availabilityRules: number;
   upcomingBookings: number;
+  hasStripe: boolean;
+  hasCalendar: boolean;
 }
 
 interface Service {
@@ -50,6 +55,8 @@ export default function DashboardPage() {
     activeServices: 0,
     availabilityRules: 0,
     upcomingBookings: 0,
+    hasStripe: false,
+    hasCalendar: false,
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -61,8 +68,8 @@ export default function DashboardPage() {
 
     const fetchStats = async () => {
       try {
-        // Fetch services and availability rules in parallel
-        const [services, availabilityRules] = await Promise.all([
+        // Fetch services, availability rules, and connection status in parallel
+        const [services, availabilityRules, stripeStatus, calendarConns] = await Promise.all([
           apiClient
             .get<Service[]>(`/api/tenants/${tenantId}/services`)
             .catch(() => [] as Service[]),
@@ -71,6 +78,12 @@ export default function DashboardPage() {
               `/api/tenants/${tenantId}/availability-rules`,
             )
             .catch(() => [] as AvailabilityRule[]),
+          apiClient
+            .get<{ connected: boolean }>(`/api/tenants/${tenantId}/payments/connect/status`)
+            .catch(() => ({ connected: false })),
+          apiClient
+            .get<{ id: string }[]>(`/api/tenants/${tenantId}/calendar/connections`)
+            .catch(() => [] as { id: string }[]),
         ]);
 
         setStats({
@@ -78,6 +91,8 @@ export default function DashboardPage() {
           activeServices: services.filter((s) => s.isActive).length,
           availabilityRules: availabilityRules.length,
           upcomingBookings: 0,
+          hasStripe: stripeStatus.connected,
+          hasCalendar: calendarConns.length > 0,
         });
       } catch {
         // Fallback to zero stats
@@ -208,6 +223,73 @@ export default function DashboardPage() {
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Setup Prompts */}
+      {!isLoading && (stats.totalServices === 0 || stats.availabilityRules === 0 || !stats.hasStripe || !stats.hasCalendar) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              Complete Your Setup
+            </CardTitle>
+            <CardDescription>
+              Finish configuring these items to start accepting bookings
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {stats.totalServices === 0 && (
+                <Link href={ROUTES.SERVICES_NEW}>
+                  <div className="flex items-center gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 transition-colors hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950 dark:hover:bg-amber-900">
+                    <Plus className="h-4 w-4 text-amber-600" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Add your first service</p>
+                      <p className="text-xs text-muted-foreground">Create a bookable service for your clients</p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </Link>
+              )}
+              {stats.availabilityRules === 0 && (
+                <Link href={ROUTES.SETTINGS_AVAILABILITY}>
+                  <div className="flex items-center gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 transition-colors hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950 dark:hover:bg-amber-900">
+                    <Clock className="h-4 w-4 text-amber-600" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Set your availability</p>
+                      <p className="text-xs text-muted-foreground">Define your working hours so clients can book</p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </Link>
+              )}
+              {!stats.hasStripe && (
+                <Link href={ROUTES.SETTINGS_PAYMENTS}>
+                  <div className="flex items-center gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 transition-colors hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950 dark:hover:bg-amber-900">
+                    <CreditCard className="h-4 w-4 text-amber-600" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Connect Stripe</p>
+                      <p className="text-xs text-muted-foreground">Accept online payments from your clients</p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </Link>
+              )}
+              {!stats.hasCalendar && (
+                <Link href={ROUTES.SETTINGS_CALENDAR}>
+                  <div className="flex items-center gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 transition-colors hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950 dark:hover:bg-amber-900">
+                    <CalendarSync className="h-4 w-4 text-amber-600" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Connect Google Calendar</p>
+                      <p className="text-xs text-muted-foreground">Sync your bookings and prevent double-bookings</p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </Link>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Quick Actions */}

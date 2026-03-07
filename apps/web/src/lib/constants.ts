@@ -32,6 +32,7 @@ export const ROUTES = {
   SETTINGS_EMBED: '/settings/embed',
   SETTINGS_TAX_RATES: '/settings/tax-rates',
   SETTINGS_GALLERY: '/settings/gallery',
+  SETTINGS_BOOKING_FLOW: '/settings/booking-flow',
 
   // Auth (public)
   ACCEPT_INVITATION: '/accept-invitation',

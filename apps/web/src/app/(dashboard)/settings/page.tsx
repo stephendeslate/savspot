@@ -10,6 +10,7 @@ import {
   Code,
   CreditCard,
   Image,
+  ListOrdered,
   Palette,
   Receipt,
   Tag,
@@ -77,6 +78,12 @@ const settingsSections = [
     description: 'Invite and manage team members',
     href: '/settings/team',
     icon: Users,
+  },
+  {
+    name: 'Booking Flow',
+    description: 'See which steps appear in your booking flow',
+    href: '/settings/booking-flow',
+    icon: ListOrdered,
   },
   {
     name: 'Embed Widget',

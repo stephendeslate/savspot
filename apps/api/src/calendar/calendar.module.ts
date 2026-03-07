@@ -9,6 +9,7 @@ import { CalendarPushHandler } from './calendar-push.processor';
 import { CalendarSyncHandler } from './calendar-sync.processor';
 import { CalendarTokenHandler } from './calendar-token.processor';
 import { CalendarWatchRenewalHandler } from './calendar-watch-renewal.processor';
+import { CalendarEventListener } from './calendar-event.listener';
 
 /**
  * Calendar integration module.
@@ -27,6 +28,7 @@ import { CalendarWatchRenewalHandler } from './calendar-watch-renewal.processor'
     CalendarSyncHandler,
     CalendarTokenHandler,
     CalendarWatchRenewalHandler,
+    CalendarEventListener,
   ],
   exports: [GoogleCalendarService],
 })

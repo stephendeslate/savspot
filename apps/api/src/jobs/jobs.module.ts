@@ -3,6 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import {
   QUEUE_BOOKINGS,
   QUEUE_PAYMENTS,
+  QUEUE_CALENDAR,
   QUEUE_COMMUNICATIONS,
   QUEUE_INVOICES,
   QUEUE_GDPR,
@@ -45,6 +46,7 @@ import { JobSchedulerService } from './job-scheduler.service';
     BullModule.registerQueue(
       { name: QUEUE_BOOKINGS },
       { name: QUEUE_PAYMENTS },
+      { name: QUEUE_CALENDAR },
       { name: QUEUE_COMMUNICATIONS },
       { name: QUEUE_INVOICES },
       { name: QUEUE_GDPR },

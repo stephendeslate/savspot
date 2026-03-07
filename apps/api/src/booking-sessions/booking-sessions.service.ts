@@ -56,7 +56,7 @@ export class BookingSessionsService {
     if (dto.serviceId) {
       const service = await this.prisma.service.findUnique({
         where: { id: dto.serviceId },
-        select: { id: true, name: true, durationMinutes: true, basePrice: true, currency: true, pricingModel: true, guestConfig: true },
+        select: { id: true, name: true, durationMinutes: true, basePrice: true, currency: true, pricingModel: true, guestConfig: true, depositConfig: true },
       });
       if (service) {
         initialData = {
@@ -67,6 +67,7 @@ export class BookingSessionsService {
           serviceCurrency: service.currency,
           servicePricingModel: service.pricingModel,
           guestConfig: service.guestConfig ?? null,
+          depositConfig: service.depositConfig ?? null,
         };
       }
     }

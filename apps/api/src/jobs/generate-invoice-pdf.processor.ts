@@ -2,6 +2,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
+import { UploadService } from '../upload/upload.service';
 import {
   QUEUE_INVOICES,
   JOB_GENERATE_INVOICE_PDF,
@@ -13,18 +14,20 @@ interface GenerateInvoicePdfPayload {
 }
 
 /**
- * Generates invoice HTML content and stores it.
+ * Generates invoice HTML content and uploads to R2 storage.
  * Triggered on invoice creation via event-driven BullMQ job.
  *
- * For Sprint 4, generates a well-formatted HTML string.
- * Full PDF rendering via @react-pdf/renderer and upload to R2
- * will be added when R2 storage is configured.
+ * Generates a well-formatted HTML document and uploads it to R2.
+ * Falls back to inline data URI if R2 is not configured.
  */
 @Processor(QUEUE_INVOICES)
 export class GenerateInvoicePdfProcessor extends WorkerHost {
   private readonly logger = new Logger(GenerateInvoicePdfProcessor.name);
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploadService: UploadService,
+  ) {
     super();
   }
 
@@ -75,10 +78,39 @@ export class GenerateInvoicePdfProcessor extends WorkerHost {
 
       // Generate HTML content for the invoice
       const html = this.generateInvoiceHtml(invoice);
+      const htmlBuffer = Buffer.from(html, 'utf-8');
 
-      // For now, store a placeholder PDF URL indicating HTML is ready
-      // Real PDF upload to R2 will happen when R2 storage is configured.
-      const pdfUrl = `data:text/html;base64,${Buffer.from(html).toString('base64')}`;
+      // Upload to R2 if configured, otherwise fall back to data URI
+      let pdfUrl: string;
+      try {
+        const uploadResult = await this.uploadService.getPresignedUploadUrl({
+          tenantId,
+          fileName: `invoice-${invoice.invoiceNumber}.html`,
+          contentType: 'text/html',
+        });
+
+        const response = await fetch(uploadResult.uploadUrl, {
+          method: 'PUT',
+          body: htmlBuffer,
+          headers: { 'Content-Type': 'text/html' },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+        }
+
+        pdfUrl = uploadResult.publicUrl;
+        this.logger.log(
+          `Invoice ${invoice.invoiceNumber} uploaded to R2: ${pdfUrl}`,
+        );
+      } catch (uploadError) {
+        this.logger.warn(
+          `R2 upload failed for invoice ${invoice.invoiceNumber}, storing inline: ${
+            uploadError instanceof Error ? uploadError.message : 'Unknown error'
+          }`,
+        );
+        pdfUrl = `data:text/html;base64,${htmlBuffer.toString('base64')}`;
+      }
 
       await this.prisma.invoice.update({
         where: { id: invoiceId },
@@ -86,7 +118,7 @@ export class GenerateInvoicePdfProcessor extends WorkerHost {
       });
 
       this.logger.log(
-        `Invoice PDF generated for ${invoice.invoiceNumber} (HTML stored as data URI)`,
+        `Invoice PDF generated for ${invoice.invoiceNumber}`,
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
