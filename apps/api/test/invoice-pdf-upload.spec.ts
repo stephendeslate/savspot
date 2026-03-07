@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { GenerateInvoicePdfProcessor } from '../src/jobs/generate-invoice-pdf.processor';
 import { JOB_GENERATE_INVOICE_PDF } from '../src/bullmq/queue.constants';
 
