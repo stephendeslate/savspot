@@ -37,7 +37,7 @@ test.describe('Team Settings', () => {
     ).toBeVisible({ timeout: 15_000 });
 
     // The "Team Members" card title should be visible
-    await expect(page.getByRole('heading', { name: 'Team Members' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Team Members', exact: true })).toBeVisible();
 
     // Either a member list or the empty state should appear
     const memberCount = page.getByText(/member.*on your team/i);

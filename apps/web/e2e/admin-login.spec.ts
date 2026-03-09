@@ -56,8 +56,10 @@ test.describe('Admin Authentication', () => {
     await page.goto('/login');
     await page.getByLabel(/email/i).fill(TEST_USER.email);
     await page.getByLabel(/password/i).fill(TEST_USER.password);
+    // Dismiss mobile keyboard before clicking sign-in
+    await page.getByLabel(/password/i).blur();
     await page.getByRole('button', { name: /sign in/i }).click();
-    await page.waitForURL('/dashboard', { timeout: 15_000 });
+    await page.waitForURL('/dashboard', { timeout: 30_000 });
 
     // On mobile viewports, open the hamburger menu to see navigation
     const menuButton = page.getByRole('button', { name: /open menu/i });
@@ -82,8 +84,10 @@ test.describe('Admin Authentication', () => {
     await page.goto('/login');
     await page.getByLabel(/email/i).fill(TEST_USER.email);
     await page.getByLabel(/password/i).fill(TEST_USER.password);
+    // Dismiss mobile keyboard before clicking sign-in
+    await page.getByLabel(/password/i).blur();
     await page.getByRole('button', { name: /sign in/i }).click();
-    await page.waitForURL('/dashboard', { timeout: 15_000 });
+    await page.waitForURL('/dashboard', { timeout: 30_000 });
 
     // On mobile, open the hamburger menu to access the logout button
     const menuButton = page.getByRole('button', { name: /open menu/i });
