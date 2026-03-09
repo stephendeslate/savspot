@@ -36,6 +36,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         storageState: 'e2e/.auth/user.json',
       },
+      testIgnore: /mobile-responsive/,
       dependencies: ['setup'],
     },
 
