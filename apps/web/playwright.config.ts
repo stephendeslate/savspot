@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const isCI = !!process.env['CI'];
+
 /**
  * Playwright E2E test configuration for SavSpot web app.
  *
@@ -51,9 +53,11 @@ export default defineConfig({
   /* Start the API and Next.js servers before tests run */
   webServer: [
     {
-      command: 'pnpm --filter @savspot/api dev',
+      command: isCI
+        ? 'node apps/api/dist/main'
+        : 'pnpm --filter @savspot/api dev',
       url: 'http://localhost:3001/api',
-      reuseExistingServer: !process.env['CI'],
+      reuseExistingServer: !isCI,
       timeout: 120_000,
       cwd: process.cwd().replace(/\/apps\/web$/, ''),
       env: {
@@ -65,9 +69,9 @@ export default defineConfig({
       },
     },
     {
-      command: 'pnpm dev',
+      command: isCI ? 'pnpm start' : 'pnpm dev',
       url: 'http://localhost:3000',
-      reuseExistingServer: !process.env['CI'],
+      reuseExistingServer: !isCI,
       timeout: 120_000,
     },
   ],
