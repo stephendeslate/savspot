@@ -118,9 +118,8 @@ export function timeOnly(hour: number, minute: number = 0): Date {
 }
 
 /**
- * Fake bcrypt-style password hash placeholder.
- * In a real app this would be an actual bcrypt hash.
- * This is the bcrypt hash for the string "password123".
+ * Bcrypt hash for the seed password "Password123!".
+ * Used by all seeded users so E2E and integration tests can log in.
  */
 export const SEED_PASSWORD_HASH =
-  '$2b$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ012345';
+  '$2b$10$0cQ8ddXfR7RGKgxDiN/AWuTZmJfyxVim9oZ0yDBJvtlQrSNcyiUF.';
