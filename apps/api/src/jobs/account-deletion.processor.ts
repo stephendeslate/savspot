@@ -62,8 +62,46 @@ export class AccountDeletionHandler {
     const anonymizedEmail = `deleted-${userId.slice(0, 8)}@deleted.savspot.co`;
     const anonymizedName = '[deleted]';
 
+    // Find all tenants this user belongs to for RLS-scoped operations
+    const tenantRows = await this.prisma.$queryRaw<Array<{ tenant_id: string }>>`
+      SELECT DISTINCT tenant_id FROM (
+        SELECT tenant_id FROM bookings WHERE client_id = ${userId}
+        UNION
+        SELECT tenant_id FROM browser_push_subscriptions WHERE user_id = ${userId}
+        UNION
+        SELECT tenant_id FROM notifications WHERE user_id = ${userId} AND tenant_id IS NOT NULL
+      ) AS tenants
+    `;
+
+    // Process tenant-scoped deletions per-tenant with RLS context
+    for (const { tenant_id: tenantId } of tenantRows) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+
+        // Delete push subscriptions for this tenant
+        await tx.browserPushSubscription.deleteMany({
+          where: { userId, tenantId },
+        });
+
+        // Delete tenant-scoped notifications
+        await tx.notification.deleteMany({
+          where: { userId, tenantId },
+        });
+
+        // Anonymize booking guest details for this tenant
+        await tx.booking.updateMany({
+          where: { clientId: userId, tenantId },
+          data: {
+            notes: null,
+            guestDetails: Prisma.JsonNull,
+          },
+        });
+      });
+    }
+
+    // Process non-tenant-scoped operations in a separate transaction
     await this.prisma.$transaction(async (tx) => {
-      // 1. Anonymize user PII
+      // 1. Anonymize user PII (users table is not tenant-scoped)
       await tx.user.update({
         where: { id: userId },
         data: {
@@ -76,36 +114,22 @@ export class AccountDeletionHandler {
         },
       });
 
-      // 2. Delete push subscriptions
-      await tx.browserPushSubscription.deleteMany({
-        where: { userId },
-      });
-
-      // 3. Delete consent records
+      // 2. Delete consent records (not tenant-scoped)
       await tx.consentRecord.deleteMany({
         where: { userId },
       });
 
-      // 4. Delete onboarding tours
+      // 3. Delete onboarding tours (not tenant-scoped)
       await tx.onboardingTour.deleteMany({
         where: { userId },
       });
 
-      // 5. Delete notifications
+      // 4. Delete notifications without a tenant (not tenant-scoped)
       await tx.notification.deleteMany({
-        where: { userId },
+        where: { userId, tenantId: null },
       });
 
-      // 6. Anonymize booking guest details
-      await tx.booking.updateMany({
-        where: { clientId: userId },
-        data: {
-          notes: null,
-          guestDetails: Prisma.JsonNull,
-        },
-      });
-
-      // 7. Mark the deletion request as completed
+      // 5. Mark the deletion request as completed
       await tx.dataRequest.update({
         where: { id: requestId },
         data: {

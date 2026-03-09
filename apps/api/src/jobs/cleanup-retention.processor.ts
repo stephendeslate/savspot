@@ -6,9 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
  * Cleans up expired and stale data per GDPR retention policies.
  * Scheduled daily at 3 AM UTC via BullMQ repeatable job.
  *
- * TODO: When migrating to a non-superuser DB role, this processor's raw SQL deletes
- * must set app.current_tenant per-tenant because FORCE ROW LEVEL SECURITY will
- * block cross-tenant access to date_reservations, booking_sessions, and audit_logs.
+ * Sets app.current_tenant per-tenant within transactions for RLS compatibility.
  *
  * Retention rules:
  *   - DateReservation (EXPIRED/RELEASED): hard delete after 30 days
@@ -31,46 +29,75 @@ export class CleanupRetentionHandler {
     try {
       const now = Date.now();
 
-      // 1. Clean up expired/released date reservations older than 30 days
       const reservationCutoff = new Date(
         now - CleanupRetentionHandler.RESERVATION_RETENTION_DAYS * 24 * 60 * 60 * 1000,
       );
-
-      const deletedReservations = await this.prisma.dateReservation.deleteMany({
-        where: {
-          status: { in: ['EXPIRED', 'RELEASED'] },
-          createdAt: { lt: reservationCutoff },
-        },
-      });
-
-      // 2. Clean up abandoned/expired booking sessions older than 90 days
       const sessionCutoff = new Date(
         now - CleanupRetentionHandler.SESSION_RETENTION_DAYS * 24 * 60 * 60 * 1000,
       );
-
-      const deletedSessions = await this.prisma.bookingSession.deleteMany({
-        where: {
-          status: { in: ['ABANDONED', 'EXPIRED'] },
-          createdAt: { lt: sessionCutoff },
-        },
-      });
-
-      // 3. Clean up notifications older than 1 year
       const notificationCutoff = new Date(
         now - CleanupRetentionHandler.NOTIFICATION_RETENTION_DAYS * 24 * 60 * 60 * 1000,
       );
 
-      const deletedNotifications = await this.prisma.notification.deleteMany({
-        where: {
-          createdAt: { lt: notificationCutoff },
-        },
-      });
+      // Query distinct tenant IDs that have data eligible for cleanup
+      const tenantRows = await this.prisma.$queryRaw<Array<{ tenant_id: string }>>`
+        SELECT DISTINCT tenant_id FROM (
+          SELECT tenant_id FROM date_reservations
+            WHERE status IN ('EXPIRED', 'RELEASED') AND created_at < ${reservationCutoff}
+          UNION
+          SELECT tenant_id FROM booking_sessions
+            WHERE status IN ('ABANDONED', 'EXPIRED') AND created_at < ${sessionCutoff}
+          UNION
+          SELECT tenant_id FROM notifications
+            WHERE created_at < ${notificationCutoff}
+        ) AS tenants
+      `;
+
+      let totalReservations = 0;
+      let totalSessions = 0;
+      let totalNotifications = 0;
+
+      for (const { tenant_id: tenantId } of tenantRows) {
+        const result = await this.prisma.$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+
+          const deletedReservations = await tx.dateReservation.deleteMany({
+            where: {
+              status: { in: ['EXPIRED', 'RELEASED'] },
+              createdAt: { lt: reservationCutoff },
+            },
+          });
+
+          const deletedSessions = await tx.bookingSession.deleteMany({
+            where: {
+              status: { in: ['ABANDONED', 'EXPIRED'] },
+              createdAt: { lt: sessionCutoff },
+            },
+          });
+
+          const deletedNotifications = await tx.notification.deleteMany({
+            where: {
+              createdAt: { lt: notificationCutoff },
+            },
+          });
+
+          return {
+            reservations: deletedReservations.count,
+            sessions: deletedSessions.count,
+            notifications: deletedNotifications.count,
+          };
+        });
+
+        totalReservations += result.reservations;
+        totalSessions += result.sessions;
+        totalNotifications += result.notifications;
+      }
 
       this.logger.log(
         `GDPR cleanup complete: ` +
-        `${deletedReservations.count} reservation(s), ` +
-        `${deletedSessions.count} session(s), ` +
-        `${deletedNotifications.count} notification(s) deleted`,
+        `${totalReservations} reservation(s), ` +
+        `${totalSessions} session(s), ` +
+        `${totalNotifications} notification(s) deleted`,
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
