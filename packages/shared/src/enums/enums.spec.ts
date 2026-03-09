@@ -64,6 +64,26 @@ import {
   CalendarConnectionStatus,
   CalendarEventDirection,
   MessageThreadStatus,
+  // Accounting
+  AccountingProvider,
+  AccountingConnectionStatus,
+  // Breach
+  BreachType,
+  BreachSeverity,
+  BreachStatus,
+  BreachNotificationRecipientType,
+  BreachNotificationChannel,
+  // Discount
+  DiscountType,
+  DiscountApplication,
+  // Note
+  NoteEntityType,
+  // Booking (added)
+  BookingWorkflowOverrideType,
+  // Workflow (added)
+  WorkflowStageAutomationType,
+  WorkflowStageTriggerTime,
+  WorkflowStageProgressionCondition,
 } from './index.js';
 
 // ---------------------------------------------------------------------------
@@ -197,6 +217,7 @@ describe('Booking Enums', () => {
   testZodEnum('CancellationReason', CancellationReason);
   testZodEnum('DateReservationStatus', DateReservationStatus);
   testZodEnum('StateTransitionTrigger', StateTransitionTrigger);
+  testZodEnum('BookingWorkflowOverrideType', BookingWorkflowOverrideType);
 });
 
 // ---------------------------------------------------------------------------
@@ -288,6 +309,13 @@ describe('Workflow Enums', () => {
   testZodEnum('WorkflowActionType', WorkflowActionType);
   testZodEnum('ReminderType', ReminderType);
   testZodEnum('ReminderStatus', ReminderStatus);
+  testZodEnum('WorkflowStageAutomationType', WorkflowStageAutomationType);
+  testZodEnum('WorkflowStageTriggerTime', WorkflowStageTriggerTime);
+  testZodEnum('WorkflowStageProgressionCondition', WorkflowStageProgressionCondition);
+
+  it('WorkflowTriggerEvent should include all 18 Prisma values', () => {
+    expect(WorkflowTriggerEvent.options).toHaveLength(18);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -374,4 +402,67 @@ describe('Security Enums', () => {
   testZodEnum('CalendarConnectionStatus', CalendarConnectionStatus);
   testZodEnum('CalendarEventDirection', CalendarEventDirection);
   testZodEnum('MessageThreadStatus', MessageThreadStatus);
+});
+
+// ---------------------------------------------------------------------------
+// Accounting enums
+// ---------------------------------------------------------------------------
+describe('Accounting Enums', () => {
+  testZodEnum('AccountingProvider', AccountingProvider);
+
+  it('AccountingProvider should include QUICKBOOKS and XERO', () => {
+    expect(AccountingProvider.options).toEqual(
+      expect.arrayContaining(['QUICKBOOKS', 'XERO']),
+    );
+    expect(AccountingProvider.options).toHaveLength(2);
+  });
+
+  testZodEnum('AccountingConnectionStatus', AccountingConnectionStatus);
+});
+
+// ---------------------------------------------------------------------------
+// Breach enums
+// ---------------------------------------------------------------------------
+describe('Breach Enums', () => {
+  testZodEnum('BreachType', BreachType);
+  testZodEnum('BreachSeverity', BreachSeverity);
+  testZodEnum('BreachStatus', BreachStatus);
+
+  it('BreachStatus should include full lifecycle', () => {
+    expect(BreachStatus.options).toEqual(
+      expect.arrayContaining(['DETECTED', 'INVESTIGATING', 'CONFIRMED', 'CONTAINED', 'NOTIFYING', 'RESOLVED']),
+    );
+  });
+
+  testZodEnum('BreachNotificationRecipientType', BreachNotificationRecipientType);
+  testZodEnum('BreachNotificationChannel', BreachNotificationChannel);
+});
+
+// ---------------------------------------------------------------------------
+// Discount enums
+// ---------------------------------------------------------------------------
+describe('Discount Enums', () => {
+  testZodEnum('DiscountType', DiscountType);
+
+  it('DiscountType should include PERCENTAGE, FIXED, FREE_HOURS', () => {
+    expect(DiscountType.options).toEqual(
+      expect.arrayContaining(['PERCENTAGE', 'FIXED', 'FREE_HOURS']),
+    );
+  });
+
+  testZodEnum('DiscountApplication', DiscountApplication);
+});
+
+// ---------------------------------------------------------------------------
+// Note enums
+// ---------------------------------------------------------------------------
+describe('Note Enums', () => {
+  testZodEnum('NoteEntityType', NoteEntityType);
+
+  it('NoteEntityType should include BOOKING and CLIENT', () => {
+    expect(NoteEntityType.options).toEqual(
+      expect.arrayContaining(['BOOKING', 'CLIENT']),
+    );
+    expect(NoteEntityType.options).toHaveLength(2);
+  });
 });
