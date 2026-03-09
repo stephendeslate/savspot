@@ -936,6 +936,7 @@ model DateReservation {
   service Service        @relation(fields: [serviceId], references: [id])
 
   @@index([tenantId])
+  @@index([sessionId])
   @@index([serviceId, reservedDate, status])
   @@map("date_reservations")
 }
@@ -1035,6 +1036,7 @@ model Payment {
 
   @@index([tenantId])
   @@index([bookingId, status])
+  @@index([invoiceId])
   @@index([tenantId, createdAt])
   @@map("payments")
 }
@@ -1076,6 +1078,7 @@ model PaymentDispute {
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
+  @@index([paymentId])
   @@map("payment_disputes")
 }
 
@@ -1109,6 +1112,7 @@ model WebhookDeadLetter {
   // Relations
   webhookLog PaymentWebhookLog @relation(fields: [webhookLogId], references: [id], onDelete: Cascade)
 
+  @@index([webhookLogId])
   @@map("webhook_dead_letters")
 }
 
@@ -1137,6 +1141,7 @@ model Invoice {
 
   @@unique([tenantId, invoiceNumber])
   @@index([tenantId])
+  @@index([bookingId])
   @@map("invoices")
 }
 
@@ -1156,6 +1161,7 @@ model InvoiceLineItem {
   invoice Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   taxRate TaxRate? @relation(fields: [taxRateId], references: [id])
 
+  @@index([invoiceId])
   @@map("invoice_line_items")
 }
 
@@ -1298,6 +1304,7 @@ model ServiceAddon {
   service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
+  @@index([serviceId])
   @@map("service_addons")
 }
 
@@ -1371,6 +1378,7 @@ model Communication {
   booking   Booking? @relation(fields: [bookingId], references: [id])
 
   @@index([tenantId])
+  @@index([bookingId])
   @@index([tenantId, recipientId, createdAt])
   @@map("communications")
 }
@@ -1430,6 +1438,7 @@ model TemplateHistory {
   // Relations
   template CommunicationTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
+  @@index([templateId])
   @@map("template_history")
 }
 
@@ -1474,6 +1483,7 @@ model Notification {
 
   @@index([userId, isRead])
   @@index([tenantId])
+  @@index([typeId])
   @@map("notifications")
 }
 
@@ -1506,6 +1516,7 @@ model NotificationDigest {
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("notification_digests")
 }
 
@@ -1523,6 +1534,7 @@ model DevicePushToken {
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("device_push_tokens")
 }
 
@@ -1577,6 +1589,8 @@ model Contract {
   amendments   ContractAmendment[]
 
   @@index([tenantId])
+  @@index([bookingId])
+  @@index([templateId])
   @@map("contracts")
 }
 
@@ -1601,6 +1615,8 @@ model ContractSignature {
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
   signer   User     @relation(fields: [signerId], references: [id])
 
+  @@index([contractId])
+  @@index([signerId])
   @@map("contract_signatures")
 }
 
@@ -1623,6 +1639,7 @@ model ContractAmendment {
   requestedByUser User     @relation("AmendmentRequestedBy", fields: [requestedBy], references: [id])
   reviewedByUser  User?    @relation("AmendmentReviewedBy", fields: [reviewedBy], references: [id])
 
+  @@index([contractId])
   @@map("contract_amendments")
 }
 
@@ -1674,6 +1691,7 @@ model QuoteLineItem {
   quote   Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   product Service? @relation(fields: [productId], references: [id])
 
+  @@index([quoteId])
   @@map("quote_line_items")
 }
 
@@ -1691,6 +1709,7 @@ model QuoteOption {
   quote Quote             @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   items QuoteOptionItem[]
 
+  @@index([quoteId])
   @@map("quote_options")
 }
 
@@ -1786,6 +1805,7 @@ model BookingWorkflowOverride {
   stage   WorkflowStage? @relation(fields: [stageId], references: [id])
   creator User           @relation(fields: [createdBy], references: [id])
 
+  @@index([bookingId])
   @@map("booking_workflow_overrides")
 }
 
@@ -1859,6 +1879,7 @@ model CalendarConnection {
   calendarEvents CalendarEvent[]
 
   @@index([tenantId])
+  @@index([userId])
   @@map("calendar_connections")
 }
 
@@ -1881,6 +1902,8 @@ model CalendarEvent {
   booking            Booking?           @relation(fields: [bookingId], references: [id])
 
   @@index([tenantId])
+  @@index([calendarConnectionId])
+  @@index([bookingId])
   @@map("calendar_events")
 }
 
@@ -1904,6 +1927,7 @@ model MessageThread {
   messages Message[]
 
   @@index([tenantId])
+  @@index([bookingId])
   @@map("message_threads")
 }
 
@@ -1922,6 +1946,7 @@ model Message {
   readStatuses MessageReadStatus[]
   attachments  MessageAttachment[]
 
+  @@index([threadId])
   @@map("messages")
 }
 
@@ -1951,6 +1976,7 @@ model MessageAttachment {
   // Relations
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
+  @@index([messageId])
   @@map("message_attachments")
 }
 
@@ -2147,6 +2173,7 @@ model DataRequest {
   user   User    @relation(fields: [userId], references: [id])
   tenant Tenant? @relation(fields: [tenantId], references: [id])
 
+  @@index([userId])
   @@map("data_requests")
 }
 
@@ -2210,6 +2237,7 @@ model ReviewPhoto {
   // Relations
   review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
+  @@index([reviewId])
   @@map("review_photos")
 }
 
@@ -2390,6 +2418,7 @@ model ImportRecord {
   // Relations
   importJob ImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
 
+  @@index([importJobId])
   @@map("import_records")
 }
 

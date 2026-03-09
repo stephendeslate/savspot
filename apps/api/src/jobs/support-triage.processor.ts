@@ -34,6 +34,7 @@ export class SupportTriageHandler {
   private readonly logger = new Logger(SupportTriageHandler.name);
   private readonly ollamaUrl: string;
   private readonly model: string;
+  private readonly confidenceThreshold: number;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -47,6 +48,7 @@ export class SupportTriageHandler {
       'OLLAMA_MODEL',
       'qwen3-coder-next',
     );
+    this.confidenceThreshold = this.configService.get<number>('AI_CONFIDENCE_THRESHOLD', 0.85);
   }
 
   async handle(job: Job<TriagePayload>): Promise<void> {
@@ -74,7 +76,7 @@ export class SupportTriageHandler {
 
       const result = await this.classifyTicket(ticket);
 
-      if (result.classification === 'AUTO_RESOLVE' && result.confidence >= 0.85) {
+      if (result.classification === 'AUTO_RESOLVE' && result.confidence >= this.confidenceThreshold) {
         await this.prisma.supportTicket.update({
           where: { id: ticketId },
           data: {
@@ -114,7 +116,7 @@ export class SupportTriageHandler {
             aiDiagnosis: `AI triage failed: ${message}`,
           },
         })
-        .catch(() => {});
+        .catch((updateErr) => { this.logger.error(`Failed to update ticket ${ticketId} after triage failure: ${updateErr instanceof Error ? updateErr.message : 'Unknown error'}`); });
     }
   }
 

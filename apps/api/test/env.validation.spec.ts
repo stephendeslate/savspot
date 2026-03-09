@@ -5,7 +5,7 @@ describe('envSchema', () => {
   describe('defaults', () => {
     it('should provide sensible defaults when no env vars are set', () => {
       const result = envSchema.parse({});
-      expect(result.DATABASE_URL).toBe('postgresql://postgres:postgres@localhost:5432/savspot_dev');
+      expect(result.DATABASE_URL).toBe('postgresql://savspot:savspot_dev@localhost:5432/savspot_dev');
       expect(result.REDIS_URL).toBe('redis://localhost:6379');
       expect(result.PORT).toBe(3001);
       expect(result.NODE_ENV).toBe('development');

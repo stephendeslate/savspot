@@ -8,7 +8,7 @@ export default defineConfig({
     environment: 'node',
     include: ['{src,test}/**/*.{test,spec}.ts'],
     exclude: ['**/*.integration.spec.ts', '**/node_modules/**'],
-    passWithNoTests: true,
+
   },
   resolve: {
     alias: {

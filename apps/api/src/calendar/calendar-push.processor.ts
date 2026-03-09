@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { GoogleCalendarService } from './calendar.service';
@@ -29,11 +30,15 @@ interface CalendarEventPushJobData {
 @Injectable()
 export class CalendarPushHandler {
   private readonly logger = new Logger(CalendarPushHandler.name);
+  private readonly webUrl: string;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly calendarService: GoogleCalendarService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.webUrl = this.configService.get<string>('WEB_URL', 'http://localhost:3000');
+  }
 
   async handle(job: Job<CalendarEventPushJobData>): Promise<void> {
     const {
@@ -125,7 +130,7 @@ export class CalendarPushHandler {
       connectionId,
       {
         summary: `${serviceName} — ${clientName}`,
-        description: `SavSpot Booking: ${bookingId}\nService: ${serviceName}\nClient: ${clientName}\nView: ${process.env['WEB_URL'] || 'https://app.savspot.co'}/bookings/${bookingId}`,
+        description: `SavSpot Booking: ${bookingId}\nService: ${serviceName}\nClient: ${clientName}\nView: ${this.webUrl}/bookings/${bookingId}`,
         startTime: new Date(startTime),
         endTime: new Date(endTime),
       },
@@ -196,7 +201,7 @@ export class CalendarPushHandler {
       calEvent.externalEventId,
       {
         summary: `${serviceName} — ${clientName}`,
-        description: `SavSpot Booking: ${bookingId} (Rescheduled)\nService: ${serviceName}\nClient: ${clientName}\nView: ${process.env['WEB_URL'] || 'https://app.savspot.co'}/bookings/${bookingId}`,
+        description: `SavSpot Booking: ${bookingId} (Rescheduled)\nService: ${serviceName}\nClient: ${clientName}\nView: ${this.webUrl}/bookings/${bookingId}`,
         startTime: new Date(newStartTime),
         endTime: new Date(newEndTime),
       },

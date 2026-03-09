@@ -102,7 +102,7 @@ export class DataExportHandler {
         data: {
           notes: `Export failed: ${message}`,
         },
-      }).catch(() => {});
+      }).catch((updateErr) => { this.logger.error(`Failed to mark data request as failed: ${updateErr instanceof Error ? updateErr.message : 'Unknown error'}`); });
 
       throw error;
     }

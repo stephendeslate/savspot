@@ -5,7 +5,7 @@ export const envSchema = z.object({
   DATABASE_URL: z
     .string()
     .url()
-    .default('postgresql://postgres:postgres@localhost:5432/savspot_dev'),
+    .default('postgresql://savspot:savspot_dev@localhost:5432/savspot_dev'),
 
   REDIS_URL: z
     .string()
@@ -161,6 +161,23 @@ export const envSchema = z.object({
   VAPID_SUBJECT: z
     .string()
     .default('mailto:support@savspot.co'),
+
+  // ---- Ollama (AI Support Triage) ----
+  OLLAMA_URL: z.string().url().default('http://localhost:11434'),
+  OLLAMA_MODEL: z.string().default('qwen3-coder-next'),
+
+  // ---- Apple Sign-In ----
+  APPLE_CLIENT_ID: z.string().optional(),
+  APPLE_TEAM_ID: z.string().optional(),
+  APPLE_KEY_ID: z.string().optional(),
+  APPLE_PRIVATE_KEY_PATH: z.string().optional(),
+  APPLE_CALLBACK_URL: z.string().url().optional(),
+
+  // ---- Encryption ----
+  ENCRYPTION_KEY: z.string().optional(),
+
+  // ---- AI Triage ----
+  AI_CONFIDENCE_THRESHOLD: z.coerce.number().min(0).max(1).default(0.85),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

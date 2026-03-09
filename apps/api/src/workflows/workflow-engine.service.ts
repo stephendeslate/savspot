@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
 import { TenantRole, WorkflowTriggerEvent } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
@@ -31,12 +32,16 @@ import {
 @Injectable()
 export class WorkflowEngineService {
   private readonly logger = new Logger(WorkflowEngineService.name);
+  private readonly webUrl: string;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly communicationsService: CommunicationsService,
     private readonly twilioService: TwilioService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.webUrl = this.configService.get<string>('WEB_URL', 'http://localhost:3000');
+  }
 
   // ---- Hardcoded Platform Handlers ----
 
@@ -174,7 +179,7 @@ export class WorkflowEngineService {
             businessName: tenant.name,
             logoUrl: tenant.logoUrl,
             brandColor: tenant.brandColor,
-            approveUrl: `${process.env['WEB_URL'] || 'https://app.savspot.co'}/bookings/${payload.bookingId}`,
+            approveUrl: `${this.webUrl}/bookings/${payload.bookingId}`,
           },
           bookingId: payload.bookingId,
         });
