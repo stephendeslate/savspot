@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma } from '../../../../prisma/generated/prisma';
+import { BookingSource, BookingStatus, Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeProvider } from './providers/stripe.provider';
 import { EventsService } from '../events/events.service';
@@ -99,16 +99,20 @@ export class PaymentsService {
     bookingSource: string,
     bookingTotalCents: number,
   ): Promise<number | null> {
-    const COMMISSION_SOURCES = ['DIRECTORY', 'API', 'REFERRAL'];
-    if (!COMMISSION_SOURCES.includes(bookingSource)) return null;
+    const COMMISSION_SOURCES: BookingSource[] = [
+      BookingSource.DIRECTORY,
+      BookingSource.API,
+      BookingSource.REFERRAL,
+    ];
+    if (!COMMISSION_SOURCES.includes(bookingSource as BookingSource)) return null;
 
     // Check if client has any prior platform-sourced, non-cancelled booking at this tenant
     const priorBooking = await this.prisma.booking.findFirst({
       where: {
         tenantId,
         clientId,
-        source: { in: COMMISSION_SOURCES as never[] },
-        status: { notIn: ['CANCELLED'] as never[] },
+        source: { in: COMMISSION_SOURCES },
+        status: { notIn: [BookingStatus.CANCELLED] },
       },
       select: { id: true },
       orderBy: { createdAt: 'asc' },

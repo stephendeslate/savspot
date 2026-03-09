@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { WorkflowTriggerEvent } from '../../../../prisma/generated/prisma';
+import { TenantRole, WorkflowTriggerEvent } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationsService, CreateAndSendParams } from '../communications/communications.service';
 import { TwilioService } from '../sms/sms.service';
@@ -148,7 +148,7 @@ export class WorkflowEngineService {
       const members = await this.prisma.tenantMembership.findMany({
         where: {
           tenantId: payload.tenantId,
-          role: { in: ['OWNER', 'ADMIN'] as never[] },
+          role: { in: [TenantRole.OWNER, TenantRole.ADMIN] },
         },
         include: { user: { select: { email: true, name: true } } },
       });

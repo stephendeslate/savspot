@@ -65,7 +65,7 @@ describe('SupportTriageHandler', () => {
 
   it('should skip if ticket status is not NEW', async () => {
     prisma.supportTicket.findUnique.mockResolvedValue(
-      makeTicket({ status: 'ESCALATED' }),
+      makeTicket({ status: 'NEEDS_MANUAL_REVIEW' }),
     );
 
     await handler.handle(makeJob());
@@ -98,7 +98,7 @@ describe('SupportTriageHandler', () => {
         status: 'AI_RESOLVED',
         aiDiagnosis: 'Common rescheduling question',
         aiResponse: 'You can reschedule from your bookings page.',
-        aiResolutionType: 'AUTO_RESOLVED',
+        aiResolutionType: 'FAQ_MATCH',
       }),
     });
 
@@ -126,8 +126,8 @@ describe('SupportTriageHandler', () => {
     expect(prisma.supportTicket.update).toHaveBeenCalledWith({
       where: { id: TICKET_ID },
       data: expect.objectContaining({
-        status: 'ESCALATED',
-        aiResolutionType: 'ESCALATED',
+        status: 'NEEDS_MANUAL_REVIEW',
+        aiDiagnosis: 'Might be a rescheduling question',
       }),
     });
 
@@ -155,7 +155,7 @@ describe('SupportTriageHandler', () => {
     expect(prisma.supportTicket.update).toHaveBeenCalledWith({
       where: { id: TICKET_ID },
       data: expect.objectContaining({
-        status: 'ESCALATED',
+        status: 'NEEDS_MANUAL_REVIEW',
       }),
     });
 
@@ -174,8 +174,7 @@ describe('SupportTriageHandler', () => {
     expect(prisma.supportTicket.update).toHaveBeenCalledWith({
       where: { id: TICKET_ID },
       data: expect.objectContaining({
-        status: 'ESCALATED',
-        aiResolutionType: 'ESCALATED',
+        status: 'NEEDS_MANUAL_REVIEW',
       }),
     });
 
@@ -198,7 +197,7 @@ describe('SupportTriageHandler', () => {
     expect(prisma.supportTicket.update).toHaveBeenCalledWith({
       where: { id: TICKET_ID },
       data: expect.objectContaining({
-        status: 'ESCALATED',
+        status: 'NEEDS_MANUAL_REVIEW',
       }),
     });
 

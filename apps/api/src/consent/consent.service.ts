@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ConsentPurpose } from '../../../../prisma/generated/prisma';
 
 @Injectable()
 export class ConsentService {
@@ -24,13 +25,13 @@ export class ConsentService {
     const now = new Date();
     const record = await this.prisma.consentRecord.upsert({
       where: {
-        userId_purpose: { userId, purpose: purpose as never },
+        userId_purpose: { userId, purpose: purpose as ConsentPurpose },
       },
       create: {
         userId,
-        purpose: purpose as never,
+        purpose: purpose as ConsentPurpose,
         consented,
-        consentedAt: consented ? now : now,
+        consentedAt: now,
         withdrawnAt: consented ? null : now,
         ipAddress: ipAddress ?? null,
         userAgent: userAgent ?? null,

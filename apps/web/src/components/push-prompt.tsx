@@ -57,7 +57,9 @@ export function PushPrompt() {
   const handleEnable = useCallback(async () => {
     const vapidPublicKey = process.env['NEXT_PUBLIC_VAPID_PUBLIC_KEY'];
     if (!vapidPublicKey) {
-      console.warn('NEXT_PUBLIC_VAPID_PUBLIC_KEY is not configured');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('NEXT_PUBLIC_VAPID_PUBLIC_KEY is not configured');
+      }
       setVisible(false);
       return;
     }
@@ -93,7 +95,9 @@ export function PushPrompt() {
 
       setVisible(false);
     } catch (error) {
-      console.error('Failed to enable push notifications:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to enable push notifications:', error);
+      }
     } finally {
       setEnabling(false);
     }

@@ -7,6 +7,7 @@ import {
 import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListClientsDto } from './dto/list-clients.dto';
+import { clampPageSize } from '../common/utils/pagination';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { CreateClientDto } from './dto/create-client.dto';
 
@@ -27,8 +28,9 @@ export class ClientsService {
       sortBy = 'lastVisit',
       sortOrder = 'desc',
       page = 1,
-      limit = 20,
+      limit: rawLimit = 20,
     } = filters;
+    const limit = clampPageSize(rawLimit);
     const skip = (page - 1) * limit;
 
     // Build the where clause for ClientProfile

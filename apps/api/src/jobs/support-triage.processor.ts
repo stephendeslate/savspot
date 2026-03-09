@@ -2,8 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
-
-export const JOB_SUPPORT_TRIAGE = 'supportTriage';
+import {
+  TicketStatus,
+  AIResolutionType,
+  ResolvedBy,
+} from '../../../../prisma/generated/prisma';
 
 interface TriagePayload {
   ticketId: string;
@@ -75,11 +78,11 @@ export class SupportTriageHandler {
         await this.prisma.supportTicket.update({
           where: { id: ticketId },
           data: {
-            status: 'AI_RESOLVED' as never,
+            status: TicketStatus.AI_RESOLVED,
             aiDiagnosis: result.diagnosis,
             aiResponse: result.suggestedResponse ?? null,
-            aiResolutionType: 'AUTO_RESOLVED' as never,
-            resolvedBy: 'AI' as never,
+            aiResolutionType: AIResolutionType.FAQ_MATCH,
+            resolvedBy: ResolvedBy.AI,
             resolvedAt: new Date(),
           },
         });
@@ -90,9 +93,8 @@ export class SupportTriageHandler {
         await this.prisma.supportTicket.update({
           where: { id: ticketId },
           data: {
-            status: 'ESCALATED' as never,
+            status: TicketStatus.NEEDS_MANUAL_REVIEW,
             aiDiagnosis: result.diagnosis,
-            aiResolutionType: 'ESCALATED' as never,
           },
         });
         this.logger.log(
@@ -108,9 +110,8 @@ export class SupportTriageHandler {
         .update({
           where: { id: ticketId },
           data: {
-            status: 'ESCALATED' as never,
+            status: TicketStatus.NEEDS_MANUAL_REVIEW,
             aiDiagnosis: `AI triage failed: ${message}`,
-            aiResolutionType: 'ESCALATED' as never,
           },
         })
         .catch(() => {});

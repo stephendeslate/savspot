@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
+import { DataRequestStatus } from '../../../../prisma/generated/prisma';
 import { UploadService } from '../upload/upload.service';
 
 export const JOB_PROCESS_DATA_EXPORT = 'processDataExportRequest';
@@ -83,7 +84,7 @@ export class DataExportHandler {
       await this.prisma.dataRequest.update({
         where: { id: dataRequestId },
         data: {
-          status: 'COMPLETED' as never,
+          status: DataRequestStatus.COMPLETED,
           completedAt: new Date(),
           exportUrl,
           notes: `Export contains ${Object.keys(exportData).length} data categories, ${jsonBuffer.length} bytes`,
