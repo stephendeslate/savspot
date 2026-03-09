@@ -48,11 +48,27 @@ export default defineConfig({
     },
   ],
 
-  /* Start the Next.js dev server before tests run */
-  webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env['CI'],
-    timeout: 120_000,
-  },
+  /* Start the API and Next.js servers before tests run */
+  webServer: [
+    {
+      command: 'pnpm --filter @savspot/api dev',
+      url: 'http://localhost:3001/api',
+      reuseExistingServer: !process.env['CI'],
+      timeout: 120_000,
+      cwd: process.cwd().replace(/\/apps\/web$/, ''),
+      env: {
+        DATABASE_URL: process.env['DATABASE_URL'] ?? 'postgresql://savspot:savspot_dev@localhost:5432/savspot_dev',
+        REDIS_URL: process.env['REDIS_URL'] ?? 'redis://localhost:6379',
+        WEB_URL: 'http://localhost:3000',
+        NODE_ENV: 'test',
+        PORT: '3001',
+      },
+    },
+    {
+      command: 'pnpm dev',
+      url: 'http://localhost:3000',
+      reuseExistingServer: !process.env['CI'],
+      timeout: 120_000,
+    },
+  ],
 });
