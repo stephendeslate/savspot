@@ -7,6 +7,7 @@ import {
   QUEUE_INVOICES,
   JOB_GENERATE_INVOICE_PDF,
 } from '../bullmq/queue.constants';
+import { sanitizeColor } from '../common/utils/sanitize-color';
 
 interface GenerateInvoicePdfPayload {
   tenantId: string;
@@ -40,35 +41,39 @@ export class GenerateInvoicePdfProcessor extends WorkerHost {
     this.logger.log(`Generating invoice PDF for ${invoiceId}...`);
 
     try {
-      // Load invoice with all related data
-      const invoice = await this.prisma.invoice.findFirst({
-        where: { id: invoiceId, tenantId },
-        include: {
-          lineItems: {
-            orderBy: { sortOrder: 'asc' },
-          },
-          booking: {
-            select: {
-              id: true,
-              startTime: true,
-              endTime: true,
-              service: {
-                select: { id: true, name: true },
+      // Load invoice with all related data within tenant context
+      const invoice = await this.prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+
+        return tx.invoice.findFirst({
+          where: { id: invoiceId, tenantId },
+          include: {
+            lineItems: {
+              orderBy: { sortOrder: 'asc' },
+            },
+            booking: {
+              select: {
+                id: true,
+                startTime: true,
+                endTime: true,
+                service: {
+                  select: { id: true, name: true },
+                },
+                client: {
+                  select: { id: true, name: true, email: true, phone: true },
+                },
               },
-              client: {
-                select: { id: true, name: true, email: true, phone: true },
+            },
+            tenant: {
+              select: {
+                name: true,
+                slug: true,
+                logoUrl: true,
+                brandColor: true,
               },
             },
           },
-          tenant: {
-            select: {
-              name: true,
-              slug: true,
-              logoUrl: true,
-              brandColor: true,
-            },
-          },
-        },
+        });
       });
 
       if (!invoice) {
@@ -112,9 +117,12 @@ export class GenerateInvoicePdfProcessor extends WorkerHost {
         pdfUrl = `data:text/html;base64,${htmlBuffer.toString('base64')}`;
       }
 
-      await this.prisma.invoice.update({
-        where: { id: invoiceId },
-        data: { pdfUrl },
+      await this.prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+        await tx.invoice.update({
+          where: { id: invoiceId },
+          data: { pdfUrl },
+        });
       });
 
       this.logger.log(
@@ -163,7 +171,7 @@ export class GenerateInvoicePdfProcessor extends WorkerHost {
       brandColor: string | null;
     };
   }): string {
-    const brandColor = invoice.tenant.brandColor ?? '#2563EB';
+    const brandColor = sanitizeColor(invoice.tenant.brandColor);
     const formatCurrency = (amount: unknown): string => {
       const num = typeof amount === 'object' && amount !== null
         ? Number(amount)

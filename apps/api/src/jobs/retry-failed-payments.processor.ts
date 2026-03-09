@@ -3,11 +3,6 @@ import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeProvider } from '../payments/providers/stripe.provider';
 
-/**
- * TODO: When migrating to a non-superuser DB role, this processor's raw SQL queries
- * must set app.current_tenant per-tenant because FORCE ROW LEVEL SECURITY will
- * block cross-tenant access to payments.
- */
 interface FailedPaymentRow {
   id: string;
   tenant_id: string;
@@ -179,23 +174,27 @@ export class RetryFailedPaymentsHandler {
    * Marks a payment as SUCCEEDED and records a state history entry.
    */
   private async markPaymentSucceeded(payment: FailedPaymentRow): Promise<void> {
-    await this.prisma.$executeRaw`
-      UPDATE payments
-      SET status = 'SUCCEEDED',
-          retry_count = retry_count + 1,
-          next_retry_at = NULL
-      WHERE id = ${payment.id}
-    `;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${payment.tenant_id}, TRUE)`;
 
-    await this.prisma.paymentStateHistory.create({
-      data: {
-        paymentId: payment.id,
-        tenantId: payment.tenant_id,
-        fromState: 'FAILED',
-        toState: 'SUCCEEDED',
-        triggeredBy: 'SYSTEM',
-        reason: `Payment retry succeeded (attempt ${payment.retry_count + 1})`,
-      },
+      await tx.$executeRaw`
+        UPDATE payments
+        SET status = 'SUCCEEDED',
+            retry_count = retry_count + 1,
+            next_retry_at = NULL
+        WHERE id = ${payment.id}
+      `;
+
+      await tx.paymentStateHistory.create({
+        data: {
+          paymentId: payment.id,
+          tenantId: payment.tenant_id,
+          fromState: 'FAILED',
+          toState: 'SUCCEEDED',
+          triggeredBy: 'SYSTEM',
+          reason: `Payment retry succeeded (attempt ${payment.retry_count + 1})`,
+        },
+      });
     });
   }
 
@@ -209,12 +208,16 @@ export class RetryFailedPaymentsHandler {
     const backoffMinutes = Math.pow(4, payment.retry_count) * 30;
     const nextRetryAt = new Date(Date.now() + backoffMinutes * 60 * 1000);
 
-    await this.prisma.$executeRaw`
-      UPDATE payments
-      SET retry_count = retry_count + 1,
-          next_retry_at = ${nextRetryAt}
-      WHERE id = ${payment.id}
-    `;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${payment.tenant_id}, TRUE)`;
+
+      await tx.$executeRaw`
+        UPDATE payments
+        SET retry_count = retry_count + 1,
+            next_retry_at = ${nextRetryAt}
+        WHERE id = ${payment.id}
+      `;
+    });
   }
 
   /**
@@ -224,22 +227,26 @@ export class RetryFailedPaymentsHandler {
     payment: FailedPaymentRow,
     reason: string,
   ): Promise<void> {
-    await this.prisma.$executeRaw`
-      UPDATE payments
-      SET retry_count = ${RetryFailedPaymentsHandler.MAX_RETRY_ATTEMPTS},
-          next_retry_at = NULL
-      WHERE id = ${payment.id}
-    `;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${payment.tenant_id}, TRUE)`;
 
-    await this.prisma.paymentStateHistory.create({
-      data: {
-        paymentId: payment.id,
-        tenantId: payment.tenant_id,
-        fromState: 'FAILED',
-        toState: 'FAILED',
-        triggeredBy: 'SYSTEM',
-        reason: `Retry exhausted: ${reason}`,
-      },
+      await tx.$executeRaw`
+        UPDATE payments
+        SET retry_count = ${RetryFailedPaymentsHandler.MAX_RETRY_ATTEMPTS},
+            next_retry_at = NULL
+        WHERE id = ${payment.id}
+      `;
+
+      await tx.paymentStateHistory.create({
+        data: {
+          paymentId: payment.id,
+          tenantId: payment.tenant_id,
+          fromState: 'FAILED',
+          toState: 'FAILED',
+          triggeredBy: 'SYSTEM',
+          reason: `Retry exhausted: ${reason}`,
+        },
+      });
     });
   }
 }

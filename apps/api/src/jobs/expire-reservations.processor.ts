@@ -6,9 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
  * Expires held date reservations that have passed their expiry time.
  * Scheduled every 5 minutes via BullMQ repeatable job.
  *
- * TODO: When migrating to a non-superuser DB role, this processor must set
- * app.current_tenant per-tenant (iterate tenants or use raw SQL that bypasses RLS)
- * because FORCE ROW LEVEL SECURITY will block cross-tenant updateMany.
+ * Sets app.current_tenant per-tenant within transactions for RLS compatibility.
  */
 @Injectable()
 export class ExpireReservationsHandler {
@@ -20,18 +18,36 @@ export class ExpireReservationsHandler {
     this.logger.log('Running expire reservations job...');
 
     try {
-      const result = await this.prisma.dateReservation.updateMany({
-        where: {
-          status: 'HELD',
-          expiresAt: { lt: new Date() },
-        },
-        data: {
-          status: 'EXPIRED',
-        },
-      });
+      const now = new Date();
+
+      // Query distinct tenant IDs with held reservations past expiry
+      const tenantRows = await this.prisma.$queryRaw<Array<{ tenant_id: string }>>`
+        SELECT DISTINCT tenant_id FROM date_reservations
+        WHERE status = 'HELD' AND expires_at < ${now}
+      `;
+
+      let totalExpired = 0;
+
+      for (const { tenant_id: tenantId } of tenantRows) {
+        const result = await this.prisma.$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+
+          return tx.dateReservation.updateMany({
+            where: {
+              status: 'HELD',
+              expiresAt: { lt: now },
+            },
+            data: {
+              status: 'EXPIRED',
+            },
+          });
+        });
+
+        totalExpired += result.count;
+      }
 
       this.logger.log(
-        `Expired ${result.count} held reservation(s)`,
+        `Expired ${totalExpired} held reservation(s)`,
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';

@@ -3,12 +3,16 @@ import { GenerateInvoicePdfProcessor } from '../src/jobs/generate-invoice-pdf.pr
 import { JOB_GENERATE_INVOICE_PDF } from '../src/bullmq/queue.constants';
 
 function makePrisma() {
-  return {
+  const prisma = {
     invoice: {
       findFirst: vi.fn(),
       update: vi.fn(),
     },
+    $executeRaw: vi.fn(),
+    $transaction: vi.fn(),
   };
+  prisma.$transaction.mockImplementation(async (cb: (tx: typeof prisma) => Promise<unknown>) => cb(prisma));
+  return prisma;
 }
 
 function makeUploadService(shouldFail = false) {
