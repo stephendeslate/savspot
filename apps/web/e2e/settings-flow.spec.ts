@@ -27,7 +27,7 @@ test.describe('Settings Navigation', () => {
     await page.goto('/settings');
 
     // Page heading
-    const heading = page.getByRole('heading', { name: 'Settings' });
+    const heading = page.getByRole('heading', { level: 2, name: 'Settings' });
     await expect(heading).toBeVisible({ timeout: 15_000 });
 
     // Subtitle text
@@ -59,7 +59,7 @@ test.describe('Settings Navigation', () => {
 
     // The team page should show a heading
     await expect(
-      page.getByRole('heading', { name: 'Team' }),
+      page.getByRole('heading', { level: 2, name: 'Team' }),
     ).toBeVisible({ timeout: 10_000 });
   });
 
@@ -85,7 +85,7 @@ test.describe('Settings Navigation', () => {
 
     // Wait for the page to render
     await expect(
-      page.getByRole('heading', { name: 'Settings' }),
+      page.getByRole('heading', { level: 2, name: 'Settings' }),
     ).toBeVisible({ timeout: 15_000 });
 
     // Verify descriptions for a subset of settings cards

@@ -4,8 +4,7 @@ test.describe('Smoke tests', () => {
   test('home page loads and shows SavSpot heading', async ({ page }) => {
     await page.goto('/');
 
-    // The root page renders an <h1> with "SavSpot"
-    const heading = page.getByRole('heading', { level: 1, name: 'SavSpot' });
+    const heading = page.getByRole('heading', { level: 1, name: /find your spot/i });
     await expect(heading).toBeVisible();
   });
 

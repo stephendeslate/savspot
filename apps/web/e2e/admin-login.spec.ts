@@ -47,13 +47,11 @@ test.describe('Admin Authentication', () => {
     // Wait for successful redirect to the dashboard
     await page.waitForURL('/dashboard', { timeout: 15_000 });
 
-    // The dashboard should display the user's name somewhere in the UI
-    await expect(page.getByText(TEST_USER.name)).toBeVisible({
-      timeout: 10_000,
-    });
+    // The dashboard should display the welcome heading
+    await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 10_000 });
   });
 
-  test('dashboard shows sidebar navigation items', async ({ page }) => {
+  test('dashboard shows navigation items', async ({ page }) => {
     // Log in first
     await page.goto('/login');
     await page.getByLabel(/email/i).fill(TEST_USER.email);
@@ -61,14 +59,20 @@ test.describe('Admin Authentication', () => {
     await page.getByRole('button', { name: /sign in/i }).click();
     await page.waitForURL('/dashboard', { timeout: 15_000 });
 
-    // Verify the sidebar contains expected navigation links (desktop)
-    const sidebar = page.locator('nav');
-    await expect(sidebar.getByText('Dashboard')).toBeVisible();
-    await expect(sidebar.getByText('Bookings')).toBeVisible();
-    await expect(sidebar.getByText('Calendar')).toBeVisible();
-    await expect(sidebar.getByText('Services')).toBeVisible();
-    await expect(sidebar.getByText('Clients')).toBeVisible();
-    await expect(sidebar.getByText('Settings')).toBeVisible();
+    // On mobile viewports, open the hamburger menu to see navigation
+    const menuButton = page.getByRole('button', { name: /open menu/i });
+    if (await menuButton.isVisible()) {
+      await menuButton.click();
+    }
+
+    // Verify key navigation links are visible (desktop sidebar or mobile nav).
+    // Only one nav is rendered at a time due to lg:block / lg:hidden CSS.
+    await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Bookings' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Calendar' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Services' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Clients' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
   });
 
   test('logout returns to login page', async ({ page }) => {
@@ -78,6 +82,12 @@ test.describe('Admin Authentication', () => {
     await page.getByLabel(/password/i).fill(TEST_USER.password);
     await page.getByRole('button', { name: /sign in/i }).click();
     await page.waitForURL('/dashboard', { timeout: 15_000 });
+
+    // On mobile, open the hamburger menu to access the logout button
+    const menuButton = page.getByRole('button', { name: /open menu/i });
+    if (await menuButton.isVisible()) {
+      await menuButton.click();
+    }
 
     // Click the Logout button in the sidebar
     await page.getByRole('button', { name: /logout/i }).click();

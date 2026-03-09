@@ -32,41 +32,41 @@ test.describe('Client Portal', () => {
       page.getByRole('heading', { name: /welcome back|dashboard/i }),
     ).toBeVisible({ timeout: 15_000 });
 
-    // The portal navbar should contain these navigation links
-    const nav = page.locator('header');
-    await expect(nav.getByText('Dashboard')).toBeVisible();
-    await expect(nav.getByText('Bookings')).toBeVisible();
-    await expect(nav.getByText('Payments')).toBeVisible();
-    await expect(nav.getByText('Profile')).toBeVisible();
+    // Open mobile menu if needed (hamburger visible on small viewports)
+    const menuButton = page.getByRole('button', { name: /toggle menu/i });
+    if (await menuButton.isVisible()) {
+      await menuButton.click();
+      // Wait for mobile menu to appear
+      await expect(
+        page.getByRole('link', { name: 'Dashboard' }),
+      ).toBeVisible();
+    }
+
+    // Check all navigation links are visible
+    await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Bookings' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Payments' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Profile' })).toBeVisible();
 
     // The SavSpot logo/text should be in the header
-    await expect(nav.getByText('SavSpot')).toBeVisible();
+    await expect(page.locator('header').getByText('SavSpot')).toBeVisible();
   });
 
   test('portal bookings page loads', async ({ page }) => {
     await page.goto('/portal/bookings');
 
-    // The page should render — either bookings list or empty state
-    // Look for common elements that appear on the bookings page
-    const heading = page.getByRole('heading', {
-      name: /bookings|my bookings|upcoming/i,
-    });
-    const emptyState = page.getByText(/no.*bookings/i);
-
-    await expect(heading.or(emptyState)).toBeVisible({ timeout: 15_000 });
+    // The portal bookings page has an h1 "My Bookings"
+    await expect(
+      page.getByRole('heading', { level: 1, name: /my bookings/i }),
+    ).toBeVisible({ timeout: 15_000 });
   });
 
   test('portal profile page loads', async ({ page }) => {
     await page.goto('/portal/profile');
 
-    // The profile page should be accessible and show profile-related content
-    const heading = page.getByRole('heading', {
-      name: /profile/i,
-    });
-    const profileContent = page.getByText(/email|name|phone/i);
-
-    await expect(heading.or(profileContent)).toBeVisible({
-      timeout: 15_000,
-    });
+    // The portal profile page has an h1 "My Profile"
+    await expect(
+      page.getByRole('heading', { level: 1, name: /my profile/i }),
+    ).toBeVisible({ timeout: 15_000 });
   });
 });
