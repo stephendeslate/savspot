@@ -39,7 +39,7 @@ test.describe('Public Booking Flow', () => {
 
     // Verify the expected seed services are shown
     for (const serviceName of EXPECTED_SERVICES) {
-      await expect(page.getByText(serviceName)).toBeVisible();
+      await expect(page.getByRole('heading', { name: serviceName })).toBeVisible();
     }
   });
 
