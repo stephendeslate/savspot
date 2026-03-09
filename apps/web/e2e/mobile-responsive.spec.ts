@@ -42,13 +42,13 @@ test.describe('Mobile Responsive', () => {
     // Click the hamburger menu to open the mobile navigation
     await menuButton.click();
 
-    // The mobile nav slide-over should become visible with navigation items
-    // Use getByRole('link') to avoid matching h1 headings with the same text
-    await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Bookings' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Calendar' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Services' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
+    // The mobile nav slide-over should become visible with navigation items.
+    // Use exact: true to avoid matching dashboard quick-action links behind the overlay.
+    await expect(page.getByRole('link', { name: 'Dashboard', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Bookings', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Calendar', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Services', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
 
     // A close menu button should be available
     const closeButton = page.getByRole('button', { name: /close menu/i });

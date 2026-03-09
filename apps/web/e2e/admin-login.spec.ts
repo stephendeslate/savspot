@@ -67,12 +67,14 @@ test.describe('Admin Authentication', () => {
 
     // Verify key navigation links are visible (desktop sidebar or mobile nav).
     // Only one nav is rendered at a time due to lg:block / lg:hidden CSS.
-    await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Bookings' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Calendar' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Services' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Clients' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
+    // Use exact: true to avoid matching dashboard quick-action links
+    // (e.g. "View Calendar" contains "Calendar" as a substring).
+    await expect(page.getByRole('link', { name: 'Dashboard', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Bookings', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Calendar', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Services', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Clients', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
   });
 
   test('logout returns to login page', async ({ page }) => {
