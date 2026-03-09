@@ -11,12 +11,16 @@ const TENANT_ID = 'tenant-001';
 const SERVICE_ID = 'service-001';
 
 function makePrisma() {
-  return {
+  const prisma = {
     tenant: { findUnique: vi.fn() },
     service: { findFirst: vi.fn() },
     availabilityRule: { findMany: vi.fn() },
     $executeRaw: vi.fn().mockResolvedValue(0),
+    $transaction: vi.fn(),
   };
+  // $transaction executes the callback with the same prisma mock as the tx client
+  prisma.$transaction.mockImplementation((fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma));
+  return prisma;
 }
 
 function makeConfig() {
