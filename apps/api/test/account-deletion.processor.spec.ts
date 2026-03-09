@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AccountDeletionHandler } from '@/jobs/account-deletion.processor';
-import { Prisma } from '../../../../prisma/generated/prisma';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -107,7 +106,7 @@ describe('AccountDeletionHandler', () => {
     // Verify booking anonymization
     expect(mockTx.booking.updateMany).toHaveBeenCalledWith({
       where: { clientId: USER_ID },
-      data: { notes: null, guestDetails: Prisma.JsonNull },
+      data: { notes: null, guestDetails: 'DbNull' },
     });
 
     // Verify request marked completed
