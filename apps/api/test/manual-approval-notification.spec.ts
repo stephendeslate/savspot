@@ -56,7 +56,8 @@ describe('WorkflowEngineService — handleBookingCreated (M4)', () => {
   beforeEach(() => {
     prisma = makePrisma();
     comms = makeComms();
-    service = new WorkflowEngineService(prisma as never, comms as never, makeTwilio() as never);
+    const configService = { get: (key: string, defaultValue: string) => defaultValue } as never;
+    service = new WorkflowEngineService(prisma as never, comms as never, makeTwilio() as never, configService);
   });
 
   it('sends staff notification for PENDING booking (MANUAL_APPROVAL)', async () => {

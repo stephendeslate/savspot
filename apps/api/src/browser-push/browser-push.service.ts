@@ -189,9 +189,7 @@ export class BrowserPushService {
           );
           await this.prisma.browserPushSubscription
             .delete({ where: { id: sub.id } })
-            .catch(() => {
-              // Ignore if already deleted
-            });
+            .catch((deleteErr) => { this.logger.warn(`Failed to delete expired push subscription: ${deleteErr instanceof Error ? deleteErr.message : 'Unknown error'}`); });
         } else {
           const message =
             error instanceof Error ? error.message : 'Unknown error';
