@@ -36,6 +36,12 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
+import {
+  getPaymentStatusColor,
+  formatAmount,
+  formatStatus,
+  formatPaymentType,
+} from '@/lib/format-utils';
 
 // ---------- Types ----------
 
@@ -76,51 +82,6 @@ interface PaymentStats {
   thisMonth: string;
   pendingPayments: string;
   refunded: string;
-}
-
-// ---------- Helpers ----------
-
-function getPaymentStatusColor(status: string): string {
-  switch (status) {
-    case 'SUCCEEDED':
-    case 'COMPLETED':
-      return 'bg-green-100 text-green-800';
-    case 'PENDING':
-    case 'PROCESSING':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'FAILED':
-      return 'bg-red-100 text-red-800';
-    case 'REFUNDED':
-      return 'bg-gray-100 text-gray-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-}
-
-function formatStatus(status: string): string {
-  return status.replace(/_/g, ' ');
-}
-
-function formatAmount(amount: string, currency: string): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-  }).format(Number(amount));
-}
-
-function formatPaymentType(type: string): string {
-  switch (type) {
-    case 'DEPOSIT':
-      return 'Deposit';
-    case 'FULL':
-      return 'Full';
-    case 'REFUND':
-      return 'Refund';
-    case 'PARTIAL':
-      return 'Partial';
-    default:
-      return formatStatus(type);
-  }
 }
 
 // ---------- Constants ----------
