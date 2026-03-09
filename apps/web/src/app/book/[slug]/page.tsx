@@ -253,7 +253,7 @@ function HeroSection({
           {tenant.address && (
             <span className="inline-flex items-center gap-1.5">
               <MapPin className="h-4 w-4" />
-              {tenant.address}
+              {[tenant.address.street, tenant.address.city, tenant.address.state, tenant.address.zip].filter(Boolean).join(', ')}
             </span>
           )}
           {tenant.contactEmail && (
