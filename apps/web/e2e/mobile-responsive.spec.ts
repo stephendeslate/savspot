@@ -43,11 +43,12 @@ test.describe('Mobile Responsive', () => {
     await menuButton.click();
 
     // The mobile nav slide-over should become visible with navigation items
-    await expect(page.getByText('Dashboard')).toBeVisible();
-    await expect(page.getByText('Bookings')).toBeVisible();
-    await expect(page.getByText('Calendar')).toBeVisible();
-    await expect(page.getByText('Services')).toBeVisible();
-    await expect(page.getByText('Settings')).toBeVisible();
+    // Use getByRole('link') to avoid matching h1 headings with the same text
+    await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Bookings' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Calendar' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Services' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
 
     // A close menu button should be available
     const closeButton = page.getByRole('button', { name: /close menu/i });
@@ -76,6 +77,6 @@ test.describe('Mobile Responsive', () => {
     });
 
     // Either the agenda view container or the active Agenda button should exist
-    await expect(agendaView.or(agendaButton)).toBeVisible({ timeout: 10_000 });
+    await expect(agendaView.or(agendaButton).first()).toBeVisible({ timeout: 10_000 });
   });
 });
