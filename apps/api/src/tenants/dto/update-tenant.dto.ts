@@ -4,6 +4,7 @@ import {
   IsEmail,
   IsBoolean,
   IsObject,
+  Matches,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -39,7 +40,7 @@ export class UpdateTenantDto {
   coverPhotoUrl?: string;
 
   @ApiPropertyOptional({ example: '#4A90D9' })
-  @IsString()
+  @Matches(/^#[0-9a-fA-F]{3,8}$/, { message: 'brandColor must be a valid hex color (e.g. #fff or #4A90D9)' })
   @IsOptional()
   brandColor?: string;
 

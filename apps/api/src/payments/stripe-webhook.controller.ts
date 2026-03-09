@@ -93,6 +93,18 @@ export class StripeWebhookController {
       }
     }
 
+    // Idempotency check: skip if this event was already processed
+    const existingLog = await this.prisma.paymentWebhookLog.findUnique({
+      where: { eventId: event.id },
+    });
+
+    if (existingLog) {
+      this.logger.log(
+        `Duplicate webhook event ${event.id} (${event.type}) — skipping`,
+      );
+      return { received: true };
+    }
+
     // Log the webhook event
     const logEntry = await this.logWebhookEvent(
       event.type,
