@@ -124,6 +124,7 @@ jobs:
       - run: pnpm build
         env:
           NODE_OPTIONS: '--max-old-space-size=4096'
+          NEXT_PUBLIC_API_URL: http://localhost:3001
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps chromium
         working-directory: apps/web
@@ -131,7 +132,6 @@ jobs:
         run: pnpm test:e2e
         working-directory: apps/web
         env:
-          NEXT_PUBLIC_API_URL: http://localhost:3001/api
           REDIS_URL: redis://localhost:6379
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4
