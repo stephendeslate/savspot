@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
+import { DataRequestType, DataRequestStatus, Prisma } from '../../../../prisma/generated/prisma';
 
 export const JOB_PROCESS_ACCOUNT_DELETION = 'processAccountDeletion';
 
@@ -22,8 +23,8 @@ export class AccountDeletionHandler {
       // Find all deletion requests past their grace period
       const pendingDeletions = await this.prisma.dataRequest.findMany({
         where: {
-          requestType: 'DELETION' as never,
-          status: 'PENDING' as never,
+          requestType: DataRequestType.DELETION,
+          status: DataRequestStatus.PENDING,
           deadlineAt: { lte: new Date() },
         },
         include: {
@@ -100,7 +101,7 @@ export class AccountDeletionHandler {
         where: { clientId: userId },
         data: {
           notes: null,
-          guestDetails: null as never,
+          guestDetails: Prisma.JsonNull,
         },
       });
 
@@ -108,7 +109,7 @@ export class AccountDeletionHandler {
       await tx.dataRequest.update({
         where: { id: requestId },
         data: {
-          status: 'COMPLETED' as never,
+          status: DataRequestStatus.COMPLETED,
           completedAt: new Date(),
           notes: 'User data anonymized and supplementary records deleted',
         },

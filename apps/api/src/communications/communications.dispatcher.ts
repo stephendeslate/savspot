@@ -11,7 +11,8 @@ import {
   JOB_DELIVER_BROWSER_PUSH,
   JOB_SEND_BOOKING_REMINDERS,
 } from '../bullmq/queue.constants';
-import { JOB_SUPPORT_TRIAGE, SupportTriageHandler } from '../jobs/support-triage.processor';
+import { SupportTriageHandler } from '../jobs/support-triage.processor';
+import { JOB_SUPPORT_TRIAGE } from '../bullmq/queue.constants';
 import { CommunicationsHandler } from './communications.processor';
 import { SmsHandler } from '../sms/sms.processor';
 import { MorningSummaryHandler } from '../sms/morning-summary.processor';

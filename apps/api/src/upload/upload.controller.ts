@@ -7,6 +7,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { IsString, IsNotEmpty } from 'class-validator';
 import { UploadService, PresignedUploadResult } from './upload.service';
 import { Request } from 'express';
@@ -28,6 +29,7 @@ export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
   @Post('presigned-url')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Generate a presigned URL for direct file upload to R2' })
   @ApiResponse({ status: 200, description: 'Presigned URL generated successfully' })

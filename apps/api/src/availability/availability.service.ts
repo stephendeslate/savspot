@@ -125,6 +125,9 @@ export class AvailabilityService {
     });
 
     // 5b. Load INBOUND calendar events (Layer 4 — external calendar blocks)
+    // Phase 1 simplification: INBOUND events block all services tenant-wide.
+    // Phase 2 (FR-CRM-30): scope to providers assigned to the requested service
+    // via service_providers join table + CalendarConnection.userId.
     const calendarBlocks = await this.prisma.calendarEvent.findMany({
       where: {
         tenantId,

@@ -7,6 +7,7 @@ import {
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
+import { TicketCategory, TicketSeverity } from '../../../../prisma/generated/prisma';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { QUEUE_COMMUNICATIONS, JOB_SUPPORT_TRIAGE } from '../bullmq/queue.constants';
 
@@ -31,8 +32,8 @@ export class SupportService {
       data: {
         submittedBy: userId,
         tenantId: tenantId ?? null,
-        category: dto.category as never,
-        severity: (dto.severity as never) ?? 'MEDIUM',
+        category: dto.category as TicketCategory,
+        severity: (dto.severity as TicketSeverity) ?? TicketSeverity.MEDIUM,
         subject: dto.subject,
         body: dto.body,
         status: 'NEW',

@@ -85,6 +85,7 @@ export class AuthController {
 
   @Public()
   @Post('verify-email')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify email address' })
   @ApiResponse({ status: 200, description: 'Email verified' })
@@ -107,6 +108,7 @@ export class AuthController {
 
   @Public()
   @Post('reset-password')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password with token' })
   @ApiResponse({ status: 200, description: 'Password reset successful' })
@@ -118,6 +120,7 @@ export class AuthController {
 
   @ApiBearerAuth()
   @Patch('change-password')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOperation({ summary: 'Change password (authenticated)' })
   @ApiResponse({ status: 200, description: 'Password changed' })
   @ApiResponse({ status: 401, description: 'Current password incorrect' })

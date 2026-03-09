@@ -4,14 +4,21 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Prisma } from '../../../../prisma/generated/prisma';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListInvoicesDto } from './dto/list-invoices.dto';
+import { QUEUE_INVOICES, JOB_GENERATE_INVOICE_PDF } from '../bullmq/queue.constants';
+import { clampPageSize } from '../common/utils/pagination';
 
 @Injectable()
 export class InvoicesService {
   private readonly logger = new Logger(InvoicesService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @InjectQueue(QUEUE_INVOICES) private readonly invoiceQueue: Queue,
+  ) {}
 
   /**
    * Create an invoice for a confirmed booking.
@@ -121,6 +128,19 @@ export class InvoicesService {
         `Invoice ${invoiceNumber} created for booking ${bookingId}`,
       );
 
+      // Enqueue PDF generation job (fire-and-forget)
+      this.invoiceQueue
+        .add(
+          JOB_GENERATE_INVOICE_PDF,
+          { invoiceId: invoice.id },
+          { removeOnComplete: { count: 50 }, removeOnFail: { count: 20 } },
+        )
+        .catch((err) =>
+          this.logger.warn(
+            `Failed to enqueue PDF generation for invoice ${invoice.id}: ${err.message}`,
+          ),
+        );
+
       return invoice;
     });
   }
@@ -129,7 +149,8 @@ export class InvoicesService {
    * List invoices for a tenant with optional filters.
    */
   async findAll(tenantId: string, filters: ListInvoicesDto) {
-    const { status, startDate, endDate, page = 1, limit = 20 } = filters;
+    const { status, startDate, endDate, page = 1, limit: rawLimit } = filters;
+    const limit = clampPageSize(rawLimit);
     const skip = (page - 1) * limit;
 
     const where: Prisma.InvoiceWhereInput = { tenantId };
