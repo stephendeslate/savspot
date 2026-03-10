@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Sheet, SheetContent, SheetTrigger } from '../sheet';
+import { Sheet, SheetContent } from '../sheet';
 
 describe('Sheet', () => {
   it('should not render content when closed', () => {
