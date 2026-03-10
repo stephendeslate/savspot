@@ -2,12 +2,13 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
-import { TicketCategory, TicketSeverity } from '../../../../prisma/generated/prisma';
+import { Prisma, TicketCategory, TicketSeverity, TicketStatus, ResolvedBy } from '../../../../prisma/generated/prisma';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { QUEUE_COMMUNICATIONS, JOB_SUPPORT_TRIAGE } from '../bullmq/queue.constants';
 
@@ -90,5 +91,153 @@ export class SupportService {
     }
 
     return ticket;
+  }
+
+  /**
+   * Reopen a RESOLVED or CLOSED ticket by creating a new linked ticket.
+   */
+  async reopenTicket(userId: string, ticketId: string, reason?: string) {
+    const ticket = await this.prisma.supportTicket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Support ticket not found');
+    }
+
+    if (ticket.submittedBy !== userId) {
+      throw new ForbiddenException(
+        'You do not have access to this support ticket',
+      );
+    }
+
+    if (ticket.status !== 'RESOLVED' && ticket.status !== 'CLOSED') {
+      throw new BadRequestException(
+        'Only RESOLVED or CLOSED tickets can be reopened',
+      );
+    }
+
+    const newTicket = await this.prisma.supportTicket.create({
+      data: {
+        submittedBy: userId,
+        tenantId: ticket.tenantId,
+        category: ticket.category,
+        severity: ticket.severity,
+        subject: `Re: ${ticket.subject}`,
+        body: reason || `Reopened from ticket ${ticket.id}`,
+        status: 'NEW',
+        relatedTicketId: ticket.id,
+      },
+    });
+
+    this.logger.log(
+      `Support ticket ${newTicket.id} created as reopen of ${ticketId} by user ${userId}`,
+    );
+
+    // Enqueue AI triage job for the new ticket
+    this.commsQueue
+      .add(
+        JOB_SUPPORT_TRIAGE,
+        { ticketId: newTicket.id },
+        { removeOnComplete: { count: 10 }, removeOnFail: { count: 50 } },
+      )
+      .catch((err) =>
+        this.logger.warn(`Failed to enqueue triage for ticket ${newTicket.id}: ${err.message}`),
+      );
+
+    return newTicket;
+  }
+
+  /**
+   * Set user satisfaction on a resolved/closed ticket.
+   */
+  async setSatisfaction(userId: string, ticketId: string, helpful: boolean) {
+    const ticket = await this.prisma.supportTicket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Support ticket not found');
+    }
+
+    if (ticket.submittedBy !== userId) {
+      throw new ForbiddenException(
+        'You do not have access to this support ticket',
+      );
+    }
+
+    if (
+      ticket.status !== 'RESOLVED' &&
+      ticket.status !== 'CLOSED' &&
+      ticket.status !== 'AI_RESOLVED'
+    ) {
+      throw new BadRequestException(
+        'Satisfaction can only be set on resolved tickets',
+      );
+    }
+
+    return this.prisma.supportTicket.update({
+      where: { id: ticketId },
+      data: { userSatisfaction: helpful },
+    });
+  }
+
+  /**
+   * Admin: List all tickets with optional status/severity filters.
+   */
+  async adminListTickets(filters: { status?: string; severity?: string }) {
+    const where: Prisma.SupportTicketWhereInput = {};
+    if (filters.status) {
+      where.status = filters.status as TicketStatus;
+    }
+    if (filters.severity) {
+      where.severity = filters.severity as TicketSeverity;
+    }
+
+    return this.prisma.supportTicket.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        submitter: {
+          select: { id: true, email: true, name: true },
+        },
+      },
+    });
+  }
+
+  /**
+   * Admin: Update ticket status and developer notes.
+   */
+  async adminUpdateTicket(
+    ticketId: string,
+    data: { status?: string; developerNotes?: string },
+  ) {
+    const ticket = await this.prisma.supportTicket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Support ticket not found');
+    }
+
+    const updateData: Prisma.SupportTicketUpdateInput = {};
+    if (data.status !== undefined) {
+      updateData.status = data.status as TicketStatus;
+      if (
+        (data.status === 'RESOLVED' || data.status === 'CLOSED') &&
+        !ticket.resolvedAt
+      ) {
+        updateData.resolvedAt = new Date();
+        updateData.resolvedBy = ResolvedBy.DEVELOPER;
+      }
+    }
+    if (data.developerNotes !== undefined) {
+      updateData.developerNotes = data.developerNotes;
+    }
+
+    return this.prisma.supportTicket.update({
+      where: { id: ticketId },
+      data: updateData,
+    });
   }
 }

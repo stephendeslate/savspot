@@ -95,4 +95,21 @@ export class TenantsController {
   ) {
     return this.tenantsService.requestExport(id, userId);
   }
+
+  @Get(':id/export/:requestId')
+  @UseGuards(TenantRolesGuard)
+  @TenantRoles('OWNER', 'ADMIN')
+  @ApiOperation({
+    summary: 'Get export request status',
+    description: 'Returns the status of a data export request and download URL if ready.',
+  })
+  @ApiResponse({ status: 200, description: 'Export request status' })
+  @ApiResponse({ status: 404, description: 'Export request not found' })
+  async getExportStatus(
+    @Param('id', UuidValidationPipe) _tenantId: string,
+    @Param('requestId', UuidValidationPipe) requestId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.tenantsService.getExportStatus(requestId, userId);
+  }
 }

@@ -69,6 +69,20 @@ export class PublicBookingController {
     return this.publicBookingService.getTenantBySlug(slug);
   }
 
+  @Get(':slug/services')
+  @Public()
+  @ApiOperation({
+    summary: 'Get services grouped by category for a business',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Services grouped by category',
+  })
+  @ApiResponse({ status: 404, description: 'Business not found' })
+  async getServicesGrouped(@Param('slug') slug: string) {
+    return this.publicBookingService.getServicesGroupedByCategory(slug);
+  }
+
   @Get(':slug/services/:serviceId')
   @Public()
   @ApiOperation({
