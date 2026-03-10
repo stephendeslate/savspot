@@ -597,9 +597,17 @@ export class BookingsService {
     const startTime = new Date(dto.startTime);
     const endTime = new Date(dto.endTime);
 
-    // Find or create the client if email is provided
+    // Resolve client: prefer clientId, then clientEmail, then anonymous walk-in
     let clientId: string;
-    if (dto.clientEmail) {
+    if (dto.clientId) {
+      const existingClient = await this.prisma.user.findUnique({
+        where: { id: dto.clientId },
+      });
+      if (!existingClient) {
+        throw new NotFoundException('Client not found');
+      }
+      clientId = existingClient.id;
+    } else if (dto.clientEmail) {
       let client = await this.prisma.user.findFirst({
         where: { email: dto.clientEmail },
       });

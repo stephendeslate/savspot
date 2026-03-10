@@ -13,8 +13,15 @@ export class WalkInBookingDto {
   serviceId!: string;
 
   @ApiPropertyOptional({
+    description: 'Existing client ID (mutually exclusive with clientEmail/clientName)',
+  })
+  @IsUUID()
+  @IsOptional()
+  clientId?: string;
+
+  @ApiPropertyOptional({
     example: 'john@example.com',
-    description: 'Client email (optional for walk-ins)',
+    description: 'Client email — used to find or create a client (ignored if clientId is provided)',
   })
   @IsEmail()
   @IsOptional()
@@ -22,7 +29,7 @@ export class WalkInBookingDto {
 
   @ApiPropertyOptional({
     example: 'John Doe',
-    description: 'Client name (optional for walk-ins)',
+    description: 'Client name — used when creating a new client (ignored if clientId is provided)',
   })
   @IsString()
   @IsOptional()
