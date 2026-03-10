@@ -124,6 +124,76 @@ export class PublicBookingService {
   }
 
   /**
+   * Get services grouped by category for a tenant.
+   * Returns an array of category groups, each with its services.
+   */
+  async getServicesGroupedByCategory(slug: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { slug },
+      select: { id: true, status: true },
+    });
+
+    if (!tenant || tenant.status !== 'ACTIVE') {
+      throw new NotFoundException('Business not found');
+    }
+
+    const services = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenant.id}, TRUE)`;
+
+      return tx.service.findMany({
+        where: { tenantId: tenant.id, isActive: true },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          durationMinutes: true,
+          basePrice: true,
+          currency: true,
+          pricingModel: true,
+          images: true,
+          categoryId: true,
+          category: {
+            select: { id: true, name: true },
+          },
+          serviceAddons: {
+            where: { isActive: true },
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              price: true,
+            },
+            orderBy: { sortOrder: 'asc' },
+          },
+        },
+        orderBy: { sortOrder: 'asc' },
+      });
+    });
+
+    // Group services by category
+    const grouped = new Map<
+      string,
+      { id: string | null; name: string; services: typeof services }
+    >();
+
+    for (const service of services) {
+      const categoryKey = service.category?.id ?? '__uncategorized__';
+      const categoryName = service.category?.name ?? 'Uncategorized';
+
+      if (!grouped.has(categoryKey)) {
+        grouped.set(categoryKey, {
+          id: service.category?.id ?? null,
+          name: categoryName,
+          services: [],
+        });
+      }
+      grouped.get(categoryKey)!.services.push(service);
+    }
+
+    return Array.from(grouped.values());
+  }
+
+  /**
    * Get a specific service detail with availability rules for a tenant.
    * Used to display the booking flow for a selected service.
    */

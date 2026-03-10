@@ -147,6 +147,32 @@ export class BookingsController {
     return this.bookingsService.markCompleted(tenantId, id, userId);
   }
 
+  @Post(':id/check-in')
+  @TenantRoles('OWNER', 'ADMIN', 'STAFF')
+  @ApiOperation({ summary: 'Check in a client (alias for arrive)' })
+  @ApiResponse({ status: 200, description: 'Booking marked as arrived' })
+  @ApiResponse({ status: 400, description: 'Invalid state transition' })
+  async checkIn(
+    @Param('tenantId', UuidValidationPipe) tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.bookingsService.markArrived(tenantId, id, userId);
+  }
+
+  @Post(':id/check-out')
+  @TenantRoles('OWNER', 'ADMIN', 'STAFF')
+  @ApiOperation({ summary: 'Check out a client (alias for complete)' })
+  @ApiResponse({ status: 200, description: 'Booking marked as completed' })
+  @ApiResponse({ status: 400, description: 'Invalid state transition' })
+  async checkOut(
+    @Param('tenantId', UuidValidationPipe) tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.bookingsService.markCompleted(tenantId, id, userId);
+  }
+
   @Post('walk-in')
   @TenantRoles('OWNER', 'ADMIN', 'STAFF')
   @ApiOperation({ summary: 'Create a walk-in booking' })

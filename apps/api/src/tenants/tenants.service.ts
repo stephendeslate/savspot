@@ -309,4 +309,30 @@ export class TenantsService {
 
     return dataRequest;
   }
+
+  /**
+   * Get the status of a data export request.
+   * Returns status and download URL if the export is complete.
+   */
+  async getExportStatus(requestId: string, userId: string) {
+    const dataRequest = await this.prisma.dataRequest.findUnique({
+      where: { id: requestId },
+    });
+
+    if (!dataRequest) {
+      throw new NotFoundException('Export request not found');
+    }
+
+    if (dataRequest.userId !== userId) {
+      throw new NotFoundException('Export request not found');
+    }
+
+    return {
+      id: dataRequest.id,
+      status: dataRequest.status,
+      requestedAt: dataRequest.requestedAt,
+      completedAt: dataRequest.completedAt,
+      downloadUrl: dataRequest.exportUrl,
+    };
+  }
 }
