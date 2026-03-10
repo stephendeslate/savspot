@@ -31,12 +31,12 @@ export class CreateRuleDto {
   endTime!: string;
 
   @ApiPropertyOptional({ description: 'Service ID (null = tenant-wide rule)' })
-  @IsUUID('4')
+  @IsUUID()
   @IsOptional()
   serviceId?: string;
 
   @ApiPropertyOptional({ description: 'Venue ID' })
-  @IsUUID('4')
+  @IsUUID()
   @IsOptional()
   venueId?: string;
 

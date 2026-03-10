@@ -57,12 +57,12 @@ export class UpdateServiceDto {
   confirmationMode?: string;
 
   @ApiPropertyOptional()
-  @IsUUID('4')
+  @IsUUID()
   @IsOptional()
   categoryId?: string;
 
   @ApiPropertyOptional()
-  @IsUUID('4')
+  @IsUUID()
   @IsOptional()
   venueId?: string;
 

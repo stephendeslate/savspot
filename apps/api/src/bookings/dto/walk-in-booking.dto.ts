@@ -9,7 +9,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class WalkInBookingDto {
   @ApiProperty({ description: 'Service ID for the walk-in booking' })
-  @IsUUID('4')
+  @IsUUID()
   serviceId!: string;
 
   @ApiPropertyOptional({

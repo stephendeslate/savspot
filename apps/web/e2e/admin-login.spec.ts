@@ -52,13 +52,14 @@ test.describe('Admin Authentication', () => {
   });
 
   test('dashboard shows navigation items', async ({ page }) => {
+    // This test logs in then checks multiple nav links — give extra time
+    test.setTimeout(60_000);
+
     // Log in first
     await page.goto('/login');
     await page.getByLabel(/email/i).fill(TEST_USER.email);
     await page.getByLabel(/password/i).fill(TEST_USER.password);
-    // Submit via Enter key — more reliable than click on mobile viewports
-    // where the software keyboard can overlap the sign-in button
-    await page.getByLabel(/password/i).press('Enter');
+    await page.getByRole('button', { name: /sign in/i }).click();
     await page.waitForURL('/dashboard', { timeout: 30_000 });
 
     // On mobile viewports, open the hamburger menu to see navigation
@@ -84,8 +85,7 @@ test.describe('Admin Authentication', () => {
     await page.goto('/login');
     await page.getByLabel(/email/i).fill(TEST_USER.email);
     await page.getByLabel(/password/i).fill(TEST_USER.password);
-    // Submit via Enter key — more reliable than click on mobile viewports
-    await page.getByLabel(/password/i).press('Enter');
+    await page.getByRole('button', { name: /sign in/i }).click();
     await page.waitForURL('/dashboard', { timeout: 30_000 });
 
     // On mobile, open the hamburger menu to access the logout button
