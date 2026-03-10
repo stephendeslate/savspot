@@ -226,6 +226,7 @@ describe('CommunicationsDispatcher', () => {
   let weeklyDigest: ReturnType<typeof makeHandler>;
   let browserPush: ReturnType<typeof makeHandler>;
   let supportTriage: ReturnType<typeof makeHandler>;
+  let notificationDigests: ReturnType<typeof makeHandler>;
 
   beforeEach(() => {
     communications = makeHandler();
@@ -234,6 +235,7 @@ describe('CommunicationsDispatcher', () => {
     weeklyDigest = makeHandler();
     browserPush = makeHandler();
     supportTriage = makeHandler();
+    notificationDigests = makeHandler();
     dispatcher = new CommunicationsDispatcher(
       communications as never,
       sms as never,
@@ -241,6 +243,7 @@ describe('CommunicationsDispatcher', () => {
       weeklyDigest as never,
       browserPush as never,
       supportTriage as never,
+      notificationDigests as never,
     );
   });
 
