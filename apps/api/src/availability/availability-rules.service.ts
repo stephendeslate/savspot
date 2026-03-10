@@ -17,10 +17,32 @@ export class AvailabilityRulesService {
   }
 
   /**
+   * Convert a Date object (from Prisma @db.Time()) back to "HH:mm" string.
+   */
+  private formatTime(date: Date): string {
+    const hours = date.getUTCHours().toString().padStart(2, '0');
+    const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+
+  /**
+   * Transform a rule's startTime/endTime from Date to "HH:mm" string.
+   */
+  private serializeRule<T extends { startTime: Date; endTime: Date }>(
+    rule: T,
+  ): Omit<T, 'startTime' | 'endTime'> & { startTime: string; endTime: string } {
+    return {
+      ...rule,
+      startTime: this.formatTime(rule.startTime),
+      endTime: this.formatTime(rule.endTime),
+    };
+  }
+
+  /**
    * List all availability rules for a tenant, optionally filtered by service and venue.
    */
   async findAll(tenantId: string, serviceId?: string, venueId?: string) {
-    return this.prisma.availabilityRule.findMany({
+    const rules = await this.prisma.availabilityRule.findMany({
       where: {
         tenantId,
         ...(serviceId ? { serviceId } : {}),
@@ -28,13 +50,14 @@ export class AvailabilityRulesService {
       },
       orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
     });
+    return rules.map((rule) => this.serializeRule(rule));
   }
 
   /**
    * Create a new availability rule.
    */
   async create(tenantId: string, dto: CreateRuleDto) {
-    return this.prisma.availabilityRule.create({
+    const rule = await this.prisma.availabilityRule.create({
       data: {
         tenantId,
         dayOfWeek: dto.dayOfWeek,
@@ -45,6 +68,7 @@ export class AvailabilityRulesService {
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
       },
     });
+    return this.serializeRule(rule);
   }
 
   /**
@@ -59,7 +83,7 @@ export class AvailabilityRulesService {
       throw new NotFoundException('Availability rule not found');
     }
 
-    return this.prisma.availabilityRule.update({
+    const rule = await this.prisma.availabilityRule.update({
       where: { id },
       data: {
         ...(dto.dayOfWeek !== undefined ? { dayOfWeek: dto.dayOfWeek } : {}),
@@ -70,6 +94,7 @@ export class AvailabilityRulesService {
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
       },
     });
+    return this.serializeRule(rule);
   }
 
   /**

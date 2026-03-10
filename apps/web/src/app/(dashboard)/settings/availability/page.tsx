@@ -39,6 +39,31 @@ function getDayLabel(dayOfWeek: number): string {
   return DAYS_OF_WEEK.find((d) => d.value === dayOfWeek)?.label ?? 'Unknown';
 }
 
+/**
+ * Format a time string for display. Handles both "HH:mm" and ISO datetime strings.
+ * Returns 12-hour format with AM/PM (e.g., "9:00 AM").
+ */
+function formatTimeDisplay(time: string): string {
+  let hours: number;
+  let minutes: string;
+
+  if (time.includes('T')) {
+    // ISO datetime string (e.g., "1970-01-01T09:00:00.000Z")
+    const date = new Date(time);
+    hours = date.getUTCHours();
+    minutes = date.getUTCMinutes().toString().padStart(2, '0');
+  } else {
+    // "HH:mm" format
+    const [hoursStr, minutesStr] = time.split(':');
+    hours = parseInt(hoursStr ?? '0', 10);
+    minutes = minutesStr ?? '00';
+  }
+
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const displayHour = hours % 12 || 12;
+  return `${displayHour}:${minutes} ${period}`;
+}
+
 export default function AvailabilityPage() {
   const { tenantId } = useTenant();
   const [rules, setRules] = useState<AvailabilityRule[]>([]);
@@ -317,8 +342,8 @@ export default function AvailabilityPage() {
                   <div className="font-medium">
                     {getDayLabel(rule.dayOfWeek)}
                   </div>
-                  <div className="text-sm">{rule.startTime}</div>
-                  <div className="text-sm">{rule.endTime}</div>
+                  <div className="text-sm">{formatTimeDisplay(rule.startTime)}</div>
+                  <div className="text-sm">{formatTimeDisplay(rule.endTime)}</div>
                   <div>
                     <button
                       type="button"
