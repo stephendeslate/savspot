@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -31,6 +32,7 @@ export class BookingSessionsController {
 
   @Post()
   @Public()
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @ApiOperation({ summary: 'Create a new booking session' })
   @ApiResponse({ status: 201, description: 'Booking session created' })
   @ApiResponse({ status: 400, description: 'Invalid input' })

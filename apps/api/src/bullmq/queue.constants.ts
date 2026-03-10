@@ -69,6 +69,10 @@ export const JOB_PROCESS_ACCOUNT_DELETION = 'processAccountDeletion';
 // Support queue jobs
 export const JOB_SUPPORT_TRIAGE = 'supportTriage';
 
+// Notification digest jobs
+export const JOB_PROCESS_HOURLY_DIGESTS = 'processHourlyDigests';
+export const JOB_PROCESS_DAILY_DIGESTS = 'processDailyDigests';
+
 // ---- Cron Schedules ----
 export const CRON_EVERY_5_MIN = '*/5 * * * *';
 export const CRON_EVERY_15_MIN = '*/15 * * * *';
@@ -77,4 +81,5 @@ export const CRON_HOURLY = '0 * * * *';
 export const CRON_DAILY_3AM_UTC = '0 3 * * *';
 export const CRON_DAILY_5AM_UTC = '0 5 * * *';
 export const CRON_DAILY_6AM_UTC = '0 6 * * *';
+export const CRON_DAILY_8AM_UTC = '0 8 * * *';
 export const CRON_MONDAY_8AM_UTC = '0 8 * * 1';

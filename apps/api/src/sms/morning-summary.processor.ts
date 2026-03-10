@@ -2,10 +2,15 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { TwilioService } from './sms.service';
+import { RedisService } from '../redis/redis.service';
+
+/** TTL for morning summary deduplication keys (24 hours) */
+const DEDUP_TTL_SECONDS = 24 * 60 * 60;
 
 /**
  * Processor for the sendMorningSummary job.
  * Sends a daily morning SMS to tenant owners summarizing today's bookings.
+ * Uses Redis-based deduplication to prevent duplicate SMS if the job runs twice.
  * Repeating schedule is registered by JobSchedulerService.
  */
 @Injectable()
@@ -15,6 +20,7 @@ export class MorningSummaryHandler {
   constructor(
     private readonly prisma: PrismaService,
     private readonly twilioService: TwilioService,
+    private readonly redisService: RedisService,
   ) {}
 
   async handle(_job: Job): Promise<void> {
@@ -36,6 +42,8 @@ export class MorningSummaryHandler {
     let sent = 0;
     let skipped = 0;
 
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
     for (const membership of ownerMemberships) {
       if (!membership.user.phone) {
         skipped++;
@@ -43,6 +51,17 @@ export class MorningSummaryHandler {
       }
 
       try {
+        // Redis-based deduplication: skip if already sent today for this tenant
+        const dedupKey = `morning-summary:${membership.tenant.id}:${today}`;
+        const alreadySent = await this.redisService.get(dedupKey);
+        if (alreadySent) {
+          this.logger.debug(
+            `Morning summary already sent for tenant ${membership.tenant.id} today, skipping`,
+          );
+          skipped++;
+          continue;
+        }
+
         const message = await this.buildSummary(
           membership.tenant.id,
           membership.tenant.name,
@@ -68,6 +87,9 @@ export class MorningSummaryHandler {
             sentAt: new Date(),
           },
         });
+
+        // Mark as sent in Redis to prevent duplicates if job re-runs
+        await this.redisService.setex(dedupKey, DEDUP_TTL_SECONDS, '1');
 
         sent++;
       } catch (err) {

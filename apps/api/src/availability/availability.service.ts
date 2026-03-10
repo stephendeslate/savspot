@@ -48,6 +48,22 @@ export class AvailabilityService {
     const bufferAfter = service.bufferAfterMinutes;
     const effectiveVenueId = venueId ?? service.venueId;
 
+    // 1b. Load booking flow for advance booking window enforcement
+    const bookingFlow = await this.prisma.bookingFlow.findFirst({
+      where: { tenantId, isDefault: true },
+      select: { minBookingAdvanceDays: true, maxBookingAdvanceDays: true },
+    });
+
+    const now = new Date();
+    const minAdvanceMs = bookingFlow?.minBookingAdvanceDays
+      ? bookingFlow.minBookingAdvanceDays * 24 * 60 * 60 * 1000
+      : null;
+    const maxAdvanceMs = bookingFlow?.maxBookingAdvanceDays
+      ? bookingFlow.maxBookingAdvanceDays * 24 * 60 * 60 * 1000
+      : null;
+    const earliestAllowed = minAdvanceMs ? new Date(now.getTime() + minAdvanceMs) : null;
+    const latestAllowed = maxAdvanceMs ? new Date(now.getTime() + maxAdvanceMs) : null;
+
     // 2. Load availability rules — service-specific first, then tenant-wide fallback
     const serviceRules = await this.prisma.availabilityRule.findMany({
       where: {
@@ -187,7 +203,15 @@ export class AvailabilityService {
       current.setDate(current.getDate() + 1);
     }
 
-    return slots;
+    // 7. Filter slots by advance booking window
+    const filteredSlots = slots.filter((slot) => {
+      const slotStart = new Date(`${slot.date}T${slot.startTime}:00.000Z`);
+      if (earliestAllowed && slotStart < earliestAllowed) return false;
+      if (latestAllowed && slotStart > latestAllowed) return false;
+      return true;
+    });
+
+    return filteredSlots;
   }
 
   /**

@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationsService } from './communications.service';
+import { CircuitBreaker } from './circuit-breaker';
 import {
   JOB_DELIVER_COMMUNICATION,
   JOB_PROCESS_POST_APPOINTMENT,
@@ -39,6 +40,7 @@ export class CommunicationsHandler {
     private readonly configService: ConfigService,
     private readonly communicationsService: CommunicationsService,
     private readonly bookingRemindersHandler: SendBookingRemindersHandler,
+    private readonly circuitBreaker: CircuitBreaker,
   ) {
 
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
@@ -103,6 +105,16 @@ export class CommunicationsHandler {
       this.logger.warn(
         `Communication ${communicationId} status is ${communication.status}, skipping`,
       );
+      return;
+    }
+
+    // Gap 4: Check circuit breaker before sending
+    const canSend = await this.circuitBreaker.canSend(communication.channel, tenantId);
+    if (!canSend) {
+      this.logger.warn(
+        `Circuit breaker OPEN for ${communication.channel}:${tenantId} — skipping communication ${communicationId}`,
+      );
+      await this.markFailed(communicationId, tenantId, 'Circuit breaker OPEN — delivery suspended');
       return;
     }
 
@@ -172,6 +184,9 @@ export class CommunicationsHandler {
           });
         });
 
+        // Record success with circuit breaker
+        await this.circuitBreaker.recordSuccess(communication.channel, tenantId);
+
         this.logger.log(
           `Email sent: id=${communicationId} to=${recipientEmail} messageId=${result.data?.id}`,
         );
@@ -197,6 +212,10 @@ export class CommunicationsHandler {
       this.logger.error(
         `Failed to deliver communication ${communicationId}: ${errorMessage}`,
       );
+
+      // Record failure with circuit breaker
+      await this.circuitBreaker.recordFailure(communication.channel, tenantId);
+
       await this.markFailed(communicationId, tenantId, errorMessage);
       throw error; // Re-throw for BullMQ retry logic
     }

@@ -133,6 +133,7 @@ export class BookingsService {
             currency: true,
             cancellationPolicy: true,
             maxRescheduleCount: true,
+            noShowGraceMinutes: true,
           },
         },
         client: {
@@ -427,6 +428,29 @@ export class BookingsService {
   async markNoShow(tenantId: string, id: string, userId: string) {
     const booking = await this.findById(tenantId, id);
     this.validateTransition(booking.status, 'NO_SHOW');
+
+    // Validate no-show grace period
+    const now = new Date();
+    const graceMinutes = booking.service.noShowGraceMinutes;
+
+    if (graceMinutes != null && graceMinutes > 0) {
+      // Grace period configured: must wait until endTime + graceMinutes
+      const graceDeadline = new Date(
+        booking.endTime.getTime() + graceMinutes * 60 * 1000,
+      );
+      if (now < graceDeadline) {
+        throw new BadRequestException(
+          `Cannot mark as no-show until ${graceMinutes} minutes after the booking end time`,
+        );
+      }
+    } else {
+      // No grace period: can only mark no-show after booking was supposed to start
+      if (now < booking.startTime) {
+        throw new BadRequestException(
+          'Cannot mark as no-show before the booking start time',
+        );
+      }
+    }
 
     const [updatedBooking] = await this.prisma.$transaction([
       this.prisma.booking.update({
