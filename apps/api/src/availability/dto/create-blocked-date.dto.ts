@@ -12,12 +12,12 @@ export class CreateBlockedDateDto {
   reason?: string;
 
   @ApiPropertyOptional({ description: 'Service ID (null = all services)' })
-  @IsUUID('4')
+  @IsUUID()
   @IsOptional()
   serviceId?: string;
 
   @ApiPropertyOptional({ description: 'Venue ID' })
-  @IsUUID('4')
+  @IsUUID()
   @IsOptional()
   venueId?: string;
 }

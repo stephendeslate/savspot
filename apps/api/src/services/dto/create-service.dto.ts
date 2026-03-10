@@ -66,12 +66,12 @@ export class CreateServiceDto {
   confirmationMode?: string;
 
   @ApiPropertyOptional({ description: 'UUID of the service category' })
-  @IsUUID('4')
+  @IsUUID()
   @IsOptional()
   categoryId?: string;
 
   @ApiPropertyOptional({ description: 'UUID of the venue' })
-  @IsUUID('4')
+  @IsUUID()
   @IsOptional()
   venueId?: string;
 
