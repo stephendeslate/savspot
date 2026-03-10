@@ -14,6 +14,10 @@ import {
   BOOKING_COMPLETED,
   BOOKING_NO_SHOW,
 } from '../events/event.types';
+import {
+  isInQuietHoursForTimezone,
+  msUntilQuietHoursEnd,
+} from '../communications/quiet-hours.util';
 
 interface DeliverProviderSmsJobData {
   tenantId: string;
@@ -79,9 +83,13 @@ export class SmsHandler {
     const phone = ownerMembership.user.phone;
     const tenantTimezone = ownerMembership.tenant.timezone || 'UTC';
 
-    // Check quiet hours
-    if (this.isQuietHours(tenantTimezone)) {
-      const delayMs = this.msUntilQuietHoursEnd(tenantTimezone);
+    // Check quiet hours (using shared utility)
+    if (isInQuietHoursForTimezone(tenantTimezone)) {
+      const delayMs = msUntilQuietHoursEnd({
+        startHour: QUIET_HOURS_START,
+        endHour: QUIET_HOURS_END,
+        timezone: tenantTimezone,
+      });
       this.logger.log(
         `Quiet hours for tenant ${tenantId} — re-enqueuing SMS with ${Math.round(delayMs / 60000)}min delay`,
       );
@@ -185,60 +193,4 @@ export class SmsHandler {
     }
   }
 
-  /**
-   * Check if the current time is within quiet hours for the given timezone.
-   */
-  private isQuietHours(timezone: string): boolean {
-    try {
-      const now = new Date();
-      const hour = parseInt(
-        now.toLocaleString('en-US', {
-          timeZone: timezone,
-          hour: 'numeric',
-          hour12: false,
-        }),
-        10,
-      );
-
-      return hour >= QUIET_HOURS_START || hour < QUIET_HOURS_END;
-    } catch {
-      return false; // If timezone is invalid, don't enforce quiet hours
-    }
-  }
-
-  /**
-   * Calculate milliseconds until quiet hours end (8 AM in tenant timezone).
-   */
-  private msUntilQuietHoursEnd(timezone: string): number {
-    try {
-      const now = new Date();
-      const formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: timezone,
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: false,
-      });
-      const parts = formatter.formatToParts(now);
-      const hourPart = parts.find((p) => p.type === 'hour');
-      const minutePart = parts.find((p) => p.type === 'minute');
-
-      const currentHour = parseInt(hourPart?.value || '0', 10);
-      const currentMinute = parseInt(minutePart?.value || '0', 10);
-
-      let hoursUntilEnd: number;
-      if (currentHour >= QUIET_HOURS_START) {
-        // Evening: hours until midnight + hours from midnight to 8 AM
-        hoursUntilEnd = 24 - currentHour + QUIET_HOURS_END;
-      } else {
-        // Early morning: hours from now to 8 AM
-        hoursUntilEnd = QUIET_HOURS_END - currentHour;
-      }
-
-      const minutesUntilEnd = hoursUntilEnd * 60 - currentMinute;
-      return Math.max(minutesUntilEnd * 60 * 1000, 60 * 1000); // Min 1 minute
-    } catch {
-      // Fallback: delay 8 hours
-      return 8 * 60 * 60 * 1000;
-    }
-  }
 }

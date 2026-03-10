@@ -605,11 +605,17 @@ describe('RLS tenant context in BullMQ job processors', () => {
       };
       const commsService = { renderTemplate: vi.fn() };
       const bookingRemindersHandler = { handle: vi.fn() };
+      const circuitBreaker = {
+        canSend: vi.fn().mockResolvedValue(true),
+        recordSuccess: vi.fn().mockResolvedValue(undefined),
+        recordFailure: vi.fn().mockResolvedValue(undefined),
+      };
       const handler = new CommunicationsHandler(
         prisma as never,
         configService as never,
         commsService as never,
         bookingRemindersHandler as never,
+        circuitBreaker as never,
       );
 
       const capturedTenantIds: string[] = [];

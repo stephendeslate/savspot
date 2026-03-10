@@ -7,6 +7,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -37,6 +38,7 @@ export class PaymentsController {
    */
   @Post('connect')
   @TenantRoles('OWNER')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Create Stripe Connect account for tenant' })
   @ApiResponse({ status: 201, description: 'Connected account created' })
   @ApiResponse({ status: 400, description: 'Account already exists or invalid input' })
@@ -57,6 +59,7 @@ export class PaymentsController {
    */
   @Post('connect/onboarding')
   @TenantRoles('OWNER')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Get Stripe Connect onboarding link' })
   @ApiResponse({ status: 200, description: 'Onboarding link returned' })
   async getOnboardingLink(
@@ -84,6 +87,7 @@ export class PaymentsController {
    */
   @Post('connect/dashboard')
   @TenantRoles('OWNER')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Get Stripe Express dashboard link' })
   @ApiResponse({ status: 200, description: 'Dashboard link returned' })
   async getDashboardLink(
@@ -147,6 +151,7 @@ export class PaymentsController {
    */
   @Post(':id/refund')
   @TenantRoles('OWNER')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Process a refund for a payment' })
   @ApiResponse({ status: 200, description: 'Refund processed' })
   @ApiResponse({ status: 400, description: 'Payment cannot be refunded' })

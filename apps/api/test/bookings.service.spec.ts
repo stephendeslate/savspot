@@ -38,6 +38,7 @@ function mockBooking(overrides: Record<string, unknown> = {}) {
       currency: 'USD',
       cancellationPolicy: null,
       maxRescheduleCount: 3,
+      noShowGraceMinutes: null,
     },
     client: { id: 'client-001', name: 'John', email: 'john@test.com', phone: null },
     venue: null,
@@ -115,12 +116,17 @@ describe('BookingsService', () => {
       expect(result.status).toBe('CONFIRMED');
     });
 
-    it('CONFIRMED → NO_SHOW allowed', async () => {
-      prisma.booking.findFirst.mockResolvedValue(mockBooking({ status: 'CONFIRMED' }));
+    it('CONFIRMED → NO_SHOW allowed (past booking)', async () => {
+      const pastBooking = mockBooking({
+        status: 'CONFIRMED',
+        startTime: new Date('2020-01-01T10:00:00Z'),
+        endTime: new Date('2020-01-01T11:00:00Z'),
+      });
+      prisma.booking.findFirst.mockResolvedValue(pastBooking);
       prisma.$transaction.mockImplementation((fns: unknown[]) =>
         Promise.all((fns as Promise<unknown>[]).map((fn) => fn)),
       );
-      prisma.booking.update.mockResolvedValue({ ...mockBooking(), status: 'NO_SHOW' });
+      prisma.booking.update.mockResolvedValue({ ...pastBooking, status: 'NO_SHOW' });
       prisma.bookingStateHistory.create.mockResolvedValue({});
 
       const result = await service.markNoShow(TENANT_ID, BOOKING_ID, USER_ID);
@@ -149,6 +155,109 @@ describe('BookingsService', () => {
       prisma.booking.findFirst.mockResolvedValue(mockBooking({ status: 'NO_SHOW' }));
       await expect(service.confirm(TENANT_ID, BOOKING_ID, USER_ID))
         .rejects.toThrow(BadRequestException);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // markNoShow — grace period validation
+  // -----------------------------------------------------------------------
+
+  describe('markNoShow grace period', () => {
+    it('rejects no-show before booking start time (no grace period)', async () => {
+      const futureBooking = mockBooking({
+        status: 'CONFIRMED',
+        startTime: new Date('2099-01-01T10:00:00Z'),
+        endTime: new Date('2099-01-01T11:00:00Z'),
+      });
+      prisma.booking.findFirst.mockResolvedValue(futureBooking);
+
+      await expect(service.markNoShow(TENANT_ID, BOOKING_ID, USER_ID))
+        .rejects.toThrow('Cannot mark as no-show before the booking start time');
+    });
+
+    it('allows no-show after booking start time (no grace period)', async () => {
+      const pastBooking = mockBooking({
+        status: 'CONFIRMED',
+        startTime: new Date('2020-01-01T10:00:00Z'),
+        endTime: new Date('2020-01-01T11:00:00Z'),
+      });
+      prisma.booking.findFirst.mockResolvedValue(pastBooking);
+      prisma.$transaction.mockImplementation((fns: unknown[]) =>
+        Promise.all((fns as Promise<unknown>[]).map((fn) => fn)),
+      );
+      prisma.booking.update.mockResolvedValue({ ...pastBooking, status: 'NO_SHOW' });
+      prisma.bookingStateHistory.create.mockResolvedValue({});
+
+      const result = await service.markNoShow(TENANT_ID, BOOKING_ID, USER_ID);
+      expect(result.status).toBe('NO_SHOW');
+    });
+
+    it('rejects no-show before grace period expires', async () => {
+      // Booking ended 5 mins ago, grace period is 15 mins
+      const now = new Date();
+      const endTime = new Date(now.getTime() - 5 * 60 * 1000);
+      const startTime = new Date(endTime.getTime() - 60 * 60 * 1000);
+
+      const booking = mockBooking({
+        status: 'CONFIRMED',
+        startTime,
+        endTime,
+        service: {
+          ...mockBooking().service,
+          noShowGraceMinutes: 15,
+        },
+      });
+      prisma.booking.findFirst.mockResolvedValue(booking);
+
+      await expect(service.markNoShow(TENANT_ID, BOOKING_ID, USER_ID))
+        .rejects.toThrow('Cannot mark as no-show until 15 minutes after the booking end time');
+    });
+
+    it('allows no-show after grace period expires', async () => {
+      // Booking ended 30 mins ago, grace period is 15 mins
+      const now = new Date();
+      const endTime = new Date(now.getTime() - 30 * 60 * 1000);
+      const startTime = new Date(endTime.getTime() - 60 * 60 * 1000);
+
+      const booking = mockBooking({
+        status: 'CONFIRMED',
+        startTime,
+        endTime,
+        service: {
+          ...mockBooking().service,
+          noShowGraceMinutes: 15,
+        },
+      });
+      prisma.booking.findFirst.mockResolvedValue(booking);
+      prisma.$transaction.mockImplementation((fns: unknown[]) =>
+        Promise.all((fns as Promise<unknown>[]).map((fn) => fn)),
+      );
+      prisma.booking.update.mockResolvedValue({ ...booking, status: 'NO_SHOW' });
+      prisma.bookingStateHistory.create.mockResolvedValue({});
+
+      const result = await service.markNoShow(TENANT_ID, BOOKING_ID, USER_ID);
+      expect(result.status).toBe('NO_SHOW');
+    });
+
+    it('allows no-show with grace minutes = 0 after start time (treated as no grace)', async () => {
+      const pastBooking = mockBooking({
+        status: 'CONFIRMED',
+        startTime: new Date('2020-01-01T10:00:00Z'),
+        endTime: new Date('2020-01-01T11:00:00Z'),
+        service: {
+          ...mockBooking().service,
+          noShowGraceMinutes: 0,
+        },
+      });
+      prisma.booking.findFirst.mockResolvedValue(pastBooking);
+      prisma.$transaction.mockImplementation((fns: unknown[]) =>
+        Promise.all((fns as Promise<unknown>[]).map((fn) => fn)),
+      );
+      prisma.booking.update.mockResolvedValue({ ...pastBooking, status: 'NO_SHOW' });
+      prisma.bookingStateHistory.create.mockResolvedValue({});
+
+      const result = await service.markNoShow(TENANT_ID, BOOKING_ID, USER_ID);
+      expect(result.status).toBe('NO_SHOW');
     });
   });
 

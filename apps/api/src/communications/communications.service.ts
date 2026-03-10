@@ -9,6 +9,7 @@ import {
   JOB_DELIVER_COMMUNICATION,
 } from '../bullmq/queue.constants';
 import { sanitizeColor } from '../common/utils/sanitize-color';
+import { checkNotificationPreference } from './notification-preference.util';
 
 // ---- Interfaces ----
 
@@ -21,6 +22,10 @@ export interface CreateAndSendParams {
   templateKey: string;
   templateData: Record<string, unknown>;
   bookingId?: string;
+  /** Notification category for preference checking (e.g. 'BOOKING', 'PAYMENT') */
+  category?: string;
+  /** Skip preference checks (for system/transactional emails) */
+  skipPreferenceCheck?: boolean;
 }
 
 export interface RenderedTemplate {
@@ -71,7 +76,63 @@ export class CommunicationsService {
       templateKey,
       templateData,
       bookingId,
+      category,
+      skipPreferenceCheck,
     } = params;
+
+    // Gap 2: Check notification preferences before dispatching
+    if (!skipPreferenceCheck && category) {
+      const channelKey = channel === 'EMAIL' ? 'email' : 'email';
+      const prefResult = await checkNotificationPreference(
+        this.prisma,
+        recipientId,
+        category,
+        channelKey,
+      );
+
+      // If the channel is disabled for this category, skip entirely
+      if (!prefResult.channelEnabled) {
+        this.logger.log(
+          `Skipping ${channel} for user ${recipientId} — ${category} channel disabled by preference`,
+        );
+        return '';
+      }
+
+      // If digest mode, just create the Notification record (no immediate send)
+      // The digest processor will batch these later.
+      if (!prefResult.sendImmediately) {
+        this.logger.log(
+          `Deferring ${channel} for user ${recipientId} — digest mode (non-IMMEDIATE)`,
+        );
+
+        // Create a Notification record so the digest processor can find it
+        const notificationType = await this.prisma.notificationType.findFirst({
+          where: {
+            OR: [
+              { key: `${category.toLowerCase()}.general` },
+              { isSystem: true },
+            ],
+          },
+          select: { id: true },
+        });
+
+        if (notificationType) {
+          const rendered = this.renderTemplate(templateKey, templateData);
+          await this.prisma.notification.create({
+            data: {
+              tenantId,
+              userId: recipientId,
+              typeId: notificationType.id,
+              title: rendered.subject,
+              body: rendered.html.substring(0, 500), // Truncate for notification body
+              data: { templateKey, bookingId, recipientEmail } as unknown as Prisma.InputJsonValue,
+            },
+          });
+        }
+
+        return '';
+      }
+    }
 
     // Render template to get subject line for the DB record
     const rendered = this.renderTemplate(templateKey, templateData);

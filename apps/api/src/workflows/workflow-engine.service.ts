@@ -16,6 +16,7 @@ import {
   BookingCancelledPayload,
   PaymentEventPayload,
 } from '../events/event.types';
+import { isInQuietHoursForTimezone } from '../communications/quiet-hours.util';
 
 /**
  * WorkflowEngine listens to domain events and executes workflow automations.
@@ -391,6 +392,20 @@ export class WorkflowEngineService {
 
       // Load tenant name for the message
       const tenant = await this.loadTenantBranding(payload.tenantId);
+
+      // Gap 3: Check quiet hours before sending workflow-triggered SMS
+      const tenantRecord = await this.prisma.tenant.findUnique({
+        where: { id: payload.tenantId },
+        select: { timezone: true },
+      });
+      const timezone = tenantRecord?.timezone ?? 'UTC';
+
+      if (isInQuietHoursForTimezone(timezone)) {
+        this.logger.log(
+          `Quiet hours for tenant ${payload.tenantId} — skipping workflow SMS for automation=${automation.id}`,
+        );
+        return;
+      }
       const dateTime = this.formatDateTime(payload.startTime);
 
       // Build message from config or default template

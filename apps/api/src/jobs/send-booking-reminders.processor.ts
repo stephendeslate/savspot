@@ -20,17 +20,20 @@ interface UpcomingBookingRow {
 }
 
 /**
- * Sends 24-hour booking reminders for upcoming confirmed appointments.
- * Scans for CONFIRMED bookings starting within the next 25 hours
- * (25h window ensures the 15-min cron cycle doesn't miss boundary bookings).
- * Deduplicates via the booking_reminders table.
+ * Sends booking reminders for upcoming confirmed appointments.
+ * Supports both 24h (intervalDays=1) and 48h (intervalDays=2) reminders.
+ * Scans for CONFIRMED bookings starting within the next 49 hours
+ * (49h window ensures the 15-min cron cycle doesn't miss boundary bookings
+ * for either the 24h or 48h reminder interval).
+ * Deduplicates via the booking_reminders table unique constraint on
+ * (bookingId, reminderType, intervalDays, channel).
  * Scheduled every 15 minutes via BullMQ repeatable job.
  */
 @Injectable()
 export class SendBookingRemindersHandler {
   private readonly logger = new Logger(SendBookingRemindersHandler.name);
 
-  private static readonly REMINDER_INTERVALS = [1] as const; // 1 day = 24h
+  private static readonly REMINDER_INTERVALS = [1, 2] as const; // 1 day = 24h, 2 days = 48h
 
   constructor(
     private readonly prisma: PrismaService,
@@ -41,7 +44,8 @@ export class SendBookingRemindersHandler {
     this.logger.log('Running send booking reminders job...');
 
     try {
-      // Find CONFIRMED bookings starting in the next 25 hours
+      // Find CONFIRMED bookings starting in the next 49 hours
+      // (covers both 24h and 48h reminder windows with 1h buffer for cron cycles)
       const upcomingBookings = await this.prisma.$queryRaw<UpcomingBookingRow[]>`
         SELECT
           b.id,
@@ -65,7 +69,7 @@ export class SendBookingRemindersHandler {
         LEFT JOIN users provider_user ON provider_user.id = sp.user_id
         WHERE b.status = 'CONFIRMED'
           AND b.start_time > NOW()
-          AND b.start_time <= NOW() + INTERVAL '25 hours'
+          AND b.start_time <= NOW() + INTERVAL '49 hours'
       `;
 
       if (upcomingBookings.length === 0) {
@@ -78,6 +82,24 @@ export class SendBookingRemindersHandler {
       for (const booking of upcomingBookings) {
         for (const intervalDays of SendBookingRemindersHandler.REMINDER_INTERVALS) {
           try {
+            // Only send reminder if the booking falls within the correct time
+            // window for this interval. E.g. 24h reminder fires when booking is
+            // 0-25h away; 48h reminder fires when booking is 24-49h away.
+            // The deduplication unique constraint also prevents double-sends.
+            const hoursUntilBooking =
+              (new Date(booking.start_time).getTime() - Date.now()) / (1000 * 60 * 60);
+            const intervalHours = intervalDays * 24;
+            const previousIntervalHours = (intervalDays - 1) * 24;
+            // Skip if booking is too far away for this interval
+            if (hoursUntilBooking > intervalHours + 1) {
+              continue;
+            }
+            // Skip if booking is close enough for a shorter interval
+            // (e.g. don't send 48h reminder when booking is only 23h away)
+            if (intervalDays > 1 && hoursUntilBooking <= previousIntervalHours + 1) {
+              continue;
+            }
+
             // Check for existing reminder and create within tenant context
             const created = await this.prisma.$transaction(async (tx) => {
               await tx.$executeRaw`SELECT set_config('app.current_tenant', ${booking.tenant_id}, TRUE)`;
