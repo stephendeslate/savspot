@@ -29,5 +29,7 @@ Rules:
 - Make EXACTLY the changes described, nothing more
 - Do NOT refactor surrounding code
 - Do NOT add comments unless specifically asked
-- After editing, run `pnpm typecheck` if available
+- After editing, run `pnpm typecheck` to verify no type errors
+- Run relevant tests with `pnpm test -- --run <test-file>` if the edit touches logic
+- If either check fails, fix the issues before completing
 - If the edit is ambiguous or could break something, say so instead of guessing
