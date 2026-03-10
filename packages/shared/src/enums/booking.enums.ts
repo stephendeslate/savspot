@@ -17,6 +17,7 @@ export const BookingSource = z.enum([
   'WIDGET',
   'REFERRAL',
   'WALK_IN',
+  'IMPORT',
 ]);
 export type BookingSource = z.infer<typeof BookingSource>;
 

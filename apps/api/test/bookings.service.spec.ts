@@ -401,7 +401,7 @@ describe('BookingsService', () => {
     it('should trigger auto-refund for succeeded payment', async () => {
       prisma.booking.findFirst.mockResolvedValue(mockBooking({
         status: 'CONFIRMED',
-        payments: [{ id: 'pay-1', status: 'SUCCEEDED' }],
+        payments: [{ id: 'pay-1', status: 'SUCCEEDED', amount: { toNumber: () => 50 } }],
       }));
       prisma.$transaction.mockImplementation((fns: unknown[]) =>
         Promise.all((fns as Promise<unknown>[]).map((fn) => fn)),
@@ -411,13 +411,13 @@ describe('BookingsService', () => {
       payments.processRefund.mockResolvedValue({});
 
       await service.cancel(TENANT_ID, BOOKING_ID, USER_ID, 'CLIENT_REQUEST');
-      expect(payments.processRefund).toHaveBeenCalledWith(TENANT_ID, 'pay-1');
+      expect(payments.processRefund).toHaveBeenCalledWith(TENANT_ID, 'pay-1', expect.any(Number));
     });
 
     it('should not fail if refund fails', async () => {
       prisma.booking.findFirst.mockResolvedValue(mockBooking({
         status: 'CONFIRMED',
-        payments: [{ id: 'pay-1', status: 'SUCCEEDED' }],
+        payments: [{ id: 'pay-1', status: 'SUCCEEDED', amount: { toNumber: () => 50 } }],
       }));
       prisma.$transaction.mockImplementation((fns: unknown[]) =>
         Promise.all((fns as Promise<unknown>[]).map((fn) => fn)),

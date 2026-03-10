@@ -83,6 +83,7 @@ enum BookingSource {
   WIDGET
   REFERRAL
   WALK_IN
+  IMPORT
 }
 
 enum BookingSessionStatus {

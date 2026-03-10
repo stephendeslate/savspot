@@ -30,6 +30,8 @@
     "admin:suspend-tenant": "tsx scripts/admin/suspend-tenant.ts",
     "admin:platform-config": "tsx scripts/admin/platform-config.ts",
     "admin:import-clients": "tsx scripts/admin/import-clients.ts",
+    "admin:import-services": "tsx scripts/admin/import-services.ts",
+    "admin:import-appointments": "tsx scripts/admin/import-appointments.ts",
     "admin:feedback": "tsx scripts/admin/feedback.ts"
   },
   "devDependencies": {

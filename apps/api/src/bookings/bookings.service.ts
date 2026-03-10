@@ -12,6 +12,10 @@ import { ListBookingsDto } from './dto/list-bookings.dto';
 import { WalkInBookingDto } from './dto/walk-in-booking.dto';
 import { EventsService } from '../events/events.service';
 import { getWalkInEmail } from '../common/constants';
+import {
+  evaluateCancellationPolicy,
+  CancellationPolicy,
+} from './cancellation-policy.evaluator';
 
 /**
  * Valid booking state transitions.
@@ -213,6 +217,20 @@ export class BookingsService {
     const booking = await this.findById(tenantId, id);
     this.validateTransition(booking.status, 'CANCELLED');
 
+    // Check if there's a succeeded payment that needs refunding
+    const succeededPayment = booking.payments.find(
+      (p) => p.status === 'SUCCEEDED',
+    );
+
+    // Evaluate cancellation policy to determine refund amount
+    const policyResult = succeededPayment
+      ? evaluateCancellationPolicy(
+          booking.service.cancellationPolicy as CancellationPolicy | null,
+          booking.startTime,
+          succeededPayment.amount.toNumber(),
+        )
+      : null;
+
     const [updatedBooking] = await this.prisma.$transaction([
       this.prisma.booking.update({
         where: { id },
@@ -230,20 +248,26 @@ export class BookingsService {
           toState: 'CANCELLED',
           triggeredBy: 'ADMIN',
           reason: `Cancelled by user ${userId}: ${reason}`,
+          metadata: policyResult
+            ? ({
+                refundType: policyResult.refundType,
+                refundAmount: policyResult.refundAmount,
+                fee: policyResult.fee,
+              } as Prisma.InputJsonValue)
+            : Prisma.DbNull,
         },
       }),
     ]);
 
-    // Check if there's a succeeded payment that needs refunding
-    const succeededPayment = booking.payments.find(
-      (p) => p.status === 'SUCCEEDED',
-    );
-
-    if (succeededPayment) {
+    if (succeededPayment && policyResult && policyResult.refundAmount > 0) {
       try {
-        await this.paymentsService.processRefund(tenantId, succeededPayment.id);
+        await this.paymentsService.processRefund(
+          tenantId,
+          succeededPayment.id,
+          policyResult.refundAmount,
+        );
         this.logger.log(
-          `Refund initiated for payment ${succeededPayment.id} on cancelled booking ${id}`,
+          `Refund of ${policyResult.refundAmount} initiated for payment ${succeededPayment.id} on cancelled booking ${id}`,
         );
       } catch (err) {
         const errorMessage =
@@ -269,6 +293,7 @@ export class BookingsService {
       endTime: booking.endTime,
       source: booking.source as string,
       cancellationReason: reason,
+      refundAmount: policyResult?.refundAmount,
     });
 
     return updatedBooking;
