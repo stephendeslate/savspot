@@ -49,7 +49,7 @@ async function bootstrap() {
 
   // CORS — allow configured origin + www variant
   const webUrl = process.env['WEB_URL'] || 'http://localhost:3000';
-  const corsOrigins = [webUrl];
+  const corsOrigins: (string | RegExp)[] = [webUrl];
   if (webUrl.includes('://') && !webUrl.includes('localhost')) {
     const url = new URL(webUrl);
     if (url.hostname.startsWith('www.')) {
@@ -57,6 +57,13 @@ async function bootstrap() {
     } else {
       corsOrigins.push(`${url.protocol}//www.${url.hostname}`);
     }
+  }
+  // In development, also allow access from LAN IPs (e.g. accessing from another machine)
+  if (!isProduction) {
+    const webPort = new URL(webUrl).port || '3000';
+    corsOrigins.push(new RegExp(`^http://192\\.168\\.\\d+\\.\\d+:${webPort}$`));
+    corsOrigins.push(new RegExp(`^http://10\\.\\d+\\.\\d+\\.\\d+:${webPort}$`));
+    corsOrigins.push(new RegExp(`^http://172\\.(1[6-9]|2\\d|3[01])\\.\\d+\\.\\d+:${webPort}$`));
   }
   app.enableCors({
     origin: corsOrigins,
