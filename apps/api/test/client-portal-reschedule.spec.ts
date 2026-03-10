@@ -33,20 +33,23 @@ describe('ClientPortalService — requestReschedule (S3)', () => {
   const futureEndDate = new Date(futureDate.getTime() + 60 * 60 * 1000);
 
   it('reschedules a CONFIRMED booking', async () => {
-    prisma.booking.findFirst.mockResolvedValue({
-      id: 'booking-1',
-      tenantId: 'tenant-1',
-      clientId: 'user-1',
-      status: 'CONFIRMED',
-      startTime: new Date('2026-03-15T10:00:00Z'),
-      endTime: new Date('2026-03-15T11:00:00Z'),
-      service: {
-        id: 'svc-1',
-        name: 'Haircut',
-        confirmationMode: 'AUTO_CONFIRM',
-        maxRescheduleCount: 3,
-      },
-    });
+    prisma.booking.findFirst
+      .mockResolvedValueOnce({
+        id: 'booking-1',
+        tenantId: 'tenant-1',
+        clientId: 'user-1',
+        status: 'CONFIRMED',
+        serviceId: 'svc-1',
+        startTime: new Date('2026-03-15T10:00:00Z'),
+        endTime: new Date('2026-03-15T11:00:00Z'),
+        service: {
+          id: 'svc-1',
+          name: 'Haircut',
+          confirmationMode: 'AUTO_CONFIRM',
+          maxRescheduleCount: 3,
+        },
+      })
+      .mockResolvedValueOnce(null); // no conflicts
     prisma.bookingStateHistory.count.mockResolvedValue(0);
     prisma.bookingStateHistory.create.mockResolvedValue({});
     prisma.booking.update.mockResolvedValue({
@@ -126,15 +129,18 @@ describe('ClientPortalService — requestReschedule (S3)', () => {
   });
 
   it('creates booking state history with reschedule metadata', async () => {
-    prisma.booking.findFirst.mockResolvedValue({
-      id: 'booking-1',
-      tenantId: 'tenant-1',
-      clientId: 'user-1',
-      status: 'CONFIRMED',
-      startTime: new Date('2026-03-15T10:00:00Z'),
-      endTime: new Date('2026-03-15T11:00:00Z'),
-      service: { maxRescheduleCount: 3 },
-    });
+    prisma.booking.findFirst
+      .mockResolvedValueOnce({
+        id: 'booking-1',
+        tenantId: 'tenant-1',
+        clientId: 'user-1',
+        status: 'CONFIRMED',
+        serviceId: 'svc-1',
+        startTime: new Date('2026-03-15T10:00:00Z'),
+        endTime: new Date('2026-03-15T11:00:00Z'),
+        service: { maxRescheduleCount: 3 },
+      })
+      .mockResolvedValueOnce(null); // no conflicts
     prisma.bookingStateHistory.count.mockResolvedValue(0);
     prisma.bookingStateHistory.create.mockResolvedValue({});
     prisma.booking.update.mockResolvedValue({ id: 'booking-1' });
