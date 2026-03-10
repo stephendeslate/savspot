@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -167,16 +167,19 @@ export default function PortalBookingsPage() {
             Filter by status
           </Label>
           <Select
-            id="status-filter"
-            value={statusFilter}
-            onChange={(e) => handleStatusChange(e.target.value)}
-            className="w-40"
+            value={statusFilter || 'all'}
+            onValueChange={(v) => handleStatusChange(v === 'all' ? '' : v)}
           >
-            {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
+            <SelectTrigger id="status-filter" className="w-40">
+              <SelectValue placeholder="All Bookings" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value || 'all'} value={opt.value || 'all'}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </div>
       </div>

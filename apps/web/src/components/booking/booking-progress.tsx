@@ -30,11 +30,11 @@ export function BookingProgress({
               <div className="flex flex-col items-center">
                 <div
                   className={cn(
-                    'flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-semibold transition-colors sm:h-9 sm:w-9',
+                    'flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-semibold transition-colors',
                     isCompleted &&
                       'border-primary bg-primary text-primary-foreground',
                     isCurrent &&
-                      'border-primary bg-background text-primary shadow-sm',
+                      'animate-pulse border-primary bg-background text-primary shadow-sm',
                     !isCompleted &&
                       !isCurrent &&
                       'border-muted-foreground/30 bg-background text-muted-foreground/50',
@@ -66,7 +66,9 @@ export function BookingProgress({
                 <div
                   className={cn(
                     'mx-1 h-0.5 flex-1 sm:mx-2',
-                    isCompleted ? 'bg-primary' : 'bg-muted-foreground/20',
+                    isCompleted && 'bg-primary',
+                    isCurrent && 'bg-gradient-to-r from-primary to-primary/50',
+                    !isCompleted && !isCurrent && 'bg-muted-foreground/20',
                   )}
                 />
               )}

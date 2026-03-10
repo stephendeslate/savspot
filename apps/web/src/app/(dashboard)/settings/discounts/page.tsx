@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -606,15 +606,19 @@ export default function DiscountsSettingsPage() {
             <div className="space-y-2">
               <Label htmlFor="discount-type">Discount Type</Label>
               <Select
-                id="discount-type"
                 value={formData.type}
-                onChange={(e) =>
-                  updateField('type', e.target.value as DiscountType)
+                onValueChange={(v) =>
+                  updateField('type', v as DiscountType)
                 }
               >
-                <option value="PERCENTAGE">Percentage</option>
-                <option value="FIXED">Fixed Amount</option>
-                <option value="FREE_HOURS">Free Hours</option>
+                <SelectTrigger id="discount-type" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PERCENTAGE">Percentage</SelectItem>
+                  <SelectItem value="FIXED">Fixed Amount</SelectItem>
+                  <SelectItem value="FREE_HOURS">Free Hours</SelectItem>
+                </SelectContent>
               </Select>
             </div>
 
@@ -652,18 +656,22 @@ export default function DiscountsSettingsPage() {
             <div className="space-y-2">
               <Label htmlFor="discount-application">Application</Label>
               <Select
-                id="discount-application"
                 value={formData.application}
-                onChange={(e) =>
+                onValueChange={(v) =>
                   updateField(
                     'application',
-                    e.target.value as DiscountApplication,
+                    v as DiscountApplication,
                   )
                 }
               >
-                <option value="CODE_REQUIRED">Code Required</option>
-                <option value="AUTOMATIC">Automatic</option>
-                <option value="ADMIN_ONLY">Admin Only</option>
+                <SelectTrigger id="discount-application" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CODE_REQUIRED">Code Required</SelectItem>
+                  <SelectItem value="AUTOMATIC">Automatic</SelectItem>
+                  <SelectItem value="ADMIN_ONLY">Admin Only</SelectItem>
+                </SelectContent>
               </Select>
             </div>
 

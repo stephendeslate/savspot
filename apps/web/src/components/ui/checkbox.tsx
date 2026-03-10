@@ -1,40 +1,32 @@
-'use client';
+"use client"
 
-import * as React from 'react';
-import { Check } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import * as React from "react"
+import { CheckIcon } from "lucide-react"
+import { Checkbox as CheckboxPrimitive } from "radix-ui"
 
-interface CheckboxProps
-  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onChange'> {
-  checked?: boolean;
-  onCheckedChange?: (checked: boolean) => void;
+import { cn } from "@/lib/utils"
+
+function Checkbox({
+  className,
+  ...props
+}: React.ComponentProps<typeof CheckboxPrimitive.Root>) {
+  return (
+    <CheckboxPrimitive.Root
+      data-slot="checkbox"
+      className={cn(
+        "peer size-4 shrink-0 rounded-[4px] border border-input shadow-xs transition-shadow outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:bg-input/30 dark:aria-invalid:ring-destructive/40 dark:data-[state=checked]:bg-primary",
+        className
+      )}
+      {...props}
+    >
+      <CheckboxPrimitive.Indicator
+        data-slot="checkbox-indicator"
+        className="grid place-content-center text-current transition-none"
+      >
+        <CheckIcon className="size-3.5" />
+      </CheckboxPrimitive.Indicator>
+    </CheckboxPrimitive.Root>
+  )
 }
 
-const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>(
-  ({ className, checked = false, onCheckedChange, disabled, ...props }, ref) => {
-    return (
-      <button
-        type="button"
-        role="checkbox"
-        aria-checked={checked}
-        ref={ref}
-        disabled={disabled}
-        className={cn(
-          'peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-          checked && 'bg-primary text-primary-foreground',
-          className,
-        )}
-        onClick={() => onCheckedChange?.(!checked)}
-        {...props}
-      >
-        {checked && (
-          <Check className="h-3 w-3" />
-        )}
-      </button>
-    );
-  },
-);
-Checkbox.displayName = 'Checkbox';
-
-export { Checkbox };
-export type { CheckboxProps };
+export { Checkbox }

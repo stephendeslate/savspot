@@ -13,7 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Avatar } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/use-auth';
 
 const NAV_LINKS = [
@@ -44,7 +44,7 @@ export function PortalNavbar() {
   const fullName = user?.name || 'User';
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-white">
+    <header className="sticky top-0 z-40 w-full border-b bg-background">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/portal" className="flex items-center gap-2">
@@ -75,11 +75,12 @@ export function PortalNavbar() {
         {/* Desktop user menu */}
         <div className="hidden items-center gap-3 md:flex">
           <div className="flex items-center gap-2">
-            <Avatar
-              src={user?.avatarUrl}
-              alt={fullName}
-              className="h-8 w-8"
-            />
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={user?.avatarUrl ?? undefined} alt={fullName} />
+              <AvatarFallback>
+                {fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
             <span className="text-sm font-medium">{fullName}</span>
           </div>
           <Button
@@ -109,15 +110,16 @@ export function PortalNavbar() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="border-t bg-white md:hidden">
+        <div className="border-t bg-background md:hidden">
           <div className="mx-auto max-w-7xl space-y-1 px-4 pb-4 pt-2 sm:px-6">
             {/* User info */}
             <div className="flex items-center gap-3 border-b pb-3 mb-2">
-              <Avatar
-                src={user?.avatarUrl}
-                alt={fullName}
-                className="h-9 w-9"
-              />
+              <Avatar className="h-9 w-9">
+                <AvatarImage src={user?.avatarUrl ?? undefined} alt={fullName} />
+                <AvatarFallback>
+                  {fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
               <div>
                 <p className="text-sm font-medium">{fullName}</p>
                 <p className="text-xs text-muted-foreground">{user?.email}</p>

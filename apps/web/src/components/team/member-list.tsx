@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -223,20 +223,24 @@ export function MemberList({
                         <div className="flex items-center gap-2">
                           <Select
                             value={member.role}
-                            onChange={(e) =>
+                            onValueChange={(v) =>
                               handleRoleChange(
                                 member.userId,
-                                e.target.value as TeamRole,
+                                v as TeamRole,
                               )
                             }
                             disabled={
                               isCurrentUser ||
                               updatingRoleId === member.userId
                             }
-                            className="w-[120px]"
                           >
-                            <option value="ADMIN">Admin</option>
-                            <option value="STAFF">Staff</option>
+                            <SelectTrigger className="w-[120px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ADMIN">Admin</SelectItem>
+                              <SelectItem value="STAFF">Staff</SelectItem>
+                            </SelectContent>
                           </Select>
                           {updatingRoleId === member.userId && (
                             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />

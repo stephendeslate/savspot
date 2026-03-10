@@ -6,7 +6,7 @@ import { addMinutes } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
@@ -178,20 +178,17 @@ export function WalkInDialog({
 
           <div className="space-y-2">
             <Label htmlFor="walk-in-service">Service *</Label>
-            <Select
-              id="walk-in-service"
-              value={serviceId}
-              onChange={(e) => setServiceId(e.target.value)}
-              disabled={servicesLoading}
-            >
-              <option value="">
-                {servicesLoading ? 'Loading services...' : 'Select a service'}
-              </option>
-              {services.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.name} ({service.durationMinutes}min)
-                </option>
-              ))}
+            <Select value={serviceId || undefined} onValueChange={setServiceId} disabled={servicesLoading}>
+              <SelectTrigger id="walk-in-service" className="w-full">
+                <SelectValue placeholder={servicesLoading ? 'Loading services...' : 'Select a service'} />
+              </SelectTrigger>
+              <SelectContent>
+                {services.map((service) => (
+                  <SelectItem key={service.id} value={service.id}>
+                    {service.name} ({service.durationMinutes}min)
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
 

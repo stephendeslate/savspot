@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -767,13 +767,14 @@ export default function BookingDetailPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="cancel-reason">Cancellation Reason</Label>
-              <Select
-                id="cancel-reason"
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-              >
-                <option value="CLIENT_REQUEST">Client Request</option>
-                <option value="ADMIN">Admin Decision</option>
+              <Select value={cancelReason} onValueChange={setCancelReason}>
+                <SelectTrigger id="cancel-reason" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CLIENT_REQUEST">Client Request</SelectItem>
+                  <SelectItem value="ADMIN">Admin Decision</SelectItem>
+                </SelectContent>
               </Select>
             </div>
           </div>
@@ -881,31 +882,33 @@ export default function BookingDetailPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="paid-currency">Currency</Label>
-                <Select
-                  id="paid-currency"
-                  value={paidCurrency}
-                  onChange={(e) => setPaidCurrency(e.target.value)}
-                >
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="GBP">GBP</option>
-                  <option value="CAD">CAD</option>
-                  <option value="AUD">AUD</option>
+                <Select value={paidCurrency} onValueChange={setPaidCurrency}>
+                  <SelectTrigger id="paid-currency" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="GBP">GBP</SelectItem>
+                    <SelectItem value="CAD">CAD</SelectItem>
+                    <SelectItem value="AUD">AUD</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="paid-method">Payment Method</Label>
-              <Select
-                id="paid-method"
-                value={paidMethod}
-                onChange={(e) => setPaidMethod(e.target.value)}
-              >
-                <option value="CASH">Cash</option>
-                <option value="CARD">Card (offline)</option>
-                <option value="CHECK">Check</option>
-                <option value="BANK_TRANSFER">Bank Transfer</option>
-                <option value="OTHER">Other</option>
+              <Select value={paidMethod} onValueChange={setPaidMethod}>
+                <SelectTrigger id="paid-method" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CASH">Cash</SelectItem>
+                  <SelectItem value="CARD">Card (offline)</SelectItem>
+                  <SelectItem value="CHECK">Check</SelectItem>
+                  <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
               </Select>
             </div>
           </div>

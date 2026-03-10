@@ -235,7 +235,7 @@ function HeroSection({
         )}
 
         <div className="flex-1">
-          <h1 className="text-2xl font-bold sm:text-3xl">{tenant.name}</h1>
+          <h1 className="font-heading text-2xl font-bold sm:text-3xl">{tenant.name}</h1>
           {tenant.description && (
             <p className="mt-1 text-muted-foreground">{tenant.description}</p>
           )}

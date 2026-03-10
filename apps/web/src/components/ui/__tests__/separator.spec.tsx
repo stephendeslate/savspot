@@ -18,15 +18,13 @@ describe('Separator', () => {
   it('should render horizontal by default', () => {
     const { container } = render(<Separator />);
     const el = container.firstChild as HTMLElement;
-    expect(el.className).toContain('w-full');
-    expect(el.className).toContain('h-[1px]');
+    expect(el.getAttribute('data-orientation')).toBe('horizontal');
   });
 
   it('should render vertical when specified', () => {
     const { container } = render(<Separator orientation="vertical" />);
     const el = container.firstChild as HTMLElement;
-    expect(el.className).toContain('h-full');
-    expect(el.className).toContain('w-[1px]');
+    expect(el.getAttribute('data-orientation')).toBe('vertical');
   });
 
   it('should set aria-orientation for non-decorative separators', () => {

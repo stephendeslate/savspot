@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -126,14 +126,14 @@ export function InviteDialog({
 
           <div className="space-y-2">
             <Label htmlFor="invite-role">Role</Label>
-            <Select
-              id="invite-role"
-              value={role}
-              onChange={(e) => setRole(e.target.value as TeamRole)}
-              disabled={sending || success}
-            >
-              <option value="STAFF">Staff</option>
-              <option value="ADMIN">Admin</option>
+            <Select value={role} onValueChange={(v) => setRole(v as TeamRole)} disabled={sending || success}>
+              <SelectTrigger id="invite-role" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="STAFF">Staff</SelectItem>
+                <SelectItem value="ADMIN">Admin</SelectItem>
+              </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
               Admins can manage team members and settings. Staff can manage

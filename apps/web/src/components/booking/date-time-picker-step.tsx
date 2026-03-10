@@ -19,6 +19,7 @@ import {
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { FadeIn } from '@/components/ui/motion';
 import { cn } from '@/lib/utils';
 import type { BookingSessionData, TimeSlot } from './booking-types';
 import { API_URL } from './booking-types';
@@ -323,25 +324,26 @@ export function DateTimePickerStep({
                 </p>
               ) : (
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {timeSlots.map((slot) => {
+                  {timeSlots.map((slot, index) => {
                     const slotKey = `${slot.date}-${slot.startTime}`;
                     const isReserving = reservingSlot === slotKey;
 
                     return (
-                      <Button
-                        key={slotKey}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs"
-                        disabled={!!reservingSlot}
-                        onClick={() => reserveSlot(slot)}
-                      >
-                        {isReserving ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          formatTimeDisplay(slot.startTime)
-                        )}
-                      </Button>
+                      <FadeIn key={slotKey} delay={index * 0.03}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-xs"
+                          disabled={!!reservingSlot}
+                          onClick={() => reserveSlot(slot)}
+                        >
+                          {isReserving ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            formatTimeDisplay(slot.startTime)
+                          )}
+                        </Button>
+                      </FadeIn>
                     );
                   })}
                 </div>

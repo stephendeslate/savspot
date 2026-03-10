@@ -78,14 +78,15 @@ export function ServiceSelectionStep({
       </p>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {services.map((service) => {
+        {services.map((service, index) => {
           const isSelecting = selectingId === service.id;
           const displayCurrency = service.currency || currency;
+          const isFirstService = index === 0;
 
           return (
             <Card
               key={service.id}
-              className={`cursor-pointer transition-all hover:shadow-md ${
+              className={`cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
                 isSelecting
                   ? 'border-primary ring-2 ring-primary/20'
                   : 'hover:border-primary/50'
@@ -102,7 +103,14 @@ export function ServiceSelectionStep({
                 </div>
               )}
               <CardHeader className={service.imageUrl ? 'pt-3 pb-2' : 'pb-2'}>
-                <CardTitle className="text-base">{service.name}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base">{service.name}</CardTitle>
+                  {isFirstService && (
+                    <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                      Most Popular
+                    </Badge>
+                  )}
+                </div>
                 {service.description && (
                   <p className="line-clamp-2 text-sm text-muted-foreground">
                     {service.description}
@@ -110,11 +118,11 @@ export function ServiceSelectionStep({
                 )}
               </CardHeader>
               <CardContent className="flex flex-wrap items-center gap-2 pt-0">
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-xs font-medium">
                   <Clock className="mr-1 h-3 w-3" />
                   {formatDuration(service.durationMinutes)}
                 </Badge>
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs font-semibold">
                   {service.pricingModel === 'PER_GUEST' ? 'From ' : ''}
                   {formatPrice(service.basePrice, displayCurrency)}
                 </Badge>

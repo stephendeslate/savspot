@@ -182,7 +182,7 @@ export function ConfirmationStep({
         </div>
       </div>
 
-      <h2 className="mb-2 text-2xl font-bold">Booking Confirmed!</h2>
+      <h2 className="mb-2 text-2xl font-bold font-heading">Booking Confirmed!</h2>
       <p className="mb-6 text-muted-foreground">
         Your appointment has been booked successfully. You will receive a
         confirmation email shortly.

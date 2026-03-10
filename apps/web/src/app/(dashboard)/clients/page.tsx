@@ -15,8 +15,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
-import { Avatar } from '@/components/ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
@@ -235,16 +235,20 @@ export default function ClientsPage() {
               Tag Filter
             </Label>
             <Select
-              id="client-tag-filter"
-              value={tagFilter}
-              onChange={(e) => setTagFilter(e.target.value)}
+              value={tagFilter || 'all'}
+              onValueChange={(v) => setTagFilter(v === 'all' ? '' : v)}
             >
-              <option value="">All Tags</option>
-              {allTags.map((tag) => (
-                <option key={tag} value={tag}>
-                  {tag}
-                </option>
-              ))}
+              <SelectTrigger id="client-tag-filter" className="w-full">
+                <SelectValue placeholder="All Tags" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Tags</SelectItem>
+                {allTags.map((tag) => (
+                  <SelectItem key={tag} value={tag}>
+                    {tag}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
         )}
@@ -256,16 +260,17 @@ export default function ClientsPage() {
           </Label>
           <div className="flex items-center gap-2">
             <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-            <Select
-              id="client-sort"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              {SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger id="client-sort" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
         </div>
@@ -306,10 +311,11 @@ export default function ClientsPage() {
                 <CardContent className="pt-6">
                   {/* Client identity */}
                   <div className="flex items-center gap-3">
-                    <Avatar
-                      alt={client.name}
-                      className="h-12 w-12 text-base"
-                    />
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback className="text-base">
+                        {client.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">{client.name}</p>
                       <p className="truncate text-sm text-muted-foreground">
