@@ -16,9 +16,9 @@ export class AppleOAuthStrategy extends PassportStrategy(AppleStrategy, 'apple')
     private readonly authService: AuthService,
     configService: ConfigService,
   ) {
-    const clientID = configService.get<string>('APPLE_CLIENT_ID', 'not-configured');
-    const teamID = configService.get<string>('APPLE_TEAM_ID', 'not-configured');
-    const keyID = configService.get<string>('APPLE_KEY_ID', 'not-configured');
+    const clientID = configService.get<string>('APPLE_CLIENT_ID') || 'not-configured';
+    const teamID = configService.get<string>('APPLE_TEAM_ID') || 'not-configured';
+    const keyID = configService.get<string>('APPLE_KEY_ID') || 'not-configured';
     const privateKeyLocation = configService.get<string>('APPLE_PRIVATE_KEY_PATH', '');
     const callbackURL = configService.get<string>(
       'APPLE_CALLBACK_URL',
