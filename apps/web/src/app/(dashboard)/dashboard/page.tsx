@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
   Briefcase,
-  CheckCircle,
   Clock,
   Calendar,
   CreditCard,
