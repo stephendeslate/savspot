@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Table,
   TableHeader,
@@ -344,15 +344,19 @@ export default function PaymentsPage() {
             <div className="flex-1 space-y-2">
               <Label htmlFor="payment-filter-status">Status</Label>
               <Select
-                id="payment-filter-status"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                value={statusFilter || 'all'}
+                onValueChange={(v) => setStatusFilter(v === 'all' ? '' : v)}
               >
-                {PAYMENT_STATUSES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
+                <SelectTrigger id="payment-filter-status" className="w-full">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_STATUSES.map((s) => (
+                    <SelectItem key={s.value || 'all'} value={s.value || 'all'}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div className="flex-1 space-y-2">

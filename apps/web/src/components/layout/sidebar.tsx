@@ -13,6 +13,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 import { ROUTES } from '@/lib/constants';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -51,7 +52,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
       <div className="flex h-16 items-center border-b px-6">
         <Link
           href={ROUTES.DASHBOARD}
-          className="text-xl font-bold tracking-tight"
+          className="font-heading text-xl font-bold tracking-tight"
           onClick={onNavigate}
         >
           SavSpot
@@ -68,9 +69,9 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-150',
                 isActive
-                  ? 'bg-primary text-primary-foreground'
+                  ? 'bg-accent text-foreground border-l-2 border-primary font-medium'
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
               )}
             >
@@ -82,7 +83,8 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
       </nav>
 
       {/* Logout */}
-      <div className="border-t p-3">
+      <Separator />
+      <div className="p-3">
         <button
           type="button"
           onClick={handleLogout}

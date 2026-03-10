@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { useState, useCallback, useRef } from 'react';
+import { ArrowLeft, ArrowRight, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { FadeIn, StepTransition } from '@/components/ui/motion';
 import { BookingProgress } from './booking-progress';
 import { ServiceSelectionStep } from './service-selection-step';
 import { DateTimePickerStep } from './date-time-picker-step';
@@ -98,8 +99,11 @@ export function BookingWizard({
     [session.id, onSessionUpdate],
   );
 
+  const directionRef = useRef<'forward' | 'backward'>('forward');
+
   const goToNextStep = useCallback(
     async (dataUpdates?: Partial<BookingSessionData>) => {
+      directionRef.current = 'forward';
       const nextStep = Math.min(currentStepIndex + 1, steps.length - 1);
       await updateSession({
         currentStep: nextStep,
@@ -111,6 +115,7 @@ export function BookingWizard({
 
   const goToPrevStep = useCallback(async () => {
     if (isFirstStep) return;
+    directionRef.current = 'backward';
     const prevStep = Math.max(currentStepIndex - 1, 0);
     await updateSession({ currentStep: prevStep });
   }, [isFirstStep, currentStepIndex, updateSession]);
@@ -315,13 +320,30 @@ export function BookingWizard({
 
       {/* Error banner */}
       {error && (
-        <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {error}
-        </div>
+        <FadeIn>
+          <div className="mb-4 flex items-start justify-between gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              className="shrink-0 rounded-sm p-0.5 hover:bg-destructive/20 transition-colors"
+              aria-label="Dismiss error"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </FadeIn>
       )}
 
       {/* Step content */}
-      <div className="min-h-[300px]">{renderStep()}</div>
+      <div className="min-h-[300px]">
+        <StepTransition
+          stepKey={String(steps[currentStepIndex] ?? currentStepIndex)}
+          direction={directionRef.current}
+        >
+          {renderStep()}
+        </StepTransition>
+      </div>
 
       {/* Bottom navigation (only for steps that don't self-navigate) */}
       {showBottomNav && (

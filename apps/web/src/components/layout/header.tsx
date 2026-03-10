@@ -1,8 +1,9 @@
 'use client';
 
 import { Menu } from 'lucide-react';
-import { Avatar } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { NotificationBell } from '@/components/notifications/notification-bell';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useAuth } from '@/hooks/use-auth';
 
 interface HeaderProps {
@@ -32,17 +33,24 @@ export function Header({ title, onMenuClick }: HeaderProps) {
         )}
       </div>
 
-      {/* Right: Notifications + User avatar */}
+      {/* Right: Theme + Notifications + User avatar */}
       <div className="flex items-center gap-3">
+        <ThemeToggle />
         <NotificationBell />
         <span className="hidden text-sm text-muted-foreground sm:block">
           {displayName}
         </span>
-        <Avatar
-          src={user?.avatarUrl}
-          alt={displayName}
-          className="h-8 w-8"
-        />
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={user?.avatarUrl ?? undefined} alt={displayName} />
+          <AvatarFallback>
+            {displayName
+              .split(' ')
+              .map((n) => n[0])
+              .join('')
+              .slice(0, 2)
+              .toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
       </div>
     </header>
   );

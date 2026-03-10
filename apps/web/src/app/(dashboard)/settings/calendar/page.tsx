@@ -22,7 +22,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -453,23 +453,26 @@ export default function CalendarSettingsPage() {
                   <div className="space-y-2">
                     <Label htmlFor="syncDirection">Sync Direction</Label>
                     <Select
-                      id="syncDirection"
                       value={connection.syncDirection}
-                      disabled={savingSettings}
-                      onChange={(e) =>
+                      onValueChange={(v) =>
                         handleUpdateSettings({
-                          syncDirection: e.target.value as
+                          syncDirection: v as
                             | 'OUTBOUND'
                             | 'BIDIRECTIONAL',
                         })
                       }
                     >
-                      <option value="OUTBOUND">
-                        One-way (outbound only)
-                      </option>
-                      <option value="BIDIRECTIONAL">
-                        Two-way (outbound + inbound blocking)
-                      </option>
+                      <SelectTrigger id="syncDirection" className="w-full" disabled={savingSettings}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="OUTBOUND">
+                          One-way (outbound only)
+                        </SelectItem>
+                        <SelectItem value="BIDIRECTIONAL">
+                          Two-way (outbound + inbound blocking)
+                        </SelectItem>
+                      </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
                       {connection.syncDirection === 'OUTBOUND'
@@ -481,19 +484,22 @@ export default function CalendarSettingsPage() {
                   <div className="space-y-2">
                     <Label htmlFor="syncFrequency">Sync Frequency</Label>
                     <Select
-                      id="syncFrequency"
                       value={connection.syncFrequencyMinutes.toString()}
-                      disabled={savingSettings}
-                      onChange={(e) =>
+                      onValueChange={(v) =>
                         handleUpdateSettings({
-                          syncFrequencyMinutes: parseInt(e.target.value, 10),
+                          syncFrequencyMinutes: parseInt(v, 10),
                         })
                       }
                     >
-                      <option value="5">Every 5 minutes</option>
-                      <option value="10">Every 10 minutes</option>
-                      <option value="15">Every 15 minutes</option>
-                      <option value="30">Every 30 minutes</option>
+                      <SelectTrigger id="syncFrequency" className="w-full" disabled={savingSettings}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">Every 5 minutes</SelectItem>
+                        <SelectItem value="10">Every 10 minutes</SelectItem>
+                        <SelectItem value="15">Every 15 minutes</SelectItem>
+                        <SelectItem value="30">Every 30 minutes</SelectItem>
+                      </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
                       How often SavSpot checks for changes in your calendar

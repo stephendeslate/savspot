@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2 } from 'lucide-react';
@@ -16,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
@@ -58,6 +58,7 @@ export default function BusinessProfilePage() {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -253,24 +254,32 @@ export default function BusinessProfilePage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="timezone">Timezone *</Label>
-                <Select id="timezone" {...register('timezone')}>
-                  <option value="">Select timezone</option>
-                  <option value="America/New_York">Eastern Time (US)</option>
-                  <option value="America/Chicago">Central Time (US)</option>
-                  <option value="America/Denver">Mountain Time (US)</option>
-                  <option value="America/Los_Angeles">
-                    Pacific Time (US)
-                  </option>
-                  <option value="America/Anchorage">Alaska Time (US)</option>
-                  <option value="Pacific/Honolulu">Hawaii Time (US)</option>
-                  <option value="Europe/London">GMT (London)</option>
-                  <option value="Europe/Paris">CET (Paris)</option>
-                  <option value="Europe/Berlin">CET (Berlin)</option>
-                  <option value="Asia/Tokyo">JST (Tokyo)</option>
-                  <option value="Asia/Shanghai">CST (Shanghai)</option>
-                  <option value="Asia/Kolkata">IST (Kolkata)</option>
-                  <option value="Australia/Sydney">AEST (Sydney)</option>
-                </Select>
+                <Controller
+                  control={control}
+                  name="timezone"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="timezone" className="w-full">
+                        <SelectValue placeholder="Select timezone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="America/New_York">Eastern Time (US)</SelectItem>
+                        <SelectItem value="America/Chicago">Central Time (US)</SelectItem>
+                        <SelectItem value="America/Denver">Mountain Time (US)</SelectItem>
+                        <SelectItem value="America/Los_Angeles">Pacific Time (US)</SelectItem>
+                        <SelectItem value="America/Anchorage">Alaska Time (US)</SelectItem>
+                        <SelectItem value="Pacific/Honolulu">Hawaii Time (US)</SelectItem>
+                        <SelectItem value="Europe/London">GMT (London)</SelectItem>
+                        <SelectItem value="Europe/Paris">CET (Paris)</SelectItem>
+                        <SelectItem value="Europe/Berlin">CET (Berlin)</SelectItem>
+                        <SelectItem value="Asia/Tokyo">JST (Tokyo)</SelectItem>
+                        <SelectItem value="Asia/Shanghai">CST (Shanghai)</SelectItem>
+                        <SelectItem value="Asia/Kolkata">IST (Kolkata)</SelectItem>
+                        <SelectItem value="Australia/Sydney">AEST (Sydney)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 {errors.timezone && (
                   <p className="text-sm text-destructive">
                     {errors.timezone.message}
@@ -280,17 +289,28 @@ export default function BusinessProfilePage() {
 
               <div className="space-y-2">
                 <Label htmlFor="currency">Currency *</Label>
-                <Select id="currency" {...register('currency')}>
-                  <option value="USD">USD - US Dollar</option>
-                  <option value="EUR">EUR - Euro</option>
-                  <option value="GBP">GBP - British Pound</option>
-                  <option value="CAD">CAD - Canadian Dollar</option>
-                  <option value="AUD">AUD - Australian Dollar</option>
-                  <option value="JPY">JPY - Japanese Yen</option>
-                  <option value="INR">INR - Indian Rupee</option>
-                  <option value="BRL">BRL - Brazilian Real</option>
-                  <option value="MXN">MXN - Mexican Peso</option>
-                </Select>
+                <Controller
+                  control={control}
+                  name="currency"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="currency" className="w-full">
+                        <SelectValue placeholder="Select currency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="USD">USD - US Dollar</SelectItem>
+                        <SelectItem value="EUR">EUR - Euro</SelectItem>
+                        <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                        <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
+                        <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
+                        <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
+                        <SelectItem value="INR">INR - Indian Rupee</SelectItem>
+                        <SelectItem value="BRL">BRL - Brazilian Real</SelectItem>
+                        <SelectItem value="MXN">MXN - Mexican Peso</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 {errors.currency && (
                   <p className="text-sm text-destructive">
                     {errors.currency.message}

@@ -435,18 +435,18 @@ export default function CalendarPage() {
               border-radius: 0.375rem;
               padding: 0.375rem 0.75rem;
               font-size: 0.875rem;
-              border-color: hsl(var(--border));
-              color: hsl(var(--foreground));
-              background-color: hsl(var(--background));
+              border-color: var(--border);
+              color: var(--foreground);
+              background-color: var(--background);
             }
             .rbc-toolbar button:hover {
-              background-color: hsl(var(--accent));
-              color: hsl(var(--accent-foreground));
+              background-color: var(--accent);
+              color: var(--accent-foreground);
             }
             .rbc-toolbar button.rbc-active {
-              background-color: hsl(var(--primary));
-              color: hsl(var(--primary-foreground));
-              border-color: hsl(var(--primary));
+              background-color: var(--primary);
+              color: var(--primary-foreground);
+              border-color: var(--primary);
             }
             .rbc-toolbar .rbc-toolbar-label {
               font-weight: 600;
@@ -456,41 +456,41 @@ export default function CalendarPage() {
               padding: 0.5rem;
               font-weight: 500;
               font-size: 0.875rem;
-              border-color: hsl(var(--border));
+              border-color: var(--border);
             }
             .rbc-month-view,
             .rbc-time-view {
-              border-color: hsl(var(--border));
+              border-color: var(--border);
               border-radius: 0.5rem;
               overflow: hidden;
             }
             .rbc-day-bg + .rbc-day-bg,
             .rbc-month-row + .rbc-month-row {
-              border-color: hsl(var(--border));
+              border-color: var(--border);
             }
             .rbc-off-range-bg {
-              background-color: hsl(var(--muted) / 0.3);
+              background-color: color-mix(in oklch, var(--muted) 30%, transparent);
             }
             .rbc-today {
-              background-color: hsl(var(--primary) / 0.05);
+              background-color: color-mix(in oklch, var(--primary) 5%, transparent);
             }
             .rbc-time-header-content,
             .rbc-time-content {
-              border-color: hsl(var(--border));
+              border-color: var(--border);
             }
             .rbc-timeslot-group {
-              border-color: hsl(var(--border));
+              border-color: var(--border);
               min-height: 3rem;
             }
             .rbc-time-slot {
-              border-color: hsl(var(--border) / 0.5);
+              border-color: color-mix(in oklch, var(--border) 50%, transparent);
             }
             .rbc-label {
               font-size: 0.75rem;
-              color: hsl(var(--muted-foreground));
+              color: var(--muted-foreground);
             }
             .rbc-current-time-indicator {
-              background-color: hsl(var(--primary));
+              background-color: var(--primary);
             }
             .rbc-event {
               border: none !important;
@@ -502,29 +502,29 @@ export default function CalendarPage() {
               font-size: 0.75rem;
             }
             .rbc-show-more {
-              color: hsl(var(--primary));
+              color: var(--primary);
               font-size: 0.75rem;
               font-weight: 500;
             }
             .rbc-agenda-view table.rbc-agenda-table {
-              border-color: hsl(var(--border));
+              border-color: var(--border);
             }
             .rbc-agenda-view table.rbc-agenda-table thead > tr > th {
-              border-color: hsl(var(--border));
+              border-color: var(--border);
               padding: 0.5rem 1rem;
               font-weight: 500;
               font-size: 0.875rem;
             }
             .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
-              border-color: hsl(var(--border));
+              border-color: var(--border);
               padding: 0.5rem 1rem;
               font-size: 0.875rem;
             }
             .rbc-agenda-view table.rbc-agenda-table tbody > tr + tr {
-              border-color: hsl(var(--border));
+              border-color: var(--border);
             }
             .rbc-day-slot .rbc-time-slot {
-              border-color: hsl(var(--border) / 0.3);
+              border-color: color-mix(in oklch, var(--border) 30%, transparent);
             }
             /* Mobile polish: larger tap targets */
             @media (max-width: 767px) {

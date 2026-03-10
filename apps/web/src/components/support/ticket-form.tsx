@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { apiClient } from '@/lib/api-client';
 
@@ -87,18 +87,17 @@ export function TicketForm({ onSuccess }: TicketFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="ticket-category">Category</Label>
-        <Select
-          id="ticket-category"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          disabled={isSubmitting}
-        >
-          <option value="">Select a category...</option>
-          {CATEGORIES.map((cat) => (
-            <option key={cat.value} value={cat.value}>
-              {cat.label}
-            </option>
-          ))}
+        <Select value={category} onValueChange={setCategory} disabled={isSubmitting}>
+          <SelectTrigger id="ticket-category" className="w-full">
+            <SelectValue placeholder="Select a category..." />
+          </SelectTrigger>
+          <SelectContent>
+            {CATEGORIES.map((cat) => (
+              <SelectItem key={cat.value} value={cat.value}>
+                {cat.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
       </div>
 

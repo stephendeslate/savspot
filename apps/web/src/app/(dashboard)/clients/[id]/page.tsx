@@ -23,7 +23,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Avatar } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
@@ -283,10 +283,11 @@ export default function ClientDetailPage() {
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <Avatar
-            alt={client.name}
-            className="h-14 w-14 text-xl"
-          />
+          <Avatar className="h-14 w-14">
+            <AvatarFallback className="text-xl">
+              {client.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
           <div>
             <h2 className="text-lg font-semibold">{client.name}</h2>
             <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">

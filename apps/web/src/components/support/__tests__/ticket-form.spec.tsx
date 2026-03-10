@@ -21,6 +21,23 @@ vi.mock('@/lib/api-client', () => ({
 import { apiClient } from '@/lib/api-client';
 const mockPost = apiClient.post as ReturnType<typeof vi.fn>;
 
+/**
+ * Helper to select a value from a Radix Select.
+ * Opens the combobox trigger, waits for the option role, then clicks it.
+ */
+async function selectRadixOption(
+  user: ReturnType<typeof userEvent.setup>,
+  triggerLabel: string,
+  optionText: string,
+) {
+  const trigger = screen.getByLabelText(triggerLabel);
+  await user.click(trigger);
+  await waitFor(() => {
+    expect(screen.getByRole('option', { name: optionText })).toBeInTheDocument();
+  });
+  await user.click(screen.getByRole('option', { name: optionText }));
+}
+
 describe('TicketForm', () => {
   const user = userEvent.setup();
 
@@ -54,27 +71,27 @@ describe('TicketForm', () => {
   it('should enable submit button when required fields are filled', async () => {
     render(<TicketForm />);
 
-    await user.selectOptions(screen.getByLabelText('Category'), 'BUG');
+    await selectRadixOption(user, 'Category', 'Bug Report');
     await user.type(screen.getByLabelText('Subject'), 'Test subject');
     await user.type(screen.getByLabelText('Description'), 'Test description');
 
     expect(screen.getByRole('button', { name: 'Submit Ticket' })).toBeEnabled();
   });
 
-  it('should render all category options', () => {
+  it('should render all category options', async () => {
     render(<TicketForm />);
 
-    const select = screen.getByLabelText('Category');
-    const options = select.querySelectorAll('option');
+    // Open the select to see all options
+    await user.click(screen.getByLabelText('Category'));
 
-    // placeholder + 6 categories
-    expect(options.length).toBe(7);
-    expect(screen.getByText('Bug Report')).toBeInTheDocument();
-    expect(screen.getByText('Feature Request')).toBeInTheDocument();
-    expect(screen.getByText('Question')).toBeInTheDocument();
-    expect(screen.getByText('Account Issue')).toBeInTheDocument();
-    expect(screen.getByText('Payment Issue')).toBeInTheDocument();
-    expect(screen.getByText('Other')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: 'Bug Report' })).toBeInTheDocument();
+    });
+    expect(screen.getByRole('option', { name: 'Feature Request' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Question' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Account Issue' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Payment Issue' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Other' })).toBeInTheDocument();
   });
 
   it('should submit the form and show success message', async () => {
@@ -83,7 +100,7 @@ describe('TicketForm', () => {
 
     render(<TicketForm onSuccess={onSuccess} />);
 
-    await user.selectOptions(screen.getByLabelText('Category'), 'BUG');
+    await selectRadixOption(user, 'Category', 'Bug Report');
     await user.type(screen.getByLabelText('Subject'), 'App crashes');
     await user.type(
       screen.getByLabelText('Description'),
@@ -110,7 +127,7 @@ describe('TicketForm', () => {
 
     render(<TicketForm />);
 
-    await user.selectOptions(screen.getByLabelText('Category'), 'BUG');
+    await selectRadixOption(user, 'Category', 'Bug Report');
     await user.type(screen.getByLabelText('Subject'), 'Visual bug');
     await user.type(screen.getByLabelText('Description'), 'UI is broken');
     await user.type(
@@ -134,7 +151,7 @@ describe('TicketForm', () => {
 
     render(<TicketForm />);
 
-    await user.selectOptions(screen.getByLabelText('Category'), 'OTHER');
+    await selectRadixOption(user, 'Category', 'Other');
     await user.type(screen.getByLabelText('Subject'), 'Help');
     await user.type(screen.getByLabelText('Description'), 'Need help');
     await user.click(screen.getByRole('button', { name: 'Submit Ticket' }));
@@ -149,7 +166,7 @@ describe('TicketForm', () => {
 
     render(<TicketForm />);
 
-    await user.selectOptions(screen.getByLabelText('Category'), 'QUESTION');
+    await selectRadixOption(user, 'Category', 'Question');
     await user.type(screen.getByLabelText('Subject'), 'How to?');
     await user.type(screen.getByLabelText('Description'), 'How do I do X?');
     await user.click(screen.getByRole('button', { name: 'Submit Ticket' }));

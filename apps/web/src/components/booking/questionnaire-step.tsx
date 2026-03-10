@@ -5,7 +5,7 @@ import { ArrowRight, ArrowLeft, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -200,19 +200,19 @@ export function QuestionnaireStep({
       case 'SELECT':
         return (
           <Select
-            id={`q-${field.id}`}
-            value={String(values[field.id] ?? '')}
-            onChange={(e) => updateField(field.id, e.target.value)}
-            className={errorClass}
+            value={String(values[field.id] ?? '') || undefined}
+            onValueChange={(v) => updateField(field.id, v)}
           >
-            <option value="" disabled>
-              {field.placeholder ?? 'Select an option'}
-            </option>
-            {(field.options ?? []).map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
+            <SelectTrigger id={`q-${field.id}`} className={`w-full ${errorClass}`}>
+              <SelectValue placeholder={field.placeholder ?? 'Select an option'} />
+            </SelectTrigger>
+            <SelectContent>
+              {(field.options ?? []).map((opt) => (
+                <SelectItem key={opt} value={opt}>
+                  {opt}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         );
 

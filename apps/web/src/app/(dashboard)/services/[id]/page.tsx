@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useForm, useWatch } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -23,7 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const ZERO_DECIMAL_CURRENCIES = new Set(['JPY', 'KRW', 'VND']);
 
@@ -390,24 +390,46 @@ export default function EditServicePage() {
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="currency">Currency</Label>
-                <Select id="currency" {...register('currency')}>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="GBP">GBP</option>
-                  <option value="CAD">CAD</option>
-                  <option value="AUD">AUD</option>
-                  <option value="JPY">JPY</option>
-                </Select>
+                <Controller
+                  control={control}
+                  name="currency"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="currency" className="w-full">
+                        <SelectValue placeholder="Select currency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="EUR">EUR</SelectItem>
+                        <SelectItem value="GBP">GBP</SelectItem>
+                        <SelectItem value="CAD">CAD</SelectItem>
+                        <SelectItem value="AUD">AUD</SelectItem>
+                        <SelectItem value="JPY">JPY</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="pricingModel">Pricing Model *</Label>
-                <Select id="pricingModel" {...register('pricingModel')}>
-                  <option value="FIXED">Fixed Price</option>
-                  <option value="HOURLY">Hourly Rate</option>
-                  <option value="TIERED">Tiered Pricing</option>
-                  <option value="FREE">Free</option>
-                </Select>
+                <Controller
+                  control={control}
+                  name="pricingModel"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="pricingModel" className="w-full">
+                        <SelectValue placeholder="Select pricing model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="FIXED">Fixed Price</SelectItem>
+                        <SelectItem value="HOURLY">Hourly Rate</SelectItem>
+                        <SelectItem value="TIERED">Tiered Pricing</SelectItem>
+                        <SelectItem value="FREE">Free</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 {errors.pricingModel && (
                   <p className="text-sm text-destructive">
                     {errors.pricingModel.message}
@@ -417,13 +439,21 @@ export default function EditServicePage() {
 
               <div className="space-y-2">
                 <Label htmlFor="confirmationMode">Confirmation Mode *</Label>
-                <Select
-                  id="confirmationMode"
-                  {...register('confirmationMode')}
-                >
-                  <option value="AUTO_CONFIRM">Auto-confirm</option>
-                  <option value="MANUAL_APPROVAL">Manual Review</option>
-                </Select>
+                <Controller
+                  control={control}
+                  name="confirmationMode"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="confirmationMode" className="w-full">
+                        <SelectValue placeholder="Select confirmation mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AUTO_CONFIRM">Auto-confirm</SelectItem>
+                        <SelectItem value="MANUAL_APPROVAL">Manual Review</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 {errors.confirmationMode && (
                   <p className="text-sm text-destructive">
                     {errors.confirmationMode.message}

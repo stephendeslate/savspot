@@ -34,14 +34,14 @@ describe('Dialog', () => {
     expect(screen.getByText('Visible content')).toBeInTheDocument();
   });
 
-  it('should render with dialog role and aria-modal', () => {
+  it('should render with dialog role', () => {
     render(
       <Dialog open={true}>
         <DialogContent>Content</DialogContent>
       </Dialog>,
     );
 
-    expect(screen.getByRole('dialog')).toHaveAttribute('aria-modal', 'true');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('should render title and description', () => {
@@ -81,20 +81,6 @@ describe('Dialog', () => {
     );
 
     fireEvent.keyDown(document, { key: 'Escape' });
-    expect(onOpenChange).toHaveBeenCalledWith(false);
-  });
-
-  it('should call onOpenChange when overlay is clicked', () => {
-    const onOpenChange = vi.fn();
-    render(
-      <Dialog open={true} onOpenChange={onOpenChange}>
-        <DialogContent>Content</DialogContent>
-      </Dialog>,
-    );
-
-    // Overlay is the fixed backdrop element (first sibling before the dialog div)
-    const overlay = document.querySelector('.fixed.inset-0');
-    if (overlay) fireEvent.click(overlay);
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 

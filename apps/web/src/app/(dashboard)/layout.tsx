@@ -8,6 +8,8 @@ import { PushPrompt } from '@/components/push-prompt';
 import { MobileNav } from '@/components/layout/mobile-nav';
 import { SupportWidget } from '@/components/support/support-widget';
 import { FeedbackWidget } from '@/components/feedback/feedback-widget';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PageTransition } from '@/components/ui/motion';
 import { useAuth } from '@/hooks/use-auth';
 import { ROUTES } from '@/lib/constants';
 
@@ -41,8 +43,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   // Show loading state
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex min-h-screen">
+        <div className="hidden lg:block w-64 border-r bg-card" />
+        <div className="flex-1 p-6">
+          <Skeleton className="h-8 w-48 mb-6" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -69,7 +80,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           onMenuClick={() => setMobileNavOpen(true)}
         />
         <PushPrompt />
-        <main className="min-w-0 flex-1 p-4 lg:p-6">{children}</main>
+        <main className="min-w-0 flex-1 p-4 lg:p-6">
+          <PageTransition>{children}</PageTransition>
+        </main>
       </div>
 
       {/* Floating widgets */}

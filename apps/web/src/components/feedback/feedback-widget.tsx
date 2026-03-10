@@ -5,7 +5,7 @@ import { Lightbulb, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
@@ -117,18 +117,17 @@ export function FeedbackWidget() {
 
               <div className="space-y-2">
                 <Label htmlFor="feedback-type">Type</Label>
-                <Select
-                  id="feedback-type"
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                  disabled={isSubmitting}
-                >
-                  <option value="">Select a type...</option>
-                  {FEEDBACK_TYPES.map((ft) => (
-                    <option key={ft.value} value={ft.value}>
-                      {ft.label}
-                    </option>
-                  ))}
+                <Select value={type} onValueChange={setType} disabled={isSubmitting}>
+                  <SelectTrigger id="feedback-type" className="w-full">
+                    <SelectValue placeholder="Select a type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FEEDBACK_TYPES.map((ft) => (
+                      <SelectItem key={ft.value} value={ft.value}>
+                        {ft.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
 
