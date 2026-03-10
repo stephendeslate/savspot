@@ -13,7 +13,7 @@ test.describe('Team Settings', () => {
     await page.goto('/settings/team');
 
     // The page should show the "Team" heading
-    const heading = page.getByRole('heading', { name: 'Team' });
+    const heading = page.getByRole('heading', { level: 2, name: 'Team' });
     await expect(heading).toBeVisible({ timeout: 15_000 });
 
     // Descriptive subtitle
@@ -33,11 +33,11 @@ test.describe('Team Settings', () => {
 
     // Wait for the page to load
     await expect(
-      page.getByRole('heading', { name: 'Team' }),
+      page.getByRole('heading', { level: 2, name: 'Team' }),
     ).toBeVisible({ timeout: 15_000 });
 
     // The "Team Members" card title should be visible
-    await expect(page.getByText('Team Members')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Team Members', exact: true })).toBeVisible();
 
     // Either a member list or the empty state should appear
     const memberCount = page.getByText(/member.*on your team/i);
@@ -45,7 +45,7 @@ test.describe('Team Settings', () => {
     const noTeamMembers = page.getByText(/no team members yet/i);
 
     await expect(
-      memberCount.or(emptyState).or(noTeamMembers),
+      memberCount.or(emptyState).or(noTeamMembers).first(),
     ).toBeVisible({ timeout: 10_000 });
   });
 
@@ -56,7 +56,7 @@ test.describe('Team Settings', () => {
 
     // Wait for the page to load
     await expect(
-      page.getByRole('heading', { name: 'Team' }),
+      page.getByRole('heading', { level: 2, name: 'Team' }),
     ).toBeVisible({ timeout: 15_000 });
 
     // Click the "Invite Member" button in the header
@@ -73,7 +73,7 @@ test.describe('Team Settings', () => {
 
     // Wait for the page to load
     await expect(
-      page.getByRole('heading', { name: 'Team' }),
+      page.getByRole('heading', { level: 2, name: 'Team' }),
     ).toBeVisible({ timeout: 15_000 });
 
     // There is a back/arrow button that navigates to /settings

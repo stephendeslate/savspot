@@ -2,11 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 
-/**
- * TODO: When migrating to a non-superuser DB role, this processor's raw SQL queries
- * must set app.current_tenant per-tenant because FORCE ROW LEVEL SECURITY will
- * block cross-tenant access to invoices and bookings.
- */
 interface OverdueInvoiceRow {
   id: string;
   tenant_id: string;
@@ -56,31 +51,31 @@ export class EnforcePaymentDeadlinesHandler {
 
       for (const invoice of overdueInvoices) {
         try {
-          // Mark invoice as OVERDUE if not already
-          if (invoice.status !== 'OVERDUE') {
-            await this.prisma.invoice.update({
-              where: { id: invoice.id },
-              data: { status: 'OVERDUE' },
-            });
-            overdueCount++;
-          }
+          await this.prisma.$transaction(async (tx) => {
+            await tx.$executeRaw`SELECT set_config('app.current_tenant', ${invoice.tenant_id}, TRUE)`;
 
-          // Auto-cancel booking if auto_cancel_on_overdue is true or null (default true)
-          const shouldAutoCancel = invoice.auto_cancel_on_overdue !== false;
+            // Mark invoice as OVERDUE if not already
+            if (invoice.status !== 'OVERDUE') {
+              await tx.invoice.update({
+                where: { id: invoice.id },
+                data: { status: 'OVERDUE' },
+              });
+              overdueCount++;
+            }
 
-          if (shouldAutoCancel) {
-            // Check if booking is in a cancellable state
-            const booking = await this.prisma.booking.findFirst({
-              where: {
-                id: invoice.booking_id,
-                status: { in: ['PENDING', 'CONFIRMED'] },
-              },
-            });
+            // Auto-cancel booking if auto_cancel_on_overdue is true or null (default true)
+            const shouldAutoCancel = invoice.auto_cancel_on_overdue !== false;
 
-            if (booking) {
-              await this.prisma.$transaction(async (tx) => {
-                await tx.$executeRaw`SELECT set_config('app.current_tenant', ${invoice.tenant_id}, TRUE)`;
+            if (shouldAutoCancel) {
+              // Check if booking is in a cancellable state
+              const booking = await tx.booking.findFirst({
+                where: {
+                  id: invoice.booking_id,
+                  status: { in: ['PENDING', 'CONFIRMED'] },
+                },
+              });
 
+              if (booking) {
                 await tx.booking.update({
                   where: { id: invoice.booking_id },
                   data: {
@@ -100,14 +95,14 @@ export class EnforcePaymentDeadlinesHandler {
                     reason: 'Auto-cancelled: payment deadline exceeded',
                   },
                 });
-              });
 
-              cancelledCount++;
-              this.logger.log(
-                `Auto-cancelled booking ${invoice.booking_id} for overdue payment (invoice ${invoice.id})`,
-              );
+                cancelledCount++;
+                this.logger.log(
+                  `Auto-cancelled booking ${invoice.booking_id} for overdue payment (invoice ${invoice.id})`,
+                );
+              }
             }
-          }
+          });
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Unknown error';
           this.logger.error(

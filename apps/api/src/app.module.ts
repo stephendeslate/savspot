@@ -80,7 +80,8 @@ import {
       {
         name: 'default',
         ttl: 60_000,
-        limit: 60,
+        // Higher limit in test mode to avoid E2E rate-limit failures
+        limit: process.env['NODE_ENV'] === 'test' ? 600 : 60,
       },
     ]),
     PrismaModule,

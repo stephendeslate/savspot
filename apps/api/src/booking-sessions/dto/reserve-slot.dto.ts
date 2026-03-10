@@ -3,11 +3,11 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ReserveSlotDto {
   @ApiProperty({ description: 'Service ID for the reservation' })
-  @IsUUID('4')
+  @IsUUID()
   serviceId!: string;
 
   @ApiPropertyOptional({ description: 'Venue ID' })
-  @IsUUID('4')
+  @IsUUID()
   @IsOptional()
   venueId?: string;
 

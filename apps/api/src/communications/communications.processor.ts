@@ -78,13 +78,16 @@ export class CommunicationsHandler {
       `Processing deliverCommunication: id=${communicationId} tenant=${tenantId}`,
     );
 
-    // Load the communication record with recipient info
-    const communication = await this.prisma.communication.findUnique({
-      where: { id: communicationId },
-      include: {
-        recipient: { select: { email: true, name: true } },
-        tenant: { select: { name: true, logoUrl: true, brandColor: true } },
-      },
+    // Load the communication record with recipient info (within tenant context)
+    const communication = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+      return tx.communication.findUnique({
+        where: { id: communicationId },
+        include: {
+          recipient: { select: { email: true, name: true } },
+          tenant: { select: { name: true, logoUrl: true, brandColor: true } },
+        },
+      });
     });
 
     if (!communication) {
@@ -106,7 +109,7 @@ export class CommunicationsHandler {
       : communication.recipient.email;
 
     if (!recipientEmail) {
-      await this.markFailed(communicationId, 'No recipient email available');
+      await this.markFailed(communicationId, tenantId, 'No recipient email available');
       return;
     }
 
@@ -135,10 +138,13 @@ export class CommunicationsHandler {
       }
     }
 
-    // Mark as SENDING
-    await this.prisma.communication.update({
-      where: { id: communicationId },
-      data: { status: 'SENDING' },
+    // Mark as SENDING (within tenant context)
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+      await tx.communication.update({
+        where: { id: communicationId },
+        data: { status: 'SENDING' },
+      });
     });
 
     try {
@@ -150,13 +156,16 @@ export class CommunicationsHandler {
           html,
         });
 
-        await this.prisma.communication.update({
-          where: { id: communicationId },
-          data: {
-            status: 'SENT',
-            sentAt: new Date(),
-            providerMessageId: result.data?.id ?? null,
-          },
+        await this.prisma.$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+          await tx.communication.update({
+            where: { id: communicationId },
+            data: {
+              status: 'SENT',
+              sentAt: new Date(),
+              providerMessageId: result.data?.id ?? null,
+            },
+          });
         });
 
         this.logger.log(
@@ -167,13 +176,16 @@ export class CommunicationsHandler {
         this.logger.log(`[DEV EMAIL] To: ${recipientEmail} | Subject: ${subject}`);
         this.logger.log(`[DEV EMAIL] Body length: ${html.length} chars`);
 
-        await this.prisma.communication.update({
-          where: { id: communicationId },
-          data: {
-            status: 'SENT',
-            sentAt: new Date(),
-            providerMessageId: `dev-${Date.now()}`,
-          },
+        await this.prisma.$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+          await tx.communication.update({
+            where: { id: communicationId },
+            data: {
+              status: 'SENT',
+              sentAt: new Date(),
+              providerMessageId: `dev-${Date.now()}`,
+            },
+          });
         });
       }
     } catch (error) {
@@ -181,7 +193,7 @@ export class CommunicationsHandler {
       this.logger.error(
         `Failed to deliver communication ${communicationId}: ${errorMessage}`,
       );
-      await this.markFailed(communicationId, errorMessage);
+      await this.markFailed(communicationId, tenantId, errorMessage);
       throw error; // Re-throw for BullMQ retry logic
     }
   }
@@ -198,101 +210,127 @@ export class CommunicationsHandler {
 
     const cutoff = new Date(Date.now() - SCAN_WINDOW_MS);
 
-    // Find bookings completed in the last 15 minutes
-    const completedBookings = await this.prisma.booking.findMany({
-      where: {
-        status: 'COMPLETED',
-        updatedAt: { gte: cutoff },
-      },
-      include: {
-        client: { select: { id: true, email: true, name: true } },
-        service: { select: { id: true, name: true } },
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            logoUrl: true,
-            brandColor: true,
-          },
-        },
-      },
-    });
+    // Find bookings completed in the last 15 minutes (cross-tenant raw query)
+    const completedBookingRows = await this.prisma.$queryRaw<
+      Array<{
+        id: string;
+        tenant_id: string;
+        service_id: string;
+        start_time: Date;
+        client_id: string;
+        client_email: string;
+        client_name: string;
+        service_name: string;
+        tenant_name: string;
+        tenant_slug: string | null;
+        tenant_logo_url: string | null;
+        tenant_brand_color: string | null;
+      }>
+    >`
+      SELECT
+        b.id,
+        b.tenant_id,
+        b.service_id,
+        b.start_time,
+        b.client_id,
+        u.email AS client_email,
+        u.name AS client_name,
+        s.name AS service_name,
+        t.name AS tenant_name,
+        t.slug AS tenant_slug,
+        t.logo_url AS tenant_logo_url,
+        t.brand_color AS tenant_brand_color
+      FROM bookings b
+      JOIN users u ON u.id = b.client_id
+      JOIN services s ON s.id = b.service_id
+      JOIN tenants t ON t.id = b.tenant_id
+      WHERE b.status = 'COMPLETED'
+        AND b.updated_at >= ${cutoff}
+    `;
 
-    if (completedBookings.length === 0) {
+    if (completedBookingRows.length === 0) {
       this.logger.debug('No recently completed bookings found');
       return;
     }
 
     this.logger.log(
-      `Found ${completedBookings.length} recently completed booking(s) for follow-up`,
+      `Found ${completedBookingRows.length} recently completed booking(s) for follow-up`,
     );
 
     let enqueued = 0;
     let skipped = 0;
 
-    for (const booking of completedBookings) {
+    for (const booking of completedBookingRows) {
       try {
-        // Deduplication: check if a follow-up reminder already exists
-        const existingReminder = await this.prisma.bookingReminder.findFirst({
-          where: {
-            bookingId: booking.id,
-            reminderType: 'BOOKING',
-            channel: 'EMAIL',
-          },
+        // Deduplication and reminder creation within tenant context
+        const created = await this.prisma.$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT set_config('app.current_tenant', ${booking.tenant_id}, TRUE)`;
+
+          const existingReminder = await tx.bookingReminder.findFirst({
+            where: {
+              bookingId: booking.id,
+              reminderType: 'BOOKING',
+              channel: 'EMAIL',
+            },
+          });
+
+          if (existingReminder) {
+            return null;
+          }
+
+          const scheduledFor = new Date(Date.now() + FOLLOW_UP_DELAY_MS);
+
+          await tx.bookingReminder.create({
+            data: {
+              bookingId: booking.id,
+              tenantId: booking.tenant_id,
+              reminderType: 'BOOKING',
+              intervalDays: 1,
+              scheduledFor,
+              channel: 'EMAIL',
+              status: 'PENDING',
+            },
+          });
+
+          // Look up provider for the rebooking deep-link
+          const serviceProvider = await tx.serviceProvider.findFirst({
+            where: {
+              serviceId: booking.service_id,
+              tenantId: booking.tenant_id,
+            },
+            select: { userId: true },
+          });
+
+          return { providerId: serviceProvider?.userId ?? null };
         });
 
-        if (existingReminder) {
+        if (!created) {
           this.logger.debug(
-            `Skipping follow-up for booking ${booking.id} — reminder already exists (${existingReminder.id})`,
+            `Skipping follow-up for booking ${booking.id} — reminder already exists`,
           );
           skipped++;
           continue;
         }
 
-        // Create a BookingReminder record for deduplication tracking
-        const scheduledFor = new Date(Date.now() + FOLLOW_UP_DELAY_MS);
-
-        await this.prisma.bookingReminder.create({
-          data: {
-            bookingId: booking.id,
-            tenantId: booking.tenantId,
-            reminderType: 'BOOKING',
-            intervalDays: 1,
-            scheduledFor,
-            channel: 'EMAIL',
-            status: 'PENDING',
-          },
-        });
-
-        // Look up provider for the rebooking deep-link
-        const serviceProvider = await this.prisma.serviceProvider.findFirst({
-          where: {
-            serviceId: booking.serviceId,
-            tenantId: booking.tenantId,
-          },
-          select: { userId: true },
-        });
-
         // Enqueue the follow-up email with a 24-hour delay
         await this.communicationsService.createAndSend(
           {
-            tenantId: booking.tenantId,
-            recipientId: booking.client.id,
-            recipientEmail: booking.client.email,
-            recipientName: booking.client.name,
+            tenantId: booking.tenant_id,
+            recipientId: booking.client_id,
+            recipientEmail: booking.client_email,
+            recipientName: booking.client_name,
             channel: 'EMAIL',
             templateKey: 'follow-up',
             templateData: {
-              clientName: booking.client.name,
-              serviceName: booking.service.name,
-              dateTime: this.formatDateTime(booking.startTime),
-              businessName: booking.tenant.name,
-              logoUrl: booking.tenant.logoUrl,
-              brandColor: booking.tenant.brandColor,
-              tenantSlug: booking.tenant.slug,
-              serviceId: booking.service.id,
-              providerId: serviceProvider?.userId ?? null,
+              clientName: booking.client_name,
+              serviceName: booking.service_name,
+              dateTime: this.formatDateTime(booking.start_time),
+              businessName: booking.tenant_name,
+              logoUrl: booking.tenant_logo_url,
+              brandColor: booking.tenant_brand_color,
+              tenantSlug: booking.tenant_slug,
+              serviceId: booking.service_id,
+              providerId: created.providerId,
             },
             bookingId: booking.id,
           },
@@ -314,13 +352,16 @@ export class CommunicationsHandler {
 
   // ---- Helpers ----
 
-  private async markFailed(communicationId: string, reason: string): Promise<void> {
-    await this.prisma.communication.update({
-      where: { id: communicationId },
-      data: {
-        status: 'FAILED',
-        failureReason: reason,
-      },
+  private async markFailed(communicationId: string, tenantId: string, reason: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+      await tx.communication.update({
+        where: { id: communicationId },
+        data: {
+          status: 'FAILED',
+          failureReason: reason,
+        },
+      });
     });
   }
 

@@ -45,3 +45,11 @@ export type DateReservationStatus = z.infer<typeof DateReservationStatus>;
 
 export const StateTransitionTrigger = z.enum(['SYSTEM', 'ADMIN', 'CLIENT', 'WEBHOOK']);
 export type StateTransitionTrigger = z.infer<typeof StateTransitionTrigger>;
+
+export const BookingWorkflowOverrideType = z.enum([
+  'SKIP',
+  'DISABLE_AUTOMATION',
+  'CUSTOM_TIMING',
+  'ADD_STAGE',
+]);
+export type BookingWorkflowOverrideType = z.infer<typeof BookingWorkflowOverrideType>;

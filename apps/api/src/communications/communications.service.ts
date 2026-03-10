@@ -8,6 +8,7 @@ import {
   QUEUE_COMMUNICATIONS,
   JOB_DELIVER_COMMUNICATION,
 } from '../bullmq/queue.constants';
+import { sanitizeColor } from '../common/utils/sanitize-color';
 
 // ---- Interfaces ----
 
@@ -288,7 +289,7 @@ export class CommunicationsService {
       </table>
       <p>Would you like to book again?</p>
       <p style="margin:24px 0;">
-        <a href="${this.esc(rebookUrl)}" style="display:inline-block;padding:12px 24px;background:${branding.brandColor ?? '#000'};color:#fff;text-decoration:none;border-radius:6px;">Book Again</a>
+        <a href="${this.esc(rebookUrl)}" style="display:inline-block;padding:12px 24px;background:${sanitizeColor(branding.brandColor, '#000')};color:#fff;text-decoration:none;border-radius:6px;">Book Again</a>
       </p>
     `);
     return { subject, html };
@@ -407,7 +408,7 @@ export class CommunicationsService {
       <p>It looks like you started booking <strong>${this.esc(d['serviceName'])}</strong> with <strong>${this.esc(branding.businessName)}</strong> but didn't finish.</p>
       <p>No worries — your preferred time might still be available. Pick up right where you left off:</p>
       <p style="margin:24px 0;">
-        <a href="${this.esc(rebookUrl)}" style="display:inline-block;padding:12px 24px;background:${branding.brandColor ?? '#000'};color:#fff;text-decoration:none;border-radius:6px;">Complete Your Booking</a>
+        <a href="${this.esc(rebookUrl)}" style="display:inline-block;padding:12px 24px;background:${sanitizeColor(branding.brandColor, '#000')};color:#fff;text-decoration:none;border-radius:6px;">Complete Your Booking</a>
       </p>
       <p style="font-size:13px;color:#888;">If you no longer need to book, you can safely ignore this email.</p>
     `);
@@ -428,7 +429,7 @@ export class CommunicationsService {
         <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666;">Date/Time</td><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">${this.esc(d['dateTime'])}</td></tr>
       </table>
       <p style="margin:24px 0;">
-        <a href="${this.esc(approveUrl)}" style="display:inline-block;padding:12px 24px;background:${branding.brandColor ?? '#000'};color:#fff;text-decoration:none;border-radius:6px;">Review Booking</a>
+        <a href="${this.esc(approveUrl)}" style="display:inline-block;padding:12px 24px;background:${sanitizeColor(branding.brandColor, '#000')};color:#fff;text-decoration:none;border-radius:6px;">Review Booking</a>
       </p>
       <p style="font-size:13px;color:#888;">This booking will be automatically cancelled if not approved within the configured deadline.</p>
     `);
@@ -453,7 +454,7 @@ export class CommunicationsService {
     const logoBlock = branding.logoUrl
       ? `<img src="${this.esc(branding.logoUrl)}" alt="${this.esc(branding.businessName)}" style="max-height:48px;margin-bottom:16px;" />`
       : '';
-    const accentColor = branding.brandColor ?? '#000000';
+    const accentColor = sanitizeColor(branding.brandColor, '#000000');
 
     return `<!DOCTYPE html>
 <html lang="en">

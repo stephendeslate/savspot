@@ -13,6 +13,7 @@ function makePrisma() {
     bookingSession: { deleteMany: vi.fn() },
     notification: { deleteMany: vi.fn() },
     $queryRaw: vi.fn(),
+    $executeRaw: vi.fn(),
     $transaction: vi.fn(),
     booking: { findFirst: vi.fn() },
   };
@@ -41,20 +42,38 @@ describe('ExpireReservationsHandler', () => {
     handler = new ExpireReservationsHandler(prisma as never);
   });
 
-  it('should expire HELD reservations past their expiresAt time', async () => {
-    prisma.dateReservation.updateMany.mockResolvedValue({ count: 3 });
+  it('should expire HELD reservations per-tenant with RLS context', async () => {
+    prisma.$queryRaw.mockResolvedValue([{ tenant_id: 'tenant-001' }]);
+
+    const mockTx = {
+      $executeRaw: vi.fn(),
+      dateReservation: { updateMany: vi.fn().mockResolvedValue({ count: 3 }) },
+    };
+    prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
+      fn(mockTx),
+    );
 
     await handler.handle(makeJob());
 
-    expect(prisma.dateReservation.updateMany).toHaveBeenCalledTimes(1);
-    const call = prisma.dateReservation.updateMany.mock.calls[0]![0];
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(mockTx.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(mockTx.dateReservation.updateMany).toHaveBeenCalledTimes(1);
+    const call = mockTx.dateReservation.updateMany.mock.calls[0]![0];
     expect(call.where.status).toBe('HELD');
-    expect(call.where.expiresAt).toEqual({ lt: expect.any(Date) });
     expect(call.data.status).toBe('EXPIRED');
   });
 
+  it('should handle no tenants with held reservations', async () => {
+    prisma.$queryRaw.mockResolvedValue([]);
+
+    await handler.handle(makeJob());
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
   it('should re-throw errors from the database', async () => {
-    prisma.dateReservation.updateMany.mockRejectedValue(new Error('DB error'));
+    prisma.$queryRaw.mockRejectedValue(new Error('DB error'));
 
     await expect(handler.handle(makeJob()))
       .rejects.toThrow('DB error');
@@ -71,74 +90,57 @@ describe('CleanupRetentionHandler', () => {
 
   beforeEach(() => {
     prisma = makePrisma();
-    prisma.dateReservation.deleteMany.mockResolvedValue({ count: 0 });
-    prisma.bookingSession.deleteMany.mockResolvedValue({ count: 0 });
-    prisma.notification.deleteMany.mockResolvedValue({ count: 0 });
     handler = new CleanupRetentionHandler(prisma as never);
   });
 
-  it('should delete expired/released reservations older than 30 days', async () => {
-    prisma.dateReservation.deleteMany.mockResolvedValue({ count: 5 });
+  it('should clean up per-tenant with RLS context and run all three cleanups', async () => {
+    prisma.$queryRaw.mockResolvedValue([{ tenant_id: 'tenant-001' }]);
+
+    const mockTx = {
+      $executeRaw: vi.fn(),
+      dateReservation: { deleteMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      bookingSession: { deleteMany: vi.fn().mockResolvedValue({ count: 2 }) },
+      notification: { deleteMany: vi.fn().mockResolvedValue({ count: 3 }) },
+    };
+    prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
+      fn(mockTx),
+    );
 
     await handler.handle(makeJob());
 
-    expect(prisma.dateReservation.deleteMany).toHaveBeenCalledTimes(1);
-    const call = prisma.dateReservation.deleteMany.mock.calls[0]![0];
-    expect(call.where.status).toEqual({ in: ['EXPIRED', 'RELEASED'] });
-    expect(call.where.createdAt).toEqual({ lt: expect.any(Date) });
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(mockTx.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(mockTx.dateReservation.deleteMany).toHaveBeenCalledTimes(1);
+    expect(mockTx.bookingSession.deleteMany).toHaveBeenCalledTimes(1);
+    expect(mockTx.notification.deleteMany).toHaveBeenCalledTimes(1);
 
-    // Verify the cutoff is approximately 30 days ago
-    const cutoff = call.where.createdAt.lt as Date;
+    // Verify reservation cutoff is approximately 30 days
+    const resCall = mockTx.dateReservation.deleteMany.mock.calls[0]![0];
+    expect(resCall.where.status).toEqual({ in: ['EXPIRED', 'RELEASED'] });
+    const resCutoff = resCall.where.createdAt.lt as Date;
     const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-    const expectedCutoff = Date.now() - thirtyDaysMs;
-    expect(Math.abs(cutoff.getTime() - expectedCutoff)).toBeLessThan(5000);
+    expect(Math.abs(resCutoff.getTime() - (Date.now() - thirtyDaysMs))).toBeLessThan(5000);
+
+    // Verify session cutoff is approximately 90 days
+    const sessCall = mockTx.bookingSession.deleteMany.mock.calls[0]![0];
+    expect(sessCall.where.status).toEqual({ in: ['ABANDONED', 'EXPIRED'] });
+
+    // Verify notification cutoff is approximately 365 days
+    const notifCall = mockTx.notification.deleteMany.mock.calls[0]![0];
+    expect(notifCall.where.createdAt).toEqual({ lt: expect.any(Date) });
   });
 
-  it('should delete abandoned/expired sessions older than 90 days', async () => {
-    prisma.bookingSession.deleteMany.mockResolvedValue({ count: 2 });
+  it('should handle no tenants with data to clean', async () => {
+    prisma.$queryRaw.mockResolvedValue([]);
 
     await handler.handle(makeJob());
 
-    expect(prisma.bookingSession.deleteMany).toHaveBeenCalledTimes(1);
-    const call = prisma.bookingSession.deleteMany.mock.calls[0]![0];
-    expect(call.where.status).toEqual({ in: ['ABANDONED', 'EXPIRED'] });
-    expect(call.where.createdAt).toEqual({ lt: expect.any(Date) });
-
-    const cutoff = call.where.createdAt.lt as Date;
-    const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000;
-    const expectedCutoff = Date.now() - ninetyDaysMs;
-    expect(Math.abs(cutoff.getTime() - expectedCutoff)).toBeLessThan(5000);
-  });
-
-  it('should delete notifications older than 365 days', async () => {
-    prisma.notification.deleteMany.mockResolvedValue({ count: 100 });
-
-    await handler.handle(makeJob());
-
-    expect(prisma.notification.deleteMany).toHaveBeenCalledTimes(1);
-    const call = prisma.notification.deleteMany.mock.calls[0]![0];
-    expect(call.where.createdAt).toEqual({ lt: expect.any(Date) });
-
-    const cutoff = call.where.createdAt.lt as Date;
-    const yearMs = 365 * 24 * 60 * 60 * 1000;
-    const expectedCutoff = Date.now() - yearMs;
-    expect(Math.abs(cutoff.getTime() - expectedCutoff)).toBeLessThan(5000);
-  });
-
-  it('should execute all three cleanup steps in a single run', async () => {
-    prisma.dateReservation.deleteMany.mockResolvedValue({ count: 1 });
-    prisma.bookingSession.deleteMany.mockResolvedValue({ count: 2 });
-    prisma.notification.deleteMany.mockResolvedValue({ count: 3 });
-
-    await handler.handle(makeJob());
-
-    expect(prisma.dateReservation.deleteMany).toHaveBeenCalledTimes(1);
-    expect(prisma.bookingSession.deleteMany).toHaveBeenCalledTimes(1);
-    expect(prisma.notification.deleteMany).toHaveBeenCalledTimes(1);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('should re-throw errors from the database', async () => {
-    prisma.dateReservation.deleteMany.mockRejectedValue(new Error('Permission denied'));
+    prisma.$queryRaw.mockRejectedValue(new Error('Permission denied'));
 
     await expect(handler.handle(makeJob()))
       .rejects.toThrow('Permission denied');

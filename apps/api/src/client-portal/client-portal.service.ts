@@ -23,12 +23,13 @@ interface CancellationPolicy {
 }
 
 /**
- * TODO: When migrating to a non-superuser DB role, all methods in this service
- * must be refactored for FORCE ROW LEVEL SECURITY compatibility. The client portal
- * intentionally queries cross-tenant (by clientId across all tenants). Options:
- * 1. Iterate the client's tenant memberships and set app.current_tenant per-tenant
- * 2. Add a separate RLS policy for client-scoped access (e.g. client_id = current_setting)
- * 3. Use a service-role connection that bypasses RLS for trusted server-side queries
+ * Architectural decision: When migrating off superuser DB role, use a service-role
+ * connection that bypasses RLS for cross-tenant client portal queries. The client
+ * portal intentionally queries by clientId across all tenants (e.g., dashboard,
+ * booking list, payment history). Per-tenant iteration would be prohibitively slow
+ * and a client-scoped RLS policy would add complexity without clear benefit.
+ * A dedicated service-role Prisma client with bypassed RLS is the correct approach
+ * for these trusted server-side, user-authenticated queries.
  */
 @Injectable()
 export class ClientPortalService {

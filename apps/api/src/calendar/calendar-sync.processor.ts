@@ -65,40 +65,48 @@ export class CalendarSyncHandler {
   ): Promise<void> {
     const now = new Date();
 
-    // Get recent inbound events (future only)
-    const inboundEvents = await this.prisma.calendarEvent.findMany({
-      where: {
-        tenantId,
-        calendarConnectionId: connectionId,
-        direction: 'INBOUND',
-        endTime: { gt: now },
-      },
-      select: {
-        id: true,
-        title: true,
-        startTime: true,
-        endTime: true,
-      },
+    // All queries within tenant context
+    const inboundEvents = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+
+      return tx.calendarEvent.findMany({
+        where: {
+          tenantId,
+          calendarConnectionId: connectionId,
+          direction: 'INBOUND',
+          endTime: { gt: now },
+        },
+        select: {
+          id: true,
+          title: true,
+          startTime: true,
+          endTime: true,
+        },
+      });
     });
 
     if (inboundEvents.length === 0) return;
 
     // Find overlapping bookings for each inbound event
     for (const event of inboundEvents) {
-      const conflictingBookings = await this.prisma.booking.findMany({
-        where: {
-          tenantId,
-          status: { in: ['PENDING', 'CONFIRMED'] },
-          startTime: { lt: event.endTime },
-          endTime: { gt: event.startTime },
-        },
-        select: {
-          id: true,
-          startTime: true,
-          endTime: true,
-          service: { select: { name: true } },
-          client: { select: { name: true } },
-        },
+      const conflictingBookings = await this.prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+
+        return tx.booking.findMany({
+          where: {
+            tenantId,
+            status: { in: ['PENDING', 'CONFIRMED'] },
+            startTime: { lt: event.endTime },
+            endTime: { gt: event.startTime },
+          },
+          select: {
+            id: true,
+            startTime: true,
+            endTime: true,
+            service: { select: { name: true } },
+            client: { select: { name: true } },
+          },
+        });
       });
 
       for (const booking of conflictingBookings) {
@@ -111,40 +119,44 @@ export class CalendarSyncHandler {
 
         // Create in-app notification for staff
         try {
-          const members = await this.prisma.tenantMembership.findMany({
-            where: { tenantId, role: { in: ['OWNER', 'ADMIN'] } },
-            select: { userId: true },
-          });
+          await this.prisma.$transaction(async (tx) => {
+            await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
 
-          // Ensure notification type exists
-          const notifType = await this.prisma.notificationType.upsert({
-            where: { key: 'calendar.conflict' },
-            update: {},
-            create: {
-              key: 'calendar.conflict',
-              name: 'Calendar Conflict',
-              category: 'CALENDAR',
-              defaultChannels: ['IN_APP'],
-              isSystem: true,
-            },
-          });
+            const members = await tx.tenantMembership.findMany({
+              where: { tenantId, role: { in: ['OWNER', 'ADMIN'] } },
+              select: { userId: true },
+            });
 
-          for (const member of members) {
-            await this.prisma.notification.create({
-              data: {
-                tenantId,
-                userId: member.userId,
-                typeId: notifType.id,
-                title: 'Calendar Conflict Detected',
-                body: `External event "${event.title ?? 'Untitled'}" overlaps with booking for ${booking.service.name} (${booking.client?.name ?? 'Unknown client'})`,
-                data: {
-                  type: 'CALENDAR_CONFLICT',
-                  bookingId: booking.id,
-                  calendarEventId: event.id,
-                } as Record<string, string>,
+            // Ensure notification type exists
+            const notifType = await tx.notificationType.upsert({
+              where: { key: 'calendar.conflict' },
+              update: {},
+              create: {
+                key: 'calendar.conflict',
+                name: 'Calendar Conflict',
+                category: 'CALENDAR',
+                defaultChannels: ['IN_APP'],
+                isSystem: true,
               },
             });
-          }
+
+            for (const member of members) {
+              await tx.notification.create({
+                data: {
+                  tenantId,
+                  userId: member.userId,
+                  typeId: notifType.id,
+                  title: 'Calendar Conflict Detected',
+                  body: `External event "${event.title ?? 'Untitled'}" overlaps with booking for ${booking.service.name} (${booking.client?.name ?? 'Unknown client'})`,
+                  data: {
+                    type: 'CALENDAR_CONFLICT',
+                    bookingId: booking.id,
+                    calendarEventId: event.id,
+                  } as Record<string, string>,
+                },
+              });
+            }
+          });
         } catch (notifyError) {
           this.logger.warn(
             `Failed to create conflict notification: ${notifyError instanceof Error ? notifyError.message : 'Unknown'}`,

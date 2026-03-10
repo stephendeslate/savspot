@@ -61,7 +61,7 @@ describe('booking-types', () => {
       brandColor: '#ff0000',
       timezone: 'America/New_York',
       currency: 'USD',
-      address: '123 Main St',
+      address: { street: '123 Main St', city: 'New York', state: 'NY', zip: '10001' },
       contactEmail: 'test@salon.com',
       contactPhone: '+1234567890',
       category: 'BEAUTY',

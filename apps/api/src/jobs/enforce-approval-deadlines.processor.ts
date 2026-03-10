@@ -6,11 +6,6 @@ import {
   QUEUE_PAYMENTS,
 } from '../bullmq/queue.constants';
 
-/**
- * TODO: When migrating to a non-superuser DB role, this processor's raw SQL queries
- * must set app.current_tenant per-tenant because FORCE ROW LEVEL SECURITY will
- * block cross-tenant access to bookings and services.
- */
 interface PendingApprovalRow {
   id: string;
   tenant_id: string;
@@ -93,13 +88,16 @@ export class EnforceApprovalDeadlinesHandler {
             });
           });
 
-          // Check if payment exists and enqueue refund
-          const payments = await this.prisma.$queryRaw<BookingPaymentRow[]>`
-            SELECT id, status FROM payments
-            WHERE booking_id = ${booking.id}
-              AND status = 'SUCCEEDED'
-            LIMIT 1
-          `;
+          // Check if payment exists and enqueue refund (within tenant context)
+          const payments = await this.prisma.$transaction(async (tx) => {
+            await tx.$executeRaw`SELECT set_config('app.current_tenant', ${booking.tenant_id}, TRUE)`;
+            return tx.$queryRaw<BookingPaymentRow[]>`
+              SELECT id, status FROM payments
+              WHERE booking_id = ${booking.id}
+                AND status = 'SUCCEEDED'
+              LIMIT 1
+            `;
+          });
 
           if (payments.length > 0) {
             await this.paymentsQueue.add('processRefund', {

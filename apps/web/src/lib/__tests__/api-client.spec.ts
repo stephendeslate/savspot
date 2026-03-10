@@ -248,6 +248,142 @@ describe('ApiClient', () => {
     });
   });
 
+  describe('retry logic', () => {
+    it('should succeed on first try without retrying for GET', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ data: { id: 1 } }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const result = await apiClient.get<{ id: number }>('/api/test');
+
+      expect(result).toEqual({ id: 1 });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should retry GET on 500 and succeed on retry', async () => {
+      vi.useFakeTimers();
+      let callCount = 0;
+      const mockFetch = vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.resolve({
+            ok: false,
+            status: 500,
+            text: () => Promise.resolve('Internal Server Error'),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ data: { success: true } }),
+        });
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const resultPromise = apiClient.get<{ success: boolean }>('/api/test');
+
+      // Advance past the first retry delay (2^0 * 1000 = 1000ms)
+      await vi.advanceTimersByTimeAsync(1000);
+
+      const result = await resultPromise;
+
+      expect(result).toEqual({ success: true });
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      vi.useRealTimers();
+    });
+
+    it('should retry GET on TypeError (network error)', async () => {
+      vi.useFakeTimers();
+      let callCount = 0;
+      const mockFetch = vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.reject(new TypeError('Failed to fetch'));
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ data: { recovered: true } }),
+        });
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const resultPromise = apiClient.get<{ recovered: boolean }>('/api/test');
+
+      await vi.advanceTimersByTimeAsync(1000);
+
+      const result = await resultPromise;
+
+      expect(result).toEqual({ recovered: true });
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      vi.useRealTimers();
+    });
+
+    it('should NOT retry POST on 500', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: () => Promise.resolve('Internal Server Error'),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      await expect(
+        apiClient.post('/api/items', { name: 'Test' }),
+      ).rejects.toThrow(ApiError);
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should NOT retry GET on 4xx errors', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: () => Promise.resolve('Bad Request'),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      await expect(apiClient.get('/api/test')).rejects.toThrow(ApiError);
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should use exponential backoff timing', async () => {
+      vi.useFakeTimers();
+      const mockFetch = vi.fn().mockImplementation(() => {
+        // Always return 500 to force retries
+        return Promise.resolve({
+          ok: false,
+          status: 500,
+          text: () => Promise.resolve('Internal Server Error'),
+        });
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const resultPromise = apiClient.get('/api/test').catch(() => {});
+
+      // Initial attempt (attempt 0)
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      // First retry after 2^0 * 1000 = 1000ms
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+
+      // Second retry after 2^1 * 1000 = 2000ms
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+
+      // Third retry after 2^2 * 1000 = 4000ms
+      await vi.advanceTimersByTimeAsync(4000);
+      expect(mockFetch).toHaveBeenCalledTimes(4);
+
+      await resultPromise;
+      vi.useRealTimers();
+    });
+  });
+
   describe('requestRaw', () => {
     it('should return full JSON body without unwrapping data', async () => {
       vi.stubGlobal(

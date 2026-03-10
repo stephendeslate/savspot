@@ -36,6 +36,11 @@ import {
 import { apiClient, ApiError } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
 import { useTenant } from '@/hooks/use-tenant';
+import {
+  getStatusColor,
+  formatAmount,
+  formatStatus,
+} from '@/lib/format-utils';
 
 // ---------- Types ----------
 
@@ -81,38 +86,6 @@ interface BookingDetail {
   client: BookingClient | null;
   payments: BookingPayment[];
   bookingStateHistory: StateHistoryEntry[];
-}
-
-// ---------- Helpers ----------
-
-function getStatusColor(status: string): string {
-  switch (status) {
-    case 'PENDING':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'CONFIRMED':
-      return 'bg-blue-100 text-blue-800';
-    case 'IN_PROGRESS':
-      return 'bg-purple-100 text-purple-800';
-    case 'COMPLETED':
-      return 'bg-green-100 text-green-800';
-    case 'CANCELLED':
-      return 'bg-red-100 text-red-800';
-    case 'NO_SHOW':
-      return 'bg-gray-100 text-gray-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-}
-
-function formatStatus(status: string): string {
-  return status.replace(/_/g, ' ');
-}
-
-function formatAmount(amount: string, currency: string): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-  }).format(Number(amount));
 }
 
 // ---------- Component ----------

@@ -47,7 +47,7 @@ export class ListBookingsDto {
   status?: string;
 
   @ApiPropertyOptional({ description: 'Filter by service ID' })
-  @IsUUID('4')
+  @IsUUID()
   @IsOptional()
   serviceId?: string;
 

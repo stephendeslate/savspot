@@ -11,6 +11,7 @@ import { PaymentsService } from '../payments/payments.service';
 import { ListBookingsDto } from './dto/list-bookings.dto';
 import { WalkInBookingDto } from './dto/walk-in-booking.dto';
 import { EventsService } from '../events/events.service';
+import { getWalkInEmail } from '../common/constants';
 
 /**
  * Valid booking state transitions.
@@ -564,13 +565,13 @@ export class BookingsService {
       // For anonymous walk-ins, use a walk-in placeholder user
       // In practice, we still need a clientId because it's required
       let walkInUser = await this.prisma.user.findFirst({
-        where: { email: `walkin+${tenantId}@savspot.co` },
+        where: { email: getWalkInEmail(tenantId) },
       });
 
       if (!walkInUser) {
         walkInUser = await this.prisma.user.create({
           data: {
-            email: `walkin+${tenantId}@savspot.co`,
+            email: getWalkInEmail(tenantId),
             name: 'Walk-in Client',
           },
         });
