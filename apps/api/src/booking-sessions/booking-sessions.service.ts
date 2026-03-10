@@ -7,6 +7,7 @@ import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
 import { EventsService } from '../events/events.service';
 import { ConsentService } from '../consent/consent.service';
+import { calculatePrice } from '../common/utils/pricing';
 
 /**
  * Booking flow step types.
@@ -174,7 +175,7 @@ export class BookingSessionsService {
       };
     }
 
-    return this.prisma.bookingSession.update({
+    const updated = await this.prisma.bookingSession.update({
       where: { id },
       data: updateData,
       include: {
@@ -186,6 +187,15 @@ export class BookingSessionsService {
         },
       },
     });
+
+    // Record step progression analytics (fire-and-forget)
+    if (dto.currentStep !== undefined && session.bookingFlowId) {
+      this.recordStepAnalytics(tenantId, session.bookingFlowId, dto.currentStep).catch((err) =>
+        this.logger.warn(`Failed to record step analytics: ${err.message}`),
+      );
+    }
+
+    return updated;
   }
 
   /**
@@ -202,10 +212,19 @@ export class BookingSessionsService {
     // Release any held reservations
     await this.reservationService.releaseAllForSession(tenantId, id);
 
-    return this.prisma.bookingSession.update({
+    const result = await this.prisma.bookingSession.update({
       where: { id },
       data: { status: 'ABANDONED' },
     });
+
+    // Record drop-off analytics (fire-and-forget)
+    if (session.bookingFlowId) {
+      this.recordDropOffAnalytics(tenantId, session.bookingFlowId).catch((err) =>
+        this.logger.warn(`Failed to record drop-off analytics: ${err.message}`),
+      );
+    }
+
+    return result;
   }
 
   /**
@@ -293,6 +312,13 @@ export class BookingSessionsService {
     const guestCount = (sessionData['guestCount'] as number | undefined) ?? null;
     const notes = (sessionData['notes'] as string | undefined) ?? null;
 
+    // Calculate price based on pricing model
+    const durationMinutes = (heldReservation.endTime.getTime() - heldReservation.startTime.getTime()) / 60000;
+    const totalAmount = calculatePrice(service, {
+      durationMinutes,
+      guestCount: guestCount ?? undefined,
+    });
+
     // Load client info for event payload
     const client = await this.prisma.user.findUnique({
       where: { id: clientId },
@@ -313,7 +339,7 @@ export class BookingSessionsService {
           status: bookingStatus,
           startTime: heldReservation.startTime,
           endTime: heldReservation.endTime,
-          totalAmount: service.basePrice,
+          totalAmount,
           currency: service.currency,
           guestCount,
           notes,
@@ -363,6 +389,13 @@ export class BookingSessionsService {
       .catch((err) =>
         this.logger.warn(`Failed to create booking consent for user ${clientId}: ${err.message}`),
       );
+
+    // Record completion analytics (fire-and-forget)
+    if (session.bookingFlowId) {
+      this.recordCompletionAnalytics(tenantId, session.bookingFlowId).catch((err) =>
+        this.logger.warn(`Failed to record completion analytics: ${err.message}`),
+      );
+    }
 
     return booking;
   }
@@ -642,6 +675,20 @@ export class BookingSessionsService {
         throw new BadRequestException('Session must have a client associated');
       }
 
+      // Calculate price based on pricing model
+      const fullService = await this.prisma.service.findFirst({
+        where: { id: session.serviceId, tenantId: session.tenantId },
+        select: { pricingModel: true, basePrice: true, tierConfig: true },
+      });
+      const paymentDurationMinutes = (heldReservation.endTime.getTime() - heldReservation.startTime.getTime()) / 60000;
+      const paymentSessionData = (session.data ?? {}) as Record<string, unknown>;
+      const paymentTotalAmount = fullService
+        ? calculatePrice(fullService, {
+            durationMinutes: paymentDurationMinutes,
+            guestCount: (paymentSessionData['guestCount'] as number | undefined) ?? undefined,
+          })
+        : Number(session.service.basePrice);
+
       booking = await this.prisma.booking.create({
         data: {
           tenantId: session.tenantId,
@@ -652,7 +699,7 @@ export class BookingSessionsService {
           status: 'PENDING',
           startTime: heldReservation.startTime,
           endTime: heldReservation.endTime,
-          totalAmount: session.service.basePrice,
+          totalAmount: paymentTotalAmount,
           currency: session.service.currency,
           guestCount:
             (sessionData['guestCount'] as number | undefined) ?? null,
@@ -680,5 +727,66 @@ export class BookingSessionsService {
       amount: result.amount,
       currency: result.currency,
     };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Analytics helpers (fire-and-forget — errors are caught by callers)
+  // ---------------------------------------------------------------------------
+
+  private async recordStepAnalytics(tenantId: string, flowId: string, step: number) {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    await this.prisma.bookingFlowAnalytics.upsert({
+      where: { tenantId_flowId_date: { tenantId, flowId, date: today } },
+      create: {
+        tenantId,
+        flowId,
+        date: today,
+        stepMetrics: { [`step_${step}`]: 1 },
+        totalSessions: step === 0 ? 1 : 0,
+      },
+      update: {
+        totalSessions: step === 0 ? { increment: 1 } : undefined,
+      },
+    });
+  }
+
+  private async recordCompletionAnalytics(tenantId: string, flowId: string) {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    await this.prisma.bookingFlowAnalytics.upsert({
+      where: { tenantId_flowId_date: { tenantId, flowId, date: today } },
+      create: {
+        tenantId,
+        flowId,
+        date: today,
+        stepMetrics: {},
+        completedSessions: 1,
+      },
+      update: {
+        completedSessions: { increment: 1 },
+      },
+    });
+  }
+
+  private async recordDropOffAnalytics(tenantId: string, flowId: string) {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    await this.prisma.bookingFlowAnalytics.upsert({
+      where: { tenantId_flowId_date: { tenantId, flowId, date: today } },
+      create: {
+        tenantId,
+        flowId,
+        date: today,
+        stepMetrics: {},
+        bounceRate: 1,
+      },
+      update: {
+        bounceRate: { increment: 1 },
+      },
+    });
   }
 }

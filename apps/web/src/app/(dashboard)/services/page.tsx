@@ -26,6 +26,10 @@ interface Service {
   basePrice: number;
   currency: string;
   isActive: boolean;
+  pricingModel: string;
+  guestConfig: Record<string, unknown> | null;
+  depositConfig: Record<string, unknown> | null;
+  intakeFormConfig: Record<string, unknown> | null;
 }
 
 export default function ServicesPage() {
@@ -89,6 +93,23 @@ export default function ServicesPage() {
     const hours = Math.floor(minutes / 60);
     const remaining = minutes % 60;
     return remaining > 0 ? `${hours}h ${remaining}min` : `${hours}h`;
+  };
+
+  const pricingModelLabels: Record<string, string> = {
+    HOURLY: 'Hourly',
+    TIERED: 'Tiered',
+    CUSTOM: 'Custom',
+  };
+
+  const getComplexityBadges = (service: Service) => {
+    const badges: string[] = [];
+    if (service.pricingModel !== 'FIXED' && pricingModelLabels[service.pricingModel]) {
+      badges.push(pricingModelLabels[service.pricingModel]!);
+    }
+    if (service.guestConfig !== null) badges.push('Groups');
+    if (service.depositConfig !== null) badges.push('Deposit');
+    if (service.intakeFormConfig !== null) badges.push('Form');
+    return badges;
   };
 
   if (isLoading) {
@@ -176,6 +197,18 @@ export default function ServicesPage() {
                     <TableCell>
                       <div className="min-w-0">
                         <div className="truncate font-medium">{service.name}</div>
+                        {getComplexityBadges(service).length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {getComplexityBadges(service).map((badge) => (
+                              <span
+                                key={badge}
+                                className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                              >
+                                {badge}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         <div className="text-xs text-muted-foreground sm:hidden">
                           {formatDuration(service.durationMinutes)}
                           {!service.isActive && ' · Inactive'}

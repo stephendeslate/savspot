@@ -43,8 +43,10 @@ import { BookingFlowModule } from './booking-flow/booking-flow.module';
 import { AuditModule } from './audit/audit.module';
 import { GalleryModule } from './gallery/gallery.module';
 import { OnboardingToursModule } from './onboarding-tours/onboarding-tours.module';
+import { ReviewsModule } from './reviews/reviews.module';
 import { CustomThrottlerGuard } from './common/guards/throttle.guard';
 import { CsrfGuard } from './common/guards/csrf.guard';
+import { TenantStatusGuard } from './common/guards/tenant-status.guard';
 import { SecurityHeadersMiddleware } from './common/middleware/security-headers.middleware';
 import { validateEnv } from './config/env.validation';
 import {
@@ -121,9 +123,14 @@ import {
     AuditModule,
     GalleryModule,
     OnboardingToursModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: TenantStatusGuard,
+    },
     {
       provide: APP_GUARD,
       useClass: CustomThrottlerGuard,

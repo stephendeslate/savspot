@@ -10,6 +10,7 @@ import { seedTenants } from './tenants.js';
 import { seedServices } from './services.js';
 import { seedAvailabilityRules } from './availability.js';
 import { seedBookings } from './bookings.js';
+import { seedNotificationTypes } from './notification-types.js';
 
 const prisma = new PrismaClient();
 
@@ -120,24 +121,28 @@ async function main(): Promise<void> {
   console.log('Seeding data...\n');
 
   // 1. Users (no FK dependencies)
-  console.log('[1/6] Users');
+  console.log('[1/7] Users');
   await seedUsers(prisma);
 
   // 2. Tenants + Tenant Memberships (depends on users)
-  console.log('[2/6] Tenants & Memberships');
+  console.log('[2/7] Tenants & Memberships');
   await seedTenants(prisma);
 
   // 3. Services (depends on tenants)
-  console.log('[3/6] Services');
+  console.log('[3/7] Services');
   await seedServices(prisma);
 
   // 4. Availability Rules (depends on tenants)
-  console.log('[4/6] Availability Rules');
+  console.log('[4/7] Availability Rules');
   await seedAvailabilityRules(prisma);
 
   // 5. Bookings (depends on tenants, users, services)
-  console.log('[5/6] Bookings');
+  console.log('[5/7] Bookings');
   await seedBookings(prisma);
+
+  // 6. Notification Types (no FK dependencies)
+  console.log('[6/7] Notification Types');
+  await seedNotificationTypes(prisma);
 
   console.log('\n=== Seed complete! ===');
 }

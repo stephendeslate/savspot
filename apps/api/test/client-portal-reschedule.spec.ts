@@ -25,7 +25,8 @@ describe('ClientPortalService — requestReschedule (S3)', () => {
   beforeEach(() => {
     prisma = makePrisma();
     const mockPaymentsService = { processRefund: vi.fn().mockResolvedValue({}) };
-    service = new ClientPortalService(prisma as never, mockPaymentsService as never, makeQueue() as never);
+    const mockAvailabilityService = { getAvailableSlots: vi.fn().mockResolvedValue([]) };
+    service = new ClientPortalService(prisma as never, mockPaymentsService as never, mockAvailabilityService as never, makeQueue() as never);
   });
 
   const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);

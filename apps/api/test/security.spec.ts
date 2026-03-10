@@ -291,8 +291,15 @@ describe('SecurityHeadersMiddleware (unit)', () => {
     return { setHeader: vi.fn() } as unknown as Response;
   }
 
+  const originalNodeEnv = process.env['NODE_ENV'];
+
   beforeEach(() => {
+    process.env['NODE_ENV'] = 'test';
     middleware = new SecurityHeadersMiddleware();
+  });
+
+  afterEach(() => {
+    process.env['NODE_ENV'] = originalNodeEnv;
   });
 
   it('should be defined', () => {
@@ -351,5 +358,61 @@ describe('SecurityHeadersMiddleware (unit)', () => {
     middleware.use(req, res, next);
 
     expect(next).toHaveBeenCalledOnce();
+  });
+
+  it('should set HSTS header in non-development mode', () => {
+    process.env['NODE_ENV'] = 'production';
+    const prodMiddleware = new SecurityHeadersMiddleware();
+    const req = mockReq('/');
+    const res = mockRes();
+    const next = vi.fn();
+
+    prodMiddleware.use(req, res, next);
+
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Strict-Transport-Security',
+      'max-age=63072000; includeSubDomains; preload',
+    );
+  });
+
+  it('should NOT set HSTS header in development mode', () => {
+    process.env['NODE_ENV'] = 'development';
+    const devMiddleware = new SecurityHeadersMiddleware();
+    const req = mockReq('/');
+    const res = mockRes();
+    const next = vi.fn();
+
+    devMiddleware.use(req, res, next);
+
+    expect(res.setHeader).not.toHaveBeenCalledWith(
+      'Strict-Transport-Security',
+      expect.anything(),
+    );
+  });
+
+  it('should set Referrer-Policy header', () => {
+    const req = mockReq('/');
+    const res = mockRes();
+    const next = vi.fn();
+
+    middleware.use(req, res, next);
+
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Referrer-Policy',
+      'strict-origin-when-cross-origin',
+    );
+  });
+
+  it('should set Permissions-Policy header', () => {
+    const req = mockReq('/');
+    const res = mockRes();
+    const next = vi.fn();
+
+    middleware.use(req, res, next);
+
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Permissions-Policy',
+      'camera=(), microphone=(), geolocation=()',
+    );
   });
 });

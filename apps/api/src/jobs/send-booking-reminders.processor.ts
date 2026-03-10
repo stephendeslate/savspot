@@ -21,10 +21,9 @@ interface UpcomingBookingRow {
 
 /**
  * Sends booking reminders for upcoming confirmed appointments.
- * Supports both 24h (intervalDays=1) and 48h (intervalDays=2) reminders.
- * Scans for CONFIRMED bookings starting within the next 49 hours
- * (49h window ensures the 15-min cron cycle doesn't miss boundary bookings
- * for either the 24h or 48h reminder interval).
+ * Supports 7-day, 3-day, and 1-day reminders (per GAP-12.2 spec).
+ * Scans for CONFIRMED bookings starting within the next 8 days
+ * (8-day window ensures the 15-min cron cycle doesn't miss 7-day reminders).
  * Deduplicates via the booking_reminders table unique constraint on
  * (bookingId, reminderType, intervalDays, channel).
  * Scheduled every 15 minutes via BullMQ repeatable job.
@@ -33,7 +32,7 @@ interface UpcomingBookingRow {
 export class SendBookingRemindersHandler {
   private readonly logger = new Logger(SendBookingRemindersHandler.name);
 
-  private static readonly REMINDER_INTERVALS = [1, 2] as const; // 1 day = 24h, 2 days = 48h
+  private static readonly REMINDER_INTERVALS = [7, 3, 1] as const; // days before appointment
 
   constructor(
     private readonly prisma: PrismaService,
@@ -44,8 +43,8 @@ export class SendBookingRemindersHandler {
     this.logger.log('Running send booking reminders job...');
 
     try {
-      // Find CONFIRMED bookings starting in the next 49 hours
-      // (covers both 24h and 48h reminder windows with 1h buffer for cron cycles)
+      // Find CONFIRMED bookings starting in the next 8 days
+      // (covers 7/3/1 day reminder windows with buffer for cron cycles)
       const upcomingBookings = await this.prisma.$queryRaw<UpcomingBookingRow[]>`
         SELECT
           b.id,
@@ -69,7 +68,7 @@ export class SendBookingRemindersHandler {
         LEFT JOIN users provider_user ON provider_user.id = sp.user_id
         WHERE b.status = 'CONFIRMED'
           AND b.start_time > NOW()
-          AND b.start_time <= NOW() + INTERVAL '49 hours'
+          AND b.start_time <= NOW() + INTERVAL '8 days'
       `;
 
       if (upcomingBookings.length === 0) {

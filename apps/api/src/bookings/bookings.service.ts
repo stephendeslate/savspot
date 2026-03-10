@@ -16,6 +16,7 @@ import {
   evaluateCancellationPolicy,
   CancellationPolicy,
 } from './cancellation-policy.evaluator';
+import { calculatePrice } from '../common/utils/pricing';
 
 /**
  * Valid booking state transitions.
@@ -664,6 +665,13 @@ export class BookingsService {
         throw new ConflictException('Time slot is currently held');
       }
 
+      // Calculate price based on pricing model
+      const walkInDurationMinutes = (endTime.getTime() - startTime.getTime()) / 60000;
+      const walkInTotalAmount = calculatePrice(service, {
+        durationMinutes: walkInDurationMinutes,
+        guestCount: undefined,
+      });
+
       // Create the booking as CONFIRMED (walk-in bypasses PENDING)
       const booking = await tx.booking.create({
         data: {
@@ -674,7 +682,7 @@ export class BookingsService {
           status: 'CONFIRMED',
           startTime,
           endTime,
-          totalAmount: service.basePrice,
+          totalAmount: walkInTotalAmount,
           currency: service.currency,
           notes: dto.notes ?? null,
           source: 'WALK_IN',

@@ -13,7 +13,7 @@ import withDragAndDrop, {
 } from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { format, parse, startOfWeek, getDay, isSameDay } from 'date-fns';
 import {
   startOfMonth,
   endOfMonth,
@@ -25,6 +25,7 @@ import {
 import { enUS } from 'date-fns/locale/en-US';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
@@ -121,12 +122,120 @@ function useIsMobile(): boolean {
   return isMobile;
 }
 
+// ---------- Status Badge Variant ----------
+
+function getStatusBadgeProps(status: string): {
+  variant: 'default' | 'secondary' | 'destructive' | 'outline';
+  className: string;
+  label: string;
+} {
+  switch (status) {
+    case 'CONFIRMED':
+      return { variant: 'default', className: 'bg-blue-500 hover:bg-blue-500', label: 'Confirmed' };
+    case 'PENDING':
+      return { variant: 'default', className: 'bg-amber-500 hover:bg-amber-500', label: 'Pending' };
+    case 'IN_PROGRESS':
+      return { variant: 'default', className: 'bg-purple-500 hover:bg-purple-500', label: 'In Progress' };
+    case 'COMPLETED':
+      return { variant: 'default', className: 'bg-green-500 hover:bg-green-500', label: 'Completed' };
+    case 'CANCELLED':
+      return { variant: 'destructive', className: '', label: 'Cancelled' };
+    case 'NO_SHOW':
+      return { variant: 'secondary', className: 'bg-gray-500 text-white hover:bg-gray-500', label: 'No Show' };
+    default:
+      return { variant: 'default', className: '', label: status };
+  }
+}
+
+// ---------- List View ----------
+
+function AgendaListView({
+  events,
+  onSelectEvent,
+}: {
+  events: CalendarEvent[];
+  onSelectEvent: (event: CalendarEvent) => void;
+}) {
+  const groupedByDate = useMemo(() => {
+    const sorted = [...events].sort(
+      (a, b) => a.start.getTime() - b.start.getTime(),
+    );
+    const groups: { date: Date; events: CalendarEvent[] }[] = [];
+    for (const event of sorted) {
+      const lastGroup = groups[groups.length - 1];
+      if (lastGroup && isSameDay(lastGroup.date, event.start)) {
+        lastGroup.events.push(event);
+      } else {
+        groups.push({ date: event.start, events: [event] });
+      }
+    }
+    return groups;
+  }, [events]);
+
+  if (events.length === 0) {
+    return (
+      <div className="py-12 text-center text-sm text-muted-foreground">
+        No bookings in this period.
+      </div>
+    );
+  }
+
+  return (
+    <div className="divide-y divide-border">
+      {groupedByDate.map((group) => (
+        <div key={group.date.toISOString()}>
+          <div className="sticky top-0 z-10 bg-muted/50 px-4 py-2 text-sm font-semibold backdrop-blur-sm">
+            {format(group.date, 'EEEE, MMMM d, yyyy')}
+          </div>
+          <ul className="divide-y divide-border">
+            {group.events.map((event) => {
+              const booking = event.resource;
+              if (!booking) return null;
+              const badgeProps = getStatusBadgeProps(booking.status);
+              return (
+                <li key={event.id}>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/50"
+                    onClick={() => onSelectEvent(event)}
+                  >
+                    <div className="min-w-[5rem] shrink-0 text-sm font-medium tabular-nums">
+                      {format(event.start, 'h:mm a')}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium">
+                        {booking.service.name}
+                      </div>
+                      <div className="truncate text-xs text-muted-foreground">
+                        {getClientDisplayName(booking)}
+                      </div>
+                    </div>
+                    <Badge
+                      variant={badgeProps.variant}
+                      className={badgeProps.className}
+                    >
+                      {badgeProps.label}
+                    </Badge>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ---------- Component ----------
 
 export default function CalendarPage() {
   const { tenantId } = useTenant();
   const isMobile = useIsMobile();
 
+  const [viewMode, setViewMode] = useState<'calendar' | 'list'>(
+    isMobile ? 'list' : 'calendar',
+  );
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -164,6 +273,12 @@ export default function CalendarPage() {
     let start: Date;
     let end: Date;
 
+    if (viewMode === 'list') {
+      start = startOfDay(currentDate);
+      end = addDays(start, 30);
+      return { start, end };
+    }
+
     switch (currentView) {
       case 'month':
         start = subDays(startOfMonth(currentDate), 7);
@@ -187,7 +302,7 @@ export default function CalendarPage() {
     }
 
     return { start, end };
-  }, [currentDate, currentView]);
+  }, [currentDate, currentView, viewMode]);
 
   const fetchEvents = useCallback(
     async (startDate: Date, endDate: Date) => {
@@ -389,11 +504,29 @@ export default function CalendarPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-lg font-semibold">Calendar</h2>
-        <p className="text-sm text-muted-foreground">
-          View and manage your schedule
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold">Calendar</h2>
+          <p className="text-sm text-muted-foreground">
+            View and manage your schedule
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1 rounded-lg border p-1">
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('list')}
+          >
+            List
+          </Button>
+          <Button
+            variant={viewMode === 'calendar' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('calendar')}
+          >
+            Calendar
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -419,7 +552,20 @@ export default function CalendarPage() {
         ))}
       </div>
 
-      {/* Calendar */}
+      {/* List View */}
+      {viewMode === 'list' && (
+        <Card>
+          <CardContent className="p-0">
+            <AgendaListView
+              events={events}
+              onSelectEvent={handleSelectEvent}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Calendar Grid View */}
+      {viewMode === 'calendar' && (
       <Card>
         <CardContent className="pt-6">
           <style>{`
@@ -591,6 +737,7 @@ export default function CalendarPage() {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Walk-in Dialog */}
       {tenantId && (

@@ -4,11 +4,14 @@ import {
   Get,
   Patch,
   Body,
+  Query,
   Req,
   Res,
   UseGuards,
   HttpCode,
   HttpStatus,
+  BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -30,13 +33,19 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ConfigService } from '@nestjs/config';
+import { CommunicationsService } from '../communications/communications.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
+    private readonly communicationsService: CommunicationsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Public()
@@ -206,5 +215,48 @@ export class AuthController {
     } catch {
       return res.redirect(`${webUrl}/login?error=apple_auth_failed`);
     }
+  }
+
+  @Public()
+  @Get('unsubscribe')
+  @ApiOperation({ summary: 'Unsubscribe from marketing emails via signed token' })
+  @ApiResponse({ status: 200, description: 'Successfully unsubscribed' })
+  @ApiResponse({ status: 400, description: 'Invalid or missing token' })
+  async unsubscribe(@Query('token') token: string) {
+    if (!token) {
+      throw new BadRequestException('Missing unsubscribe token');
+    }
+
+    const result = this.communicationsService.validateUnsubscribeToken(token);
+    if (!result) {
+      throw new BadRequestException('Invalid or expired unsubscribe token');
+    }
+
+    // Disable marketing email preferences for this user
+    const existing = await this.prisma.notificationPreference.findUnique({
+      where: { userId: result.userId },
+    });
+
+    const currentPrefs = (existing?.preferences as Record<string, unknown>) ?? {};
+    const updatedPrefs = {
+      ...currentPrefs,
+      marketingEmails: false,
+      followUpEmails: false,
+    };
+
+    await this.prisma.notificationPreference.upsert({
+      where: { userId: result.userId },
+      create: {
+        userId: result.userId,
+        preferences: updatedPrefs,
+      },
+      update: {
+        preferences: updatedPrefs,
+      },
+    });
+
+    this.logger.log(`User ${result.userId} unsubscribed from marketing emails`);
+
+    return { message: 'You have been successfully unsubscribed from marketing emails.' };
   }
 }

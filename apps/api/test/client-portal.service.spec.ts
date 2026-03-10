@@ -151,7 +151,8 @@ describe('ClientPortalService', () => {
     prisma = makePrisma();
     queue = makeQueue();
     const mockPaymentsService = { processRefund: vi.fn().mockResolvedValue({}) };
-    service = new ClientPortalService(prisma as never, mockPaymentsService as never, queue as never);
+    const mockAvailabilityService = { getAvailableSlots: vi.fn().mockResolvedValue([]) };
+    service = new ClientPortalService(prisma as never, mockPaymentsService as never, mockAvailabilityService as never, queue as never);
   });
 
   // -----------------------------------------------------------------------

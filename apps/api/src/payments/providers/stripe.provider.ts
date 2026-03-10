@@ -4,6 +4,7 @@ import {
   BadRequestException,
   BadGatewayException,
   InternalServerErrorException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
@@ -16,13 +17,17 @@ import {
   ConnectedAccount,
   AccountStatus,
 } from '../interfaces/payment-provider.interface';
+import { CircuitBreaker } from '../../common/utils/circuit-breaker';
 
 @Injectable()
 export class StripeProvider implements PaymentProviderInterface {
   private readonly logger = new Logger(StripeProvider.name);
   private stripe: Stripe | null = null;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly circuitBreaker: CircuitBreaker,
+  ) {
     const secretKey = this.configService.get<string>('stripe.secretKey');
 
     if (secretKey) {
@@ -65,6 +70,19 @@ export class StripeProvider implements PaymentProviderInterface {
       throw new InternalServerErrorException('Stripe service error — try again later');
     }
     throw error;
+  }
+
+  /**
+   * Returns true if the error is a network/5xx Stripe error that should
+   * count toward the circuit breaker. Validation errors (invalid card,
+   * bad request) are NOT circuit-breaker-worthy.
+   */
+  private isCircuitBreakerError(error: unknown): boolean {
+    return (
+      error instanceof Stripe.errors.StripeConnectionError ||
+      error instanceof Stripe.errors.StripeAPIError ||
+      error instanceof Stripe.errors.StripeRateLimitError
+    );
   }
 
   async createConnectedAccount(
@@ -146,6 +164,15 @@ export class StripeProvider implements PaymentProviderInterface {
     params: CreatePaymentIntentParams,
   ): Promise<PaymentIntentResult> {
     const stripe = this.ensureStripe();
+    const tenantId = params.metadata?.['tenantId'] as string | undefined;
+    const scopeKey = `stripe:${tenantId ?? 'global'}`;
+
+    // Check circuit breaker before calling Stripe
+    if (tenantId && !(await this.circuitBreaker.canSend(scopeKey, tenantId))) {
+      throw new ServiceUnavailableException(
+        'Payment service temporarily unavailable, please try again shortly',
+      );
+    }
 
     const intentParams: Stripe.PaymentIntentCreateParams = {
       amount: params.amount,
@@ -164,6 +191,10 @@ export class StripeProvider implements PaymentProviderInterface {
     try {
       const intent = await stripe.paymentIntents.create(intentParams);
 
+      if (tenantId) {
+        await this.circuitBreaker.recordSuccess(scopeKey, tenantId);
+      }
+
       return {
         id: intent.id,
         clientSecret: intent.client_secret ?? '',
@@ -172,6 +203,9 @@ export class StripeProvider implements PaymentProviderInterface {
         currency: intent.currency,
       };
     } catch (error) {
+      if (tenantId && this.isCircuitBreakerError(error)) {
+        await this.circuitBreaker.recordFailure(scopeKey, tenantId);
+      }
       this.handleStripeError(error);
     }
   }
@@ -187,6 +221,15 @@ export class StripeProvider implements PaymentProviderInterface {
 
   async createRefund(params: CreateRefundParams): Promise<RefundResult> {
     const stripe = this.ensureStripe();
+    const tenantId = params.tenantId;
+    const scopeKey = `stripe:${tenantId ?? 'global'}`;
+
+    // Check circuit breaker before calling Stripe
+    if (tenantId && !(await this.circuitBreaker.canSend(scopeKey, tenantId))) {
+      throw new ServiceUnavailableException(
+        'Payment service temporarily unavailable, please try again shortly',
+      );
+    }
 
     const refundParams: Stripe.RefundCreateParams = {
       payment_intent: params.paymentIntentId,
@@ -209,12 +252,19 @@ export class StripeProvider implements PaymentProviderInterface {
     try {
       const refund = await stripe.refunds.create(refundParams);
 
+      if (tenantId) {
+        await this.circuitBreaker.recordSuccess(scopeKey, tenantId);
+      }
+
       return {
         id: refund.id,
         amount: refund.amount,
         status: refund.status ?? 'pending',
       };
     } catch (error) {
+      if (tenantId && this.isCircuitBreakerError(error)) {
+        await this.circuitBreaker.recordFailure(scopeKey, tenantId);
+      }
       this.handleStripeError(error);
     }
   }

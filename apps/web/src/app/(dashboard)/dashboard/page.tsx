@@ -11,6 +11,8 @@ import {
   Calendar,
   CreditCard,
   CalendarSync,
+  DollarSign,
+  Users,
   Plus,
   ArrowRight,
 } from 'lucide-react';
@@ -34,6 +36,11 @@ interface DashboardStats {
   activeServices: number;
   availabilityRules: number;
   upcomingBookings: number;
+  todayBookings: number;
+  newClientsThisWeek: number;
+  revenueThisMonth: number;
+  revenueCurrency: string;
+  pendingActions: number;
   hasStripe: boolean;
   hasCalendar: boolean;
 }
@@ -56,6 +63,11 @@ export default function DashboardPage() {
     activeServices: 0,
     availabilityRules: 0,
     upcomingBookings: 0,
+    todayBookings: 0,
+    newClientsThisWeek: 0,
+    revenueThisMonth: 0,
+    revenueCurrency: 'USD',
+    pendingActions: 0,
     hasStripe: false,
     hasCalendar: false,
   });
@@ -70,7 +82,7 @@ export default function DashboardPage() {
     const fetchStats = async () => {
       try {
         // Fetch services, availability rules, and connection status in parallel
-        const [services, availabilityRules, stripeStatus, calendarConns] = await Promise.all([
+        const [services, availabilityRules, stripeStatus, calendarConns, bookings, paymentStats] = await Promise.all([
           apiClient
             .get<Service[]>(`/api/tenants/${tenantId}/services`)
             .catch(() => [] as Service[]),
@@ -85,13 +97,48 @@ export default function DashboardPage() {
           apiClient
             .get<{ id: string }[]>(`/api/tenants/${tenantId}/calendar/connections`)
             .catch(() => [] as { id: string }[]),
+          apiClient
+            .get<{ id: string; status: string; startTime: string; clientId: string }[]>(
+              `/api/tenants/${tenantId}/bookings`,
+            )
+            .catch(() => [] as { id: string; status: string; startTime: string; clientId: string }[]),
+          apiClient
+            .get<{ totalRevenue: number; currency: string }>(`/api/tenants/${tenantId}/payments/stats`)
+            .catch(() => ({ totalRevenue: 0, currency: 'USD' })),
         ]);
+
+        const now = new Date();
+        const todayStr = now.toISOString().slice(0, 10);
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        const todayBookings = bookings.filter(
+          (b) => b.startTime?.slice(0, 10) === todayStr && b.status !== 'CANCELLED',
+        ).length;
+
+        const upcomingBookings = bookings.filter(
+          (b) => new Date(b.startTime) > now && (b.status === 'CONFIRMED' || b.status === 'PENDING'),
+        ).length;
+
+        const pendingActions = bookings.filter((b) => b.status === 'PENDING').length;
+
+        // Approximate new clients this week (unique clientIds on recent bookings)
+        const recentClientIds = new Set(
+          bookings
+            .filter((b) => new Date(b.startTime) >= weekAgo)
+            .map((b) => b.clientId),
+        );
+        const newClientsThisWeek = recentClientIds.size;
 
         setStats({
           totalServices: services.length,
           activeServices: services.filter((s) => s.isActive).length,
           availabilityRules: availabilityRules.length,
-          upcomingBookings: 0,
+          upcomingBookings,
+          todayBookings,
+          newClientsThisWeek,
+          revenueThisMonth: paymentStats.totalRevenue ?? 0,
+          revenueCurrency: paymentStats.currency ?? 'USD',
+          pendingActions,
           hasStripe: stripeStatus.connected,
           hasCalendar: calendarConns.length > 0,
         });
@@ -129,30 +176,39 @@ export default function DashboardPage() {
     );
   }
 
+  const formatRevenue = (amount: number, currency: string) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   const statCards = [
     {
-      name: 'Total Services',
-      value: stats.totalServices,
-      icon: Briefcase,
-      description: 'Services configured',
-    },
-    {
-      name: 'Active Services',
-      value: stats.activeServices,
-      icon: CheckCircle,
-      description: 'Available for booking',
-    },
-    {
-      name: 'Availability Rules',
-      value: stats.availabilityRules,
-      icon: Clock,
-      description: 'Schedule rules set',
-    },
-    {
-      name: 'Upcoming Bookings',
-      value: stats.upcomingBookings,
+      name: "Today's Bookings",
+      value: stats.todayBookings,
       icon: Calendar,
-      description: 'Scheduled ahead',
+      description: 'Appointments today',
+    },
+    {
+      name: 'Revenue (Month)',
+      value: formatRevenue(stats.revenueThisMonth, stats.revenueCurrency),
+      icon: DollarSign,
+      description: 'This month so far',
+    },
+    {
+      name: 'New Clients',
+      value: stats.newClientsThisWeek,
+      icon: Users,
+      description: 'This week',
+    },
+    {
+      name: 'Pending Actions',
+      value: stats.pendingActions,
+      icon: AlertCircle,
+      description: 'Bookings awaiting confirmation',
     },
   ];
 
@@ -208,7 +264,7 @@ export default function DashboardPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {statCards.map((stat, index) => (
-            <FadeIn key={stat.name} delay={index * 0.05} className={index === 0 ? 'lg:col-span-2' : ''}>
+            <FadeIn key={stat.name} delay={index * 0.05}>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">

@@ -51,12 +51,11 @@ function padTwo(n: number): string {
 
 function toIcsDateTimeUtc(dateStr: string, timeStr: string): string {
   // dateStr: "2026-03-15", timeStr: "10:00"
+  // Times from the API are already in UTC (ISO format). Produce UTC .ics format.
   const [year, month, day] = dateStr.split('-').map(Number);
   const [hours, minutes] = timeStr.split(':').map(Number);
 
-  // We produce a local-time format (DTSTART;VALUE=DATE-TIME) to avoid
-  // timezone confusion. The booking is in the tenant's local timezone.
-  return `${year}${padTwo(month ?? 1)}${padTwo(day ?? 1)}T${padTwo(hours ?? 0)}${padTwo(minutes ?? 0)}00`;
+  return `${year}${padTwo(month ?? 1)}${padTwo(day ?? 1)}T${padTwo(hours ?? 0)}${padTwo(minutes ?? 0)}00Z`;
 }
 
 function generateIcsFile(data: {
@@ -80,8 +79,8 @@ function generateIcsFile(data: {
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
-    `DTSTART;TZID=${data.timezone}:${dtStart}`,
-    `DTEND;TZID=${data.timezone}:${dtEnd}`,
+    `DTSTART:${dtStart}`,
+    `DTEND:${dtEnd}`,
     `DTSTAMP:${dtstamp}`,
     `UID:${uid}`,
     `SUMMARY:${data.serviceName} at ${data.tenantName}`,
@@ -118,6 +117,7 @@ interface ConfirmationStepProps {
   tenantSlug: string;
   timezone: string;
   onBookAnother: () => void;
+  isPreview?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -130,6 +130,7 @@ export function ConfirmationStep({
   tenantSlug,
   timezone,
   onBookAnother,
+  isPreview = false,
 }: ConfirmationStepProps) {
   const handleDownloadCalendar = () => {
     if (!sessionData.date || !sessionData.startTime || !sessionData.endTime) {
@@ -182,11 +183,26 @@ export function ConfirmationStep({
         </div>
       </div>
 
-      <h2 className="mb-2 text-2xl font-bold font-heading">Booking Confirmed!</h2>
-      <p className="mb-6 text-muted-foreground">
-        Your appointment has been booked successfully. You will receive a
-        confirmation email shortly.
-      </p>
+      <h2 className="mb-2 text-2xl font-bold font-heading">
+        {isPreview ? 'Preview Complete!' : 'Booking Confirmed!'}
+      </h2>
+
+      {isPreview ? (
+        <div className="mb-6 space-y-2">
+          <div className="rounded-lg border border-amber-500/50 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+            This is a preview — no real booking was created. No reservation was
+            held and no payment was charged.
+          </div>
+          <p className="text-muted-foreground">
+            This is what your customers will see after completing a booking.
+          </p>
+        </div>
+      ) : (
+        <p className="mb-6 text-muted-foreground">
+          Your appointment has been booked successfully. You will receive a
+          confirmation email shortly.
+        </p>
+      )}
 
       {/* Booking summary card */}
       <div className="mb-6 rounded-lg border text-left">

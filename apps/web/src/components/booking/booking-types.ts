@@ -27,6 +27,7 @@ export interface TenantService {
   imageUrl: string | null;
   guestConfig: GuestConfig | null;
   addons?: ServiceAddon[];
+  category?: { id: string; name: string } | null;
 }
 
 export interface TenantData {
@@ -151,6 +152,7 @@ export interface BookingSession {
   status: string;
   currentStep: number;
   data: BookingSessionData;
+  isPreview?: boolean;
 }
 
 export interface TimeSlot {

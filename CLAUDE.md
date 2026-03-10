@@ -67,8 +67,30 @@ When spawning sub-agents for parallel work:
 - Each sub-agent should run tests within its scope before completing
 - Prefer 3-4 focused sub-agents over many small ones
 - Group related file changes into the same sub-agent scope
-- Local model sub-agents (fast-explorer, fast-editor) are available
+- Local model sub-agents (fast-explorer, fast-editor, local-coder) are available
   for high-volume, low-complexity work at zero token cost
+- Use **local-coder** for full feature implementation when the plan is decided
+- Use **fast-editor** for small, targeted edits only
+- Reserve cloud models (Sonnet/Opus) for architectural decisions, complex logic, and quality gates
+
+## Token Optimization
+- Prefer local model sub-agents over cloud for implementation work
+- Use `/compact` proactively when context grows large
+- Switch to `/model sonnet` or `/model haiku` for simpler phases of work
+- Use `/model opusplan` for hybrid planning (Opus plans, Sonnet executes)
+
+## Compact Instructions
+When compacting, preserve:
+- Architectural decisions and rationale
+- File paths modified and why
+- Test results (pass/fail) and error messages
+- Current task plan and progress
+
+Discard:
+- Raw file contents already committed
+- Verbose command outputs (keep only errors)
+- Intermediate search results
+- Redundant tool call details
 
 ## Local Development Note
 Stop local PostgreSQL before using Docker: `brew services stop postgresql@14`

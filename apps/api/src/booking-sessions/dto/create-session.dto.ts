@@ -1,4 +1,4 @@
-import { IsOptional, IsUUID, IsEnum } from 'class-validator';
+import { IsOptional, IsUUID, IsEnum, IsBoolean } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 const BOOKING_SOURCES = ['DIRECT', 'DIRECTORY', 'API', 'WIDGET', 'REFERRAL', 'WALK_IN'] as const;
@@ -23,4 +23,12 @@ export class CreateSessionDto {
   })
   @IsOptional()
   source?: string;
+
+  @ApiPropertyOptional({
+    description: 'Create session in preview mode (no real reservations/payments)',
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isPreview?: boolean;
 }

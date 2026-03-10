@@ -9,6 +9,8 @@ export const JOB_PROCESS_DATA_EXPORT = 'processDataExportRequest';
 interface DataExportPayload {
   dataRequestId: string;
   userId: string;
+  tenantId?: string;
+  requestType?: 'USER_EXPORT' | 'TENANT_EXPORT';
 }
 
 /**
@@ -40,8 +42,12 @@ export class DataExportHandler {
         return;
       }
 
-      // Gather all user data
-      const exportData = await this.gatherUserData(userId);
+      // Gather data based on request type
+      const { tenantId, requestType } = job.data;
+      const exportData =
+        requestType === 'TENANT_EXPORT' && tenantId
+          ? await this.gatherTenantData(tenantId)
+          : await this.gatherUserData(userId);
 
       // Generate JSON archive
       const jsonBuffer = Buffer.from(
@@ -106,6 +112,97 @@ export class DataExportHandler {
 
       throw error;
     }
+  }
+
+  private async gatherTenantData(tenantId: string) {
+    const [
+      tenant,
+      services,
+      venues,
+      availabilityRules,
+      bookings,
+      clientProfiles,
+      payments,
+      invoices,
+      memberships,
+      reviews,
+      discounts,
+      taxRates,
+    ] = await Promise.all([
+      this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          category: true,
+          timezone: true,
+          country: true,
+          currency: true,
+          contactEmail: true,
+          contactPhone: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      this.prisma.service.findMany({
+        where: { tenantId },
+      }),
+      this.prisma.venue.findMany({
+        where: { tenantId },
+      }),
+      this.prisma.availabilityRule.findMany({
+        where: { tenantId },
+      }),
+      this.prisma.booking.findMany({
+        where: { tenantId },
+        include: { bookingStateHistory: true },
+      }),
+      this.prisma.clientProfile.findMany({
+        where: { tenantId },
+      }),
+      this.prisma.payment.findMany({
+        where: { tenantId },
+      }),
+      this.prisma.invoice.findMany({
+        where: { tenantId },
+      }),
+      this.prisma.tenantMembership.findMany({
+        where: { tenantId },
+        select: {
+          id: true,
+          userId: true,
+          role: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.review.findMany({
+        where: { tenantId },
+      }),
+      this.prisma.discount.findMany({
+        where: { tenantId },
+      }),
+      this.prisma.taxRate.findMany({
+        where: { tenantId },
+      }),
+    ]);
+
+    return {
+      exportedAt: new Date().toISOString(),
+      exportType: 'TENANT_EXPORT',
+      tenant,
+      services,
+      venues,
+      availabilityRules,
+      bookings,
+      clientProfiles,
+      payments,
+      invoices,
+      memberships,
+      reviews,
+      discounts,
+      taxRates,
+    };
   }
 
   private async gatherUserData(userId: string) {

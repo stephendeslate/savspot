@@ -5,10 +5,12 @@ import { PaymentsService } from './payments.service';
 import { StripeConnectService } from './stripe-connect.service';
 import { StripeProvider } from './providers/stripe.provider';
 import { OfflineProvider } from './providers/offline.provider';
+import { CircuitBreaker } from '../common/utils/circuit-breaker';
 
 @Module({
   controllers: [PaymentsController, StripeWebhookController],
   providers: [
+    CircuitBreaker,
     StripeProvider,
     OfflineProvider,
     PaymentsService,

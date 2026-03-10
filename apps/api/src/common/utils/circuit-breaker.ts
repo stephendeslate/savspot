@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RedisService } from '../redis/redis.service';
+import { RedisService } from '../../redis/redis.service';
 
 /**
  * Circuit breaker states per spec:
@@ -19,11 +19,11 @@ const OPEN_DURATION_SECONDS = 5 * 60;
 const COUNTER_TTL_SECONDS = 30 * 60;
 
 /**
- * Redis-based circuit breaker for communication delivery channels.
+ * Redis-based circuit breaker for external service calls.
  *
  * Keys used:
- * - circuit:{channel}:{tenantId}:failures  — consecutive failure count
- * - circuit:{channel}:{tenantId}:state     — 'OPEN' or 'HALF_OPEN' (absent = CLOSED)
+ * - circuit:{scope}:{tenantId}:failures  — consecutive failure count
+ * - circuit:{scope}:{tenantId}:state     — 'OPEN' or 'HALF_OPEN' (absent = CLOSED)
  */
 @Injectable()
 export class CircuitBreaker {
@@ -32,15 +32,15 @@ export class CircuitBreaker {
   constructor(private readonly redis: RedisService) {}
 
   /**
-   * Check if the circuit allows sending for the given channel+tenant.
-   * Returns true if sending is allowed (CLOSED or HALF_OPEN).
+   * Check if the circuit allows requests for the given scope+tenant.
+   * Returns true if allowed (CLOSED or HALF_OPEN).
    */
-  async canSend(channel: string, tenantId: string): Promise<boolean> {
-    const state = await this.getState(channel, tenantId);
+  async canSend(scope: string, tenantId: string): Promise<boolean> {
+    const state = await this.getState(scope, tenantId);
 
     if (state === 'OPEN') {
       this.logger.warn(
-        `Circuit OPEN for ${channel}:${tenantId} — blocking delivery`,
+        `Circuit OPEN for ${scope}:${tenantId} — blocking request`,
       );
       return false;
     }
@@ -50,19 +50,19 @@ export class CircuitBreaker {
   }
 
   /**
-   * Record a successful delivery — resets the circuit to CLOSED.
+   * Record a successful call — resets the circuit to CLOSED.
    */
-  async recordSuccess(channel: string, tenantId: string): Promise<void> {
-    const prefix = this.keyPrefix(channel, tenantId);
+  async recordSuccess(scope: string, tenantId: string): Promise<void> {
+    const prefix = this.keyPrefix(scope, tenantId);
     await this.redis.del(`${prefix}:failures`, `${prefix}:state`);
   }
 
   /**
-   * Record a failed delivery — increments failure count and
+   * Record a failed call — increments failure count and
    * opens the circuit if threshold is reached.
    */
-  async recordFailure(channel: string, tenantId: string): Promise<void> {
-    const prefix = this.keyPrefix(channel, tenantId);
+  async recordFailure(scope: string, tenantId: string): Promise<void> {
+    const prefix = this.keyPrefix(scope, tenantId);
     const failuresKey = `${prefix}:failures`;
     const stateKey = `${prefix}:state`;
 
@@ -75,16 +75,16 @@ export class CircuitBreaker {
       // Open the circuit
       await this.redis.setex(stateKey, OPEN_DURATION_SECONDS, 'OPEN');
       this.logger.warn(
-        `Circuit OPENED for ${channel}:${tenantId} after ${failures} consecutive failures — will recover in ${OPEN_DURATION_SECONDS / 60} minutes`,
+        `Circuit OPENED for ${scope}:${tenantId} after ${failures} consecutive failures — will recover in ${OPEN_DURATION_SECONDS / 60} minutes`,
       );
     }
   }
 
   /**
-   * Get the current circuit state for a channel+tenant.
+   * Get the current circuit state for a scope+tenant.
    */
-  async getState(channel: string, tenantId: string): Promise<CircuitState> {
-    const prefix = this.keyPrefix(channel, tenantId);
+  async getState(scope: string, tenantId: string): Promise<CircuitState> {
+    const prefix = this.keyPrefix(scope, tenantId);
     const stateVal = await this.redis.get(`${prefix}:state`);
 
     if (!stateVal) {
@@ -117,7 +117,7 @@ export class CircuitBreaker {
    * re-opens the circuit. If it succeeds, recordSuccess keeps it CLOSED.
    */
 
-  private keyPrefix(channel: string, tenantId: string): string {
-    return `circuit:${channel}:${tenantId}`;
+  private keyPrefix(scope: string, tenantId: string): string {
+    return `circuit:${scope}:${tenantId}`;
   }
 }

@@ -14,6 +14,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
@@ -24,6 +25,7 @@ import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
 @ApiTags('Services')
 @ApiBearerAuth()
 @UseGuards(TenantRolesGuard)
+@Throttle({ default: { limit: 300, ttl: 60_000 } })
 @Controller('tenants/:tenantId/services')
 export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}

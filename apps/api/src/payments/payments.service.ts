@@ -476,6 +476,7 @@ export class PaymentsService {
       paymentIntentId: payment.providerTransactionId,
       amount,
       reason: 'requested_by_customer',
+      tenantId,
     });
 
     const isFullRefund = !amount || amount >= payment.amount.toNumber();
