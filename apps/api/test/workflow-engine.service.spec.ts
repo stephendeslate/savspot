@@ -15,6 +15,7 @@ const TENANT_BRANDING = {
   logoUrl: 'https://cdn.savspot.co/logo.png',
   brandColor: '#FF5500',
   currency: 'USD',
+  timezone: 'America/New_York',
 };
 
 function makePrisma() {
@@ -122,6 +123,7 @@ describe('WorkflowEngineService', () => {
           logoUrl: true,
           brandColor: true,
           currency: true,
+          timezone: true,
         },
       });
 
