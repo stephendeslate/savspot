@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { PortalNavbar } from '@/components/portal/portal-navbar';
 import { useAuth } from '@/hooks/use-auth';
@@ -10,8 +10,13 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
   const { isLoading, isAuthenticated } = useAuth();
 
   // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
   if (!isLoading && !isAuthenticated) {
-    router.push('/login');
     return null;
   }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
@@ -9,7 +9,6 @@ import { MobileNav } from '@/components/layout/mobile-nav';
 import { SupportWidget } from '@/components/support/support-widget';
 import { FeedbackWidget } from '@/components/feedback/feedback-widget';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PageTransition } from '@/components/ui/motion';
 import { useAuth } from '@/hooks/use-auth';
 import { ROUTES } from '@/lib/constants';
 
@@ -35,8 +34,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const title = pageTitles[pathname] ?? '';
 
   // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push(ROUTES.LOGIN);
+    }
+  }, [isLoading, isAuthenticated, router]);
+
   if (!isLoading && !isAuthenticated) {
-    router.push(ROUTES.LOGIN);
     return null;
   }
 
@@ -80,8 +84,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           onMenuClick={() => setMobileNavOpen(true)}
         />
         <PushPrompt />
-        <main className="min-w-0 flex-1 p-4 lg:p-6">
-          <PageTransition>{children}</PageTransition>
+        <main className="min-w-0 flex-1 p-4 lg:p-6 animate-in fade-in duration-150">
+          {children}
         </main>
       </div>
 

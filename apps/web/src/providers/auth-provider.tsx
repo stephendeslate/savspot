@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from 'react';
@@ -145,18 +146,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      isLoading,
+      isAuthenticated: !!user,
+      login,
+      register,
+      logout,
+      loadUser,
+    }),
+    [user, isLoading, login, register, logout, loadUser],
+  );
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        login,
-        register,
-        logout,
-        loadUser,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
