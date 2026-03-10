@@ -42,6 +42,9 @@ export const JOB_ENFORCE_APPROVAL_DEADLINES = 'enforceApprovalDeadlines';
 export const JOB_SEND_PAYMENT_REMINDERS = 'sendPaymentReminders';
 export const JOB_ENFORCE_PAYMENT_DEADLINES = 'enforcePaymentDeadlines';
 export const JOB_RETRY_FAILED_PAYMENTS = 'retryFailedPayments';
+export const JOB_PROCESS_WEBHOOK_RETRIES = 'processWebhookRetries';
+export const JOB_DETECT_ORPHAN_PAYMENTS = 'detectOrphanPayments';
+export const JOB_RECONCILE_PAYMENTS = 'reconcilePayments';
 
 // Calendar queue jobs (SRS-3 §16)
 export const JOB_CALENDAR_TWO_WAY_SYNC = 'calendarTwoWaySync';
@@ -83,3 +86,5 @@ export const CRON_DAILY_5AM_UTC = '0 5 * * *';
 export const CRON_DAILY_6AM_UTC = '0 6 * * *';
 export const CRON_DAILY_8AM_UTC = '0 8 * * *';
 export const CRON_MONDAY_8AM_UTC = '0 8 * * 1';
+export const CRON_EVERY_10_MIN = '*/10 * * * *';
+export const CRON_DAILY_2AM_UTC = '0 2 * * *';

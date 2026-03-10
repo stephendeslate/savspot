@@ -4,6 +4,7 @@ import { QUEUE_COMMUNICATIONS } from '../bullmq/queue.constants';
 import { BrowserPushController } from './browser-push.controller';
 import { BrowserPushService } from './browser-push.service';
 import { BrowserPushHandler } from './browser-push.processor';
+import { BrowserPushEventListener } from './browser-push-event.listener';
 
 /**
  * Manages browser push (Web Push) subscriptions and delivery.
@@ -16,7 +17,7 @@ import { BrowserPushHandler } from './browser-push.processor';
     BullModule.registerQueue({ name: QUEUE_COMMUNICATIONS }),
   ],
   controllers: [BrowserPushController],
-  providers: [BrowserPushService, BrowserPushHandler],
+  providers: [BrowserPushService, BrowserPushHandler, BrowserPushEventListener],
   exports: [BrowserPushService, BrowserPushHandler],
 })
 export class BrowserPushModule {}

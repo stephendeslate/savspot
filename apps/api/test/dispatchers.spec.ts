@@ -126,15 +126,24 @@ describe('PaymentsDispatcher', () => {
   let sendReminders: ReturnType<typeof makeHandler>;
   let enforceDeadlines: ReturnType<typeof makeHandler>;
   let retryFailed: ReturnType<typeof makeHandler>;
+  let processWebhookRetries: ReturnType<typeof makeHandler>;
+  let detectOrphanPayments: ReturnType<typeof makeHandler>;
+  let reconcilePayments: ReturnType<typeof makeHandler>;
 
   beforeEach(() => {
     sendReminders = makeHandler();
     enforceDeadlines = makeHandler();
     retryFailed = makeHandler();
+    processWebhookRetries = makeHandler();
+    detectOrphanPayments = makeHandler();
+    reconcilePayments = makeHandler();
     dispatcher = new PaymentsDispatcher(
       sendReminders as never,
       enforceDeadlines as never,
       retryFailed as never,
+      processWebhookRetries as never,
+      detectOrphanPayments as never,
+      reconcilePayments as never,
     );
   });
 

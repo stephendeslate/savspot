@@ -11,10 +11,13 @@ import {
   BOOKING_CONFIRMED,
   BOOKING_CANCELLED,
   BOOKING_COMPLETED,
+  BOOKING_RESCHEDULED,
+  BOOKING_NO_SHOW,
   BOOKING_WALK_IN,
   PAYMENT_RECEIVED,
   BookingEventPayload,
   BookingCancelledPayload,
+  BookingRescheduledPayload,
   PaymentEventPayload,
 } from '../events/event.types';
 import { isInQuietHoursForTimezone } from '../communications/quiet-hours.util';
@@ -25,6 +28,8 @@ import { isInQuietHoursForTimezone } from '../communications/quiet-hours.util';
  * Hardcoded platform emails (always sent, not from workflow_automations):
  * - Payment receipts  (PAYMENT_RECEIVED)
  * - Cancellation confirmations (BOOKING_CANCELLED)
+ * - Reschedule confirmations (BOOKING_RESCHEDULED)
+ * - No-show staff notifications (BOOKING_NO_SHOW)
  *
  * Workflow-driven (from workflow_automations table):
  * - Booking confirmation (BOOKING_CONFIRMED)
@@ -60,7 +65,7 @@ export class WorkflowEngineService {
 
     try {
       const tenant = await this.loadTenantBranding(payload.tenantId);
-      const dateTime = this.formatDateTime(payload.startTime);
+      const dateTime = this.formatDateTime(payload.startTime, tenant.timezone);
 
       await this.communicationsService.createAndSend({
         tenantId: payload.tenantId,
@@ -85,6 +90,94 @@ export class WorkflowEngineService {
     } catch (error) {
       this.logger.error(
         `Failed to send cancellation email for booking ${payload.bookingId}: ${error}`,
+      );
+    }
+  }
+
+  /**
+   * BOOKING_RESCHEDULED — Always sends reschedule confirmation email to the client.
+   * Also runs any matching workflow automations.
+   */
+  @OnEvent(BOOKING_RESCHEDULED)
+  async handleBookingRescheduled(payload: BookingRescheduledPayload): Promise<void> {
+    this.logger.log(
+      `[Hardcoded] Booking rescheduled: booking=${payload.bookingId} tenant=${payload.tenantId}`,
+    );
+
+    try {
+      const tenant = await this.loadTenantBranding(payload.tenantId);
+      const dateTime = this.formatDateTime(payload.newStartTime, tenant.timezone);
+
+      await this.communicationsService.createAndSend({
+        tenantId: payload.tenantId,
+        recipientId: payload.clientId,
+        recipientEmail: payload.clientEmail,
+        recipientName: payload.clientName,
+        channel: 'EMAIL',
+        templateKey: 'booking-rescheduled',
+        templateData: {
+          clientName: payload.clientName,
+          serviceName: payload.serviceName,
+          dateTime,
+          businessName: tenant.name,
+          logoUrl: tenant.logoUrl,
+          brandColor: tenant.brandColor,
+        },
+        bookingId: payload.bookingId,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send reschedule email for booking ${payload.bookingId}: ${error}`,
+      );
+    }
+
+    await this.executeWorkflows('BOOKING_RESCHEDULED', payload);
+  }
+
+  /**
+   * BOOKING_NO_SHOW — Sends no-show notification to tenant staff/admins.
+   * This is a hardcoded platform email, not driven by workflow_automations.
+   */
+  @OnEvent(BOOKING_NO_SHOW)
+  async handleBookingNoShow(payload: BookingEventPayload): Promise<void> {
+    this.logger.log(
+      `[Hardcoded] Booking no-show: booking=${payload.bookingId} tenant=${payload.tenantId}`,
+    );
+
+    try {
+      const members = await this.prisma.tenantMembership.findMany({
+        where: {
+          tenantId: payload.tenantId,
+          role: { in: [TenantRole.OWNER, TenantRole.ADMIN] },
+        },
+        include: { user: { select: { email: true, name: true } } },
+      });
+
+      if (members.length === 0) return;
+
+      const tenant = await this.loadTenantBranding(payload.tenantId);
+      const dateTime = this.formatDateTime(payload.startTime, tenant.timezone);
+
+      for (const member of members) {
+        await this.communicationsService.createAndSend({
+          tenantId: payload.tenantId,
+          recipientId: member.userId,
+          recipientEmail: member.user.email,
+          recipientName: member.user.name ?? 'Admin',
+          channel: 'EMAIL',
+          templateKey: 'booking-no-show',
+          templateData: {
+            clientName: payload.clientName,
+            serviceName: payload.serviceName,
+            dateTime,
+            businessName: tenant.name,
+          },
+          bookingId: payload.bookingId,
+        });
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to send no-show notification for booking ${payload.bookingId}: ${error}`,
       );
     }
   }
@@ -164,7 +257,7 @@ export class WorkflowEngineService {
       if (members.length === 0) return;
 
       const tenant = await this.loadTenantBranding(payload.tenantId);
-      const dateTime = this.formatDateTime(payload.startTime);
+      const dateTime = this.formatDateTime(payload.startTime, tenant.timezone);
 
       for (const member of members) {
         await this.communicationsService.createAndSend({
@@ -339,7 +432,7 @@ export class WorkflowEngineService {
       : this.resolveTemplateKey(config, payload);
 
     const tenant = await this.loadTenantBranding(payload.tenantId);
-    const dateTime = this.formatDateTime(payload.startTime);
+    const dateTime = this.formatDateTime(payload.startTime, tenant.timezone);
 
     const sendParams: CreateAndSendParams = {
       tenantId: payload.tenantId,
@@ -414,7 +507,7 @@ export class WorkflowEngineService {
         );
         return;
       }
-      const dateTime = this.formatDateTime(payload.startTime);
+      const dateTime = this.formatDateTime(payload.startTime, timezone);
 
       // Build message from config or default template
       const messageTemplate = config['message'] ? String(config['message']) : null;
@@ -586,6 +679,7 @@ export class WorkflowEngineService {
     logoUrl: string | null;
     brandColor: string | null;
     currency: string;
+    timezone: string;
   }> {
     const tenant = await this.prisma.tenant.findUniqueOrThrow({
       where: { id: tenantId },
@@ -595,15 +689,16 @@ export class WorkflowEngineService {
         logoUrl: true,
         brandColor: true,
         currency: true,
+        timezone: true,
       },
     });
     return tenant;
   }
 
   /**
-   * Formats a Date into a human-readable date/time string (UTC).
+   * Formats a Date into a human-readable date/time string using the given timezone.
    */
-  private formatDateTime(date: Date): string {
+  private formatDateTime(date: Date, timezone?: string): string {
     return new Date(date).toLocaleString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -611,7 +706,7 @@ export class WorkflowEngineService {
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
-      timeZone: 'UTC',
+      timeZone: timezone || 'UTC',
       timeZoneName: 'short',
     });
   }

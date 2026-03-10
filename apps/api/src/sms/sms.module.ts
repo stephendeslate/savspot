@@ -3,6 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { QUEUE_COMMUNICATIONS } from '../bullmq/queue.constants';
 import { TwilioService } from './sms.service';
 import { SmsHandler } from './sms.processor';
+import { SmsEventListener } from './sms-event.listener';
 import { MorningSummaryHandler } from './morning-summary.processor';
 import { WeeklyDigestHandler } from './weekly-digest.processor';
 
@@ -20,6 +21,7 @@ import { WeeklyDigestHandler } from './weekly-digest.processor';
   providers: [
     TwilioService,
     SmsHandler,
+    SmsEventListener,
     MorningSummaryHandler,
     WeeklyDigestHandler,
   ],
