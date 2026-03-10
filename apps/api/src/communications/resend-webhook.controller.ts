@@ -1,5 +1,17 @@
-import { Controller, Post, Body, Logger, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Req,
+  Logger,
+  HttpCode,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
+import { Request } from 'express';
+import { Webhook } from 'svix';
 import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { Public } from '../common/decorators/public.decorator';
@@ -29,12 +41,48 @@ interface ResendWebhookEvent {
 export class ResendWebhookController {
   private readonly logger = new Logger(ResendWebhookController.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Public()
   @Post('resend')
   @HttpCode(200)
-  async handleResendWebhook(@Body() event: ResendWebhookEvent): Promise<{ received: boolean }> {
+  async handleResendWebhook(
+    @Req() req: Request,
+    @Body() event: ResendWebhookEvent,
+  ): Promise<{ received: boolean }> {
+    const secret = this.configService.get<string>('RESEND_WEBHOOK_SECRET');
+    if (secret) {
+      const rawBody = (req as Request & { rawBody?: Buffer }).rawBody;
+      if (!rawBody) {
+        this.logger.error(
+          'Raw body not available — ensure rawBody is enabled in NestFactory.create',
+        );
+        throw new HttpException('Webhook verification failed', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      const headers = {
+        'svix-id': req.headers['svix-id'] as string,
+        'svix-timestamp': req.headers['svix-timestamp'] as string,
+        'svix-signature': req.headers['svix-signature'] as string,
+      };
+
+      try {
+        const wh = new Webhook(secret);
+        wh.verify(rawBody.toString(), headers);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.logger.warn(`Resend webhook signature verification failed: ${message}`);
+        throw new HttpException('Invalid webhook signature', HttpStatus.UNAUTHORIZED);
+      }
+    } else {
+      this.logger.warn(
+        'RESEND_WEBHOOK_SECRET not configured — skipping signature verification',
+      );
+    }
+
     try {
       const emailId = event?.data?.email_id;
       if (!emailId) {

@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsUUID,
   IsInt,
+  IsIn,
   Min,
   IsDateString,
 } from 'class-validator';
@@ -75,4 +76,20 @@ export class ListBookingsDto {
   @Min(1)
   @IsOptional()
   limit?: number = 20;
+
+  @ApiPropertyOptional({
+    enum: ['startTime', 'createdAt', 'status', 'totalAmount'],
+    description: 'Field to sort by (default: startTime)',
+  })
+  @IsIn(['startTime', 'createdAt', 'status', 'totalAmount'])
+  @IsOptional()
+  sortBy?: string = 'startTime';
+
+  @ApiPropertyOptional({
+    enum: ['asc', 'desc'],
+    description: 'Sort order (default: desc)',
+  })
+  @IsIn(['asc', 'desc'])
+  @IsOptional()
+  sortOrder?: 'asc' | 'desc' = 'desc';
 }

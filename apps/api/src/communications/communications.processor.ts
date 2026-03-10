@@ -263,6 +263,7 @@ export class CommunicationsHandler {
         tenant_slug: string | null;
         tenant_logo_url: string | null;
         tenant_brand_color: string | null;
+        tenant_timezone: string;
       }>
     >`
       SELECT
@@ -277,7 +278,8 @@ export class CommunicationsHandler {
         t.name AS tenant_name,
         t.slug AS tenant_slug,
         t.logo_url AS tenant_logo_url,
-        t.brand_color AS tenant_brand_color
+        t.brand_color AS tenant_brand_color,
+        t.timezone AS tenant_timezone
       FROM bookings b
       JOIN users u ON u.id = b.client_id
       JOIN services s ON s.id = b.service_id
@@ -362,7 +364,7 @@ export class CommunicationsHandler {
             templateData: {
               clientName: booking.client_name,
               serviceName: booking.service_name,
-              dateTime: this.formatDateTime(booking.start_time),
+              dateTime: this.formatDateTime(booking.start_time, booking.tenant_timezone),
               businessName: booking.tenant_name,
               logoUrl: booking.tenant_logo_url,
               brandColor: booking.tenant_brand_color,
@@ -403,7 +405,7 @@ export class CommunicationsHandler {
     });
   }
 
-  private formatDateTime(date: Date): string {
+  private formatDateTime(date: Date, timezone?: string): string {
     return new Date(date).toLocaleString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -411,7 +413,7 @@ export class CommunicationsHandler {
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
-      timeZone: 'UTC',
+      timeZone: timezone || 'UTC',
       timeZoneName: 'short',
     });
   }

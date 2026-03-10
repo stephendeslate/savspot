@@ -50,6 +50,8 @@ export class BookingsService {
       search,
       page = 1,
       limit = 20,
+      sortBy = 'startTime',
+      sortOrder = 'desc',
     } = filters;
     const skip = (page - 1) * limit;
 
@@ -100,7 +102,7 @@ export class BookingsService {
             select: { id: true, amount: true, status: true, type: true },
           },
         },
-        orderBy: { startTime: 'desc' },
+        orderBy: { [sortBy]: sortOrder },
         skip,
         take: limit,
       }),
