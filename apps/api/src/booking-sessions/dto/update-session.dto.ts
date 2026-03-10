@@ -17,7 +17,7 @@ export class UpdateSessionDto {
   data?: Record<string, unknown>;
 
   @ApiPropertyOptional({ description: 'Service ID (if changed during session)' })
-  @IsUUID('4')
+  @IsUUID()
   @IsOptional()
   serviceId?: string;
 }

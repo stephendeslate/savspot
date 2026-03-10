@@ -10,3 +10,7 @@ export * from './quote.enums.js';
 export * from './support.enums.js';
 export * from './import.enums.js';
 export * from './security.enums.js';
+export * from './accounting.enums.js';
+export * from './breach.enums.js';
+export * from './discount.enums.js';
+export * from './note.enums.js';

@@ -48,25 +48,64 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${this.accessToken}`;
     }
 
-    const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+    const method = (options?.method ?? 'GET').toUpperCase();
+    const isRetryable = method === 'GET';
+    const maxRetries = isRetryable ? 3 : 0;
 
-    if (res.status === 401 && this.refreshToken) {
-      const refreshed = await this.tryRefresh();
-      if (refreshed) {
-        headers['Authorization'] = `Bearer ${this.accessToken}`;
-        const retry = await fetch(`${API_URL}${path}`, {
-          ...options,
-          headers,
-        });
-        if (!retry.ok) throw new ApiError(retry.status, await retry.text());
-        const json = (await retry.json()) as { data?: T };
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+
+        if (res.status === 401 && this.refreshToken) {
+          const refreshed = await this.tryRefresh();
+          if (refreshed) {
+            headers['Authorization'] = `Bearer ${this.accessToken}`;
+            const retry = await fetch(`${API_URL}${path}`, {
+              ...options,
+              headers,
+            });
+            if (!retry.ok) throw new ApiError(retry.status, await retry.text());
+            const json = (await retry.json()) as { data?: T };
+            return json.data !== undefined ? json.data : (json as T);
+          }
+        }
+
+        if (!res.ok) {
+          const error = new ApiError(res.status, await res.text());
+          // Retry on 5xx for GET requests
+          if (isRetryable && res.status >= 500 && attempt < maxRetries) {
+            lastError = error;
+            await this.delay(Math.pow(2, attempt) * 1000);
+            continue;
+          }
+          throw error;
+        }
+
+        const json = (await res.json()) as { data?: T };
         return json.data !== undefined ? json.data : (json as T);
+      } catch (err) {
+        // Retry on network errors (TypeError) for GET requests
+        if (
+          isRetryable &&
+          err instanceof TypeError &&
+          attempt < maxRetries
+        ) {
+          lastError = err;
+          await this.delay(Math.pow(2, attempt) * 1000);
+          continue;
+        }
+        throw err;
       }
     }
 
-    if (!res.ok) throw new ApiError(res.status, await res.text());
-    const json = (await res.json()) as { data?: T };
-    return json.data !== undefined ? json.data : (json as T);
+    // Should not reach here, but just in case
+    throw lastError ?? new Error('Request failed after retries');
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private async tryRefresh(): Promise<boolean> {

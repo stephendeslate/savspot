@@ -34,11 +34,16 @@ test.describe('Bookings Management', () => {
 
     // Wait for the page to load
     await expect(
-      page.getByRole('heading', { name: 'Bookings' }),
+      page.getByText(/manage and track all your bookings/i),
     ).toBeVisible({ timeout: 15_000 });
 
-    // The filter card with status dropdown should be visible (desktop)
-    // On desktop, the filter card is always visible
+    // On mobile viewports, filters are collapsed behind a toggle button
+    const filtersToggle = page.getByRole('button', { name: /filters/i });
+    if (await filtersToggle.isVisible()) {
+      await filtersToggle.click();
+    }
+
+    // The filter controls should now be visible
     await expect(page.getByLabel(/status/i)).toBeVisible();
     await expect(page.getByLabel(/start date/i)).toBeVisible();
     await expect(page.getByLabel(/end date/i)).toBeVisible();

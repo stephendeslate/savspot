@@ -17,7 +17,10 @@ test.describe('Settings Navigation', () => {
     'Notifications',
     'Branding',
     'Discounts',
+    'Tax Rates',
+    'Gallery',
     'Team',
+    'Booking Flow',
     'Embed Widget',
   ];
 
@@ -27,7 +30,7 @@ test.describe('Settings Navigation', () => {
     await page.goto('/settings');
 
     // Page heading
-    const heading = page.getByRole('heading', { name: 'Settings' });
+    const heading = page.getByRole('heading', { level: 2, name: 'Settings' });
     await expect(heading).toBeVisible({ timeout: 15_000 });
 
     // Subtitle text
@@ -37,7 +40,7 @@ test.describe('Settings Navigation', () => {
 
     // Verify each settings card is present
     for (const sectionName of EXPECTED_SETTINGS_SECTIONS) {
-      await expect(page.getByText(sectionName, { exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: sectionName })).toBeVisible();
     }
   });
 
@@ -48,18 +51,18 @@ test.describe('Settings Navigation', () => {
 
     // Wait for cards to render
     await expect(
-      page.getByText('Team', { exact: true }),
+      page.getByRole('heading', { name: 'Team' }),
     ).toBeVisible({ timeout: 15_000 });
 
     // Click the Team card link
-    await page.getByText('Team', { exact: true }).click();
+    await page.getByRole('heading', { name: 'Team' }).click();
 
     // Should navigate to /settings/team
     await page.waitForURL('/settings/team', { timeout: 10_000 });
 
     // The team page should show a heading
     await expect(
-      page.getByRole('heading', { name: 'Team' }),
+      page.getByRole('heading', { level: 2, name: 'Team' }),
     ).toBeVisible({ timeout: 10_000 });
   });
 
@@ -70,11 +73,11 @@ test.describe('Settings Navigation', () => {
 
     // Wait for cards to render
     await expect(
-      page.getByText('Branding', { exact: true }),
+      page.getByRole('heading', { name: 'Branding' }),
     ).toBeVisible({ timeout: 15_000 });
 
     // Click the Branding card link
-    await page.getByText('Branding', { exact: true }).click();
+    await page.getByRole('heading', { name: 'Branding' }).click();
 
     // Should navigate to /settings/branding
     await page.waitForURL('/settings/branding', { timeout: 10_000 });
@@ -85,7 +88,7 @@ test.describe('Settings Navigation', () => {
 
     // Wait for the page to render
     await expect(
-      page.getByRole('heading', { name: 'Settings' }),
+      page.getByRole('heading', { level: 2, name: 'Settings' }),
     ).toBeVisible({ timeout: 15_000 });
 
     // Verify descriptions for a subset of settings cards

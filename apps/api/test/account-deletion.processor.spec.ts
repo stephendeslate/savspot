@@ -14,6 +14,7 @@ function makePrisma() {
       findMany: vi.fn(),
       update: vi.fn(),
     },
+    $queryRaw: vi.fn(),
     $transaction: vi.fn(),
   };
 }
@@ -52,32 +53,62 @@ describe('AccountDeletionHandler', () => {
 
     await handler.handle(makeJob());
 
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it('should process deletion requests past grace period', async () => {
+  it('should process deletion requests past grace period with per-tenant RLS', async () => {
     const request = makeDeletionRequest();
     prisma.dataRequest.findMany.mockResolvedValue([request]);
 
-    const mockTx = {
-      user: { update: vi.fn() },
+    // First $queryRaw returns tenant IDs for the user
+    prisma.$queryRaw.mockResolvedValue([{ tenant_id: 'tenant-001' }]);
+
+    const mockTenantTx = {
+      $executeRaw: vi.fn(),
       browserPushSubscription: { deleteMany: vi.fn() },
+      notification: { deleteMany: vi.fn() },
+      booking: { updateMany: vi.fn() },
+    };
+    const mockGlobalTx = {
+      user: { update: vi.fn() },
       consentRecord: { deleteMany: vi.fn() },
       onboardingTour: { deleteMany: vi.fn() },
       notification: { deleteMany: vi.fn() },
-      booking: { updateMany: vi.fn() },
       dataRequest: { update: vi.fn() },
     };
+
+    let txCallCount = 0;
     prisma.$transaction.mockImplementation(
-      async (fn: (tx: unknown) => Promise<unknown>) => fn(mockTx),
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        txCallCount++;
+        // First transaction: per-tenant cleanup; Second: global cleanup
+        return fn(txCallCount === 1 ? mockTenantTx : mockGlobalTx);
+      },
     );
 
     await handler.handle(makeJob());
 
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    // One per-tenant transaction + one global transaction
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
 
-    // Verify user anonymization
-    expect(mockTx.user.update).toHaveBeenCalledWith({
+    // Verify tenant-scoped set_config was called
+    expect(mockTenantTx.$executeRaw).toHaveBeenCalledTimes(1);
+
+    // Verify tenant-scoped cleanup
+    expect(mockTenantTx.browserPushSubscription.deleteMany).toHaveBeenCalledWith({
+      where: { userId: USER_ID, tenantId: 'tenant-001' },
+    });
+    expect(mockTenantTx.notification.deleteMany).toHaveBeenCalledWith({
+      where: { userId: USER_ID, tenantId: 'tenant-001' },
+    });
+    expect(mockTenantTx.booking.updateMany).toHaveBeenCalledWith({
+      where: { clientId: USER_ID, tenantId: 'tenant-001' },
+      data: { notes: null, guestDetails: 'DbNull' },
+    });
+
+    // Verify global (non-tenant) cleanup
+    expect(mockGlobalTx.user.update).toHaveBeenCalledWith({
       where: { id: USER_ID },
       data: expect.objectContaining({
         email: expect.stringContaining('deleted-'),
@@ -88,29 +119,18 @@ describe('AccountDeletionHandler', () => {
         emailVerified: false,
       }),
     });
-
-    // Verify related data cleanup
-    expect(mockTx.browserPushSubscription.deleteMany).toHaveBeenCalledWith({
+    expect(mockGlobalTx.consentRecord.deleteMany).toHaveBeenCalledWith({
       where: { userId: USER_ID },
     });
-    expect(mockTx.consentRecord.deleteMany).toHaveBeenCalledWith({
+    expect(mockGlobalTx.onboardingTour.deleteMany).toHaveBeenCalledWith({
       where: { userId: USER_ID },
     });
-    expect(mockTx.onboardingTour.deleteMany).toHaveBeenCalledWith({
-      where: { userId: USER_ID },
-    });
-    expect(mockTx.notification.deleteMany).toHaveBeenCalledWith({
-      where: { userId: USER_ID },
-    });
-
-    // Verify booking anonymization
-    expect(mockTx.booking.updateMany).toHaveBeenCalledWith({
-      where: { clientId: USER_ID },
-      data: { notes: null, guestDetails: 'DbNull' },
+    expect(mockGlobalTx.notification.deleteMany).toHaveBeenCalledWith({
+      where: { userId: USER_ID, tenantId: null },
     });
 
     // Verify request marked completed
-    expect(mockTx.dataRequest.update).toHaveBeenCalledWith({
+    expect(mockGlobalTx.dataRequest.update).toHaveBeenCalledWith({
       where: { id: REQUEST_ID },
       data: expect.objectContaining({
         status: 'COMPLETED',
@@ -124,18 +144,21 @@ describe('AccountDeletionHandler', () => {
     const request2 = makeDeletionRequest({ id: 'req-ok', userId: 'user-ok' });
     prisma.dataRequest.findMany.mockResolvedValue([request1, request2]);
 
-    let callCount = 0;
+    let queryRawCallCount = 0;
+    prisma.$queryRaw.mockImplementation(async () => {
+      queryRawCallCount++;
+      if (queryRawCallCount === 1) throw new Error('Query failed');
+      return []; // No tenants for second user
+    });
+
     prisma.$transaction.mockImplementation(
       async (fn: (tx: unknown) => Promise<unknown>) => {
-        callCount++;
-        if (callCount === 1) throw new Error('TX failed');
         return fn({
+          $executeRaw: vi.fn(),
           user: { update: vi.fn() },
-          browserPushSubscription: { deleteMany: vi.fn() },
           consentRecord: { deleteMany: vi.fn() },
           onboardingTour: { deleteMany: vi.fn() },
           notification: { deleteMany: vi.fn() },
-          booking: { updateMany: vi.fn() },
           dataRequest: { update: vi.fn() },
         });
       },
@@ -144,7 +167,8 @@ describe('AccountDeletionHandler', () => {
     // Should not throw despite first request failing
     await handler.handle(makeJob());
 
-    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    // Only the second user's global transaction runs (no tenant-scoped ones since no tenants)
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
   it('should query only PENDING deletions past deadline', async () => {

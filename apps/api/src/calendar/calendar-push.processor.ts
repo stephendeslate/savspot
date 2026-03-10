@@ -55,13 +55,16 @@ export class CalendarPushHandler {
       `Processing calendar push: ${eventType} for booking ${bookingId} (tenant: ${tenantId})`,
     );
 
-    // Find the tenant's active calendar connection
-    const connection = await this.prisma.calendarConnection.findFirst({
-      where: {
-        tenantId,
-        status: 'ACTIVE',
-      },
-      orderBy: { createdAt: 'asc' }, // Use the oldest (primary) connection
+    // Find the tenant's active calendar connection (within tenant context)
+    const connection = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+      return tx.calendarConnection.findFirst({
+        where: {
+          tenantId,
+          status: 'ACTIVE',
+        },
+        orderBy: { createdAt: 'asc' }, // Use the oldest (primary) connection
+      });
     });
 
     if (!connection) {
@@ -75,6 +78,7 @@ export class CalendarPushHandler {
       switch (eventType) {
         case BOOKING_CONFIRMED: {
           await this.handleBookingConfirmed(
+            tenantId,
             connection.id,
             bookingId,
             serviceName,
@@ -87,6 +91,7 @@ export class CalendarPushHandler {
 
         case BOOKING_RESCHEDULED: {
           await this.handleBookingRescheduled(
+            tenantId,
             connection.id,
             bookingId,
             serviceName,
@@ -97,7 +102,7 @@ export class CalendarPushHandler {
         }
 
         case BOOKING_CANCELLED: {
-          await this.handleBookingCancelled(connection.id, bookingId);
+          await this.handleBookingCancelled(tenantId, connection.id, bookingId);
           break;
         }
 
@@ -119,6 +124,7 @@ export class CalendarPushHandler {
    * Create a new Google Calendar event for a confirmed booking.
    */
   private async handleBookingConfirmed(
+    tenantId: string,
     connectionId: string,
     bookingId: string,
     serviceName: string,
@@ -136,20 +142,24 @@ export class CalendarPushHandler {
       },
     );
 
-    // Link the CalendarEvent to the booking
-    const calEvent = await this.prisma.calendarEvent.findFirst({
-      where: {
-        calendarConnectionId: connectionId,
-        externalEventId,
-      },
-    });
+    // Link the CalendarEvent to the booking (within tenant context)
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
 
-    if (calEvent) {
-      await this.prisma.calendarEvent.update({
-        where: { id: calEvent.id },
-        data: { bookingId },
+      const calEvent = await tx.calendarEvent.findFirst({
+        where: {
+          calendarConnectionId: connectionId,
+          externalEventId,
+        },
       });
-    }
+
+      if (calEvent) {
+        await tx.calendarEvent.update({
+          where: { id: calEvent.id },
+          data: { bookingId },
+        });
+      }
+    });
 
     this.logger.log(
       `Calendar event created for booking ${bookingId}: ${externalEventId}`,
@@ -160,19 +170,23 @@ export class CalendarPushHandler {
    * Update the Google Calendar event for a rescheduled booking.
    */
   private async handleBookingRescheduled(
+    tenantId: string,
     connectionId: string,
     bookingId: string,
     serviceName: string,
     clientName: string,
     data: CalendarEventPushJobData,
   ): Promise<void> {
-    // Find the existing calendar event linked to this booking
-    const calEvent = await this.prisma.calendarEvent.findFirst({
-      where: {
-        calendarConnectionId: connectionId,
-        bookingId,
-        direction: 'OUTBOUND',
-      },
+    // Find the existing calendar event linked to this booking (within tenant context)
+    const calEvent = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+      return tx.calendarEvent.findFirst({
+        where: {
+          calendarConnectionId: connectionId,
+          bookingId,
+          direction: 'OUTBOUND',
+        },
+      });
     });
 
     if (!calEvent || !calEvent.externalEventId) {
@@ -183,6 +197,7 @@ export class CalendarPushHandler {
       const newStart = data.newStartTime || data.startTime;
       const newEnd = data.newEndTime || data.endTime;
       await this.handleBookingConfirmed(
+        tenantId,
         connectionId,
         bookingId,
         serviceName,
@@ -216,15 +231,19 @@ export class CalendarPushHandler {
    * Delete the Google Calendar event for a cancelled booking.
    */
   private async handleBookingCancelled(
+    tenantId: string,
     connectionId: string,
     bookingId: string,
   ): Promise<void> {
-    const calEvent = await this.prisma.calendarEvent.findFirst({
-      where: {
-        calendarConnectionId: connectionId,
-        bookingId,
-        direction: 'OUTBOUND',
-      },
+    const calEvent = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+      return tx.calendarEvent.findFirst({
+        where: {
+          calendarConnectionId: connectionId,
+          bookingId,
+          direction: 'OUTBOUND',
+        },
+      });
     });
 
     if (!calEvent || !calEvent.externalEventId) {

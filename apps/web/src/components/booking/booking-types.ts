@@ -39,7 +39,7 @@ export interface TenantData {
   brandColor: string | null;
   timezone: string;
   currency: string;
-  address: string | null;
+  address: { street?: string; city?: string; state?: string; zip?: string; country?: string } | null;
   contactEmail: string | null;
   contactPhone: string | null;
   category: string | null;

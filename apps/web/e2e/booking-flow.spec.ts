@@ -39,7 +39,7 @@ test.describe('Public Booking Flow', () => {
 
     // Verify the expected seed services are shown
     for (const serviceName of EXPECTED_SERVICES) {
-      await expect(page.getByText(serviceName)).toBeVisible();
+      await expect(page.getByRole('heading', { name: serviceName })).toBeVisible();
     }
   });
 
@@ -50,13 +50,24 @@ test.describe('Public Booking Flow', () => {
     const bookNowButtons = page.getByRole('button', { name: /book now/i });
     await expect(bookNowButtons.first()).toBeVisible({ timeout: 15_000 });
 
-    // Click the first "Book Now" button to start the booking session
-    await bookNowButtons.first().click();
+    // Click "Book Now" and wait for the API response
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        (resp) =>
+          resp.url().includes('/api/booking-sessions') &&
+          resp.request().method() === 'POST',
+        { timeout: 15_000 },
+      ),
+      bookNowButtons.first().click(),
+    ]);
+
+    // Verify the API call succeeded
+    expect(response.status()).toBe(201);
 
     // After a booking session is created, the wizard should appear and the
     // "Back to <BusinessName>" link should be visible
     const backButton = page.getByText(new RegExp(`Back to ${TEST_TENANT.name}`, 'i'));
-    await expect(backButton).toBeVisible({ timeout: 10_000 });
+    await expect(backButton).toBeVisible({ timeout: 15_000 });
   });
 
   test('displays "Business Not Found" for an invalid slug', async ({

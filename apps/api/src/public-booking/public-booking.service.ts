@@ -60,48 +60,50 @@ export class PublicBookingService {
       throw new NotFoundException('Business not found');
     }
 
-    // Set RLS context so tenant-scoped queries (services) work with FORCE RLS
-    await this.prisma.$executeRaw`SELECT set_config('app.current_tenant', ${tenant.id}, FALSE)`;
+    // Use $transaction to ensure RLS context and query share the same connection
+    const fullTenant = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenant.id}, TRUE)`;
 
-    const fullTenant = await this.prisma.tenant.findUnique({
-      where: { slug },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        logoUrl: true,
-        coverPhotoUrl: true,
-        brandColor: true,
-        timezone: true,
-        currency: true,
-        country: true,
-        address: true,
-        contactEmail: true,
-        contactPhone: true,
-        category: true,
-        categoryLabel: true,
-        services: {
-          where: { isActive: true },
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            durationMinutes: true,
-            basePrice: true,
-            currency: true,
-            pricingModel: true,
-            images: true,
-            guestConfig: true,
-            intakeFormConfig: true,
-            categoryId: true,
-            category: {
-              select: { id: true, name: true },
+      return tx.tenant.findUnique({
+        where: { slug },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          logoUrl: true,
+          coverPhotoUrl: true,
+          brandColor: true,
+          timezone: true,
+          currency: true,
+          country: true,
+          address: true,
+          contactEmail: true,
+          contactPhone: true,
+          category: true,
+          categoryLabel: true,
+          services: {
+            where: { isActive: true },
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              durationMinutes: true,
+              basePrice: true,
+              currency: true,
+              pricingModel: true,
+              images: true,
+              guestConfig: true,
+              intakeFormConfig: true,
+              categoryId: true,
+              category: {
+                select: { id: true, name: true },
+              },
             },
+            orderBy: { sortOrder: 'asc' },
           },
-          orderBy: { sortOrder: 'asc' },
         },
-      },
+      });
     });
 
     if (!fullTenant) {
@@ -132,79 +134,83 @@ export class PublicBookingService {
       throw new NotFoundException('Business not found');
     }
 
-    // Set RLS context so tenant-scoped queries (services, availability_rules, service_addons) work with FORCE RLS
-    await this.prisma.$executeRaw`SELECT set_config('app.current_tenant', ${tenant.id}, FALSE)`;
+    // Use $transaction to ensure RLS context and queries share the same connection
+    const result = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenant.id}, TRUE)`;
 
-    const service = await this.prisma.service.findFirst({
-      where: {
-        id: serviceId,
-        tenantId: tenant.id,
-        isActive: true,
-      },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        durationMinutes: true,
-        basePrice: true,
-        currency: true,
-        pricingModel: true,
-        images: true,
-        guestConfig: true,
-        depositConfig: true,
-        intakeFormConfig: true,
-        bufferBeforeMinutes: true,
-        bufferAfterMinutes: true,
-        cancellationPolicy: true,
-        confirmationMode: true,
-        venue: {
-          select: { id: true, name: true },
+      const svc = await tx.service.findFirst({
+        where: {
+          id: serviceId,
+          tenantId: tenant.id,
+          isActive: true,
         },
-        category: {
-          select: { id: true, name: true },
-        },
-        availabilityRules: {
-          where: { isActive: true },
-          select: {
-            id: true,
-            dayOfWeek: true,
-            startTime: true,
-            endTime: true,
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          durationMinutes: true,
+          basePrice: true,
+          currency: true,
+          pricingModel: true,
+          images: true,
+          guestConfig: true,
+          depositConfig: true,
+          intakeFormConfig: true,
+          bufferBeforeMinutes: true,
+          bufferAfterMinutes: true,
+          cancellationPolicy: true,
+          confirmationMode: true,
+          venue: {
+            select: { id: true, name: true },
           },
-          orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
-        },
-        serviceAddons: {
-          where: { isActive: true },
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            price: true,
+          category: {
+            select: { id: true, name: true },
           },
-          orderBy: { sortOrder: 'asc' },
+          availabilityRules: {
+            where: { isActive: true },
+            select: {
+              id: true,
+              dayOfWeek: true,
+              startTime: true,
+              endTime: true,
+            },
+            orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+          },
+          serviceAddons: {
+            where: { isActive: true },
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              price: true,
+            },
+            orderBy: { sortOrder: 'asc' },
+          },
         },
-      },
+      });
+
+      // Also load tenant-wide availability rules (for days without service rules)
+      const tenantWideRules = await tx.availabilityRule.findMany({
+        where: {
+          tenantId: tenant.id,
+          serviceId: null,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          dayOfWeek: true,
+          startTime: true,
+          endTime: true,
+        },
+        orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+      });
+
+      return { svc, tenantWideRules };
     });
 
-    if (!service) {
+    if (!result.svc) {
       throw new NotFoundException('Service not found');
     }
-
-    // Also load tenant-wide availability rules (for days without service rules)
-    const tenantWideRules = await this.prisma.availabilityRule.findMany({
-      where: {
-        tenantId: tenant.id,
-        serviceId: null,
-        isActive: true,
-      },
-      select: {
-        id: true,
-        dayOfWeek: true,
-        startTime: true,
-        endTime: true,
-      },
-      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
-    });
 
     return {
       tenant: {
@@ -214,8 +220,8 @@ export class PublicBookingService {
         timezone: tenant.timezone,
         currency: tenant.currency,
       },
-      service,
-      tenantWideAvailability: tenantWideRules,
+      service: result.svc,
+      tenantWideAvailability: result.tenantWideRules,
     };
   }
 }

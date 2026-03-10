@@ -5,11 +5,11 @@ const BOOKING_SOURCES = ['DIRECT', 'DIRECTORY', 'API', 'WIDGET', 'REFERRAL', 'WA
 
 export class CreateSessionDto {
   @ApiProperty({ description: 'Tenant ID' })
-  @IsUUID('4')
+  @IsUUID()
   tenantId!: string;
 
   @ApiPropertyOptional({ description: 'Service ID to pre-select' })
-  @IsUUID('4')
+  @IsUUID()
   @IsOptional()
   serviceId?: string;
 

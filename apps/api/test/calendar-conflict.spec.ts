@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CalendarSyncHandler } from '../src/calendar/calendar-sync.processor';
 
 function makePrisma() {
-  return {
+  const prisma = {
     calendarEvent: {
       findMany: vi.fn(),
     },
@@ -18,7 +18,12 @@ function makePrisma() {
     notification: {
       create: vi.fn(),
     },
+    $executeRaw: vi.fn(),
+    $transaction: vi.fn(),
   };
+  // $transaction executes the callback with the prisma mock as the tx arg
+  prisma.$transaction.mockImplementation(async (cb: (tx: typeof prisma) => Promise<unknown>) => cb(prisma));
+  return prisma;
 }
 
 function makeCalendarService() {

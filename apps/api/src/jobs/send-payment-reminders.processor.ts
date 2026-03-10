@@ -7,11 +7,6 @@ import {
   JOB_DELIVER_COMMUNICATION,
 } from '../bullmq/queue.constants';
 
-/**
- * TODO: When migrating to a non-superuser DB role, this processor's raw SQL queries
- * must set app.current_tenant per-tenant because FORCE ROW LEVEL SECURITY will
- * block cross-tenant access to invoices, payments, bookings, and users.
- */
 interface DueInvoiceRow {
   id: string;
   tenant_id: string;
@@ -87,37 +82,48 @@ export class SendPaymentRemindersHandler {
             continue;
           }
 
-          // Check for existing reminder (deduplication)
-          const existingReminder = await this.prisma.bookingReminder.findUnique({
-            where: {
-              bookingId_reminderType_intervalDays_channel: {
-                bookingId: invoice.booking_id,
-                reminderType: 'PAYMENT',
-                intervalDays,
-                channel: 'EMAIL',
-              },
-            },
-          });
-
-          if (existingReminder) {
-            continue;
-          }
-
           try {
-            // Create BookingReminder record
-            await this.prisma.bookingReminder.create({
-              data: {
-                bookingId: invoice.booking_id,
-                tenantId: invoice.tenant_id,
-                reminderType: 'PAYMENT',
-                intervalDays,
-                channel: 'EMAIL',
-                status: 'PENDING',
-                scheduledFor: new Date(),
-              },
+            // Check for existing reminder and create within tenant context
+            const created = await this.prisma.$transaction(async (tx) => {
+              await tx.$executeRaw`SELECT set_config('app.current_tenant', ${invoice.tenant_id}, TRUE)`;
+
+              // Check for existing reminder (deduplication)
+              const existingReminder = await tx.bookingReminder.findUnique({
+                where: {
+                  bookingId_reminderType_intervalDays_channel: {
+                    bookingId: invoice.booking_id,
+                    reminderType: 'PAYMENT',
+                    intervalDays,
+                    channel: 'EMAIL',
+                  },
+                },
+              });
+
+              if (existingReminder) {
+                return false;
+              }
+
+              // Create BookingReminder record
+              await tx.bookingReminder.create({
+                data: {
+                  bookingId: invoice.booking_id,
+                  tenantId: invoice.tenant_id,
+                  reminderType: 'PAYMENT',
+                  intervalDays,
+                  channel: 'EMAIL',
+                  status: 'PENDING',
+                  scheduledFor: new Date(),
+                },
+              });
+
+              return true;
             });
 
-            // Enqueue deliverCommunication job
+            if (!created) {
+              continue;
+            }
+
+            // Enqueue deliverCommunication job (outside transaction — queue is external)
             await this.communicationsQueue.add(JOB_DELIVER_COMMUNICATION, {
               tenantId: invoice.tenant_id,
               template: 'payment-reminder',

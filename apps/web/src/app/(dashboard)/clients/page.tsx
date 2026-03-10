@@ -20,6 +20,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
+import { formatAmount } from '@/lib/format-utils';
 
 // ---------- Types ----------
 
@@ -44,15 +45,6 @@ interface ClientsResponse {
     limit: number;
     totalPages: number;
   };
-}
-
-// ---------- Helpers ----------
-
-function formatAmount(amount: string): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(Number(amount));
 }
 
 // ---------- Constants ----------
@@ -341,7 +333,7 @@ export default function ClientsPage() {
                     </div>
                     <div className="text-center">
                       <p className="text-lg font-semibold">
-                        {formatAmount(client.totalRevenue)}
+                        {formatAmount(client.totalRevenue, 'USD')}
                       </p>
                       <p className="text-xs text-muted-foreground">Revenue</p>
                     </div>

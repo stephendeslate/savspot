@@ -231,6 +231,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.71.2(react@19.2.4))
+      '@savspot/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@stripe/react-stripe-js':
         specifier: ^5.6.1
         version: 5.6.1(@stripe/stripe-js@8.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
