@@ -19,6 +19,7 @@ export interface CreateRefundParams {
   paymentIntentId: string;
   amount?: number; // partial refund amount, omit for full
   reason?: string;
+  tenantId?: string; // used by circuit breaker for per-tenant scoping
 }
 
 export interface RefundResult {

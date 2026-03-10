@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Building2,
@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Loader2,
   Check,
+  RotateCcw,
 } from 'lucide-react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -63,6 +64,30 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
+const ONBOARDING_STORAGE_KEY = 'savspot_onboarding_progress';
+
+interface SavedProgress {
+  step: number;
+  selectedType: BusinessType | null;
+  formData: Partial<ProfileFormValues>;
+}
+
+function loadSavedProgress(): SavedProgress | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as SavedProgress;
+  } catch {
+    return null;
+  }
+}
+
+function clearSavedProgress() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
   const { loadUser } = useAuth();
@@ -71,10 +96,13 @@ export default function OnboardingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const saved = loadSavedProgress();
+
   const {
     register,
     handleSubmit,
     getValues,
+    reset,
     control,
     formState: { errors },
   } = useForm<ProfileFormValues>({
@@ -89,6 +117,61 @@ export default function OnboardingPage() {
       contactPhone: '',
     },
   });
+
+  // Restore saved progress on mount
+  useEffect(() => {
+    if (saved) {
+      setCurrentStep(saved.step);
+      if (saved.selectedType) setSelectedType(saved.selectedType);
+      if (saved.formData) {
+        reset({
+          name: '',
+          description: '',
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          country: '',
+          currency: 'USD',
+          contactEmail: '',
+          contactPhone: '',
+          ...saved.formData,
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist progress on step/type changes
+  const saveProgress = useCallback(() => {
+    try {
+      const progress: SavedProgress = {
+        step: currentStep,
+        selectedType,
+        formData: getValues(),
+      };
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(progress));
+    } catch {
+      // localStorage may be unavailable — silently ignore
+    }
+  }, [currentStep, selectedType, getValues]);
+
+  useEffect(() => {
+    saveProgress();
+  }, [saveProgress]);
+
+  const handleStartOver = () => {
+    clearSavedProgress();
+    setCurrentStep(1);
+    setSelectedType(null);
+    setError(null);
+    reset({
+      name: '',
+      description: '',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      country: '',
+      currency: 'USD',
+      contactEmail: '',
+      contactPhone: '',
+    });
+  };
 
   const handleNext = () => {
     if (currentStep === 1 && !selectedType) return;
@@ -132,6 +215,9 @@ export default function OnboardingPage() {
         category: selectedType,
       });
 
+      // Clear saved onboarding progress
+      clearSavedProgress();
+
       // Reload user to get the new tenantId
       await loadUser();
 
@@ -149,6 +235,22 @@ export default function OnboardingPage() {
 
   return (
     <div className="space-y-6">
+      {/* Start Over button */}
+      {currentStep > 1 && (
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleStartOver}
+            className="text-muted-foreground"
+          >
+            <RotateCcw className="mr-2 h-3 w-3" />
+            Start Over
+          </Button>
+        </div>
+      )}
+
       {/* Progress indicator */}
       <div className="flex items-center justify-center gap-2">
         {STEPS.map((step) => (

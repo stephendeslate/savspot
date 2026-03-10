@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { ArrowLeft, ArrowRight, Loader2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Eye, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FadeIn, StepTransition } from '@/components/ui/motion';
 import { BookingProgress } from './booking-progress';
@@ -31,6 +31,7 @@ interface BookingWizardProps {
   tenant: TenantData;
   onSessionUpdate: (session: BookingSession) => void;
   onExit: () => void;
+  isPreview?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -42,6 +43,7 @@ export function BookingWizard({
   tenant,
   onSessionUpdate,
   onExit,
+  isPreview = false,
 }: BookingWizardProps) {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -254,6 +256,7 @@ export function BookingWizard({
             onPaymentComplete={async () => {
               await goToNextStep();
             }}
+            isPreview={isPreview}
           />
         );
 
@@ -265,6 +268,7 @@ export function BookingWizard({
             tenantSlug={tenant.slug}
             timezone={tenant.timezone}
             onBookAnother={onExit}
+            isPreview={isPreview}
           />
         );
 
@@ -310,6 +314,14 @@ export function BookingWizard({
 
   return (
     <div>
+      {/* Preview mode banner */}
+      {isPreview && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-500/50 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+          <Eye className="h-4 w-4 shrink-0" />
+          PREVIEW MODE — No real bookings, reservations, or payments will be created.
+        </div>
+      )}
+
       {/* Progress bar (hide on confirmation) */}
       {!isConfirmation && (
         <BookingProgress

@@ -46,6 +46,7 @@ interface PaymentStepProps {
   sessionData: BookingSessionData;
   currency: string;
   onPaymentComplete: () => Promise<void>;
+  isPreview?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -144,10 +145,65 @@ export function PaymentStep({
   sessionData,
   currency,
   onPaymentComplete,
+  isPreview = false,
 }: PaymentStepProps) {
   const total = sessionData.totalAmount ?? sessionData.servicePrice ?? 0;
   const deposit = sessionData.depositAmount;
   const chargeAmount = deposit && deposit < total ? deposit : total;
+
+  // Preview mode: show mock payment UI
+  if (isPreview) {
+    return (
+      <div className="mx-auto max-w-md">
+        <h2 className="mb-1 text-xl font-semibold">Payment</h2>
+        <p className="mb-6 text-sm text-muted-foreground">
+          Complete your payment to confirm the booking.
+        </p>
+
+        {/* Amount due */}
+        <div className="mb-6 rounded-lg border p-4 text-center">
+          <p className="text-sm text-muted-foreground">
+            {deposit && deposit < total ? 'Deposit due now' : 'Amount due'}
+          </p>
+          <p className="mt-1 text-2xl font-bold">
+            {formatPrice(chargeAmount, currency)}
+          </p>
+        </div>
+
+        {/* Mock payment form */}
+        <div className="rounded-lg border-2 border-dashed border-amber-400 bg-amber-50/50 p-6 dark:bg-amber-950/20">
+          <div className="mb-4 space-y-3">
+            <div className="h-10 rounded-md border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+              4242 4242 4242 4242
+            </div>
+            <div className="flex gap-3">
+              <div className="h-10 flex-1 rounded-md border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                12/29
+              </div>
+              <div className="h-10 w-20 rounded-md border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                123
+              </div>
+            </div>
+          </div>
+
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={async () => {
+              await onPaymentComplete();
+            }}
+          >
+            Pay {formatPrice(chargeAmount, currency)} (Preview)
+          </Button>
+
+          <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-amber-700 dark:text-amber-300">
+            <Lock className="h-3 w-3" />
+            Preview mode — no real charge
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

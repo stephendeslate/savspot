@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationsService } from './communications.service';
-import { CircuitBreaker } from './circuit-breaker';
+import { CircuitBreaker } from '../common/utils/circuit-breaker';
 import {
   JOB_DELIVER_COMMUNICATION,
   JOB_PROCESS_POST_APPOINTMENT,
@@ -165,11 +165,26 @@ export class CommunicationsHandler {
 
     try {
       if (this.resend) {
+        // Build List-Unsubscribe headers for non-transactional emails
+        const isTransactional = communication.templateKey
+          ? this.communicationsService.isTransactionalTemplate(communication.templateKey)
+          : false;
+        const unsubscribeUrl = !isTransactional && communication.recipientId
+          ? this.communicationsService.getUnsubscribeUrl(communication.recipientId, communication.templateKey ?? '')
+          : null;
+
+        const headers: Record<string, string> = {};
+        if (unsubscribeUrl) {
+          headers['List-Unsubscribe'] = `<${unsubscribeUrl}>`;
+          headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+        }
+
         const result = await this.resend.emails.send({
           from: this.fromEmail,
           to: recipientEmail,
           subject,
           html,
+          headers: Object.keys(headers).length > 0 ? headers : undefined,
         });
 
         await this.prisma.$transaction(async (tx) => {

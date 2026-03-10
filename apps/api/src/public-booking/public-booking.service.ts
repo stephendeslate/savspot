@@ -99,6 +99,16 @@ export class PublicBookingService {
               category: {
                 select: { id: true, name: true },
               },
+              serviceAddons: {
+                where: { isActive: true },
+                select: {
+                  id: true,
+                  name: true,
+                  description: true,
+                  price: true,
+                },
+                orderBy: { sortOrder: 'asc' },
+              },
             },
             orderBy: { sortOrder: 'asc' },
           },

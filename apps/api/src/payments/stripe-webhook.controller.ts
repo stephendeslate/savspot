@@ -9,7 +9,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiExcludeEndpoint } from '@nestjs/swagger';
-import { SkipThrottle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { Prisma } from '../../../../prisma/generated/prisma';
@@ -20,7 +20,7 @@ import { StripeConnectService } from './stripe-connect.service';
 import { StripeProvider } from './providers/stripe.provider';
 
 @ApiTags('Webhooks')
-@SkipThrottle()
+@Throttle({ default: { limit: 500, ttl: 60_000 } })
 @Controller('webhooks/stripe')
 export class StripeWebhookController {
   private readonly logger = new Logger(StripeWebhookController.name);
@@ -127,6 +127,15 @@ export class StripeWebhookController {
       await this.prisma.paymentWebhookLog.update({
         where: { id: logEntry.id },
         data: { processingError: errorMessage },
+      });
+
+      // Record to dead letter table for manual review / retry
+      await this.prisma.webhookDeadLetter.create({
+        data: {
+          webhookLogId: logEntry.id,
+          finalError: errorMessage,
+          retryCount: 0,
+        },
       });
 
       this.logger.error(

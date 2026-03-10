@@ -154,6 +154,7 @@ export class DiscountsService {
     tenantId: string,
     code: string,
     bookingAmount?: number,
+    serviceId?: string,
   ) {
     const upperCode = code.toUpperCase();
 
@@ -186,6 +187,19 @@ export class DiscountsService {
       throw new BadRequestException(
         'Discount code has reached its maximum usage limit',
       );
+    }
+
+    // Product scope validation: check that the service is allowed
+    if (discount.productScope !== null && serviceId) {
+      const scope = discount.productScope as { serviceIds?: string[] };
+      if (
+        Array.isArray(scope.serviceIds) &&
+        !scope.serviceIds.includes(serviceId)
+      ) {
+        throw new BadRequestException(
+          'Discount not valid for this service',
+        );
+      }
     }
 
     if (
@@ -230,6 +244,19 @@ export class DiscountsService {
       ? Number(session.service.basePrice)
       : undefined;
 
-    return this.validateCode(session.tenantId, code, bookingAmount);
+    const result = await this.validateCode(
+      session.tenantId,
+      code,
+      bookingAmount,
+      session.serviceId ?? undefined,
+    );
+
+    // Increment usage count after successful validation
+    await this.prisma.discount.update({
+      where: { id: result.id },
+      data: { usageCount: { increment: 1 } },
+    });
+
+    return result;
   }
 }

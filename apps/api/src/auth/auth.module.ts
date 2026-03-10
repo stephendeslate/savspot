@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthController } from './auth.controller';
@@ -14,11 +14,13 @@ import { GoogleStrategy } from './strategies/google.strategy';
 import { AppleOAuthStrategy } from './strategies/apple.strategy';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { UsersModule } from '../users/users.module';
+import { CommunicationsModule } from '../communications/communications.module';
 
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     UsersModule,
+    forwardRef(() => CommunicationsModule),
   ],
   controllers: [AuthController, ApiKeyController],
   providers: [

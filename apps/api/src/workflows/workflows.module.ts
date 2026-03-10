@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CommunicationsModule } from '../communications/communications.module';
 import { SmsModule } from '../sms/sms.module';
+import { InvoicesModule } from '../invoices/invoices.module';
 import { WorkflowEngineService } from './workflow-engine.service';
 
 /**
@@ -13,6 +14,7 @@ import { WorkflowEngineService } from './workflow-engine.service';
  * Dependencies:
  * - CommunicationsModule: For sending emails via CommunicationsService
  * - SmsModule: For sending SMS via TwilioService
+ * - InvoicesModule: For auto-generating invoices on booking confirmation
  * - PrismaModule (global): For DB access
  * - EventsModule (global): For @OnEvent decorators
  *
@@ -20,7 +22,7 @@ import { WorkflowEngineService } from './workflow-engine.service';
  * JobSchedulerService in JobsModule.
  */
 @Module({
-  imports: [CommunicationsModule, SmsModule],
+  imports: [CommunicationsModule, SmsModule, InvoicesModule],
   providers: [WorkflowEngineService],
   exports: [WorkflowEngineService],
 })

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
 import {
   MapPin,
   Mail,
@@ -181,6 +181,66 @@ function ServiceCard({
 }
 
 // ---------------------------------------------------------------------------
+// Grouped service listing
+// ---------------------------------------------------------------------------
+
+const OTHER_SERVICES_LABEL = 'Other Services';
+
+function ServiceGroups({
+  services,
+  currency,
+  onBook,
+  startingServiceId,
+}: {
+  services: TenantService[];
+  currency: string;
+  onBook: (serviceId: string) => void;
+  startingServiceId: string | null;
+}) {
+  const groups = useMemo(() => {
+    const map = new Map<string, TenantService[]>();
+    for (const service of services) {
+      const groupName = service.category?.name ?? OTHER_SERVICES_LABEL;
+      const existing = map.get(groupName);
+      if (existing) {
+        existing.push(service);
+      } else {
+        map.set(groupName, [service]);
+      }
+    }
+    const sorted = [...map.entries()].sort(([a], [b]) => {
+      if (a === OTHER_SERVICES_LABEL) return 1;
+      if (b === OTHER_SERVICES_LABEL) return -1;
+      return a.localeCompare(b);
+    });
+    return sorted;
+  }, [services]);
+
+  return (
+    <div className="space-y-8">
+      {groups.map(([groupName, groupServices]) => (
+        <div key={groupName}>
+          {groups.length > 1 && (
+            <h3 className="mb-3 text-lg font-medium">{groupName}</h3>
+          )}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {groupServices.map((service) => (
+              <ServiceCard
+                key={service.id}
+                service={service}
+                currency={currency}
+                onBook={onBook}
+                isStarting={startingServiceId === service.id}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Hero section
 // ---------------------------------------------------------------------------
 
@@ -286,7 +346,9 @@ function HeroSection({
 
 export default function BookingPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const slug = params['slug'] as string;
+  const isPreview = searchParams.get('preview') === 'true';
 
   const [tenant, setTenant] = useState<TenantData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -349,6 +411,7 @@ export default function BookingPage() {
           tenantId: tenant.id,
           serviceId,
           source: 'DIRECT',
+          ...(isPreview && { isPreview: true }),
         }),
       });
       if (!res.ok) {
@@ -439,6 +502,7 @@ export default function BookingPage() {
           tenant={tenant}
           onSessionUpdate={setBookingSession}
           onExit={exitWizard}
+          isPreview={isPreview}
         />
       </div>
     );
@@ -497,17 +561,12 @@ export default function BookingPage() {
             No services available at this time. Please check back later.
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {tenant.services.map((service) => (
-              <ServiceCard
-                key={service.id}
-                service={service}
-                currency={tenant.currency}
-                onBook={startBooking}
-                isStarting={startingServiceId === service.id}
-              />
-            ))}
-          </div>
+          <ServiceGroups
+            services={tenant.services}
+            currency={tenant.currency}
+            onBook={startBooking}
+            startingServiceId={startingServiceId}
+          />
         )}
       </section>
     </div>

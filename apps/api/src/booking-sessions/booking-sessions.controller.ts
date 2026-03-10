@@ -79,6 +79,27 @@ export class BookingSessionsController {
     @Body() dto: ReserveSlotDto,
   ) {
     const session = await this.sessionsService.findByIdPublic(id);
+
+    // Preview mode: skip real reservation, return mock data
+    const sessionData = (session.data ?? {}) as Record<string, unknown>;
+    if (sessionData['isPreview'] === true) {
+      return {
+        id: `preview-res-${id}`,
+        tenant_id: session.tenantId,
+        session_id: id,
+        venue_id: dto.venueId ?? null,
+        service_id: dto.serviceId,
+        reserved_date: new Date(dto.startTime),
+        start_time: new Date(dto.startTime),
+        end_time: new Date(dto.endTime),
+        token: `preview-token-${id}`,
+        expires_at: new Date(Date.now() + 30 * 60 * 1000),
+        status: 'HELD',
+        created_at: new Date(),
+        preview: true,
+      };
+    }
+
     return this.reservationService.reserveSlot({
       tenantId: session.tenantId,
       sessionId: id,

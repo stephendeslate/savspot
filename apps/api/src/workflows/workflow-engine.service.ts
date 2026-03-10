@@ -5,6 +5,7 @@ import { TenantRole, WorkflowTriggerEvent } from '../../../../prisma/generated/p
 import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationsService, CreateAndSendParams } from '../communications/communications.service';
 import { TwilioService } from '../sms/sms.service';
+import { InvoicesService } from '../invoices/invoices.service';
 import {
   BOOKING_CREATED,
   BOOKING_CONFIRMED,
@@ -40,6 +41,7 @@ export class WorkflowEngineService {
     private readonly communicationsService: CommunicationsService,
     private readonly twilioService: TwilioService,
     private readonly configService: ConfigService,
+    private readonly invoicesService: InvoicesService,
   ) {
     this.webUrl = this.configService.get<string>('WEB_URL', 'http://localhost:3000');
   }
@@ -204,6 +206,9 @@ export class WorkflowEngineService {
       `[Workflow] Booking confirmed: booking=${payload.bookingId} tenant=${payload.tenantId}`,
     );
 
+    // Auto-generate invoice for confirmed bookings
+    this.generateInvoice(payload.tenantId, payload.bookingId);
+
     await this.executeWorkflows('BOOKING_CONFIRMED', payload);
   }
 
@@ -228,6 +233,9 @@ export class WorkflowEngineService {
     this.logger.log(
       `[Workflow] Walk-in booking: booking=${payload.bookingId} tenant=${payload.tenantId}`,
     );
+
+    // Auto-generate invoice for walk-in bookings (created directly as CONFIRMED)
+    this.generateInvoice(payload.tenantId, payload.bookingId);
 
     // Walk-ins get the same post-appointment workflows as completed bookings
     await this.executeWorkflows('BOOKING_COMPLETED', payload);
@@ -526,6 +534,27 @@ export class WorkflowEngineService {
         `Failed to create in-app notification for automation ${automation.id}: ${error}`,
       );
     }
+  }
+
+  // ---- Invoice Generation ----
+
+  /**
+   * Fire-and-forget invoice generation for a confirmed booking.
+   * Logs errors but never throws — invoice creation should not block workflows.
+   */
+  private generateInvoice(tenantId: string, bookingId: string): void {
+    this.invoicesService
+      .createForBooking(tenantId, bookingId)
+      .then((invoice) => {
+        this.logger.log(
+          `Invoice ${invoice.invoiceNumber} auto-generated for booking ${bookingId}`,
+        );
+      })
+      .catch((error) => {
+        this.logger.error(
+          `Failed to auto-generate invoice for booking ${bookingId}: ${error}`,
+        );
+      });
   }
 
   // ---- Helpers ----

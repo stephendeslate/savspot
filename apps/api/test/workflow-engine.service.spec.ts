@@ -101,7 +101,8 @@ describe('WorkflowEngineService', () => {
     twilio = makeTwilio();
     prisma.tenant.findUniqueOrThrow.mockResolvedValue(TENANT_BRANDING);
     const configService = { get: (key: string, defaultValue: string) => defaultValue } as never;
-    service = new WorkflowEngineService(prisma as never, comms as never, twilio as never, configService);
+    const invoicesService = { createForBooking: vi.fn().mockResolvedValue({}) } as never;
+    service = new WorkflowEngineService(prisma as never, comms as never, twilio as never, configService, invoicesService);
   });
 
   // -----------------------------------------------------------------------

@@ -9,6 +9,7 @@ import { Queue } from 'bullmq';
 import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from '../payments/payments.service';
+import { AvailabilityService } from '../availability/availability.service';
 import {
   QUEUE_GDPR,
   JOB_PROCESS_DATA_EXPORT,
@@ -34,6 +35,7 @@ export class ClientPortalService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly paymentsService: PaymentsService,
+    private readonly availabilityService: AvailabilityService,
     @InjectQueue(QUEUE_GDPR) private readonly gdprQueue: Queue,
   ) {}
 
@@ -413,8 +415,25 @@ export class ClientPortalService {
 
     // Verify the new time is in the future
     const newStart = new Date(newStartTime);
+    const newEnd = new Date(newEndTime);
     if (newStart <= new Date()) {
       throw new BadRequestException('New start time must be in the future');
+    }
+
+    // Validate the new slot is available (exclude the current booking from conflict check)
+    const conflicts = await this.prisma.booking.findFirst({
+      where: {
+        tenantId: booking.tenantId,
+        serviceId: booking.serviceId,
+        id: { not: bookingId },
+        status: { in: ['CONFIRMED', 'PENDING', 'IN_PROGRESS'] },
+        startTime: { lt: newEnd },
+        endTime: { gt: newStart },
+      },
+    });
+
+    if (conflicts) {
+      throw new BadRequestException('The requested time slot is not available');
     }
 
     // Store the reschedule request in booking state history

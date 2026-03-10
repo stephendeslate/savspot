@@ -31,7 +31,7 @@ interface TenantData {
 
 const DEFAULT_COLOR = '#6366f1';
 const DEFAULT_TEXT = 'Book Now';
-const EMBED_SCRIPT_URL = 'https://cdn.savspot.com/embed/savspot-embed.js';
+const BOOKING_BASE_URL = 'https://savspot.co/book';
 
 // ---------- Component ----------
 
@@ -47,6 +47,7 @@ export default function EmbedSettingsPage() {
   const [buttonColor, setButtonColor] = useState(DEFAULT_COLOR);
   const [buttonText, setButtonText] = useState(DEFAULT_TEXT);
   const [copied, setCopied] = useState(false);
+  const [embedType, setEmbedType] = useState<'link' | 'iframe'>('link');
 
   // Fetch tenant data
   useEffect(() => {
@@ -82,21 +83,15 @@ export default function EmbedSettingsPage() {
   const generateEmbedCode = useCallback(() => {
     if (!tenant?.slug) return '';
 
-    const attrs: string[] = [
-      `src="${EMBED_SCRIPT_URL}"`,
-      `data-slug="${tenant.slug}"`,
-    ];
+    const bookingUrl = `${BOOKING_BASE_URL}/${tenant.slug}`;
 
-    if (buttonColor !== DEFAULT_COLOR) {
-      attrs.push(`data-color="${buttonColor}"`);
+    if (embedType === 'iframe') {
+      return `<iframe src="${bookingUrl}" width="100%" height="700" style="border:none; border-radius:8px;" title="Book an appointment"></iframe>`;
     }
 
-    if (buttonText !== DEFAULT_TEXT) {
-      attrs.push(`data-text="${buttonText}"`);
-    }
-
-    return `<script ${attrs.join('\n  ')}></script>`;
-  }, [tenant?.slug, buttonColor, buttonText]);
+    // Link / redirect mode (FR-EMB-4)
+    return `<a href="${bookingUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 24px;font-size:15px;font-weight:600;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#fff;background-color:${buttonColor};border:none;border-radius:8px;text-decoration:none;cursor:pointer;line-height:1;box-shadow:0 1px 3px 0 rgba(0,0,0,0.1),0 1px 2px -1px rgba(0,0,0,0.1)">${buttonText}</a>`;
+  }, [tenant?.slug, buttonColor, buttonText, embedType]);
 
   const embedCode = generateEmbedCode();
 
@@ -195,6 +190,28 @@ export default function EmbedSettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
+            <Label>Embed Type</Label>
+            <div className="flex gap-2">
+              <Button
+                variant={embedType === 'link' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setEmbedType('link')}
+              >
+                Link Button
+              </Button>
+              <Button
+                variant={embedType === 'iframe' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setEmbedType('iframe')}
+              >
+                Iframe
+              </Button>
+            </div>
+          </div>
+
+          {embedType === 'link' && (
+          <>
+          <div className="space-y-2">
             <Label htmlFor="buttonText">Button Text</Label>
             <Input
               id="buttonText"
@@ -233,6 +250,8 @@ export default function EmbedSettingsPage() {
               />
             </div>
           </div>
+          </>
+          )}
         </CardContent>
       </Card>
 
@@ -246,32 +265,40 @@ export default function EmbedSettingsPage() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center rounded-lg border border-dashed bg-muted/30 p-8">
-            <a
-              href={`/book/${tenant.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '12px 24px',
-                fontSize: '15px',
-                fontWeight: '600',
-                fontFamily:
-                  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                color: '#ffffff',
-                backgroundColor: buttonColor,
-                border: 'none',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                cursor: 'pointer',
-                lineHeight: '1',
-                boxShadow:
-                  '0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1)',
-              }}
-            >
-              {buttonText}
-            </a>
+            {embedType === 'iframe' ? (
+              <div className="w-full text-center text-sm text-muted-foreground">
+                <div className="rounded-lg border bg-background p-4">
+                  Iframe preview: <code>{BOOKING_BASE_URL}/{tenant.slug}</code>
+                </div>
+              </div>
+            ) : (
+              <a
+                href={`/book/${tenant.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '12px 24px',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  fontFamily:
+                    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                  color: '#ffffff',
+                  backgroundColor: buttonColor,
+                  border: 'none',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                  lineHeight: '1',
+                  boxShadow:
+                    '0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1)',
+                }}
+              >
+                {buttonText}
+              </a>
+            )}
           </div>
         </CardContent>
       </Card>

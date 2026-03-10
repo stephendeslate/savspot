@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '../../../../prisma/generated/prisma';
 import {
@@ -10,6 +11,17 @@ import {
 } from '../bullmq/queue.constants';
 import { sanitizeColor } from '../common/utils/sanitize-color';
 import { checkNotificationPreference } from './notification-preference.util';
+
+/**
+ * Template keys that are transactional (not marketing).
+ * These must NOT include unsubscribe links per CAN-SPAM rules.
+ */
+const TRANSACTIONAL_TEMPLATES = new Set([
+  'booking-confirmation',
+  'booking-cancellation',
+  'payment-receipt',
+  'staff-approval-required',
+]);
 
 // ---- Interfaces ----
 
@@ -50,6 +62,7 @@ interface TenantBranding {
 export class CommunicationsService {
   private readonly logger = new Logger(CommunicationsService.name);
   private readonly webUrl: string;
+  private readonly hmacSecret: string;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -57,6 +70,12 @@ export class CommunicationsService {
     @InjectQueue(QUEUE_COMMUNICATIONS) private readonly commsQueue: Queue,
   ) {
     this.webUrl = this.configService.get<string>('WEB_URL', 'http://localhost:3000');
+
+    // Derive HMAC secret from JWT private key (same approach as auth EmailService)
+    const jwtKey = this.configService.get<string>('JWT_PRIVATE_KEY_BASE64');
+    this.hmacSecret = jwtKey
+      ? crypto.createHash('sha256').update(jwtKey).digest('hex')
+      : 'dev-hmac-secret-change-me';
   }
 
   /**
@@ -134,8 +153,11 @@ export class CommunicationsService {
       }
     }
 
+    // Inject recipientId into templateData for unsubscribe token generation
+    const enrichedTemplateData = { ...templateData, recipientId };
+
     // Render template to get subject line for the DB record
-    const rendered = this.renderTemplate(templateKey, templateData);
+    const rendered = this.renderTemplate(templateKey, enrichedTemplateData);
 
     const communication = await this.prisma.communication.create({
       data: {
@@ -150,7 +172,7 @@ export class CommunicationsService {
         metadata: {
           recipientEmail,
           recipientName: recipientName ?? null,
-          templateData,
+          templateData: enrichedTemplateData,
         } as unknown as Prisma.InputJsonValue,
       },
     });
@@ -180,27 +202,34 @@ export class CommunicationsService {
    * Returns { subject, html } for the given template.
    */
   renderTemplate(templateKey: string, data: Record<string, unknown>): RenderedTemplate {
+    // Generate unsubscribe URL for non-transactional templates
+    const recipientId = data['recipientId'] ? String(data['recipientId']) : undefined;
+    const unsubscribeUrl = recipientId
+      ? this.getUnsubscribeUrl(recipientId, templateKey)
+      : undefined;
+    const dataWithUnsub = { ...data, _unsubscribeUrl: unsubscribeUrl };
+
     switch (templateKey) {
       case 'booking-confirmation':
-        return this.renderBookingConfirmation(data);
+        return this.renderBookingConfirmation(dataWithUnsub);
       case 'booking-cancellation':
-        return this.renderBookingCancellation(data);
+        return this.renderBookingCancellation(dataWithUnsub);
       case 'payment-receipt':
-        return this.renderPaymentReceipt(data);
+        return this.renderPaymentReceipt(dataWithUnsub);
       case 'booking-reminder':
-        return this.renderBookingReminder(data);
+        return this.renderBookingReminder(dataWithUnsub);
       case 'follow-up':
-        return this.renderFollowUp(data);
+        return this.renderFollowUp(dataWithUnsub);
       case 'payment-reminder':
-        return this.renderPaymentReminder(data);
+        return this.renderPaymentReminder(dataWithUnsub);
       case 'morning-summary':
-        return this.renderMorningSummary(data);
+        return this.renderMorningSummary(dataWithUnsub);
       case 'weekly-digest':
-        return this.renderWeeklyDigest(data);
+        return this.renderWeeklyDigest(dataWithUnsub);
       case 'abandoned-booking-recovery':
-        return this.renderAbandonedBookingRecovery(data);
+        return this.renderAbandonedBookingRecovery(dataWithUnsub);
       case 'staff-approval-required':
-        return this.renderStaffApprovalRequired(data);
+        return this.renderStaffApprovalRequired(dataWithUnsub);
       default:
         this.logger.warn(`Unknown template key: ${templateKey}`);
         return {
@@ -208,6 +237,7 @@ export class CommunicationsService {
           html: this.wrapHtml(
             { businessName: String(data['businessName'] ?? 'SavSpot') },
             `<p>${String(data['message'] ?? 'You have a new notification.')}</p>`,
+            unsubscribeUrl ?? undefined,
           ),
         };
     }
@@ -217,6 +247,7 @@ export class CommunicationsService {
 
   private renderBookingConfirmation(d: Record<string, unknown>): RenderedTemplate {
     const branding = this.extractBranding(d);
+    const unsubscribeUrl = d['_unsubscribeUrl'] as string | undefined;
     const subject = `Your booking is confirmed — ${branding.businessName}`;
     const html = this.wrapHtml(branding, `
       <h2 style="color:#333;margin:0 0 16px;">Booking Confirmed!</h2>
@@ -238,12 +269,13 @@ export class CommunicationsService {
         </tr>` : ''}
       </table>
       <p>We look forward to seeing you!</p>
-    `);
+    `, unsubscribeUrl);
     return { subject, html };
   }
 
   private renderBookingCancellation(d: Record<string, unknown>): RenderedTemplate {
     const branding = this.extractBranding(d);
+    const unsubscribeUrl = d['_unsubscribeUrl'] as string | undefined;
     const subject = `Your booking has been cancelled — ${branding.businessName}`;
     const refundLine = d['refundAmount']
       ? `<p>A refund of <strong>${this.esc(d['currency'])}${this.esc(d['refundAmount'])}</strong> will be processed to your original payment method.</p>`
@@ -268,12 +300,13 @@ export class CommunicationsService {
       </table>
       ${refundLine}
       <p>If you have any questions, please contact us.</p>
-    `);
+    `, unsubscribeUrl);
     return { subject, html };
   }
 
   private renderPaymentReceipt(d: Record<string, unknown>): RenderedTemplate {
     const branding = this.extractBranding(d);
+    const unsubscribeUrl = d['_unsubscribeUrl'] as string | undefined;
     const subject = `Payment receipt — ${branding.businessName}`;
     const html = this.wrapHtml(branding, `
       <h2 style="color:#333;margin:0 0 16px;">Payment Receipt</h2>
@@ -295,12 +328,13 @@ export class CommunicationsService {
         </tr>` : ''}
       </table>
       <p>Thank you for your payment!</p>
-    `);
+    `, unsubscribeUrl);
     return { subject, html };
   }
 
   private renderBookingReminder(d: Record<string, unknown>): RenderedTemplate {
     const branding = this.extractBranding(d);
+    const unsubscribeUrl = d['_unsubscribeUrl'] as string | undefined;
     const subject = `Reminder: Your appointment is tomorrow — ${branding.businessName}`;
     const html = this.wrapHtml(branding, `
       <h2 style="color:#333;margin:0 0 16px;">Appointment Reminder</h2>
@@ -322,12 +356,13 @@ export class CommunicationsService {
         </tr>` : ''}
       </table>
       <p>See you soon!</p>
-    `);
+    `, unsubscribeUrl);
     return { subject, html };
   }
 
   private renderFollowUp(d: Record<string, unknown>): RenderedTemplate {
     const branding = this.extractBranding(d);
+    const unsubscribeUrl = d['_unsubscribeUrl'] as string | undefined;
     const slug = String(d['tenantSlug'] ?? '');
     const serviceId = String(d['serviceId'] ?? '');
     const providerId = String(d['providerId'] ?? '');
@@ -352,12 +387,13 @@ export class CommunicationsService {
       <p style="margin:24px 0;">
         <a href="${this.esc(rebookUrl)}" style="display:inline-block;padding:12px 24px;background:${sanitizeColor(branding.brandColor, '#000')};color:#fff;text-decoration:none;border-radius:6px;">Book Again</a>
       </p>
-    `);
+    `, unsubscribeUrl);
     return { subject, html };
   }
 
   private renderPaymentReminder(d: Record<string, unknown>): RenderedTemplate {
     const branding = this.extractBranding(d);
+    const unsubscribeUrl = d['_unsubscribeUrl'] as string | undefined;
     const subject = `Payment reminder — ${branding.businessName}`;
     const html = this.wrapHtml(branding, `
       <h2 style="color:#333;margin:0 0 16px;">Payment Reminder</h2>
@@ -379,12 +415,13 @@ export class CommunicationsService {
         </tr>` : ''}
       </table>
       <p>Please make your payment at your earliest convenience.</p>
-    `);
+    `, unsubscribeUrl);
     return { subject, html };
   }
 
   private renderMorningSummary(d: Record<string, unknown>): RenderedTemplate {
     const branding = this.extractBranding(d);
+    const unsubscribeUrl = d['_unsubscribeUrl'] as string | undefined;
     const bookings = (d['bookings'] ?? []) as Array<Record<string, unknown>>;
     const date = String(d['date'] ?? 'Today');
 
@@ -416,12 +453,13 @@ export class CommunicationsService {
           ${bookingRows}
         </tbody>
       </table>
-    `);
+    `, unsubscribeUrl);
     return { subject, html };
   }
 
   private renderWeeklyDigest(d: Record<string, unknown>): RenderedTemplate {
     const branding = this.extractBranding(d);
+    const unsubscribeUrl = d['_unsubscribeUrl'] as string | undefined;
     const weekRange = String(d['weekRange'] ?? 'This Week');
 
     const subject = `Your weekly summary — ${branding.businessName}`;
@@ -454,12 +492,13 @@ export class CommunicationsService {
           <td style="padding:12px;">${this.esc(d['newClients'])}</td>
         </tr>
       </table>
-    `);
+    `, unsubscribeUrl);
     return { subject, html };
   }
 
   private renderAbandonedBookingRecovery(d: Record<string, unknown>): RenderedTemplate {
     const branding = this.extractBranding(d);
+    const unsubscribeUrl = d['_unsubscribeUrl'] as string | undefined;
     const rebookUrl = d['rebookUrl'] ? `${this.webUrl}${String(d['rebookUrl'])}` : this.webUrl;
 
     const subject = `Complete your booking — ${branding.businessName}`;
@@ -472,12 +511,13 @@ export class CommunicationsService {
         <a href="${this.esc(rebookUrl)}" style="display:inline-block;padding:12px 24px;background:${sanitizeColor(branding.brandColor, '#000')};color:#fff;text-decoration:none;border-radius:6px;">Complete Your Booking</a>
       </p>
       <p style="font-size:13px;color:#888;">If you no longer need to book, you can safely ignore this email.</p>
-    `);
+    `, unsubscribeUrl);
     return { subject, html };
   }
 
   private renderStaffApprovalRequired(d: Record<string, unknown>): RenderedTemplate {
     const branding = this.extractBranding(d);
+    const unsubscribeUrl = d['_unsubscribeUrl'] as string | undefined;
     const approveUrl = String(d['approveUrl'] ?? '#');
     const subject = `Booking requires approval — ${branding.businessName}`;
     const html = this.wrapHtml(branding, `
@@ -493,7 +533,7 @@ export class CommunicationsService {
         <a href="${this.esc(approveUrl)}" style="display:inline-block;padding:12px 24px;background:${sanitizeColor(branding.brandColor, '#000')};color:#fff;text-decoration:none;border-radius:6px;">Review Booking</a>
       </p>
       <p style="font-size:13px;color:#888;">This booking will be automatically cancelled if not approved within the configured deadline.</p>
-    `);
+    `, unsubscribeUrl);
     return { subject, html };
   }
 
@@ -508,10 +548,68 @@ export class CommunicationsService {
   }
 
   /**
+   * Returns true if the given template key is transactional (not marketing).
+   * Transactional emails must NOT include unsubscribe links.
+   */
+  isTransactionalTemplate(templateKey: string): boolean {
+    return TRANSACTIONAL_TEMPLATES.has(templateKey);
+  }
+
+  /**
+   * Generates an HMAC-signed unsubscribe token for a given user.
+   * Token format: base64url(payload).base64url(hmac-sha256)
+   */
+  generateUnsubscribeToken(userId: string): string {
+    const payload = JSON.stringify({ userId, purpose: 'unsubscribe' });
+    const encoded = Buffer.from(payload).toString('base64url');
+    const signature = crypto
+      .createHmac('sha256', this.hmacSecret)
+      .update(encoded)
+      .digest('base64url');
+    return `${encoded}.${signature}`;
+  }
+
+  /**
+   * Validates an unsubscribe token and returns the userId if valid.
+   * Unsubscribe tokens do not expire (user should always be able to unsubscribe).
+   */
+  validateUnsubscribeToken(token: string): { userId: string } | null {
+    const parts = token.split('.');
+    if (parts.length !== 2) return null;
+
+    const [encoded, signature] = parts;
+    const expectedSig = crypto
+      .createHmac('sha256', this.hmacSecret)
+      .update(encoded as string)
+      .digest('base64url');
+
+    if (signature !== expectedSig) return null;
+
+    try {
+      const payload = JSON.parse(
+        Buffer.from(encoded as string, 'base64url').toString('utf8'),
+      );
+      if (payload.purpose !== 'unsubscribe') return null;
+      return { userId: payload.userId };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Builds the unsubscribe URL for a given user, or null for transactional emails.
+   */
+  getUnsubscribeUrl(userId: string, templateKey: string): string | null {
+    if (this.isTransactionalTemplate(templateKey)) return null;
+    const token = this.generateUnsubscribeToken(userId);
+    return `${this.webUrl}/unsubscribe?token=${token}`;
+  }
+
+  /**
    * Wraps content in a shared HTML email layout with basic styling
    * and optional tenant branding (logo, brand color).
    */
-  private wrapHtml(branding: TenantBranding, content: string): string {
+  private wrapHtml(branding: TenantBranding, content: string, unsubscribeUrl?: string): string {
     const logoBlock = branding.logoUrl
       ? `<img src="${this.esc(branding.logoUrl)}" alt="${this.esc(branding.businessName)}" style="max-height:48px;margin-bottom:16px;" />`
       : '';
@@ -546,7 +644,8 @@ export class CommunicationsService {
           <tr>
             <td style="padding:16px 32px;background:#f5f5f5;text-align:center;font-size:12px;color:#888;">
               <p style="margin:0;">Sent via <a href="https://savspot.co" style="color:${accentColor};text-decoration:none;">SavSpot</a></p>
-              <p style="margin:4px 0 0;">&copy; ${new Date().getFullYear()} ${this.esc(branding.businessName)}. All rights reserved.</p>
+              <p style="margin:4px 0 0;">&copy; ${new Date().getFullYear()} ${this.esc(branding.businessName)}. All rights reserved.</p>${unsubscribeUrl ? `
+              <p style="margin:8px 0 0;"><a href="${this.esc(unsubscribeUrl)}" style="color:#888;text-decoration:underline;">Unsubscribe</a> from marketing emails</p>` : ''}
             </td>
           </tr>
         </table>
