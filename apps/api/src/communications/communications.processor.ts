@@ -9,6 +9,7 @@ import {
   JOB_PROCESS_POST_APPOINTMENT,
   JOB_SEND_BOOKING_REMINDERS,
 } from '../bullmq/queue.constants';
+import { SendBookingRemindersHandler } from '../jobs/send-booking-reminders.processor';
 
 interface DeliverCommunicationPayload {
   communicationId: string;
@@ -37,6 +38,7 @@ export class CommunicationsHandler {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly communicationsService: CommunicationsService,
+    private readonly bookingRemindersHandler: SendBookingRemindersHandler,
   ) {
 
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
@@ -59,8 +61,10 @@ export class CommunicationsHandler {
         await this.handleDeliverCommunication(job as Job<DeliverCommunicationPayload>);
         break;
       case JOB_PROCESS_POST_APPOINTMENT:
-      case JOB_SEND_BOOKING_REMINDERS:
         await this.handleProcessPostAppointment();
+        break;
+      case JOB_SEND_BOOKING_REMINDERS:
+        await this.bookingRemindersHandler.handle(job);
         break;
       default:
         this.logger.warn(`Unknown job name routed to CommunicationsHandler: ${job.name}`);

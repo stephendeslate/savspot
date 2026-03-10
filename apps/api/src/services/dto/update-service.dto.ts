@@ -8,8 +8,11 @@ import {
   IsObject,
   IsUUID,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { CancellationPolicyDto } from './create-service.dto';
 
 const PRICING_MODELS = ['FIXED', 'HOURLY', 'TIERED', 'CUSTOM'] as const;
 const CONFIRMATION_MODES = ['AUTO_CONFIRM', 'MANUAL_APPROVAL'] as const;
@@ -103,10 +106,11 @@ export class UpdateServiceDto {
   @IsOptional()
   intakeFormConfig?: Record<string, unknown>;
 
-  @ApiPropertyOptional()
-  @IsObject()
+  @ApiPropertyOptional({ type: CancellationPolicyDto })
+  @ValidateNested()
+  @Type(() => CancellationPolicyDto)
   @IsOptional()
-  cancellationPolicy?: Record<string, unknown>;
+  cancellationPolicy?: CancellationPolicyDto;
 
   @ApiPropertyOptional({ example: false })
   @IsBoolean()

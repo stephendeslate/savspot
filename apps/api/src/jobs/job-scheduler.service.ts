@@ -17,6 +17,7 @@ import {
   JOB_CALENDAR_TWO_WAY_SYNC,
   JOB_CALENDAR_TOKEN_REFRESH,
   JOB_PROCESS_POST_APPOINTMENT,
+  JOB_SEND_BOOKING_REMINDERS,
   JOB_SEND_MORNING_SUMMARY,
   JOB_SEND_WEEKLY_DIGEST,
   JOB_CLEANUP_RETENTION,
@@ -68,6 +69,7 @@ export class JobSchedulerService implements OnModuleInit {
       { queue: this.calendarQueue, name: JOB_CALENDAR_TWO_WAY_SYNC, pattern: CRON_EVERY_15_MIN },
       { queue: this.calendarQueue, name: JOB_CALENDAR_TOKEN_REFRESH, pattern: CRON_HOURLY },
       // Communications queue
+      { queue: this.commsQueue, name: JOB_SEND_BOOKING_REMINDERS, pattern: CRON_EVERY_15_MIN },
       { queue: this.commsQueue, name: JOB_PROCESS_POST_APPOINTMENT, pattern: CRON_EVERY_15_MIN },
       { queue: this.commsQueue, name: JOB_SEND_MORNING_SUMMARY, pattern: CRON_DAILY_6AM_UTC },
       { queue: this.commsQueue, name: JOB_SEND_WEEKLY_DIGEST, pattern: CRON_MONDAY_8AM_UTC },

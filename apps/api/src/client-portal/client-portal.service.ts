@@ -8,19 +8,15 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
+import { PaymentsService } from '../payments/payments.service';
 import {
   QUEUE_GDPR,
   JOB_PROCESS_DATA_EXPORT,
 } from '../bullmq/queue.constants';
-
-/**
- * Cancellation policy shape stored in service.cancellationPolicy JSONB.
- */
-interface CancellationPolicy {
-  free_cancellation_hours: number;
-  late_cancellation_fee_percent?: number;
-  late_cancellation_flat_fee?: number;
-}
+import {
+  evaluateCancellationPolicy,
+  CancellationPolicy,
+} from '../bookings/cancellation-policy.evaluator';
 
 /**
  * Architectural decision: When migrating off superuser DB role, use a service-role
@@ -37,6 +33,7 @@ export class ClientPortalService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly paymentsService: PaymentsService,
     @InjectQueue(QUEUE_GDPR) private readonly gdprQueue: Queue,
   ) {}
 
@@ -256,30 +253,16 @@ export class ClientPortalService {
     }
 
     // Evaluate cancellation policy
-    let cancellationType: 'FREE' | 'LATE' | 'NO_POLICY' = 'NO_POLICY';
-    let lateFeePercent: number | undefined;
-    let lateFlatFee: number | undefined;
+    const succeededPayment = booking.payments[0] ?? null;
+    const totalAmount = succeededPayment
+      ? succeededPayment.amount.toNumber()
+      : 0;
 
-    const policy = booking.service
-      .cancellationPolicy as CancellationPolicy | null;
-
-    if (policy && policy.free_cancellation_hours !== undefined) {
-      const hoursUntilBooking =
-        (booking.startTime.getTime() - Date.now()) / (1000 * 60 * 60);
-
-      if (hoursUntilBooking >= policy.free_cancellation_hours) {
-        cancellationType = 'FREE';
-      } else if (hoursUntilBooking > 0) {
-        cancellationType = 'LATE';
-        lateFeePercent = policy.late_cancellation_fee_percent;
-        lateFlatFee = policy.late_cancellation_flat_fee;
-      } else {
-        // Booking start time has passed
-        cancellationType = 'LATE';
-        lateFeePercent = policy.late_cancellation_fee_percent;
-        lateFlatFee = policy.late_cancellation_flat_fee;
-      }
-    }
+    const policyResult = evaluateCancellationPolicy(
+      booking.service.cancellationPolicy as CancellationPolicy | null,
+      booking.startTime,
+      totalAmount,
+    );
 
     // Build the cancellation reason string
     const cancellationNote = reason
@@ -314,44 +297,67 @@ export class ClientPortalService {
           triggeredBy: 'CLIENT',
           reason: cancellationNote,
           metadata: {
-            cancellationType,
-            lateFeePercent: lateFeePercent ?? null,
-            lateFlatFee: lateFlatFee ?? null,
+            refundType: policyResult.refundType,
+            refundAmount: policyResult.refundAmount,
+            fee: policyResult.fee,
           } as Prisma.InputJsonValue,
         },
       }),
     ]);
 
-    // Flag refund info if a succeeded payment exists
-    const succeededPayment = booking.payments[0] ?? null;
+    // Process refund if a succeeded payment exists and refund amount > 0
     let refundInfo: {
       paymentId: string;
       amount: string;
-      cancellationType: string;
+      refundType: string;
     } | null = null;
 
-    if (succeededPayment) {
+    if (succeededPayment && policyResult.refundAmount > 0) {
+      try {
+        await this.paymentsService.processRefund(
+          booking.tenantId,
+          succeededPayment.id,
+          policyResult.refundAmount,
+        );
+        refundInfo = {
+          paymentId: succeededPayment.id,
+          amount: policyResult.refundAmount.toString(),
+          refundType: policyResult.refundType,
+        };
+        this.logger.log(
+          `Refund of ${policyResult.refundAmount} initiated for payment ${succeededPayment.id} on cancelled booking ${bookingId}`,
+        );
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Unknown error';
+        this.logger.error(
+          `Failed to process refund for payment ${succeededPayment.id}: ${errorMessage}`,
+        );
+        // Don't fail the cancellation if the refund fails
+        refundInfo = {
+          paymentId: succeededPayment.id,
+          amount: policyResult.refundAmount.toString(),
+          refundType: policyResult.refundType,
+        };
+      }
+    } else if (succeededPayment) {
       refundInfo = {
         paymentId: succeededPayment.id,
-        amount: succeededPayment.amount.toString(),
-        cancellationType,
+        amount: '0',
+        refundType: policyResult.refundType,
       };
-
-      this.logger.log(
-        `Booking ${bookingId} cancelled by client ${userId} — refund should be processed for payment ${succeededPayment.id}`,
-      );
     }
 
     this.logger.log(
-      `Booking ${bookingId} cancelled by client ${userId} (type: ${cancellationType})`,
+      `Booking ${bookingId} cancelled by client ${userId} (refundType: ${policyResult.refundType})`,
     );
 
     return {
       booking: updatedBooking,
       cancellation: {
-        type: cancellationType,
-        lateFeePercent: lateFeePercent ?? null,
-        lateFlatFee: lateFlatFee ?? null,
+        refundType: policyResult.refundType,
+        refundAmount: policyResult.refundAmount,
+        fee: policyResult.fee,
         refundInfo,
       },
     };

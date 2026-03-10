@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 // =============================================================================
-// SavSpot Platform Admin — Import Clients from CSV
-// Usage: pnpm admin:import-clients <tenant-id> <csv-file> [--dry-run] [--skip-duplicates] [--update-existing] [--source-platform CSV_GENERIC] [--admin-user-id <uuid>]
+// SavSpot Platform Admin — Import Appointments from CSV
+// Usage: pnpm admin:import-appointments <tenant-id> <csv-file> [--dry-run] [--source-platform CSV_GENERIC] [--admin-user-id <uuid>]
 // =============================================================================
 
 import * as fs from 'fs';
@@ -21,37 +21,41 @@ const VALID_SOURCE_PLATFORMS = [
 type SourcePlatformKey = (typeof VALID_SOURCE_PLATFORMS)[number];
 
 const HELP = `
-SavSpot Admin — Import Clients from CSV
+SavSpot Admin — Import Appointments from CSV
 
 Usage:
-  pnpm admin:import-clients <tenant-id> <csv-file> [options]
+  pnpm admin:import-appointments <tenant-id> <csv-file> [options]
 
 Options:
   --dry-run                       Validate and show what would be imported without writing to DB
-  --skip-duplicates               Skip rows where the email already exists
-  --update-existing               Update existing user/profile records with CSV data
   --source-platform <platform>    Source platform for column mapping (default: CSV_GENERIC)
                                   Valid: BOOKSY, FRESHA, SQUARE, VAGARO, MINDBODY, CSV_GENERIC, JSON_GENERIC
   --admin-user-id <uuid>          User ID of the admin initiating the import (optional, for ImportJob tracking)
   --help, -h                      Show this help message
 
 CSV Format (CSV_GENERIC):
-  email,name,phone,tags,notes
-  john@example.com,John Smith,+12125551234,"vip,regular",Great client
-  jane@example.com,Jane Doe,+13105555678,new,
+  client_email,service_name,start_time,end_time,notes
+  john@example.com,Haircut,2025-12-01T10:00:00Z,2025-12-01T10:30:00Z,Regular appointment
+  jane@example.com,Color Treatment,2025-12-01T14:00:00Z,2025-12-01T16:00:00Z,
 
 Platform-Specific Formats:
-  BOOKSY:   Client Email,Client Name,Phone,Tags,Notes
-  FRESHA:   Email Address,Full Name,Mobile,Labels,Comments
-  SQUARE:   Email Address,Given Name,Family Name,Phone Number,Note
-  VAGARO:   Email,First Name,Last Name,Mobile Phone,Notes
-  MINDBODY: Email,FirstName,LastName,MobilePhone,Notes
+  BOOKSY:   Client Email,Service,Start,End,Notes
+  FRESHA:   Email,Treatment,Start Time,End Time,Notes
+  SQUARE:   Customer Email,Service Name,Start DateTime,End DateTime,Notes
+  VAGARO:   Client Email,Service,Appointment Start,Appointment End,Notes
+  MINDBODY: ClientEmail,ServiceName,StartDateTime,EndDateTime,Notes
+
+Notes:
+  - Clients must already exist (matched by email). Rows with unknown clients are logged as errors.
+  - Services must already exist for this tenant (matched by name). Rows with unknown services are logged as errors.
+  - Imported bookings are created with status COMPLETED and source IMPORT.
+  - No payments, invoices, or calendar events are created for imported appointments.
+  - Appointments are immutable imports (no --update-existing flag).
 
 Examples:
-  pnpm admin:import-clients tenant_abc123 ./clients.csv --dry-run
-  pnpm admin:import-clients tenant_abc123 ./clients.csv --skip-duplicates
-  pnpm admin:import-clients tenant_abc123 ./clients.csv --source-platform BOOKSY
-  pnpm admin:import-clients tenant_abc123 ./clients.csv --update-existing --admin-user-id <uuid>
+  pnpm admin:import-appointments tenant_abc123 ./appointments.csv --dry-run
+  pnpm admin:import-appointments tenant_abc123 ./appointments.csv --source-platform BOOKSY
+  pnpm admin:import-appointments tenant_abc123 ./appointments.csv --admin-user-id <uuid>
 `.trim();
 
 // ---------------------------------------------------------------------------
@@ -60,52 +64,52 @@ Examples:
 
 const COLUMN_MAPPINGS: Record<string, Record<string, string>> = {
   BOOKSY: {
-    'client email': 'email',
-    'client name': 'name',
-    phone: 'phone',
-    tags: 'tags',
+    'client email': 'client_email',
+    service: 'service_name',
+    start: 'start_time',
+    end: 'end_time',
     notes: 'notes',
   },
   FRESHA: {
-    'email address': 'email',
-    'full name': 'name',
-    mobile: 'phone',
-    labels: 'tags',
-    comments: 'notes',
+    email: 'client_email',
+    treatment: 'service_name',
+    'start time': 'start_time',
+    'end time': 'end_time',
+    notes: 'notes',
   },
   SQUARE: {
-    'email address': 'email',
-    'given name': 'firstName',
-    'family name': 'lastName',
-    'phone number': 'phone',
-    note: 'notes',
+    'customer email': 'client_email',
+    'service name': 'service_name',
+    'start datetime': 'start_time',
+    'end datetime': 'end_time',
+    notes: 'notes',
   },
   VAGARO: {
-    email: 'email',
-    'first name': 'firstName',
-    'last name': 'lastName',
-    'mobile phone': 'phone',
+    'client email': 'client_email',
+    service: 'service_name',
+    'appointment start': 'start_time',
+    'appointment end': 'end_time',
     notes: 'notes',
   },
   MINDBODY: {
-    email: 'email',
-    firstname: 'firstName',
-    lastname: 'lastName',
-    mobilephone: 'phone',
+    clientemail: 'client_email',
+    servicename: 'service_name',
+    startdatetime: 'start_time',
+    enddatetime: 'end_time',
     notes: 'notes',
   },
   CSV_GENERIC: {
-    email: 'email',
-    name: 'name',
-    phone: 'phone',
-    tags: 'tags',
+    client_email: 'client_email',
+    service_name: 'service_name',
+    start_time: 'start_time',
+    end_time: 'end_time',
     notes: 'notes',
   },
   JSON_GENERIC: {
-    email: 'email',
-    name: 'name',
-    phone: 'phone',
-    tags: 'tags',
+    client_email: 'client_email',
+    service_name: 'service_name',
+    start_time: 'start_time',
+    end_time: 'end_time',
     notes: 'notes',
   },
 };
@@ -152,16 +156,6 @@ function applyColumnMapping(
   });
 }
 
-/**
- * Resolve name from row data — handles platforms with split first/last name columns.
- */
-function resolveName(row: Record<string, string>): string {
-  if (row['name']) return row['name'].trim();
-  const firstName = (row['firstName'] ?? '').trim();
-  const lastName = (row['lastName'] ?? '').trim();
-  return [firstName, lastName].filter(Boolean).join(' ');
-}
-
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -177,8 +171,6 @@ async function main(): Promise<void> {
   const tenantId = parsed.positional[0];
   const csvFile = parsed.positional[1];
   const dryRun = parsed.booleans.has('dry-run');
-  const skipDuplicates = parsed.booleans.has('skip-duplicates');
-  const updateExisting = parsed.booleans.has('update-existing');
   const sourcePlatform = (
     parsed.flags['source-platform'] ?? 'CSV_GENERIC'
   ).toUpperCase() as SourcePlatformKey;
@@ -186,7 +178,7 @@ async function main(): Promise<void> {
 
   if (!tenantId || !csvFile) {
     exitWithError(
-      'Usage: pnpm admin:import-clients <tenant-id> <csv-file> [--dry-run] [--skip-duplicates] [--update-existing] [--source-platform CSV_GENERIC]',
+      'Usage: pnpm admin:import-appointments <tenant-id> <csv-file> [--dry-run] [--source-platform CSV_GENERIC]',
     );
   }
 
@@ -200,10 +192,6 @@ async function main(): Promise<void> {
     exitWithError(`File not found: ${csvFile}`);
   }
 
-  if (skipDuplicates && updateExisting) {
-    exitWithError('Cannot use --skip-duplicates and --update-existing together');
-  }
-
   const prisma = getPrisma();
 
   // Verify tenant exists
@@ -212,9 +200,30 @@ async function main(): Promise<void> {
     exitWithError(`Tenant not found: ${tenantId}`);
   }
 
-  console.log(`\nImporting clients for tenant: ${tenant.name} (${tenant.id})`);
+  console.log(`\nImporting appointments for tenant: ${tenant.name} (${tenant.id})`);
   console.log(`Source platform: ${sourcePlatform}`);
   if (dryRun) console.log('[DRY RUN] No changes will be made\n');
+
+  // Pre-load clients and services for lookup
+  const allUsers = await prisma.user.findMany({
+    select: { id: true, email: true },
+  });
+  const userByEmail = new Map<string, string>();
+  for (const user of allUsers) {
+    userByEmail.set(user.email.toLowerCase(), user.id);
+  }
+
+  const tenantServices = await prisma.service.findMany({
+    where: { tenantId },
+    select: { id: true, name: true, basePrice: true, currency: true },
+  });
+  const serviceByName = new Map<
+    string,
+    { id: string; name: string; basePrice: unknown; currency: string }
+  >();
+  for (const svc of tenantServices) {
+    serviceByName.set(svc.name.toLowerCase(), svc);
+  }
 
   // Create ImportJob record (skip in dry-run mode)
   let importJobId: string | null = null;
@@ -223,7 +232,7 @@ async function main(): Promise<void> {
       data: {
         tenantId,
         sourcePlatform,
-        importType: 'CLIENTS',
+        importType: 'APPOINTMENTS',
         status: 'PROCESSING',
         fileUrl: csvFile,
         ...(adminUserId ? { initiatedBy: adminUserId } : {}),
@@ -240,7 +249,6 @@ async function main(): Promise<void> {
   let headers: string[] = [];
   let lineNum = 0;
   let created = 0;
-  let updated = 0;
   let skipped = 0;
   let errorCount = 0;
   const errors: string[] = [];
@@ -256,15 +264,12 @@ async function main(): Promise<void> {
       const rawHeaders = line.split(',').map((h) => h.trim().toLowerCase());
       headers = applyColumnMapping(rawHeaders, sourcePlatform);
 
-      // Validate required headers (email must be present; name or firstName must be present)
-      if (!headers.includes('email')) {
+      // Validate required headers
+      const required = ['client_email', 'service_name', 'start_time', 'end_time'];
+      const missing = required.filter((r) => !headers.includes(r));
+      if (missing.length > 0) {
         exitWithError(
-          `CSV must have an email column. Found headers: ${rawHeaders.join(', ')}`,
-        );
-      }
-      if (!headers.includes('name') && !headers.includes('firstName')) {
-        exitWithError(
-          `CSV must have a "name" or "firstName" column. Found headers: ${rawHeaders.join(', ')}`,
+          `CSV missing required columns: ${missing.join(', ')}. Found headers: ${rawHeaders.join(', ')}`,
         );
       }
       continue;
@@ -272,15 +277,15 @@ async function main(): Promise<void> {
 
     const row = parseCsvLine(line, headers);
     const rawData = { ...row };
-    const email = (row['email'] ?? '').trim().toLowerCase();
-    const name = resolveName(row);
-    const phone = (row['phone'] ?? '').trim() || null;
-    const tagsRaw = (row['tags'] ?? '').trim();
+    const clientEmail = (row['client_email'] ?? '').trim().toLowerCase();
+    const serviceName = (row['service_name'] ?? '').trim();
+    const startTimeStr = (row['start_time'] ?? '').trim();
+    const endTimeStr = (row['end_time'] ?? '').trim();
     const notes = (row['notes'] ?? '').trim() || null;
 
     // Validate required fields
-    if (!email) {
-      const errorMsg = `Line ${lineNum}: missing email`;
+    if (!clientEmail) {
+      const errorMsg = `Line ${lineNum}: missing client_email`;
       errors.push(errorMsg);
       errorCount++;
       if (!dryRun && importJobId) {
@@ -289,43 +294,7 @@ async function main(): Promise<void> {
             importJobId,
             rowNumber: lineNum,
             status: 'ERROR',
-            targetTable: 'users',
-            rawData,
-            errorMessage: errorMsg,
-          },
-        });
-      }
-      continue;
-    }
-    if (!name) {
-      const errorMsg = `Line ${lineNum}: missing name for ${email}`;
-      errors.push(errorMsg);
-      errorCount++;
-      if (!dryRun && importJobId) {
-        await prisma.importRecord.create({
-          data: {
-            importJobId,
-            rowNumber: lineNum,
-            status: 'ERROR',
-            targetTable: 'users',
-            rawData,
-            errorMessage: errorMsg,
-          },
-        });
-      }
-      continue;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      const errorMsg = `Line ${lineNum}: invalid email "${email}"`;
-      errors.push(errorMsg);
-      errorCount++;
-      if (!dryRun && importJobId) {
-        await prisma.importRecord.create({
-          data: {
-            importJobId,
-            rowNumber: lineNum,
-            status: 'ERROR',
-            targetTable: 'users',
+            targetTable: 'bookings',
             rawData,
             errorMessage: errorMsg,
           },
@@ -334,148 +303,177 @@ async function main(): Promise<void> {
       continue;
     }
 
-    const tags = tagsRaw
-      ? tagsRaw
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean)
-      : [];
+    if (!serviceName) {
+      const errorMsg = `Line ${lineNum}: missing service_name for ${clientEmail}`;
+      errors.push(errorMsg);
+      errorCount++;
+      if (!dryRun && importJobId) {
+        await prisma.importRecord.create({
+          data: {
+            importJobId,
+            rowNumber: lineNum,
+            status: 'ERROR',
+            targetTable: 'bookings',
+            rawData,
+            errorMessage: errorMsg,
+          },
+        });
+      }
+      continue;
+    }
+
+    if (!startTimeStr || !endTimeStr) {
+      const errorMsg = `Line ${lineNum}: missing start_time or end_time for ${clientEmail}/${serviceName}`;
+      errors.push(errorMsg);
+      errorCount++;
+      if (!dryRun && importJobId) {
+        await prisma.importRecord.create({
+          data: {
+            importJobId,
+            rowNumber: lineNum,
+            status: 'ERROR',
+            targetTable: 'bookings',
+            rawData,
+            errorMessage: errorMsg,
+          },
+        });
+      }
+      continue;
+    }
+
+    const startTime = new Date(startTimeStr);
+    const endTime = new Date(endTimeStr);
+
+    if (isNaN(startTime.getTime())) {
+      const errorMsg = `Line ${lineNum}: invalid start_time "${startTimeStr}"`;
+      errors.push(errorMsg);
+      errorCount++;
+      if (!dryRun && importJobId) {
+        await prisma.importRecord.create({
+          data: {
+            importJobId,
+            rowNumber: lineNum,
+            status: 'ERROR',
+            targetTable: 'bookings',
+            rawData,
+            errorMessage: errorMsg,
+          },
+        });
+      }
+      continue;
+    }
+
+    if (isNaN(endTime.getTime())) {
+      const errorMsg = `Line ${lineNum}: invalid end_time "${endTimeStr}"`;
+      errors.push(errorMsg);
+      errorCount++;
+      if (!dryRun && importJobId) {
+        await prisma.importRecord.create({
+          data: {
+            importJobId,
+            rowNumber: lineNum,
+            status: 'ERROR',
+            targetTable: 'bookings',
+            rawData,
+            errorMessage: errorMsg,
+          },
+        });
+      }
+      continue;
+    }
+
+    if (endTime <= startTime) {
+      const errorMsg = `Line ${lineNum}: end_time must be after start_time for ${clientEmail}/${serviceName}`;
+      errors.push(errorMsg);
+      errorCount++;
+      if (!dryRun && importJobId) {
+        await prisma.importRecord.create({
+          data: {
+            importJobId,
+            rowNumber: lineNum,
+            status: 'ERROR',
+            targetTable: 'bookings',
+            rawData,
+            errorMessage: errorMsg,
+          },
+        });
+      }
+      continue;
+    }
+
+    // Resolve client by email
+    const clientId = userByEmail.get(clientEmail);
+    if (!clientId) {
+      const errorMsg = `Line ${lineNum}: client not found for email "${clientEmail}"`;
+      errors.push(errorMsg);
+      errorCount++;
+      if (!dryRun && importJobId) {
+        await prisma.importRecord.create({
+          data: {
+            importJobId,
+            rowNumber: lineNum,
+            status: 'ERROR',
+            targetTable: 'bookings',
+            rawData,
+            errorMessage: errorMsg,
+          },
+        });
+      }
+      continue;
+    }
+
+    // Resolve service by name within tenant
+    const service = serviceByName.get(serviceName.toLowerCase());
+    if (!service) {
+      const errorMsg = `Line ${lineNum}: service not found for name "${serviceName}" in tenant ${tenantId}`;
+      errors.push(errorMsg);
+      errorCount++;
+      if (!dryRun && importJobId) {
+        await prisma.importRecord.create({
+          data: {
+            importJobId,
+            rowNumber: lineNum,
+            status: 'ERROR',
+            targetTable: 'bookings',
+            rawData,
+            errorMessage: errorMsg,
+          },
+        });
+      }
+      continue;
+    }
 
     // --- Dry run: report what would happen ---
     if (dryRun) {
-      const existing = await prisma.user.findUnique({ where: { email } });
-      if (existing) {
-        if (skipDuplicates) {
-          console.log(`  SKIP:   ${email} (already exists)`);
-          skipped++;
-        } else if (updateExisting) {
-          console.log(`  UPDATE: ${email}`);
-          updated++;
-        } else {
-          console.log(`  EXISTS: ${email} (use --skip-duplicates or --update-existing)`);
-          skipped++;
-        }
-      } else {
-        // Check phone-based dedup
-        if (phone) {
-          const phoneMatch = await prisma.user.findFirst({ where: { phone } });
-          if (phoneMatch) {
-            if (skipDuplicates) {
-              console.log(`  SKIP:   ${email} (phone ${phone} matches existing user ${phoneMatch.email})`);
-              skipped++;
-              continue;
-            } else {
-              console.log(`  EXISTS: ${email} (phone ${phone} matches ${phoneMatch.email}, use --skip-duplicates or --update-existing)`);
-              skipped++;
-              continue;
-            }
-          }
-        }
-        console.log(`  CREATE: ${email} (${name})`);
-        created++;
-      }
+      console.log(
+        `  CREATE: ${clientEmail} / "${serviceName}" @ ${startTimeStr} - ${endTimeStr}`,
+      );
+      created++;
       continue;
     }
 
     // --- Actual import ---
     try {
-      let existingUser = await prisma.user.findUnique({ where: { email } });
-
-      // Phone-based secondary deduplication
-      if (!existingUser && phone) {
-        existingUser = await prisma.user.findFirst({ where: { phone } });
-        if (existingUser) {
-          console.log(`  Phone match: ${email} matches existing user ${existingUser.email} by phone ${phone}`);
-        }
-      }
-
-      let recordStatus: 'IMPORTED' | 'SKIPPED_DUPLICATE' | 'ERROR';
-      let targetId: string | null = null;
-
-      if (existingUser) {
-        if (skipDuplicates) {
-          skipped++;
-          recordStatus = 'SKIPPED_DUPLICATE';
-          targetId = existingUser.id;
-          if (importJobId) {
-            await prisma.importRecord.create({
-              data: {
-                importJobId,
-                rowNumber: lineNum,
-                status: recordStatus,
-                targetTable: 'users',
-                targetId,
-                rawData,
-              },
-            });
-          }
-          continue;
-        }
-
-        if (updateExisting) {
-          await prisma.user.update({
-            where: { id: existingUser.id },
-            data: {
-              name,
-              ...(phone ? { phone } : {}),
-            },
-          });
-          updated++;
-          recordStatus = 'IMPORTED';
-          targetId = existingUser.id;
-        } else {
-          skipped++;
-          recordStatus = 'SKIPPED_DUPLICATE';
-          targetId = existingUser.id;
-          if (importJobId) {
-            await prisma.importRecord.create({
-              data: {
-                importJobId,
-                rowNumber: lineNum,
-                status: recordStatus,
-                targetTable: 'users',
-                targetId,
-                rawData,
-              },
-            });
-          }
-          continue;
-        }
-      } else {
-        existingUser = await prisma.user.create({
-          data: {
-            email,
-            name,
-            phone,
-            passwordHash: null,
-            emailVerified: false,
-            role: 'USER',
-          },
-        });
-        created++;
-        recordStatus = 'IMPORTED';
-        targetId = existingUser.id;
-      }
-
-      // Create or update ClientProfile for this tenant
-      await prisma.clientProfile.upsert({
-        where: {
-          tenantId_clientId: {
-            tenantId,
-            clientId: existingUser.id,
-          },
-        },
-        create: {
+      const booking = await prisma.booking.create({
+        data: {
           tenantId,
-          clientId: existingUser.id,
-          tags: tags.length > 0 ? tags : undefined,
-          preferences: notes ? { notes } : undefined,
-        },
-        update: {
-          ...(tags.length > 0 ? { tags } : {}),
-          ...(notes ? { preferences: { notes } } : {}),
+          clientId,
+          serviceId: service.id,
+          status: 'COMPLETED',
+          startTime,
+          endTime,
+          totalAmount: String(service.basePrice),
+          currency: service.currency,
+          source: 'IMPORT',
+          notes,
+          metadata: {
+            importedFrom: sourcePlatform,
+            importJobId,
+            importedAt: new Date().toISOString(),
+          },
         },
       });
+      created++;
 
       // Create ImportRecord
       if (importJobId) {
@@ -483,16 +481,16 @@ async function main(): Promise<void> {
           data: {
             importJobId,
             rowNumber: lineNum,
-            status: recordStatus,
-            targetTable: 'users',
-            targetId,
+            status: 'IMPORTED',
+            targetTable: 'bookings',
+            targetId: booking.id,
             rawData,
           },
         });
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      errors.push(`Line ${lineNum} (${email}): ${msg}`);
+      errors.push(`Line ${lineNum} (${clientEmail}/${serviceName}): ${msg}`);
       errorCount++;
       if (importJobId) {
         await prisma.importRecord.create({
@@ -500,7 +498,7 @@ async function main(): Promise<void> {
             importJobId,
             rowNumber: lineNum,
             status: 'ERROR',
-            targetTable: 'users',
+            targetTable: 'bookings',
             rawData,
             errorMessage: msg,
           },
@@ -521,7 +519,6 @@ async function main(): Promise<void> {
         stats: {
           totalRows: dataRows,
           created,
-          updated,
           skipped,
           errors: errorCount,
         },
@@ -535,7 +532,6 @@ async function main(): Promise<void> {
   console.log('\n--- Import Summary ---');
   console.log(`Total rows:  ${dataRows}`);
   console.log(`Created:     ${created}`);
-  console.log(`Updated:     ${updated}`);
   console.log(`Skipped:     ${skipped}`);
   console.log(`Errors:      ${errorCount}`);
 

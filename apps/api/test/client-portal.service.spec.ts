@@ -150,7 +150,8 @@ describe('ClientPortalService', () => {
   beforeEach(() => {
     prisma = makePrisma();
     queue = makeQueue();
-    service = new ClientPortalService(prisma as never, queue as never);
+    const mockPaymentsService = { processRefund: vi.fn().mockResolvedValue({}) };
+    service = new ClientPortalService(prisma as never, mockPaymentsService as never, queue as never);
   });
 
   // -----------------------------------------------------------------------
@@ -381,9 +382,9 @@ describe('ClientPortalService', () => {
       const result = await service.cancelBooking(USER_ID, BOOKING_ID);
 
       expect(result.booking.status).toBe('CANCELLED');
-      expect(result.cancellation.type).toBe('FREE');
-      expect(result.cancellation.lateFeePercent).toBeNull();
-      expect(result.cancellation.lateFlatFee).toBeNull();
+      expect(result.cancellation.refundType).toBe('FULL_REFUND');
+      expect(result.cancellation.refundAmount).toBe(0);
+      expect(result.cancellation.fee).toBe(0);
       expect(result.cancellation.refundInfo).toBeNull();
     });
 
@@ -414,9 +415,10 @@ describe('ClientPortalService', () => {
       const result = await service.cancelBooking(USER_ID, BOOKING_ID, 'Schedule conflict');
 
       expect(result.booking.status).toBe('CANCELLED');
-      expect(result.cancellation.type).toBe('LATE');
-      expect(result.cancellation.lateFeePercent).toBe(50);
-      expect(result.cancellation.lateFlatFee).toBe(10);
+      // Legacy fields: late_cancellation_flat_fee=10 takes precedence (fixed type)
+      // 2h before, free=24h, so it's a late cancel. Fixed fee of $10, but no payment so totalAmount=0
+      expect(result.cancellation.refundType).toBe('FULL_REFUND');
+      expect(result.cancellation.fee).toBe(0);
     });
 
     it('should throw NotFoundException when booking not found', async () => {
@@ -499,9 +501,9 @@ describe('ClientPortalService', () => {
           triggeredBy: 'CLIENT',
           reason: 'Client cancellation: Changed my mind',
           metadata: {
-            cancellationType: 'FREE',
-            lateFeePercent: null,
-            lateFlatFee: null,
+            refundType: 'FULL_REFUND',
+            refundAmount: 0,
+            fee: 0,
           },
         },
       });
@@ -519,7 +521,7 @@ describe('ClientPortalService', () => {
             cancellationPolicy: null,
           },
           payments: [
-            { id: PAYMENT_ID, status: 'SUCCEEDED', amount: { toString: () => '5000' } },
+            { id: PAYMENT_ID, status: 'SUCCEEDED', amount: { toNumber: () => 5000 } },
           ],
         }),
       );
@@ -533,7 +535,7 @@ describe('ClientPortalService', () => {
       expect(result.cancellation.refundInfo).toEqual({
         paymentId: PAYMENT_ID,
         amount: '5000',
-        cancellationType: 'NO_POLICY',
+        refundType: 'FULL_REFUND',
       });
     });
 
@@ -613,11 +615,12 @@ describe('ClientPortalService', () => {
 
       const result = await service.cancelBooking(USER_ID, BOOKING_ID);
 
-      expect(result.cancellation.type).toBe('LATE');
-      expect(result.cancellation.lateFeePercent).toBe(75);
+      // Past start, no payment (totalAmount=0), so refundAmount=0
+      expect(result.cancellation.refundType).toBe('FULL_REFUND');
+      expect(result.cancellation.refundAmount).toBe(0);
     });
 
-    it('should set cancellationType to NO_POLICY when no cancellation policy exists', async () => {
+    it('should use default policy when no cancellation policy exists', async () => {
       prisma.booking.findFirst.mockResolvedValue(
         mockBooking({
           status: 'PENDING',
@@ -635,7 +638,10 @@ describe('ClientPortalService', () => {
 
       const result = await service.cancelBooking(USER_ID, BOOKING_ID);
 
-      expect(result.cancellation.type).toBe('NO_POLICY');
+      // Null policy → default (24h free). Booking start is far future (mockBooking default),
+      // no payment, so totalAmount=0 → FULL_REFUND with 0 amount
+      expect(result.cancellation.refundType).toBe('FULL_REFUND');
+      expect(result.cancellation.refundAmount).toBe(0);
     });
   });
 

@@ -604,10 +604,12 @@ describe('RLS tenant context in BullMQ job processors', () => {
         get: vi.fn().mockReturnValue(undefined), // No Resend key = dev mode
       };
       const commsService = { renderTemplate: vi.fn() };
+      const bookingRemindersHandler = { handle: vi.fn() };
       const handler = new CommunicationsHandler(
         prisma as never,
         configService as never,
         commsService as never,
+        bookingRemindersHandler as never,
       );
 
       const capturedTenantIds: string[] = [];

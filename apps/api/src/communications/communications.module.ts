@@ -7,6 +7,7 @@ import { CommunicationsDispatcher } from './communications.dispatcher';
 import { SmsModule } from '../sms/sms.module';
 import { BrowserPushModule } from '../browser-push/browser-push.module';
 import { SupportTriageHandler } from '../jobs/support-triage.processor';
+import { SendBookingRemindersHandler } from '../jobs/send-booking-reminders.processor';
 
 /**
  * CommunicationsModule — handles all outbound communications (email, SMS, push).
@@ -26,6 +27,7 @@ import { SupportTriageHandler } from '../jobs/support-triage.processor';
   providers: [
     CommunicationsService,
     CommunicationsHandler,
+    SendBookingRemindersHandler,
     SupportTriageHandler,
     CommunicationsDispatcher,
   ],

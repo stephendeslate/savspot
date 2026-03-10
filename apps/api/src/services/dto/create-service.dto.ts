@@ -8,8 +8,43 @@ import {
   IsObject,
   IsUUID,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+const LATE_CANCEL_FEE_TYPES = ['percentage', 'fixed'] as const;
+
+export class CancellationPolicyDto {
+  @ApiPropertyOptional({ example: 24, description: 'Hours before appointment for free cancellation' })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  free_cancellation_hours?: number;
+
+  @ApiPropertyOptional({
+    enum: LATE_CANCEL_FEE_TYPES,
+    example: 'percentage',
+    description: 'Type of late cancellation fee',
+  })
+  @IsEnum(LATE_CANCEL_FEE_TYPES, {
+    message: `late_cancel_fee_type must be one of: ${LATE_CANCEL_FEE_TYPES.join(', ')}`,
+  })
+  @IsOptional()
+  late_cancel_fee_type?: 'percentage' | 'fixed';
+
+  @ApiPropertyOptional({ example: 50, description: 'Late cancellation fee amount (percentage or fixed)' })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  late_cancel_fee_amount?: number;
+
+  @ApiPropertyOptional({ example: 2, description: 'Hours before appointment when no refund is given' })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  no_refund_hours?: number;
+}
 
 const PRICING_MODELS = ['FIXED', 'HOURLY', 'TIERED', 'CUSTOM'] as const;
 const CONFIRMATION_MODES = ['AUTO_CONFIRM', 'MANUAL_APPROVAL'] as const;
@@ -120,12 +155,19 @@ export class CreateServiceDto {
   intakeFormConfig?: Record<string, unknown>;
 
   @ApiPropertyOptional({
-    example: { refundableUntilHours: 48, penaltyPercent: 50 },
-    description: 'Cancellation policy JSON',
+    type: CancellationPolicyDto,
+    description: 'Cancellation policy configuration',
+    example: {
+      free_cancellation_hours: 24,
+      late_cancel_fee_type: 'percentage',
+      late_cancel_fee_amount: 50,
+      no_refund_hours: 2,
+    },
   })
-  @IsObject()
+  @ValidateNested()
+  @Type(() => CancellationPolicyDto)
   @IsOptional()
-  cancellationPolicy?: Record<string, unknown>;
+  cancellationPolicy?: CancellationPolicyDto;
 
   @ApiPropertyOptional({ example: false, description: 'Auto cancel on overdue payment' })
   @IsBoolean()
