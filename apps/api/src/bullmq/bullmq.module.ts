@@ -8,6 +8,7 @@ import {
   QUEUE_COMMUNICATIONS,
   QUEUE_INVOICES,
   QUEUE_GDPR,
+  QUEUE_IMPORTS,
 } from './queue.constants';
 
 /**
@@ -49,6 +50,7 @@ import {
       { name: QUEUE_COMMUNICATIONS },
       { name: QUEUE_INVOICES },
       { name: QUEUE_GDPR },
+      { name: QUEUE_IMPORTS },
     ),
   ],
   exports: [BullModule],
