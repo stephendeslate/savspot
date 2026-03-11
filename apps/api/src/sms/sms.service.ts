@@ -1,39 +1,25 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import Twilio from 'twilio';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { SmsProvider, SmsSendResult, SMS_PROVIDER } from './providers';
 
 /**
- * Twilio SMS service.
- * Follows the same no-op pattern as EmailService: if Twilio credentials
- * are not configured, messages are logged to console instead of sent.
+ * SMS service that delegates to the configured SMS provider (Twilio or Plivo).
+ * Provider is selected via SMS_PROVIDER env var (default: 'twilio').
+ *
+ * Maintains backward-compatible API: sendSms(to, body) returns { success, sid? }.
+ * Also exported as TwilioService for existing import compatibility.
  */
 @Injectable()
-export class TwilioService {
-  private readonly logger = new Logger(TwilioService.name);
-  private readonly client: Twilio.Twilio | null;
-  private readonly fromNumber: string;
+export class SmsService {
+  private readonly logger = new Logger(SmsService.name);
 
-  constructor(private readonly configService: ConfigService) {
-    const accountSid = this.configService.get<string>('twilio.accountSid');
-    const authToken = this.configService.get<string>('twilio.authToken');
-    this.fromNumber = this.configService.get<string>(
-      'twilio.phoneNumber',
-      '',
-    );
-
-    if (accountSid && authToken && this.fromNumber) {
-      this.client = Twilio(accountSid, authToken);
-      this.logger.log('Twilio SMS service initialized');
-    } else {
-      this.client = null;
-      this.logger.warn(
-        'Twilio credentials not configured — SMS will be logged to console',
-      );
-    }
+  constructor(
+    @Inject(SMS_PROVIDER) private readonly provider: SmsProvider,
+  ) {
+    this.logger.log(`SMS service using provider: ${this.provider.providerName}`);
   }
 
   /**
-   * Send an SMS message via Twilio.
+   * Send an SMS message via the configured provider.
    * In dev mode (no credentials), logs the message instead.
    *
    * @returns { success: boolean, sid?: string }
@@ -42,26 +28,30 @@ export class TwilioService {
     to: string,
     body: string,
   ): Promise<{ success: boolean; sid?: string }> {
-    if (!this.client) {
-      this.logger.log(`[DEV SMS] To: ${to}`);
-      this.logger.log(`[DEV SMS] Body: ${body}`);
-      return { success: true };
-    }
+    const result: SmsSendResult = await this.provider.send(to, body);
 
-    try {
-      const message = await this.client.messages.create({
-        to,
-        from: this.fromNumber,
-        body,
-      });
+    return {
+      success: result.success,
+      sid: result.messageId,
+    };
+  }
 
-      this.logger.log(`SMS sent to ${to}: SID=${message.sid}`);
-      return { success: true, sid: message.sid };
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Unknown error';
-      this.logger.error(`Failed to send SMS to ${to}: ${errorMessage}`);
-      return { success: false };
-    }
+  /**
+   * Get delivery status for a message by its provider-specific ID.
+   */
+  async getDeliveryStatus(messageId: string): Promise<string> {
+    return this.provider.getDeliveryStatus(messageId);
+  }
+
+  /**
+   * The name of the active SMS provider.
+   */
+  get providerName(): string {
+    return this.provider.providerName;
   }
 }
+
+/**
+ * @deprecated Use SmsService instead. Kept for backward compatibility.
+ */
+export const TwilioService = SmsService;

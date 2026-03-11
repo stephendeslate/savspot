@@ -13,7 +13,7 @@ import { WorkflowEngineService } from './workflow-engine.service';
  *
  * Dependencies:
  * - CommunicationsModule: For sending emails via CommunicationsService
- * - SmsModule: For sending SMS via TwilioService
+ * - SmsModule: For sending SMS via SmsService
  * - InvoicesModule: For auto-generating invoices on booking confirmation
  * - PrismaModule (global): For DB access
  * - EventsModule (global): For @OnEvent decorators

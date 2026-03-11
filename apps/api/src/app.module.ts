@@ -44,6 +44,7 @@ import { AuditModule } from './audit/audit.module';
 import { GalleryModule } from './gallery/gallery.module';
 import { OnboardingToursModule } from './onboarding-tours/onboarding-tours.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { CustomThrottlerGuard } from './common/guards/throttle.guard';
 import { CsrfGuard } from './common/guards/csrf.guard';
 import { TenantStatusGuard } from './common/guards/tenant-status.guard';
@@ -124,6 +125,7 @@ import {
     GalleryModule,
     OnboardingToursModule,
     ReviewsModule,
+    SubscriptionsModule,
   ],
   controllers: [AppController],
   providers: [

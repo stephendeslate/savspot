@@ -2,7 +2,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
-import { TwilioService } from './sms.service';
+import { SmsService } from './sms.service';
 import {
   QUEUE_COMMUNICATIONS,
   JOB_DELIVER_PROVIDER_SMS,
@@ -50,7 +50,7 @@ export class SmsHandler {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly twilioService: TwilioService,
+    private readonly smsService: SmsService,
     @InjectQueue(QUEUE_COMMUNICATIONS) private readonly commsQueue: Queue,
   ) {}
 
@@ -115,7 +115,7 @@ export class SmsHandler {
     }
 
     // Send the SMS
-    const result = await this.twilioService.sendSms(phone, message);
+    const result = await this.smsService.sendSms(phone, message);
 
     // Log the communication
     await this.prisma.communication.create({
@@ -129,7 +129,7 @@ export class SmsHandler {
         status: result.success ? 'SENT' : 'FAILED',
         providerMessageId: result.sid || null,
         sentAt: result.success ? new Date() : null,
-        failureReason: result.success ? null : 'Twilio delivery failed',
+        failureReason: result.success ? null : 'SMS delivery failed',
       },
     });
 

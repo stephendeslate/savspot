@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
-import { TwilioService } from './sms.service';
+import { SmsService } from './sms.service';
 import { RedisService } from '../redis/redis.service';
 
 /** TTL for morning summary deduplication keys (24 hours) */
@@ -19,7 +19,7 @@ export class MorningSummaryHandler {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly twilioService: TwilioService,
+    private readonly smsService: SmsService,
     private readonly redisService: RedisService,
   ) {}
 
@@ -73,7 +73,7 @@ export class MorningSummaryHandler {
           continue;
         }
 
-        await this.twilioService.sendSms(membership.user.phone, message);
+        await this.smsService.sendSms(membership.user.phone, message);
 
         // Log the communication
         await this.prisma.communication.create({

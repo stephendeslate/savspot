@@ -130,6 +130,19 @@ export enum ConsentPurpose {
   FOLLOW_UP_EMAILS = 'FOLLOW_UP_EMAILS',
 }
 
+export enum SubscriptionTier {
+  FREE = 'FREE',
+  PREMIUM = 'PREMIUM',
+  ENTERPRISE = 'ENTERPRISE',
+}
+
+export enum SubscriptionStatus {
+  ACTIVE = 'ACTIVE',
+  PAST_DUE = 'PAST_DUE',
+  CANCELED = 'CANCELED',
+  TRIALING = 'TRIALING',
+}
+
 export enum WorkflowTriggerEvent {
   BOOKING_CREATED = 'BOOKING_CREATED',
   BOOKING_CONFIRMED = 'BOOKING_CONFIRMED',

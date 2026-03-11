@@ -34,7 +34,7 @@ function makeComms() {
   };
 }
 
-function makeTwilio() {
+function makeSmsService() {
   return {
     sendSms: vi.fn().mockResolvedValue({ success: true, sid: 'SM001' }),
   };
@@ -94,16 +94,16 @@ describe('WorkflowEngineService', () => {
   let service: WorkflowEngineService;
   let prisma: ReturnType<typeof makePrisma>;
   let comms: ReturnType<typeof makeComms>;
-  let twilio: ReturnType<typeof makeTwilio>;
+  let smsService: ReturnType<typeof makeSmsService>;
 
   beforeEach(() => {
     prisma = makePrisma();
     comms = makeComms();
-    twilio = makeTwilio();
+    smsService = makeSmsService();
     prisma.tenant.findUniqueOrThrow.mockResolvedValue(TENANT_BRANDING);
     const configService = { get: (key: string, defaultValue: string) => defaultValue } as never;
     const invoicesService = { createForBooking: vi.fn().mockResolvedValue({}) } as never;
-    service = new WorkflowEngineService(prisma as never, comms as never, twilio as never, configService, invoicesService);
+    service = new WorkflowEngineService(prisma as never, comms as never, smsService as never, configService, invoicesService);
   });
 
   // -----------------------------------------------------------------------
