@@ -1,4 +1,4 @@
-import { IsOptional, IsUUID, IsEnum, IsBoolean } from 'class-validator';
+import { IsOptional, IsUUID, IsEnum, IsBoolean, IsString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 const BOOKING_SOURCES = ['DIRECT', 'DIRECTORY', 'API', 'WIDGET', 'REFERRAL', 'WALK_IN'] as const;
@@ -31,4 +31,12 @@ export class CreateSessionDto {
   @IsBoolean()
   @IsOptional()
   isPreview?: boolean;
+
+  @ApiPropertyOptional({
+    example: 'ABC123',
+    description: 'Referral code to attribute this booking to a referral link',
+  })
+  @IsString()
+  @IsOptional()
+  referralCode?: string;
 }

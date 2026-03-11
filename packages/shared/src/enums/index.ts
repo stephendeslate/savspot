@@ -15,3 +15,5 @@ export * from './breach.enums.js';
 export * from './discount.enums.js';
 export * from './note.enums.js';
 export * from './ai-operations.enums.js';
+export * from './voice.enums.js';
+export * from './automation.enums.js';

@@ -53,4 +53,12 @@ export class WalkInBookingDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @ApiPropertyOptional({
+    example: 'ABC123',
+    description: 'Referral code to attribute this booking to a referral link',
+  })
+  @IsString()
+  @IsOptional()
+  referralCode?: string;
 }

@@ -61,7 +61,8 @@ describe('BookingsService check-in/check-out', () => {
     prisma = makePrisma();
     const payments = makePayments();
     const events = makeEvents();
-    service = new BookingsService(prisma as never, payments as never, events as never);
+    const referrals = { validateAndResolveReferralCode: vi.fn(), incrementUsageCount: vi.fn() };
+    service = new BookingsService(prisma as never, payments as never, events as never, referrals as never);
   });
 
   // -----------------------------------------------------------------------

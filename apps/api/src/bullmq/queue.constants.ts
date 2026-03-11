@@ -11,6 +11,10 @@ export const QUEUE_COMMUNICATIONS = 'communications';
 export const QUEUE_INVOICES = 'invoices';
 export const QUEUE_GDPR = 'gdpr';
 export const QUEUE_IMPORTS = 'imports';
+export const QUEUE_CURRENCY_REFRESH = 'currency-refresh';
+export const QUEUE_WEBHOOKS = 'webhooks';
+export const QUEUE_VOICE_CALLS = 'voice-calls';
+export const QUEUE_ACCOUNTING = 'accounting';
 
 export const ALL_QUEUES = [
   QUEUE_BOOKINGS,
@@ -20,6 +24,10 @@ export const ALL_QUEUES = [
   QUEUE_INVOICES,
   QUEUE_GDPR,
   QUEUE_IMPORTS,
+  QUEUE_CURRENCY_REFRESH,
+  QUEUE_WEBHOOKS,
+  QUEUE_VOICE_CALLS,
+  QUEUE_ACCOUNTING,
 ] as const;
 
 // ---- Queue Concurrency ----
@@ -31,6 +39,10 @@ export const QUEUE_CONCURRENCY: Record<string, number> = {
   [QUEUE_INVOICES]: 3,
   [QUEUE_GDPR]: 2,
   [QUEUE_IMPORTS]: 3,
+  [QUEUE_CURRENCY_REFRESH]: 1,
+  [QUEUE_WEBHOOKS]: 5,
+  [QUEUE_VOICE_CALLS]: 3,
+  [QUEUE_ACCOUNTING]: 3,
 };
 
 // ---- Job Names ----
@@ -82,11 +94,27 @@ export const JOB_SUPPORT_TRIAGE = 'supportTriage';
 export const JOB_PROCESS_HOURLY_DIGESTS = 'processHourlyDigests';
 export const JOB_PROCESS_DAILY_DIGESTS = 'processDailyDigests';
 
+// Currency refresh queue jobs
+export const JOB_REFRESH_RATES = 'refreshRates';
+
 // AI Operations queue jobs (Phase 2)
 export const JOB_COMPUTE_NO_SHOW_RISK = 'computeNoShowRisk';
 export const JOB_COMPUTE_CLIENT_INSIGHTS = 'computeClientInsights';
 export const JOB_COMPUTE_DEMAND_ANALYSIS = 'computeDemandAnalysis';
 export const JOB_COMPUTE_BENCHMARKS = 'computeBenchmarks';
+
+// Webhook queue jobs (Phase 3)
+export const JOB_DISPATCH_WEBHOOK = 'dispatchWebhook';
+
+// Accounting sync queue jobs (Phase 3)
+export const JOB_ACCOUNTING_SYNC_INVOICES = 'accountingSyncInvoices';
+export const JOB_ACCOUNTING_SYNC_PAYMENTS = 'accountingSyncPayments';
+export const JOB_ACCOUNTING_SYNC_CLIENTS = 'accountingSyncClients';
+export const JOB_ACCOUNTING_SYNC_SINGLE_INVOICE = 'accountingSyncSingleInvoice';
+
+// Voice queue jobs (Phase 3)
+export const JOB_PROCESS_TRANSCRIPT = 'processTranscript';
+export const JOB_POST_CALL_ACTIONS = 'postCallActions';
 
 // ---- Cron Schedules ----
 export const CRON_EVERY_5_MIN = '*/5 * * * *';

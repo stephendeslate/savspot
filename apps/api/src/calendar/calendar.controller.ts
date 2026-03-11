@@ -55,7 +55,7 @@ export class CalendarController {
   async connect(
     @Param('tenantId', UuidValidationPipe) tenantId: string,
     @CurrentUser('id') userId: string,
-    @Body() _: ConnectCalendarDto, // eslint-disable-line @typescript-eslint/no-unused-vars
+    @Body() _: ConnectCalendarDto,  
   ) {
     const authUrl = this.calendarService.getAuthUrl(tenantId, userId);
     return { authUrl };

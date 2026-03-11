@@ -8,6 +8,7 @@ import {
 import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from '../payments/payments.service';
+import { ReferralsService } from '../referrals/referrals.service';
 import { ListBookingsDto } from './dto/list-bookings.dto';
 import { WalkInBookingDto } from './dto/walk-in-booking.dto';
 import { EventsService } from '../events/events.service';
@@ -36,6 +37,7 @@ export class BookingsService {
     private readonly prisma: PrismaService,
     private readonly paymentsService: PaymentsService,
     private readonly eventsService: EventsService,
+    private readonly referralsService: ReferralsService,
   ) {}
 
   /**
@@ -639,6 +641,18 @@ export class BookingsService {
       clientId = walkInUser.id;
     }
 
+    // Validate referral code if provided
+    let referralLinkId: string | null = null;
+    if (dto.referralCode) {
+      referralLinkId = await this.referralsService.validateAndResolveReferralCode(
+        tenantId,
+        dto.referralCode,
+      );
+      if (!referralLinkId) {
+        throw new BadRequestException('Invalid or expired referral code');
+      }
+    }
+
     // Check availability with pessimistic locking
     const booking = await this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
@@ -696,6 +710,7 @@ export class BookingsService {
           currency: service.currency,
           notes: dto.notes ?? null,
           source: 'WALK_IN',
+          referralLinkId,
         },
         include: {
           service: {
@@ -729,6 +744,14 @@ export class BookingsService {
 
       return booking;
     });
+
+    // Increment referral link usage count (fire-and-forget)
+    if (referralLinkId) {
+      this.referralsService.incrementUsageCount(referralLinkId).catch((err) => {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        this.logger.warn(`Failed to increment referral usage count for ${referralLinkId}: ${message}`);
+      });
+    }
 
     this.eventsService.emitBookingWalkIn({
       tenantId,

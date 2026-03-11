@@ -1,29 +1,38 @@
 import { Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bullmq';
 import { CommunicationsModule } from '../communications/communications.module';
 import { SmsModule } from '../sms/sms.module';
 import { InvoicesModule } from '../invoices/invoices.module';
+import { BrowserPushModule } from '../browser-push/browser-push.module';
+import { QUEUE_WEBHOOKS } from '../bullmq/queue.constants';
 import { WorkflowEngineService } from './workflow-engine.service';
+import { WorkflowsController } from './workflows.controller';
+import { WebhooksController } from './webhooks.controller';
+import { TemplateService } from './services/template.service';
+import { StageService } from './services/stage.service';
+import { ExecutionService } from './services/execution.service';
+import { WebhookService } from './services/webhook.service';
+import { WebhookDispatchHandler } from './processors/webhook-dispatch.processor';
+import { WebhooksDispatcher } from './webhooks.dispatcher';
 
-/**
- * WorkflowsModule — orchestrates business automation rules.
- *
- * Listens to domain events via @OnEvent decorators (WorkflowEngineService)
- * and dispatches actions (email, SMS, notifications) based on
- * workflow_automations table configuration.
- *
- * Dependencies:
- * - CommunicationsModule: For sending emails via CommunicationsService
- * - SmsModule: For sending SMS via SmsService
- * - InvoicesModule: For auto-generating invoices on booking confirmation
- * - PrismaModule (global): For DB access
- * - EventsModule (global): For @OnEvent decorators
- *
- * Note: Post-appointment repeating job schedule is registered by
- * JobSchedulerService in JobsModule.
- */
 @Module({
-  imports: [CommunicationsModule, SmsModule, InvoicesModule],
-  providers: [WorkflowEngineService],
-  exports: [WorkflowEngineService],
+  imports: [
+    CommunicationsModule,
+    SmsModule,
+    InvoicesModule,
+    BrowserPushModule,
+    BullModule.registerQueue({ name: QUEUE_WEBHOOKS }),
+  ],
+  controllers: [WorkflowsController, WebhooksController],
+  providers: [
+    WorkflowEngineService,
+    TemplateService,
+    StageService,
+    ExecutionService,
+    WebhookService,
+    WebhookDispatchHandler,
+    WebhooksDispatcher,
+  ],
+  exports: [WorkflowEngineService, WebhookService, ExecutionService],
 })
 export class WorkflowsModule {}

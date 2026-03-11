@@ -573,7 +573,7 @@ describe('ApiKeyService', () => {
         makeApiKeyRecord({ id: 'key-002', name: 'Key 2' }),
       ];
       // findMany with select returns objects without keyHash
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       const keysWithoutHash = keys.map(({ keyHash: _h, ...rest }) => rest);
       prisma.apiKey.findMany.mockResolvedValue(keysWithoutHash);
 

@@ -109,12 +109,14 @@ describe('BookingSessionsService', () => {
     const payments = makePayments();
     const events = makeEvents();
     const consent = { createBookingConsent: vi.fn() };
+    const referrals = { validateAndResolveReferralCode: vi.fn(), incrementUsageCount: vi.fn() };
     service = new BookingSessionsService(
       prisma as never,
       reservation as never,
       payments as never,
       events as never,
       consent as never,
+      referrals as never,
     );
   });
 

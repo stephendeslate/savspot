@@ -8,6 +8,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -63,6 +64,32 @@ export class ApiKeyController {
       key: result.rawKey,
       apiKey: result.apiKey,
     };
+  }
+
+  @Post(':id/rotate')
+  @TenantRoles('OWNER')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Rotate an API key with 72-hour grace period for the old key' })
+  @ApiResponse({
+    status: 200,
+    description: 'New API key created. Old key remains valid for 72 hours.',
+  })
+  @ApiResponse({ status: 404, description: 'API key not found' })
+  async rotate(
+    @Param('tenantId', UuidValidationPipe) tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    try {
+      const result = await this.apiKeyService.rotate(tenantId, id, userId);
+      return {
+        message: 'API key rotated. Old key expires in 72 hours. Store the new key securely — it will not be shown again.',
+        key: result.rawKey,
+        apiKey: result.apiKey,
+      };
+    } catch {
+      throw new NotFoundException('API key not found or already revoked');
+    }
   }
 
   @Delete(':id')
