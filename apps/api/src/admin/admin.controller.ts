@@ -76,6 +76,23 @@ export class AdminController {
     return this.adminService.bulkUpdateFeedbackStatus(dto);
   }
 
+  @Get('migration-readiness')
+  @ApiOperation({ summary: 'Get migration readiness summary across all active tenants' })
+  @ApiResponse({ status: 200, description: 'Migration readiness summary' })
+  async getMigrationReadinessSummary() {
+    return this.adminService.getMigrationReadinessSummary();
+  }
+
+  @Get('migration-readiness/:tenantId')
+  @ApiOperation({ summary: 'Get migration readiness for a specific tenant' })
+  @ApiResponse({ status: 200, description: 'Tenant migration readiness' })
+  @ApiResponse({ status: 404, description: 'Tenant not found' })
+  async getMigrationReadiness(
+    @Param('tenantId', UuidValidationPipe) tenantId: string,
+  ) {
+    return this.adminService.getMigrationReadiness(tenantId);
+  }
+
   @Get('support/tickets')
   @ApiOperation({ summary: 'List support tickets with filters' })
   @ApiResponse({ status: 200, description: 'Paginated ticket list' })

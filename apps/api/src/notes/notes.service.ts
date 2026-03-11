@@ -6,8 +6,13 @@ import {
 } from '@nestjs/common';
 import { NoteEntityType } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
+import { clampPageSize } from '../common/utils/pagination';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
+
+const AUTHOR_INCLUDE = {
+  author: { select: { id: true, name: true, avatarUrl: true } },
+} as const;
 
 @Injectable()
 export class NotesService {
@@ -27,6 +32,7 @@ export class NotesService {
         entityId: dto.entityId,
         body: dto.body,
       },
+      include: AUTHOR_INCLUDE,
     });
 
     this.logger.log(
@@ -50,6 +56,7 @@ export class NotesService {
         entityType,
         entityId,
       },
+      include: AUTHOR_INCLUDE,
       orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
     });
   }
@@ -78,6 +85,7 @@ export class NotesService {
     const updated = await this.prisma.note.update({
       where: { id: noteId },
       data: { body: dto.body },
+      include: AUTHOR_INCLUDE,
     });
 
     this.logger.log(`Note ${noteId} updated by ${authorId}`);
@@ -125,6 +133,7 @@ export class NotesService {
     const updated = await this.prisma.note.update({
       where: { id: noteId },
       data: { isPinned: !existing.isPinned },
+      include: AUTHOR_INCLUDE,
     });
 
     this.logger.log(
@@ -132,5 +141,26 @@ export class NotesService {
     );
 
     return updated;
+  }
+
+  /**
+   * Return a paginated timeline of all notes for a tenant, newest first.
+   */
+  async getTimeline(tenantId: string, page: number, limit: number) {
+    const pageSize = clampPageSize(limit);
+    const skip = (Math.max(1, page) - 1) * pageSize;
+
+    const [data, total] = await Promise.all([
+      this.prisma.note.findMany({
+        where: { tenantId },
+        include: AUTHOR_INCLUDE,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: pageSize,
+      }),
+      this.prisma.note.count({ where: { tenantId } }),
+    ]);
+
+    return { data, total, page: Math.max(1, page), pageSize };
   }
 }

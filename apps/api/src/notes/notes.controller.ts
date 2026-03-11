@@ -44,6 +44,24 @@ export class NotesController {
     return this.notesService.createNote(tenantId, userId, dto);
   }
 
+  @Get('timeline')
+  @TenantRoles('OWNER', 'ADMIN', 'STAFF')
+  @ApiOperation({ summary: 'Get a paginated timeline of all notes for a tenant' })
+  @ApiResponse({ status: 200, description: 'Paginated notes timeline' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async timeline(
+    @Param('tenantId', UuidValidationPipe) tenantId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.notesService.getTimeline(
+      tenantId,
+      page ? Number(page) : 1,
+      limit ? Number(limit) : 20,
+    );
+  }
+
   @Get()
   @TenantRoles('OWNER', 'ADMIN', 'STAFF')
   @ApiOperation({ summary: 'List notes for a specific entity' })

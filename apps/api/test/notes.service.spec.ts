@@ -12,6 +12,10 @@ const OTHER_USER_ID = 'other-user-002';
 const NOTE_ID = 'note-001';
 const ENTITY_ID = 'booking-001';
 
+const AUTHOR_INCLUDE = {
+  author: { select: { id: true, name: true, avatarUrl: true } },
+};
+
 function makePrisma() {
   return {
     note: {
@@ -20,7 +24,17 @@ function makePrisma() {
       findFirst: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      count: vi.fn(),
     },
+  };
+}
+
+function makeAuthor(overrides: Record<string, unknown> = {}) {
+  return {
+    id: AUTHOR_ID,
+    name: 'Jane Doe',
+    avatarUrl: 'https://example.com/avatar.jpg',
+    ...overrides,
   };
 }
 
@@ -35,6 +49,7 @@ function makeNote(overrides: Record<string, unknown> = {}) {
     isPinned: false,
     createdAt: new Date('2026-03-01T10:00:00Z'),
     updatedAt: new Date('2026-03-01T10:00:00Z'),
+    author: makeAuthor(),
     ...overrides,
   };
 }
@@ -57,7 +72,7 @@ describe('NotesService', () => {
   // -----------------------------------------------------------------------
 
   describe('createNote', () => {
-    it('should create a note with correct fields', async () => {
+    it('should create a note with correct fields and include author', async () => {
       const created = makeNote();
       prisma.note.create.mockResolvedValue(created);
 
@@ -75,10 +90,12 @@ describe('NotesService', () => {
           entityId: ENTITY_ID,
           body: 'Client arrived 10 minutes early',
         },
+        include: AUTHOR_INCLUDE,
       });
       expect(result.id).toBe(NOTE_ID);
       expect(result.entityType).toBe('BOOKING');
       expect(result.body).toBe('Client arrived 10 minutes early');
+      expect(result.author).toEqual(makeAuthor());
     });
 
     it('should create a note for CLIENT entity type', async () => {
@@ -91,12 +108,15 @@ describe('NotesService', () => {
         body: 'VIP customer',
       });
 
-      expect(prisma.note.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          entityType: 'CLIENT',
-          entityId: 'client-001',
+      expect(prisma.note.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            entityType: 'CLIENT',
+            entityId: 'client-001',
+          }),
+          include: AUTHOR_INCLUDE,
         }),
-      });
+      );
       expect(result.entityType).toBe('CLIENT');
     });
   });
@@ -106,7 +126,7 @@ describe('NotesService', () => {
   // -----------------------------------------------------------------------
 
   describe('listNotes', () => {
-    it('should return filtered results for entity', async () => {
+    it('should return filtered results for entity with author info', async () => {
       const notes = [makeNote(), makeNote({ id: 'note-002', body: 'Follow up needed' })];
       prisma.note.findMany.mockResolvedValue(notes);
 
@@ -118,9 +138,11 @@ describe('NotesService', () => {
           entityType: 'BOOKING',
           entityId: ENTITY_ID,
         },
+        include: AUTHOR_INCLUDE,
         orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
       });
       expect(result).toHaveLength(2);
+      expect(result[0]!.author).toBeDefined();
     });
 
     it('should order by pinned first then createdAt desc', async () => {
@@ -170,7 +192,7 @@ describe('NotesService', () => {
   // -----------------------------------------------------------------------
 
   describe('updateNote', () => {
-    it('should update note body', async () => {
+    it('should update note body and include author', async () => {
       const existing = makeNote();
       const updated = makeNote({ body: 'Updated body' });
 
@@ -184,8 +206,10 @@ describe('NotesService', () => {
       expect(prisma.note.update).toHaveBeenCalledWith({
         where: { id: NOTE_ID },
         data: { body: 'Updated body' },
+        include: AUTHOR_INCLUDE,
       });
       expect(result.body).toBe('Updated body');
+      expect(result.author).toBeDefined();
     });
 
     it('should reject non-author', async () => {
@@ -255,7 +279,7 @@ describe('NotesService', () => {
   // -----------------------------------------------------------------------
 
   describe('togglePin', () => {
-    it('should flip isPinned from false to true', async () => {
+    it('should flip isPinned from false to true and include author', async () => {
       const existing = makeNote({ isPinned: false });
       const updated = makeNote({ isPinned: true });
 
@@ -267,8 +291,10 @@ describe('NotesService', () => {
       expect(prisma.note.update).toHaveBeenCalledWith({
         where: { id: NOTE_ID },
         data: { isPinned: true },
+        include: AUTHOR_INCLUDE,
       });
       expect(result.isPinned).toBe(true);
+      expect(result.author).toBeDefined();
     });
 
     it('should flip isPinned from true to false', async () => {
@@ -283,6 +309,7 @@ describe('NotesService', () => {
       expect(prisma.note.update).toHaveBeenCalledWith({
         where: { id: NOTE_ID },
         data: { isPinned: false },
+        include: AUTHOR_INCLUDE,
       });
       expect(result.isPinned).toBe(false);
     });
@@ -293,6 +320,105 @@ describe('NotesService', () => {
       await expect(
         service.togglePin(TENANT_ID, 'nonexistent'),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // getTimeline
+  // -----------------------------------------------------------------------
+
+  describe('getTimeline', () => {
+    it('should return paginated notes with author info', async () => {
+      const notes = [
+        makeNote({ id: 'note-a', entityType: 'BOOKING' }),
+        makeNote({ id: 'note-b', entityType: 'CLIENT', entityId: 'client-001' }),
+      ];
+      prisma.note.findMany.mockResolvedValue(notes);
+      prisma.note.count.mockResolvedValue(2);
+
+      const result = await service.getTimeline(TENANT_ID, 1, 20);
+
+      expect(prisma.note.findMany).toHaveBeenCalledWith({
+        where: { tenantId: TENANT_ID },
+        include: AUTHOR_INCLUDE,
+        orderBy: { createdAt: 'desc' },
+        skip: 0,
+        take: 20,
+      });
+      expect(prisma.note.count).toHaveBeenCalledWith({
+        where: { tenantId: TENANT_ID },
+      });
+      expect(result.data).toHaveLength(2);
+      expect(result.total).toBe(2);
+      expect(result.page).toBe(1);
+      expect(result.pageSize).toBe(20);
+    });
+
+    it('should calculate correct skip for page 2', async () => {
+      prisma.note.findMany.mockResolvedValue([]);
+      prisma.note.count.mockResolvedValue(25);
+
+      const result = await service.getTimeline(TENANT_ID, 2, 10);
+
+      expect(prisma.note.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 10,
+          take: 10,
+        }),
+      );
+      expect(result.page).toBe(2);
+      expect(result.pageSize).toBe(10);
+    });
+
+    it('should clamp page size to max 100', async () => {
+      prisma.note.findMany.mockResolvedValue([]);
+      prisma.note.count.mockResolvedValue(0);
+
+      await service.getTimeline(TENANT_ID, 1, 500);
+
+      expect(prisma.note.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 100,
+        }),
+      );
+    });
+
+    it('should clamp page to at least 1', async () => {
+      prisma.note.findMany.mockResolvedValue([]);
+      prisma.note.count.mockResolvedValue(0);
+
+      const result = await service.getTimeline(TENANT_ID, 0, 20);
+
+      expect(prisma.note.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 0,
+        }),
+      );
+      expect(result.page).toBe(1);
+    });
+
+    it('should include entityType and entityId in results', async () => {
+      const bookingNote = makeNote({ entityType: 'BOOKING', entityId: 'booking-x' });
+      const clientNote = makeNote({ entityType: 'CLIENT', entityId: 'client-y', id: 'note-c' });
+      prisma.note.findMany.mockResolvedValue([bookingNote, clientNote]);
+      prisma.note.count.mockResolvedValue(2);
+
+      const result = await service.getTimeline(TENANT_ID, 1, 20);
+
+      expect(result.data[0]!.entityType).toBe('BOOKING');
+      expect(result.data[0]!.entityId).toBe('booking-x');
+      expect(result.data[1]!.entityType).toBe('CLIENT');
+      expect(result.data[1]!.entityId).toBe('client-y');
+    });
+
+    it('should return empty data with total 0 when no notes exist', async () => {
+      prisma.note.findMany.mockResolvedValue([]);
+      prisma.note.count.mockResolvedValue(0);
+
+      const result = await service.getTimeline(TENANT_ID, 1, 20);
+
+      expect(result.data).toEqual([]);
+      expect(result.total).toBe(0);
     });
   });
 });
