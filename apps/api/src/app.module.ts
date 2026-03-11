@@ -66,6 +66,7 @@ import {
   stripeConfig,
   twilioConfig,
   googleCalendarConfig,
+  microsoftCalendarConfig,
   vapidConfig,
 } from './config/configuration';
 
@@ -74,7 +75,7 @@ import {
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
-      load: [appConfig, jwtConfig, googleConfig, resendConfig, r2Config, stripeConfig, twilioConfig, googleCalendarConfig, vapidConfig],
+      load: [appConfig, jwtConfig, googleConfig, resendConfig, r2Config, stripeConfig, twilioConfig, googleCalendarConfig, microsoftCalendarConfig, vapidConfig],
     }),
     SentryModule.forRoot(),
     LoggerModule.forRoot({

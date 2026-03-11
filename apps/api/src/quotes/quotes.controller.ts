@@ -155,6 +155,19 @@ export class QuotesController {
     return this.quotesService.acceptQuote(tenantId, id, dto);
   }
 
+  @Post(':id/remind')
+  @TenantRoles('OWNER', 'ADMIN')
+  @ApiOperation({ summary: 'Send reminder for a pending quote' })
+  @ApiResponse({ status: 200, description: 'Reminder sent' })
+  @ApiResponse({ status: 400, description: 'Quote is not in SENT status' })
+  @ApiResponse({ status: 404, description: 'Quote not found' })
+  async sendReminder(
+    @Param('tenantId', UuidValidationPipe) tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+  ) {
+    return this.quotesService.sendReminder(tenantId, id);
+  }
+
   @Post(':id/reject')
   @TenantRoles('OWNER', 'ADMIN', 'STAFF')
   @ApiOperation({ summary: 'Reject a sent quote' })

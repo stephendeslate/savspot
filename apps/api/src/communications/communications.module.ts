@@ -8,6 +8,12 @@ import { CircuitBreaker } from '../common/utils/circuit-breaker';
 import { ResendWebhookController } from './resend-webhook.controller';
 import { CommunicationTemplatesController } from './communication-templates.controller';
 import { CommunicationTemplatesService } from './communication-templates.service';
+import { CommunicationsComposeController } from './communications-compose.controller';
+import { CommunicationsLogController } from './communications-log.controller';
+import { PreferenceCenterController } from './preference-center.controller';
+import { CommunicationsComposeService } from './communications-compose.service';
+import { CommunicationsLogService } from './communications-log.service';
+import { PreferenceCenterService } from './preference-center.service';
 import { SmsModule } from '../sms/sms.module';
 import { BrowserPushModule } from '../browser-push/browser-push.module';
 import { SupportTriageHandler } from '../jobs/support-triage.processor';
@@ -21,7 +27,13 @@ import { ComputeClientInsightsHandler } from '../jobs/compute-client-insights.pr
     SmsModule,
     BrowserPushModule,
   ],
-  controllers: [ResendWebhookController, CommunicationTemplatesController],
+  controllers: [
+    ResendWebhookController,
+    CommunicationTemplatesController,
+    CommunicationsComposeController,
+    CommunicationsLogController,
+    PreferenceCenterController,
+  ],
   providers: [
     CommunicationsService,
     CommunicationsHandler,
@@ -32,6 +44,9 @@ import { ComputeClientInsightsHandler } from '../jobs/compute-client-insights.pr
     ComputeClientInsightsHandler,
     CircuitBreaker,
     CommunicationsDispatcher,
+    CommunicationsComposeService,
+    CommunicationsLogService,
+    PreferenceCenterService,
   ],
   exports: [CommunicationsService, CommunicationTemplatesService, CircuitBreaker],
 })

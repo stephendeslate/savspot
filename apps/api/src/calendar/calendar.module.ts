@@ -12,17 +12,19 @@ import { CalendarSyncHandler } from './calendar-sync.processor';
 import { CalendarTokenHandler } from './calendar-token.processor';
 import { CalendarWatchRenewalHandler } from './calendar-watch-renewal.processor';
 import { CalendarEventListener } from './calendar-event.listener';
+import { OutlookCalendarService } from './outlook-calendar.service';
+import { OutlookCalendarController } from './outlook-calendar.controller';
 
 /**
  * Calendar integration module.
- * Provides Google Calendar OAuth, two-way sync, push notifications,
- * iCal feed generation, and event CRUD for booking ↔ calendar synchronization.
+ * Provides Google Calendar OAuth, Outlook/Microsoft 365 OAuth, two-way sync,
+ * push notifications, iCal feed generation, and event CRUD for booking ↔ calendar synchronization.
  */
 @Module({
   imports: [
     BullModule.registerQueue({ name: QUEUE_CALENDAR }),
   ],
-  controllers: [CalendarController, CalendarWebhookController, IcalFeedController],
+  controllers: [CalendarController, CalendarWebhookController, IcalFeedController, OutlookCalendarController],
   providers: [
     GoogleCalendarService,
     IcalFeedService,
@@ -32,7 +34,8 @@ import { CalendarEventListener } from './calendar-event.listener';
     CalendarTokenHandler,
     CalendarWatchRenewalHandler,
     CalendarEventListener,
+    OutlookCalendarService,
   ],
-  exports: [GoogleCalendarService, IcalFeedService],
+  exports: [GoogleCalendarService, IcalFeedService, OutlookCalendarService],
 })
 export class CalendarModule {}

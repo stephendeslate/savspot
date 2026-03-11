@@ -445,6 +445,47 @@ export class QuotesService {
     });
   }
 
+  async sendReminder(tenantId: string, quoteId: string) {
+    const quote = await this.getQuote(tenantId, quoteId);
+
+    if (quote.status !== 'SENT') {
+      throw new BadRequestException(
+        `Cannot send reminder for a quote with status ${quote.status}`,
+      );
+    }
+
+    // Find the booking to get the client as recipient
+    const booking = quote.bookingId
+      ? await this.prisma.booking.findUnique({
+          where: { id: quote.bookingId },
+          select: { clientId: true },
+        })
+      : null;
+
+    if (!booking?.clientId) {
+      throw new BadRequestException('Quote has no associated client to send reminder to');
+    }
+
+    await this.prisma.communication.create({
+      data: {
+        tenantId,
+        recipientId: booking.clientId,
+        channel: 'EMAIL',
+        templateKey: 'quote-reminder',
+        body: `Reminder: You have a pending quote totaling ${quote.total.toString()}. Please review and respond.`,
+        status: 'QUEUED',
+        metadata: {
+          quoteId,
+          quoteTotal: quote.total.toString(),
+        },
+      },
+    });
+
+    this.logger.log(`Quote reminder sent for quote ${quoteId}`);
+
+    return { message: 'Reminder sent' };
+  }
+
   async rejectQuote(tenantId: string, quoteId: string) {
     const quote = await this.getQuote(tenantId, quoteId);
 

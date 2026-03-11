@@ -22,6 +22,9 @@ import { ListPortalBookingsDto } from './dto/list-portal-bookings.dto';
 import { CancelPortalBookingDto } from './dto/cancel-portal-booking.dto';
 import { ReschedulePortalBookingDto } from './dto/reschedule-portal-booking.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { PortalSignContractDto } from './dto/portal-sign-contract.dto';
+import { PortalAcceptQuoteDto } from './dto/portal-accept-quote.dto';
+import { PortalSubmitReviewDto } from './dto/portal-submit-review.dto';
 
 @ApiTags('Client Portal')
 @ApiBearerAuth()
@@ -214,5 +217,73 @@ export class ClientPortalController {
   })
   async requestAccountDeletion(@CurrentUser('sub') userId: string) {
     return this.clientPortalService.requestAccountDeletion(userId);
+  }
+
+  // ──────────────────────────────────────────────
+  //  Contracts
+  // ──────────────────────────────────────────────
+
+  @Get('contracts')
+  @ApiOperation({ summary: 'List client contracts' })
+  @ApiResponse({ status: 200, description: 'List of contracts' })
+  async getContracts(@CurrentUser('sub') userId: string) {
+    return this.clientPortalService.getContracts(userId);
+  }
+
+  @Post('contracts/:id/sign')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Sign a contract from client portal' })
+  @ApiResponse({ status: 200, description: 'Contract signed' })
+  @ApiResponse({ status: 400, description: 'Contract cannot be signed' })
+  @ApiResponse({ status: 404, description: 'Contract not found' })
+  async signContract(
+    @CurrentUser('sub') userId: string,
+    @Param('id', UuidValidationPipe) contractId: string,
+    @Body() dto: PortalSignContractDto,
+  ) {
+    return this.clientPortalService.signContract(userId, contractId, dto);
+  }
+
+  // ──────────────────────────────────────────────
+  //  Quotes
+  // ──────────────────────────────────────────────
+
+  @Get('quotes')
+  @ApiOperation({ summary: 'List client quotes' })
+  @ApiResponse({ status: 200, description: 'List of quotes' })
+  async getQuotes(@CurrentUser('sub') userId: string) {
+    return this.clientPortalService.getQuotes(userId);
+  }
+
+  @Post('quotes/:id/accept')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Accept a quote from client portal' })
+  @ApiResponse({ status: 200, description: 'Quote accepted' })
+  @ApiResponse({ status: 400, description: 'Quote cannot be accepted' })
+  @ApiResponse({ status: 404, description: 'Quote not found' })
+  async acceptQuote(
+    @CurrentUser('sub') userId: string,
+    @Param('id', UuidValidationPipe) quoteId: string,
+    @Body() dto: PortalAcceptQuoteDto,
+  ) {
+    return this.clientPortalService.acceptQuote(userId, quoteId, dto);
+  }
+
+  // ──────────────────────────────────────────────
+  //  Reviews
+  // ──────────────────────────────────────────────
+
+  @Post('reviews')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Submit a review from client portal' })
+  @ApiResponse({ status: 201, description: 'Review submitted' })
+  @ApiResponse({ status: 400, description: 'Booking not completed' })
+  @ApiResponse({ status: 404, description: 'Booking not found' })
+  @ApiResponse({ status: 409, description: 'Review already exists' })
+  async submitReview(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: PortalSubmitReviewDto,
+  ) {
+    return this.clientPortalService.submitReview(userId, dto);
   }
 }
