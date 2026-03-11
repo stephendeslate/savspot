@@ -143,6 +143,20 @@ export const envSchema = z.object({
     .string()
     .optional(),
 
+  // ---- Microsoft / Outlook Calendar OAuth ----
+  MICROSOFT_CLIENT_ID: z
+    .string()
+    .optional(),
+
+  MICROSOFT_CLIENT_SECRET: z
+    .string()
+    .optional(),
+
+  MICROSOFT_REDIRECT_URI: z
+    .string()
+    .url()
+    .default('http://localhost:3001/api/auth/outlook-calendar/callback'),
+
   // ---- Sentry (Error Tracking) ----
   SENTRY_DSN: z
     .string()

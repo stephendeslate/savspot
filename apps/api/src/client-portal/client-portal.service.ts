@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
   Logger,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -18,6 +19,9 @@ import {
   evaluateCancellationPolicy,
   CancellationPolicy,
 } from '../bookings/cancellation-policy.evaluator';
+import { PortalSignContractDto } from './dto/portal-sign-contract.dto';
+import { PortalAcceptQuoteDto } from './dto/portal-accept-quote.dto';
+import { PortalSubmitReviewDto } from './dto/portal-submit-review.dto';
 
 /**
  * Architectural decision: When migrating off superuser DB role, use a service-role
@@ -693,5 +697,225 @@ export class ClientPortalService {
     );
 
     return dataRequest;
+  }
+
+  // ──────────────────────────────────────────────
+  //  Contracts
+  // ──────────────────────────────────────────────
+
+  async getContracts(userId: string) {
+    return this.prisma.contract.findMany({
+      where: {
+        booking: { clientId: userId },
+      },
+      include: {
+        booking: {
+          select: {
+            id: true,
+            startTime: true,
+            service: { select: { id: true, name: true } },
+          },
+        },
+        tenant: {
+          select: { id: true, name: true, slug: true },
+        },
+        signatures: {
+          where: { signerId: userId },
+          select: { id: true, signedAt: true, role: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async signContract(
+    userId: string,
+    contractId: string,
+    dto: PortalSignContractDto,
+  ) {
+    const contract = await this.prisma.contract.findFirst({
+      where: {
+        id: contractId,
+        booking: { clientId: userId },
+      },
+      include: {
+        signatures: { where: { signerId: userId } },
+      },
+    });
+
+    if (!contract) {
+      throw new NotFoundException('Contract not found');
+    }
+
+    if (!['SENT', 'PARTIALLY_SIGNED'].includes(contract.status)) {
+      throw new BadRequestException(
+        `Cannot sign a contract with status ${contract.status}`,
+      );
+    }
+
+    if (contract.signatures.length > 0 && contract.signatures[0]?.signedAt) {
+      throw new BadRequestException('You have already signed this contract');
+    }
+
+    const now = new Date();
+
+    const signature = await this.prisma.contractSignature.create({
+      data: {
+        contractId,
+        signerId: userId,
+        role: 'CLIENT',
+        signatureData: dto.signatureData,
+        signatureType: dto.signatureType,
+        signedAt: now,
+        ipAddress: dto.ipAddress ?? null,
+        userAgent: dto.userAgent ?? null,
+        legalDisclosureAccepted: dto.legalDisclosureAccepted,
+        electronicConsentAt: now,
+      },
+    });
+
+    const allSignatures = await this.prisma.contractSignature.findMany({
+      where: { contractId },
+    });
+
+    const allSigned = allSignatures.every((sig) => sig.signedAt !== null);
+    const newStatus = allSigned ? 'SIGNED' : 'PARTIALLY_SIGNED';
+
+    await this.prisma.contract.update({
+      where: { id: contractId },
+      data: {
+        status: newStatus,
+        ...(allSigned ? { signedAt: now } : {}),
+      },
+    });
+
+    this.logger.log(
+      `Contract ${contractId} signed by client ${userId} (new status: ${newStatus})`,
+    );
+
+    return signature;
+  }
+
+  // ──────────────────────────────────────────────
+  //  Quotes
+  // ──────────────────────────────────────────────
+
+  async getQuotes(userId: string) {
+    return this.prisma.quote.findMany({
+      where: {
+        booking: { clientId: userId },
+      },
+      include: {
+        booking: {
+          select: {
+            id: true,
+            startTime: true,
+            service: { select: { id: true, name: true } },
+          },
+        },
+        tenant: {
+          select: { id: true, name: true, slug: true },
+        },
+        lineItems: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async acceptQuote(
+    userId: string,
+    quoteId: string,
+    dto: PortalAcceptQuoteDto,
+  ) {
+    const quote = await this.prisma.quote.findFirst({
+      where: {
+        id: quoteId,
+        booking: { clientId: userId },
+      },
+    });
+
+    if (!quote) {
+      throw new NotFoundException('Quote not found');
+    }
+
+    if (quote.status !== 'SENT') {
+      throw new BadRequestException(
+        `Cannot accept a quote with status ${quote.status}`,
+      );
+    }
+
+    if (quote.validUntil && quote.validUntil < new Date()) {
+      throw new BadRequestException('This quote has expired');
+    }
+
+    const updated = await this.prisma.quote.update({
+      where: { id: quoteId },
+      data: {
+        status: 'ACCEPTED',
+        acceptedAt: new Date(),
+        acceptedSignature: dto.signatureData ?? null,
+        notes: dto.notes
+          ? `${quote.notes ? quote.notes + '\n' : ''}Client: ${dto.notes}`
+          : quote.notes,
+      },
+      include: {
+        booking: {
+          select: {
+            id: true,
+            startTime: true,
+            service: { select: { id: true, name: true } },
+          },
+        },
+        lineItems: true,
+      },
+    });
+
+    this.logger.log(`Quote ${quoteId} accepted by client ${userId}`);
+
+    return updated;
+  }
+
+  // ──────────────────────────────────────────────
+  //  Reviews
+  // ──────────────────────────────────────────────
+
+  async submitReview(userId: string, dto: PortalSubmitReviewDto) {
+    const booking = await this.prisma.booking.findFirst({
+      where: { id: dto.bookingId, clientId: userId },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    if (booking.status !== 'COMPLETED') {
+      throw new BadRequestException(
+        'Reviews can only be submitted for completed bookings',
+      );
+    }
+
+    const existing = await this.prisma.review.findUnique({
+      where: { bookingId: dto.bookingId },
+    });
+
+    if (existing) {
+      throw new ConflictException('A review already exists for this booking');
+    }
+
+    const review = await this.prisma.review.create({
+      data: {
+        tenantId: booking.tenantId,
+        bookingId: dto.bookingId,
+        clientId: userId,
+        rating: dto.rating,
+        body: dto.comment ?? null,
+      },
+    });
+
+    this.logger.log(
+      `Review ${review.id} submitted via portal for booking ${dto.bookingId}`,
+    );
+
+    return review;
   }
 }

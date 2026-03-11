@@ -59,6 +59,14 @@ export const googleCalendarConfig = registerAs('googleCalendar', () => ({
   webhookUrl: process.env['GOOGLE_CALENDAR_WEBHOOK_URL'],
 }));
 
+export const microsoftCalendarConfig = registerAs('microsoftCalendar', () => ({
+  clientId: process.env['MICROSOFT_CLIENT_ID'],
+  clientSecret: process.env['MICROSOFT_CLIENT_SECRET'],
+  redirectUri:
+    process.env['MICROSOFT_REDIRECT_URI'] ||
+    'http://localhost:3001/api/auth/outlook-calendar/callback',
+}));
+
 export const vapidConfig = registerAs('vapid', () => ({
   publicKey: process.env['VAPID_PUBLIC_KEY'],
   privateKey: process.env['VAPID_PRIVATE_KEY'],
