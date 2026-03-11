@@ -111,4 +111,9 @@ async function bootstrap() {
   }
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  // Ensure fatal startup errors are logged to stdout before exit
+  // (Fly.io captures stdout/stderr in machine logs)
+  console.error('Fatal startup error:', err);
+  process.exit(1);
+});
