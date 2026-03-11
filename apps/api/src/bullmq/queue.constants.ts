@@ -10,6 +10,7 @@ export const QUEUE_CALENDAR = 'calendar';
 export const QUEUE_COMMUNICATIONS = 'communications';
 export const QUEUE_INVOICES = 'invoices';
 export const QUEUE_GDPR = 'gdpr';
+export const QUEUE_IMPORTS = 'imports';
 
 export const ALL_QUEUES = [
   QUEUE_BOOKINGS,
@@ -18,6 +19,7 @@ export const ALL_QUEUES = [
   QUEUE_COMMUNICATIONS,
   QUEUE_INVOICES,
   QUEUE_GDPR,
+  QUEUE_IMPORTS,
 ] as const;
 
 // ---- Queue Concurrency ----
@@ -28,6 +30,7 @@ export const QUEUE_CONCURRENCY: Record<string, number> = {
   [QUEUE_COMMUNICATIONS]: 10,
   [QUEUE_INVOICES]: 3,
   [QUEUE_GDPR]: 2,
+  [QUEUE_IMPORTS]: 3,
 };
 
 // ---- Job Names ----
@@ -69,6 +72,9 @@ export const JOB_CLEANUP_RETENTION = 'cleanupRetentionPolicy';
 export const JOB_PROCESS_DATA_EXPORT = 'processDataExportRequest';
 export const JOB_PROCESS_ACCOUNT_DELETION = 'processAccountDeletion';
 
+// Import queue jobs
+export const JOB_PROCESS_IMPORT = 'processImport';
+
 // Support queue jobs
 export const JOB_SUPPORT_TRIAGE = 'supportTriage';
 
@@ -92,6 +98,5 @@ export const CRON_DAILY_5AM_UTC = '0 5 * * *';
 export const CRON_DAILY_6AM_UTC = '0 6 * * *';
 export const CRON_DAILY_8AM_UTC = '0 8 * * *';
 export const CRON_MONDAY_8AM_UTC = '0 8 * * 1';
-export const CRON_DAILY_2AM_UTC = '0 2 * * *';
 export const CRON_DAILY_4AM_UTC = '0 4 * * *';
 export const CRON_SUNDAY_2AM_UTC = '0 2 * * 0';

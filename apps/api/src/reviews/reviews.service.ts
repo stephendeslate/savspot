@@ -12,6 +12,8 @@ import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
 import { ListReviewsDto } from './dto/list-reviews.dto';
 import { ReplyReviewDto } from './dto/reply-review.dto';
+import { AdminListReviewsDto } from './dto/admin-list-reviews.dto';
+import { PublishReviewDto } from './dto/publish-review.dto';
 import { clampPageSize } from '../common/utils/pagination';
 
 @Injectable()
@@ -247,6 +249,76 @@ export class ReviewsService {
 
     this.logger.log(
       `Review ${reviewId} replied to by ${userId}`,
+    );
+
+    return updated;
+  }
+
+  async adminFindAll(tenantId: string, filters: AdminListReviewsDto) {
+    const { rating, isPublished, hasResponse, sortOrder = 'desc', page = 1, limit: rawLimit = 20 } = filters;
+    const limit = clampPageSize(rawLimit);
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.ReviewWhereInput = { tenantId };
+
+    if (rating !== undefined) {
+      where.rating = rating;
+    }
+
+    if (isPublished !== undefined) {
+      where.isPublished = isPublished;
+    }
+
+    if (hasResponse === true) {
+      where.response = { not: null };
+    } else if (hasResponse === false) {
+      where.response = null;
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.review.findMany({
+        where,
+        include: {
+          photos: { orderBy: { sortOrder: 'asc' } },
+          client: { select: { id: true, name: true, avatarUrl: true } },
+          booking: { select: { id: true, serviceId: true, startTime: true } },
+          respondedByUser: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: sortOrder },
+        skip,
+        take: limit,
+      }),
+      this.prisma.review.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async togglePublish(tenantId: string, reviewId: string, dto: PublishReviewDto) {
+    const review = await this.prisma.review.findFirst({
+      where: { id: reviewId, tenantId },
+    });
+
+    if (!review) {
+      throw new NotFoundException('Review not found');
+    }
+
+    const updated = await this.prisma.review.update({
+      where: { id: reviewId },
+      data: { isPublished: dto.isPublished },
+      include: { photos: true },
+    });
+
+    this.logger.log(
+      `Review ${reviewId} ${dto.isPublished ? 'published' : 'unpublished'}`,
     );
 
     return updated;

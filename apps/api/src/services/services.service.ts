@@ -182,6 +182,44 @@ export class ServicesService {
   }
 
   /**
+   * Get the preference template for a service.
+   */
+  async getPreferenceTemplate(tenantId: string, serviceId: string) {
+    const service = await this.findById(tenantId, serviceId);
+    return {
+      serviceId: service.id,
+      template: service.preferenceTemplate ?? null,
+    };
+  }
+
+  /**
+   * Set or update the preference template for a service.
+   */
+  async setPreferenceTemplate(
+    tenantId: string,
+    serviceId: string,
+    template: Record<string, unknown>,
+  ) {
+    await this.findById(tenantId, serviceId);
+
+    const updated = await this.prisma.service.update({
+      where: { id: serviceId },
+      data: {
+        preferenceTemplate: template as Prisma.InputJsonValue,
+      },
+      select: {
+        id: true,
+        preferenceTemplate: true,
+      },
+    });
+
+    return {
+      serviceId: updated.id,
+      template: updated.preferenceTemplate,
+    };
+  }
+
+  /**
    * Copy a service, creating a duplicate with " (Copy)" appended to the name.
    */
   async copy(tenantId: string, id: string) {

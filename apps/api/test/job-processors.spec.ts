@@ -16,6 +16,7 @@ function makePrisma() {
     $executeRaw: vi.fn(),
     $transaction: vi.fn(),
     booking: { findFirst: vi.fn() },
+    auditLog: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
   };
 }
 
@@ -101,6 +102,7 @@ describe('CleanupRetentionHandler', () => {
       dateReservation: { deleteMany: vi.fn().mockResolvedValue({ count: 1 }) },
       bookingSession: { deleteMany: vi.fn().mockResolvedValue({ count: 2 }) },
       notification: { deleteMany: vi.fn().mockResolvedValue({ count: 3 }) },
+      communication: { deleteMany: vi.fn().mockResolvedValue({ count: 4 }) },
     };
     prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
       fn(mockTx),
@@ -114,6 +116,7 @@ describe('CleanupRetentionHandler', () => {
     expect(mockTx.dateReservation.deleteMany).toHaveBeenCalledTimes(1);
     expect(mockTx.bookingSession.deleteMany).toHaveBeenCalledTimes(1);
     expect(mockTx.notification.deleteMany).toHaveBeenCalledTimes(1);
+    expect(mockTx.communication.deleteMany).toHaveBeenCalledTimes(1);
 
     // Verify reservation cutoff is approximately 30 days
     const resCall = mockTx.dateReservation.deleteMany.mock.calls[0]![0];
