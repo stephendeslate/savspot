@@ -25,6 +25,7 @@ import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { RescheduleBookingDto } from './dto/reschedule-booking.dto';
 import { WalkInBookingDto } from './dto/walk-in-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
+import { CheckOutDto } from './dto/check-out.dto';
 import { MarkPaidDto } from '../payments/dto/mark-paid.dto';
 
 @ApiTags('Bookings')
@@ -149,28 +150,29 @@ export class BookingsController {
 
   @Post(':id/check-in')
   @TenantRoles('OWNER', 'ADMIN', 'STAFF')
-  @ApiOperation({ summary: 'Check in a client (alias for arrive)' })
-  @ApiResponse({ status: 200, description: 'Booking marked as arrived' })
-  @ApiResponse({ status: 400, description: 'Invalid state transition' })
+  @ApiOperation({ summary: 'Check in a client for their booking' })
+  @ApiResponse({ status: 200, description: 'Client checked in' })
+  @ApiResponse({ status: 400, description: 'Invalid check-in state' })
   async checkIn(
     @Param('tenantId', UuidValidationPipe) tenantId: string,
     @Param('id', UuidValidationPipe) id: string,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.bookingsService.markArrived(tenantId, id, userId);
+    return this.bookingsService.checkIn(tenantId, id, userId);
   }
 
   @Post(':id/check-out')
   @TenantRoles('OWNER', 'ADMIN', 'STAFF')
-  @ApiOperation({ summary: 'Check out a client (alias for complete)' })
-  @ApiResponse({ status: 200, description: 'Booking marked as completed' })
-  @ApiResponse({ status: 400, description: 'Invalid state transition' })
+  @ApiOperation({ summary: 'Check out a client from their booking' })
+  @ApiResponse({ status: 200, description: 'Client checked out' })
+  @ApiResponse({ status: 400, description: 'Invalid check-out state' })
   async checkOut(
     @Param('tenantId', UuidValidationPipe) tenantId: string,
     @Param('id', UuidValidationPipe) id: string,
     @CurrentUser('sub') userId: string,
+    @Body() dto: CheckOutDto,
   ) {
-    return this.bookingsService.markCompleted(tenantId, id, userId);
+    return this.bookingsService.checkOut(tenantId, id, userId, dto.notes);
   }
 
   @Post('walk-in')

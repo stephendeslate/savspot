@@ -1,7 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Test, TestingModule } from '@nestjs/testing';
 import { MfaController } from '@/auth/mfa/mfa.controller';
-import { MfaService } from '@/auth/mfa/mfa.service';
 
 describe('MfaController', () => {
   let controller: MfaController;
@@ -13,7 +11,7 @@ describe('MfaController', () => {
     useRecoveryCode: ReturnType<typeof vi.fn>;
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mfaService = {
       initSetup: vi.fn(),
       confirmSetup: vi.fn(),
@@ -22,17 +20,7 @@ describe('MfaController', () => {
       useRecoveryCode: vi.fn(),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [MfaController],
-      providers: [
-        {
-          provide: MfaService,
-          useValue: mfaService,
-        },
-      ],
-    }).compile();
-
-    controller = module.get<MfaController>(MfaController);
+    controller = new MfaController(mfaService as never);
   });
 
   it('should be defined', () => {

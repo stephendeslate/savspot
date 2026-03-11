@@ -747,6 +747,72 @@ export class BookingsService {
   }
 
   /**
+   * Check in a client for their booking.
+   * Requires booking status = CONFIRMED and checkInStatus = PENDING.
+   */
+  async checkIn(tenantId: string, bookingId: string, staffUserId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+
+      const booking = await tx.booking.findUnique({
+        where: { id: bookingId },
+        select: { id: true, status: true, checkInStatus: true },
+      });
+
+      if (!booking) throw new NotFoundException('Booking not found');
+      if (booking.status !== 'CONFIRMED') {
+        throw new BadRequestException('Booking must be CONFIRMED for check-in');
+      }
+      if (booking.checkInStatus !== 'PENDING') {
+        throw new BadRequestException('Booking is not in PENDING check-in status');
+      }
+
+      return tx.booking.update({
+        where: { id: bookingId },
+        data: {
+          checkInStatus: 'CHECKED_IN',
+          checkedInAt: new Date(),
+          checkedInBy: staffUserId,
+        },
+      });
+    });
+  }
+
+  /**
+   * Check out a client from their booking.
+   * Requires checkInStatus = CHECKED_IN.
+   */
+  async checkOut(tenantId: string, bookingId: string, staffUserId: string, notes?: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+
+      const booking = await tx.booking.findUnique({
+        where: { id: bookingId },
+        select: { id: true, checkInStatus: true },
+      });
+
+      if (!booking) throw new NotFoundException('Booking not found');
+      if (booking.checkInStatus !== 'CHECKED_IN') {
+        throw new BadRequestException('Booking must be CHECKED_IN for check-out');
+      }
+
+      const data: Record<string, unknown> = {
+        checkInStatus: 'CHECKED_OUT',
+        checkedOutAt: new Date(),
+        checkedOutBy: staffUserId,
+      };
+      if (notes !== undefined) {
+        data['notes'] = notes;
+      }
+
+      return tx.booking.update({
+        where: { id: bookingId },
+        data,
+      });
+    });
+  }
+
+  /**
    * Update booking notes.
    */
   async update(tenantId: string, id: string, notes?: string) {

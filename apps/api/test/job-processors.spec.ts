@@ -163,11 +163,12 @@ describe('ProcessCompletedBookingsHandler', () => {
   });
 
   it('should query for confirmed bookings past end time', async () => {
+    // First call: detectNoShows phase; second call: auto-complete phase
     prisma.$queryRaw.mockResolvedValue([]);
 
     await handler.handle(makeJob());
 
-    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
   });
 
   it('should update booking status to COMPLETED in a transaction', async () => {
@@ -184,7 +185,8 @@ describe('ProcessCompletedBookingsHandler', () => {
       source: 'ONLINE',
     };
 
-    prisma.$queryRaw.mockResolvedValue([eligibleBooking]);
+    // First $queryRaw: detectNoShows (empty); second: auto-complete
+    prisma.$queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([eligibleBooking]);
 
     const mockTx = {
       $executeRaw: vi.fn(),
@@ -223,7 +225,8 @@ describe('ProcessCompletedBookingsHandler', () => {
       source: 'WALK_IN',
     };
 
-    prisma.$queryRaw.mockResolvedValue([eligibleBooking]);
+    // First $queryRaw: detectNoShows (empty); second: auto-complete
+    prisma.$queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([eligibleBooking]);
     prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
       fn({
         $executeRaw: vi.fn(),
@@ -249,6 +252,7 @@ describe('ProcessCompletedBookingsHandler', () => {
   });
 
   it('should handle empty result (no eligible bookings)', async () => {
+    // Both detectNoShows and auto-complete return empty
     prisma.$queryRaw.mockResolvedValue([]);
 
     await handler.handle(makeJob());
@@ -283,7 +287,8 @@ describe('ProcessCompletedBookingsHandler', () => {
       source: 'ONLINE',
     };
 
-    prisma.$queryRaw.mockResolvedValue([booking1, booking2]);
+    // First $queryRaw: detectNoShows (empty); second: auto-complete with bookings
+    prisma.$queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([booking1, booking2]);
 
     let callCount = 0;
     prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {

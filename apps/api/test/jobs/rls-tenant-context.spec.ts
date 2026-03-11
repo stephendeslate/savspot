@@ -282,20 +282,23 @@ describe('RLS tenant context in BullMQ job processors', () => {
       const events = { emitBookingCompleted: vi.fn() };
       const handler = new ProcessCompletedBookingsHandler(prisma as never, events as never);
 
-      prisma.$queryRaw.mockResolvedValue([
-        {
-          id: 'booking-comp',
-          tenant_id: 'tenant-comp',
-          service_id: 'svc-1',
-          client_id: 'client-1',
-          start_time: new Date(),
-          end_time: new Date(),
-          client_email: 'a@b.com',
-          client_name: 'Test',
-          service_name: 'Svc',
-          source: 'ONLINE',
-        },
-      ]);
+      // First $queryRaw: detectNoShows (empty); second: auto-complete with booking
+      prisma.$queryRaw
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            id: 'booking-comp',
+            tenant_id: 'tenant-comp',
+            service_id: 'svc-1',
+            client_id: 'client-1',
+            start_time: new Date(),
+            end_time: new Date(),
+            client_email: 'a@b.com',
+            client_name: 'Test',
+            service_name: 'Svc',
+            source: 'ONLINE',
+          },
+        ]);
 
       const capturedTenantIds: string[] = [];
       prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {

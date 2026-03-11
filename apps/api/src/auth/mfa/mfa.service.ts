@@ -11,6 +11,7 @@ import {
   createCipheriv,
   createDecipheriv,
 } from 'crypto';
+import { Prisma } from '../../../../../prisma/generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TokenService, JwtPayload } from '../services/token.service';
 
@@ -175,7 +176,7 @@ export class MfaService {
       data: {
         mfaEnabled: false,
         mfaSecret: null,
-        mfaRecoveryCodes: null,
+        mfaRecoveryCodes: Prisma.DbNull,
       },
     });
 
