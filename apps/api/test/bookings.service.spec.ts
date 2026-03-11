@@ -96,7 +96,8 @@ describe('BookingsService', () => {
     prisma = makePrisma();
     payments = makePayments();
     const events = makeEvents();
-    service = new BookingsService(prisma as never, payments as never, events as never);
+    const referrals = { validateAndResolveReferralCode: vi.fn(), incrementUsageCount: vi.fn() };
+    service = new BookingsService(prisma as never, payments as never, events as never, referrals as never);
   });
 
   // -----------------------------------------------------------------------
@@ -342,7 +343,8 @@ describe('BookingsService', () => {
 
     beforeEach(() => {
       events = makeEvents();
-      service = new BookingsService(prisma as never, payments as never, events as never);
+      const referrals = { validateAndResolveReferralCode: vi.fn(), incrementUsageCount: vi.fn() };
+      service = new BookingsService(prisma as never, payments as never, events as never, referrals as never);
     });
 
     it('IN_PROGRESS → COMPLETED allowed', async () => {

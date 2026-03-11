@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationsService, CreateAndSendParams } from '../communications/communications.service';
 import { SmsService } from '../sms/sms.service';
 import { InvoicesService } from '../invoices/invoices.service';
+import { BrowserPushService } from '../browser-push/browser-push.service';
 import {
   BOOKING_CREATED,
   BOOKING_CONFIRMED,
@@ -47,6 +48,7 @@ export class WorkflowEngineService {
     private readonly smsService: SmsService,
     private readonly configService: ConfigService,
     private readonly invoicesService: InvoicesService,
+    private readonly browserPushService: BrowserPushService,
   ) {
     this.webUrl = this.configService.get<string>('WEB_URL', 'http://localhost:3000');
   }
@@ -405,9 +407,7 @@ export class WorkflowEngineService {
         break;
 
       case 'SEND_PUSH':
-        this.logger.warn(
-          `SEND_PUSH not yet implemented — automation=${automation.id}`,
-        );
+        await this.executeSendPush(automation, config, payload);
         break;
 
       default:
@@ -625,6 +625,55 @@ export class WorkflowEngineService {
     } catch (error) {
       this.logger.error(
         `Failed to create in-app notification for automation ${automation.id}: ${error}`,
+      );
+    }
+  }
+
+  /**
+   * SEND_PUSH action — sends a browser push notification to the client.
+   * Payload: { userId?: string, title?: string, body?: string }
+   * Falls back to the booking client if userId is not specified.
+   */
+  private async executeSendPush(
+    automation: { id: string },
+    config: Record<string, unknown>,
+    payload: BookingEventPayload,
+  ): Promise<void> {
+    const userId = config['userId']
+      ? String(config['userId'])
+      : payload.clientId;
+    const title = config['title']
+      ? String(config['title'])
+      : `Booking update: ${payload.serviceName}`;
+    const body = config['body']
+      ? String(config['body'])
+      : `Your booking for ${payload.serviceName} has been updated.`;
+
+    this.logger.log(
+      `Executing SEND_PUSH: automation=${automation.id} user=${userId}`,
+    );
+
+    try {
+      const sentCount = await this.browserPushService.sendToUser(
+        userId,
+        payload.tenantId,
+        {
+          title,
+          body,
+          data: {
+            bookingId: payload.bookingId,
+            serviceId: payload.serviceId,
+            automationId: automation.id,
+          },
+        },
+      );
+
+      this.logger.log(
+        `Push sent to ${sentCount} subscription(s) for automation=${automation.id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send push for automation ${automation.id}: ${error}`,
       );
     }
   }

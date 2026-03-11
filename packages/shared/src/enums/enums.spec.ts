@@ -84,6 +84,12 @@ import {
   WorkflowStageAutomationType,
   WorkflowStageTriggerTime,
   WorkflowStageProgressionCondition,
+  // Voice
+  VoiceCallDirection,
+  VoiceCallStatus,
+  // Automation
+  AutomationExecutionStatus,
+  WebhookDeliveryStatus,
 } from './index.js';
 
 // ---------------------------------------------------------------------------
@@ -464,5 +470,51 @@ describe('Note Enums', () => {
       expect.arrayContaining(['BOOKING', 'CLIENT']),
     );
     expect(NoteEntityType.options).toHaveLength(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Voice enums
+// ---------------------------------------------------------------------------
+describe('Voice Enums', () => {
+  testZodEnum('VoiceCallDirection', VoiceCallDirection);
+
+  it('VoiceCallDirection should have INBOUND and OUTBOUND', () => {
+    expect(VoiceCallDirection.options).toEqual(
+      expect.arrayContaining(['INBOUND', 'OUTBOUND']),
+    );
+    expect(VoiceCallDirection.options).toHaveLength(2);
+  });
+
+  testZodEnum('VoiceCallStatus', VoiceCallStatus);
+
+  it('VoiceCallStatus should include full call lifecycle', () => {
+    expect(VoiceCallStatus.options).toEqual(
+      expect.arrayContaining(['RINGING', 'IN_PROGRESS', 'COMPLETED', 'BUSY', 'NO_ANSWER', 'FAILED']),
+    );
+    expect(VoiceCallStatus.options).toHaveLength(6);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Automation enums
+// ---------------------------------------------------------------------------
+describe('Automation Enums', () => {
+  testZodEnum('AutomationExecutionStatus', AutomationExecutionStatus);
+
+  it('AutomationExecutionStatus should include full execution lifecycle', () => {
+    expect(AutomationExecutionStatus.options).toEqual(
+      expect.arrayContaining(['PENDING', 'IN_PROGRESS', 'AWAITING_APPROVAL', 'SUCCEEDED', 'FAILED', 'CANCELLED']),
+    );
+    expect(AutomationExecutionStatus.options).toHaveLength(6);
+  });
+
+  testZodEnum('WebhookDeliveryStatus', WebhookDeliveryStatus);
+
+  it('WebhookDeliveryStatus should include delivery states', () => {
+    expect(WebhookDeliveryStatus.options).toEqual(
+      expect.arrayContaining(['PENDING', 'SUCCEEDED', 'FAILED', 'RETRYING']),
+    );
+    expect(WebhookDeliveryStatus.options).toHaveLength(4);
   });
 });

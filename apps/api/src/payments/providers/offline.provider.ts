@@ -58,7 +58,7 @@ export class OfflineProvider implements PaymentProviderInterface {
     );
   }
 
-  async createRefund(_params: CreateRefundParams): Promise<RefundResult> { // eslint-disable-line @typescript-eslint/no-unused-vars
+  async createRefund(_params: CreateRefundParams): Promise<RefundResult> {  
     throw new BadRequestException(
       'Offline payment provider does not support this operation',
     );

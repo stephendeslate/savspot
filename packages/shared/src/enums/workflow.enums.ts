@@ -27,6 +27,9 @@ export const WorkflowActionType = z.enum([
   'SEND_SMS',
   'SEND_PUSH',
   'SEND_NOTIFICATION',
+  'CREATE_FOLLOWUP',
+  'ADD_NOTE',
+  'UPDATE_STATUS',
 ]);
 export type WorkflowActionType = z.infer<typeof WorkflowActionType>;
 
@@ -59,5 +62,9 @@ export const WorkflowStageProgressionCondition = z.enum([
   'PAYMENT_RECEIVED',
   'CONTRACT_SIGNED',
   'TASKS_COMPLETED',
+  'TIME_DELAY',
+  'ON_TRIGGER',
+  'MANUAL_APPROVAL',
+  'CONDITIONAL_CHECK',
 ]);
 export type WorkflowStageProgressionCondition = z.infer<typeof WorkflowStageProgressionCondition>;

@@ -3,6 +3,7 @@ import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReservationService } from './reservation.service';
 import { PaymentsService } from '../payments/payments.service';
+import { ReferralsService } from '../referrals/referrals.service';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
 import { EventsService } from '../events/events.service';
@@ -43,6 +44,7 @@ export class BookingSessionsService {
     private readonly paymentsService: PaymentsService,
     private readonly eventsService: EventsService,
     private readonly consentService: ConsentService,
+    private readonly referralsService: ReferralsService,
   ) {}
 
   /**
@@ -50,6 +52,18 @@ export class BookingSessionsService {
    * Resolves the booking steps based on service configuration.
    */
   async create(tenantId: string, dto: CreateSessionDto) {
+    // Validate referral code if provided
+    let referralLinkId: string | null = null;
+    if (dto.referralCode) {
+      referralLinkId = await this.referralsService.validateAndResolveReferralCode(
+        tenantId,
+        dto.referralCode,
+      );
+      if (!referralLinkId) {
+        throw new BadRequestException('Invalid or expired referral code');
+      }
+    }
+
     const resolvedSteps = await this.resolveSteps(tenantId, dto.serviceId);
 
     // Pre-populate session data with service info when serviceId is provided
@@ -71,6 +85,10 @@ export class BookingSessionsService {
           depositConfig: service.depositConfig ?? null,
         };
       }
+    }
+
+    if (referralLinkId) {
+      initialData['referralLinkId'] = referralLinkId;
     }
 
     return this.prisma.bookingSession.create({
@@ -311,6 +329,7 @@ export class BookingSessionsService {
 
     const guestCount = (sessionData['guestCount'] as number | undefined) ?? null;
     const notes = (sessionData['notes'] as string | undefined) ?? null;
+    const referralLinkId = (sessionData['referralLinkId'] as string | undefined) ?? null;
 
     // Calculate price based on pricing model
     const durationMinutes = (heldReservation.endTime.getTime() - heldReservation.startTime.getTime()) / 60000;
@@ -344,6 +363,7 @@ export class BookingSessionsService {
           guestCount,
           notes,
           source: session.source,
+          referralLinkId,
           guestDetails: sessionData['guestEmail'] ? {
             email: sessionData['guestEmail'],
             name: sessionData['guestName'],
@@ -381,6 +401,14 @@ export class BookingSessionsService {
     this.eventsService.emitBookingCreated(eventPayload);
     if (bookingStatus === 'CONFIRMED') {
       this.eventsService.emitBookingConfirmed(eventPayload);
+    }
+
+    // Increment referral link usage count (fire-and-forget)
+    if (referralLinkId) {
+      this.referralsService.incrementUsageCount(referralLinkId).catch((err) => {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        this.logger.warn(`Failed to increment referral usage count for ${referralLinkId}: ${message}`);
+      });
     }
 
     // Create DATA_PROCESSING consent record (GDPR requirement)
@@ -689,6 +717,8 @@ export class BookingSessionsService {
           })
         : Number(session.service.basePrice);
 
+      const paymentReferralLinkId = (paymentSessionData['referralLinkId'] as string | undefined) ?? null;
+
       booking = await this.prisma.booking.create({
         data: {
           tenantId: session.tenantId,
@@ -705,12 +735,21 @@ export class BookingSessionsService {
             (sessionData['guestCount'] as number | undefined) ?? null,
           notes: (sessionData['notes'] as string | undefined) ?? null,
           source: session.source,
+          referralLinkId: paymentReferralLinkId,
         },
       });
 
       this.logger.log(
         `Booking ${booking.id} created in PENDING for payment processing`,
       );
+
+      // Increment referral link usage count (fire-and-forget)
+      if (paymentReferralLinkId) {
+        this.referralsService.incrementUsageCount(paymentReferralLinkId).catch((err) => {
+          const message = err instanceof Error ? err.message : 'Unknown error';
+          this.logger.warn(`Failed to increment referral usage count for ${paymentReferralLinkId}: ${message}`);
+        });
+      }
     }
 
     // Create the Stripe PaymentIntent

@@ -40,6 +40,13 @@ function makeSmsService() {
   };
 }
 
+function makeBrowserPushService() {
+  return {
+    sendToUser: vi.fn().mockResolvedValue(1),
+    sendToTenantAdmins: vi.fn().mockResolvedValue(1),
+  };
+}
+
 function baseCancelledPayload() {
   return {
     tenantId: TENANT_ID,
@@ -103,7 +110,8 @@ describe('WorkflowEngineService', () => {
     prisma.tenant.findUniqueOrThrow.mockResolvedValue(TENANT_BRANDING);
     const configService = { get: (key: string, defaultValue: string) => defaultValue } as never;
     const invoicesService = { createForBooking: vi.fn().mockResolvedValue({}) } as never;
-    service = new WorkflowEngineService(prisma as never, comms as never, smsService as never, configService, invoicesService);
+    const browserPushService = makeBrowserPushService();
+    service = new WorkflowEngineService(prisma as never, comms as never, smsService as never, configService, invoicesService, browserPushService as never);
   });
 
   // -----------------------------------------------------------------------

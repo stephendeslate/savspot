@@ -52,6 +52,13 @@ import { EmbedModule } from './embed/embed.module';
 import { AiOperationsModule } from './ai-operations/ai-operations.module';
 import { ImportsModule } from './imports/imports.module';
 import { AdminModule } from './admin/admin.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { ReferralsModule } from './referrals/referrals.module';
+import { CurrencyModule } from './currency/currency.module';
+import { PublicApiModule } from './public-api/public-api.module';
+import { AccountingModule } from './accounting/accounting.module';
+import { VoiceModule } from './voice/voice.module';
+import { DevicePushTokensModule } from './device-push-tokens/device-push-tokens.module';
 import { CustomThrottlerGuard } from './common/guards/throttle.guard';
 import { CsrfGuard } from './common/guards/csrf.guard';
 import { TenantStatusGuard } from './common/guards/tenant-status.guard';
@@ -141,6 +148,13 @@ import {
     AiOperationsModule,
     ImportsModule,
     AdminModule,
+    AnalyticsModule,
+    ReferralsModule,
+    CurrencyModule,
+    PublicApiModule,
+    AccountingModule,
+    VoiceModule,
+    DevicePushTokensModule,
   ],
   controllers: [AppController],
   providers: [

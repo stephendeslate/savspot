@@ -9,6 +9,10 @@ import {
   QUEUE_INVOICES,
   QUEUE_GDPR,
   QUEUE_IMPORTS,
+  QUEUE_CURRENCY_REFRESH,
+  QUEUE_WEBHOOKS,
+  QUEUE_VOICE_CALLS,
+  QUEUE_ACCOUNTING,
 } from './queue.constants';
 
 /**
@@ -51,6 +55,10 @@ import {
       { name: QUEUE_INVOICES },
       { name: QUEUE_GDPR },
       { name: QUEUE_IMPORTS },
+      { name: QUEUE_CURRENCY_REFRESH },
+      { name: QUEUE_WEBHOOKS },
+      { name: QUEUE_VOICE_CALLS },
+      { name: QUEUE_ACCOUNTING },
     ),
   ],
   exports: [BullModule],

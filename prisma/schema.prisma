@@ -583,6 +583,42 @@ enum BookingWorkflowOverrideType {
   ADD_STAGE
 }
 
+// --- Phase 3: Automation Execution ---
+
+enum AutomationExecutionStatus {
+  PENDING
+  IN_PROGRESS
+  AWAITING_APPROVAL
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+// --- Phase 3: Webhook Delivery ---
+
+enum WebhookDeliveryStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  RETRYING
+}
+
+// --- Phase 3: Voice ---
+
+enum VoiceCallDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum VoiceCallStatus {
+  RINGING
+  IN_PROGRESS
+  COMPLETED
+  BUSY
+  NO_ANSWER
+  FAILED
+}
+
 // --- Security Breach ---
 
 enum BreachType {
@@ -663,6 +699,11 @@ model Tenant {
   dpaVersion               String?                  @map("dpa_version")
   status                   TenantStatus             @default(ACTIVE)
   retentionOverrides       Json?                    @map("retention_overrides")
+  isPublic                 Boolean                  @default(false) @map("is_public")
+  voicePhoneNumber         String?                  @map("voice_phone_number")
+  voiceEnabled             Boolean                  @default(false) @map("voice_enabled")
+  voiceConfig              Json?                    @map("voice_config")
+  supportedCurrencies      String[]                 @default(["USD"]) @map("supported_currencies")
   createdAt                DateTime                 @default(now()) @map("created_at")
   updatedAt                DateTime                 @updatedAt @map("updated_at")
 
@@ -716,6 +757,10 @@ model Tenant {
   serviceAddons            ServiceAddon[]
   browserPushSubscriptions BrowserPushSubscription[]
   slotDemandInsights       SlotDemandInsight[]
+  automationExecutions     AutomationExecution[]
+  webhookEndpoints         WebhookEndpoint[]
+  voiceCallLogs            VoiceCallLog[]
+  accountingSyncLogs       AccountingSyncLog[]
 
   @@index([category])
   @@map("tenants")
@@ -779,6 +824,7 @@ model User {
   securityBreachesAssigned SecurityBreach[]
   browserPushSubscriptions BrowserPushSubscription[]
   insightsDismissed        SlotDemandInsight[]       @relation("InsightDismissedBy")
+  voiceCallsAsCaller       VoiceCallLog[]            @relation("VoiceCallCaller")
 
   @@map("users")
 }
@@ -871,6 +917,7 @@ model Booking {
   questionnaireResponses Json?               @map("questionnaire_responses")
   source                 BookingSource
   metadata               Json?
+  referralLinkId         String?             @map("referral_link_id")
   checkInStatus          CheckInStatus       @default(PENDING) @map("check_in_status")
   checkedInAt            DateTime?           @map("checked_in_at")
   checkedOutAt           DateTime?           @map("checked_out_at")
@@ -906,6 +953,9 @@ model Booking {
   review                   Review?
   calendarEvents           CalendarEvent[]
   messageThreads           MessageThread[]
+  referralLink             ReferralLink?             @relation(fields: [referralLinkId], references: [id])
+  automationExecutions     AutomationExecution[]
+  voiceCallLogs            VoiceCallLog[]
 
   @@index([tenantId])
   @@index([tenantId, serviceId, status, startTime, endTime])
@@ -913,6 +963,7 @@ model Booking {
   @@index([clientId, tenantId, source, status, createdAt])
   @@index([tenantId, startTime])
   @@index([tenantId, status])
+  @@index([referralLinkId])
   @@map("bookings")
 }
 
@@ -1786,8 +1837,9 @@ model WorkflowTemplate {
   updatedAt    DateTime             @updatedAt @map("updated_at")
 
   // Relations
-  tenant Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  stages WorkflowStage[]
+  tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  stages               WorkflowStage[]
+  automationExecutions AutomationExecution[]
 
   @@index([tenantId])
   @@map("workflow_templates")
@@ -1809,6 +1861,7 @@ model WorkflowStage {
   // Relations
   template                 WorkflowTemplate          @relation(fields: [templateId], references: [id], onDelete: Cascade)
   bookingWorkflowOverrides BookingWorkflowOverride[]
+  automationExecutions     AutomationExecution[]     @relation("CurrentStage")
 
   @@unique([templateId, order])
   @@map("workflow_stages")
@@ -2280,11 +2333,13 @@ model ApiKey {
   scopes     Json
   rateLimit  Int       @default(60) @map("rate_limit")
   lastUsedAt DateTime? @map("last_used_at")
-  expiresAt  DateTime? @map("expires_at")
-  isActive   Boolean   @default(true) @map("is_active")
-  createdBy  String    @map("created_by")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  revokedAt  DateTime? @map("revoked_at")
+  expiresAt     DateTime? @map("expires_at")
+  allowedIps    String[]  @map("allowed_ips")
+  lastRotatedAt DateTime? @map("last_rotated_at")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdBy     String    @map("created_by")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  revokedAt     DateTime? @map("revoked_at")
 
   // Relations
   tenant  Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -2327,16 +2382,18 @@ model ReferralLink {
   id         String    @id @default(uuid())
   tenantId   String    @map("tenant_id")
   code       String
-  name       String
-  createdBy  String    @map("created_by")
+  name              String
+  commissionPercent Decimal?  @map("commission_percent") @db.Decimal(5, 2)
+  createdBy         String    @map("created_by")
   usageCount Int       @default(0) @map("usage_count")
   isActive   Boolean   @default(true) @map("is_active")
   expiresAt  DateTime? @map("expires_at")
   createdAt  DateTime  @default(now()) @map("created_at")
 
   // Relations
-  tenant  Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  creator User   @relation(fields: [createdBy], references: [id])
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  creator  User      @relation(fields: [createdBy], references: [id])
+  bookings Booking[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
@@ -2466,7 +2523,8 @@ model AccountingConnection {
   errorMessage     String?                    @map("error_message")
 
   // Relations
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant   Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  syncLogs AccountingSyncLog[]
 
   @@index([tenantId])
   @@map("accounting_connections")
@@ -2537,4 +2595,155 @@ model CategoryBenchmark {
 
   @@unique([businessCategory, metricKey])
   @@map("category_benchmarks")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: Automation Executions
+// ---------------------------------------------------------------------------
+
+model AutomationExecution {
+  id               String                    @id @default(uuid())
+  tenantId         String                    @map("tenant_id")
+  templateId       String                    @map("template_id")
+  bookingId        String?                   @map("booking_id")
+  currentStageId   String?                   @map("current_stage_id")
+  triggerEvent     WorkflowTriggerEvent      @map("trigger_event")
+  triggerEventData Json?                     @map("trigger_event_data")
+  status           AutomationExecutionStatus @default(PENDING)
+  startedAt        DateTime                  @default(now()) @map("started_at")
+  completedAt      DateTime?                 @map("completed_at")
+  error            String?
+  stageResults     Json?                     @map("stage_results")
+  createdAt        DateTime                  @default(now()) @map("created_at")
+
+  // Relations
+  tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  template     WorkflowTemplate  @relation(fields: [templateId], references: [id])
+  booking      Booking?          @relation(fields: [bookingId], references: [id])
+  currentStage WorkflowStage?    @relation("CurrentStage", fields: [currentStageId], references: [id])
+
+  @@index([tenantId])
+  @@index([bookingId])
+  @@index([status])
+  @@map("automation_executions")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: Outgoing Webhooks
+// ---------------------------------------------------------------------------
+
+model WebhookEndpoint {
+  id              String    @id @default(uuid())
+  tenantId        String    @map("tenant_id")
+  url             String
+  secret          String
+  previousSecret  String?   @map("previous_secret")
+  secretRotatedAt DateTime? @map("secret_rotated_at")
+  events          String[]
+  isActive        Boolean   @default(true) @map("is_active")
+  maxAttempts     Int       @default(5) @map("max_attempts")
+  timeoutSeconds  Int       @default(10) @map("timeout_seconds")
+  description     String?
+  failureCount    Int       @default(0) @map("failure_count")
+  lastFailureAt   DateTime? @map("last_failure_at")
+  disabledReason  String?   @map("disabled_reason")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
+
+  @@index([tenantId])
+  @@map("webhook_endpoints")
+}
+
+model WebhookDelivery {
+  id              String                @id @default(uuid())
+  endpointId      String                @map("endpoint_id")
+  event           String
+  idempotencyKey  String                @unique @map("idempotency_key")
+  payload         Json
+  requestHeaders  Json?                 @map("request_headers")
+  responseStatus  Int?                  @map("response_status")
+  responseBody    String?               @map("response_body")
+  status          WebhookDeliveryStatus @default(PENDING)
+  attemptCount    Int                   @default(0) @map("attempt_count")
+  nextRetryAt     DateTime?             @map("next_retry_at")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  completedAt     DateTime?             @map("completed_at")
+
+  // Relations
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@index([endpointId])
+  @@index([status, nextRetryAt])
+  @@map("webhook_deliveries")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: Voice Call Logs
+// ---------------------------------------------------------------------------
+
+model VoiceCallLog {
+  id                 String             @id @default(uuid())
+  tenantId           String             @map("tenant_id")
+  callSid            String             @unique @map("call_sid")
+  callerNumber       String             @map("caller_number")
+  callerClientId     String?            @map("caller_client_id")
+  direction          VoiceCallDirection @default(INBOUND)
+  duration           Int?
+  status             VoiceCallStatus
+  aiHandled          Boolean            @default(false) @map("ai_handled")
+  transcript         Json?
+  toolCalls          Json?              @map("tool_calls")
+  aiConfidenceScores Json?              @map("ai_confidence_scores")
+  transferredAt      DateTime?          @map("transferred_at")
+  transferredTo      String?            @map("transferred_to")
+  recordingUrl       String?            @map("recording_url")
+  bookingId          String?            @map("booking_id")
+  createdAt          DateTime           @default(now()) @map("created_at")
+
+  // Relations
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  booking      Booking? @relation(fields: [bookingId], references: [id])
+  callerClient User?    @relation("VoiceCallCaller", fields: [callerClientId], references: [id])
+
+  @@index([tenantId])
+  @@index([createdAt])
+  @@index([callerClientId])
+  @@map("voice_call_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: Accounting Sync Logs
+// ---------------------------------------------------------------------------
+
+model AccountingSyncLog {
+  id              String               @id @default(uuid())
+  tenantId        String               @map("tenant_id")
+  connectionId    String               @map("connection_id")
+  entityType      String               @map("entity_type")
+  entityId        String               @map("entity_id")
+  direction       String               @default("OUTBOUND")
+  status          String               @default("PENDING")
+  externalId      String?              @map("external_id")
+  idempotencyKey  String               @unique @map("idempotency_key")
+  requestPayload  Json?                @map("request_payload")
+  responsePayload Json?                @map("response_payload")
+  errorMessage    String?              @map("error_message")
+  errorCode       String?              @map("error_code")
+  retryCount      Int                  @default(0) @map("retry_count")
+  syncedAt        DateTime?            @map("synced_at")
+  createdAt       DateTime             @default(now()) @map("created_at")
+
+  // Relations
+  tenant     Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  connection AccountingConnection @relation(fields: [connectionId], references: [id])
+
+  @@index([tenantId])
+  @@index([connectionId])
+  @@index([entityType, entityId])
+  @@index([status])
+  @@map("accounting_sync_logs")
 }

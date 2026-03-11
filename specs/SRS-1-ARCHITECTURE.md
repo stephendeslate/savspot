@@ -80,7 +80,7 @@ This document covers the technology stack, system architecture, multi-tenancy im
                     +----------v--+  +----v--------------+
                     |   Vercel    |  |    Mobile Apps     |
                     |  (Next.js)  |  | (Expo iOS/Android) |
-                    |  Admin CRM  |  |   ** Phase 2 **    |
+                    |  Admin CRM  |  |   ** Phase 3 **    |
                     |Client Portal|  +--------+-----------+           |
                     |Booking Pages|           |
                     +------+------+           |

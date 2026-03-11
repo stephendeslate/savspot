@@ -60,8 +60,7 @@ export class ApiKeyService {
     );
 
     // Strip keyHash from the returned record
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { keyHash: _hash, ...safeApiKey } = apiKey;
+    const { keyHash: _, ...safeApiKey } = apiKey;
     return { rawKey, apiKey: safeApiKey };
   }
 
@@ -129,8 +128,7 @@ export class ApiKeyService {
         this.logger.warn(`Failed to update lastUsedAt for key ${apiKey.id}: ${err.message}`);
       });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { keyHash: _hash, ...safeApiKey } = apiKey;
+    const { keyHash: _, ...safeApiKey } = apiKey;
     return safeApiKey;
   }
 
@@ -150,6 +148,8 @@ export class ApiKeyService {
         rateLimit: true,
         lastUsedAt: true,
         expiresAt: true,
+        allowedIps: true,
+        lastRotatedAt: true,
         isActive: true,
         createdBy: true,
         createdAt: true,
@@ -174,9 +174,67 @@ export class ApiKeyService {
 
     this.logger.log(`API key revoked: id=${keyId} tenant=${tenantId}`);
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { keyHash: _hash, ...safeApiKey } = apiKey;
+    const { keyHash: _, ...safeApiKey } = apiKey;
     return safeApiKey;
+  }
+
+  /**
+   * Rotate an API key: generate a new key and set the old key to expire
+   * after a 72-hour grace period so existing integrations can migrate.
+   */
+  async rotate(
+    tenantId: string,
+    keyId: string,
+    userId: string,
+  ): Promise<GeneratedApiKey> {
+    const existingKey = await this.prisma.apiKey.findFirst({
+      where: { id: keyId, tenantId, isActive: true },
+    });
+
+    if (!existingKey) {
+      throw new Error('API key not found or already revoked');
+    }
+
+    const gracePeriodMs = 72 * 60 * 60 * 1000;
+    const graceExpiry = new Date(Date.now() + gracePeriodMs);
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      await tx.apiKey.update({
+        where: { id: keyId },
+        data: {
+          expiresAt: graceExpiry,
+          lastRotatedAt: new Date(),
+        },
+      });
+
+      const prefix = crypto.randomBytes(KEY_PREFIX_LENGTH / 2 + 1).toString('hex').slice(0, KEY_PREFIX_LENGTH);
+      const secret = crypto.randomBytes(KEY_SECRET_BYTES).toString('hex');
+      const rawKey = `svs_${prefix}_${secret}`;
+      const keyHash = this.hashKey(rawKey);
+
+      const created = await tx.apiKey.create({
+        data: {
+          tenantId,
+          createdBy: userId,
+          name: existingKey.name,
+          prefix,
+          keyHash,
+          scopes: existingKey.scopes as Prisma.InputJsonValue,
+          rateLimit: existingKey.rateLimit,
+          allowedIps: existingKey.allowedIps,
+          lastRotatedAt: new Date(),
+        },
+      });
+
+      return { rawKey, created };
+    });
+
+    this.logger.log(
+      `API key rotated: old=${keyId} new=${result.created.id} tenant=${tenantId} graceExpiry=${graceExpiry.toISOString()}`,
+    );
+
+    const { keyHash: _hash, ...safeApiKey } = result.created;
+    return { rawKey: result.rawKey, apiKey: safeApiKey };
   }
 
   // ─── Private helpers ──────────────────────────────────────────
