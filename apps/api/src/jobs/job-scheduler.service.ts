@@ -24,20 +24,21 @@ import {
   JOB_PROCESS_DAILY_DIGESTS,
   JOB_CLEANUP_RETENTION,
   JOB_PROCESS_ACCOUNT_DELETION,
-  JOB_PROCESS_WEBHOOK_RETRIES,
-  JOB_DETECT_ORPHAN_PAYMENTS,
-  JOB_RECONCILE_PAYMENTS,
   CRON_EVERY_5_MIN,
   CRON_EVERY_15_MIN,
   CRON_EVERY_30_MIN,
   CRON_HOURLY,
   CRON_DAILY_3AM_UTC,
+  CRON_DAILY_4AM_UTC,
   CRON_DAILY_5AM_UTC,
   CRON_DAILY_6AM_UTC,
   CRON_DAILY_8AM_UTC,
   CRON_MONDAY_8AM_UTC,
-  CRON_EVERY_10_MIN,
-  CRON_DAILY_2AM_UTC,
+  CRON_SUNDAY_2AM_UTC,
+  JOB_COMPUTE_NO_SHOW_RISK,
+  JOB_COMPUTE_CLIENT_INSIGHTS,
+  JOB_COMPUTE_DEMAND_ANALYSIS,
+  JOB_COMPUTE_BENCHMARKS,
 } from '../bullmq/queue.constants';
 
 /**
@@ -73,9 +74,6 @@ export class JobSchedulerService implements OnModuleInit {
       { queue: this.paymentsQueue, name: JOB_SEND_PAYMENT_REMINDERS, pattern: CRON_EVERY_15_MIN },
       { queue: this.paymentsQueue, name: JOB_ENFORCE_PAYMENT_DEADLINES, pattern: CRON_DAILY_6AM_UTC },
       { queue: this.paymentsQueue, name: JOB_RETRY_FAILED_PAYMENTS, pattern: CRON_EVERY_30_MIN },
-      { queue: this.paymentsQueue, name: JOB_PROCESS_WEBHOOK_RETRIES, pattern: CRON_EVERY_10_MIN },
-      { queue: this.paymentsQueue, name: JOB_DETECT_ORPHAN_PAYMENTS, pattern: CRON_HOURLY },
-      { queue: this.paymentsQueue, name: JOB_RECONCILE_PAYMENTS, pattern: CRON_DAILY_2AM_UTC },
       // Calendar queue
       { queue: this.calendarQueue, name: JOB_CALENDAR_TWO_WAY_SYNC, pattern: CRON_EVERY_15_MIN },
       { queue: this.calendarQueue, name: JOB_CALENDAR_TOKEN_REFRESH, pattern: CRON_HOURLY },
@@ -89,6 +87,12 @@ export class JobSchedulerService implements OnModuleInit {
       // GDPR queue
       { queue: this.gdprQueue, name: JOB_CLEANUP_RETENTION, pattern: CRON_DAILY_3AM_UTC },
       { queue: this.gdprQueue, name: JOB_PROCESS_ACCOUNT_DELETION, pattern: CRON_DAILY_5AM_UTC },
+      { queue: this.gdprQueue, name: JOB_COMPUTE_BENCHMARKS, pattern: CRON_DAILY_5AM_UTC },
+      // AI Operations — bookings queue
+      { queue: this.bookingsQueue, name: JOB_COMPUTE_NO_SHOW_RISK, pattern: CRON_DAILY_4AM_UTC },
+      { queue: this.bookingsQueue, name: JOB_COMPUTE_DEMAND_ANALYSIS, pattern: CRON_SUNDAY_2AM_UTC },
+      // AI Operations — communications queue
+      { queue: this.commsQueue, name: JOB_COMPUTE_CLIENT_INSIGHTS, pattern: CRON_DAILY_3AM_UTC },
     ];
 
     for (const { queue, name, pattern } of schedules) {

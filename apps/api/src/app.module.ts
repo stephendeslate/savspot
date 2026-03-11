@@ -48,6 +48,8 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { QuotesModule } from './quotes/quotes.module';
+import { EmbedModule } from './embed/embed.module';
+import { AiOperationsModule } from './ai-operations/ai-operations.module';
 import { CustomThrottlerGuard } from './common/guards/throttle.guard';
 import { CsrfGuard } from './common/guards/csrf.guard';
 import { TenantStatusGuard } from './common/guards/tenant-status.guard';
@@ -132,6 +134,8 @@ import {
     MessagingModule,
     ContractsModule,
     QuotesModule,
+    EmbedModule,
+    AiOperationsModule,
   ],
   controllers: [AppController],
   providers: [

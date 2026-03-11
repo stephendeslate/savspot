@@ -76,6 +76,12 @@ export const JOB_SUPPORT_TRIAGE = 'supportTriage';
 export const JOB_PROCESS_HOURLY_DIGESTS = 'processHourlyDigests';
 export const JOB_PROCESS_DAILY_DIGESTS = 'processDailyDigests';
 
+// AI Operations queue jobs (Phase 2)
+export const JOB_COMPUTE_NO_SHOW_RISK = 'computeNoShowRisk';
+export const JOB_COMPUTE_CLIENT_INSIGHTS = 'computeClientInsights';
+export const JOB_COMPUTE_DEMAND_ANALYSIS = 'computeDemandAnalysis';
+export const JOB_COMPUTE_BENCHMARKS = 'computeBenchmarks';
+
 // ---- Cron Schedules ----
 export const CRON_EVERY_5_MIN = '*/5 * * * *';
 export const CRON_EVERY_15_MIN = '*/15 * * * *';
@@ -86,5 +92,6 @@ export const CRON_DAILY_5AM_UTC = '0 5 * * *';
 export const CRON_DAILY_6AM_UTC = '0 6 * * *';
 export const CRON_DAILY_8AM_UTC = '0 8 * * *';
 export const CRON_MONDAY_8AM_UTC = '0 8 * * 1';
-export const CRON_EVERY_10_MIN = '*/10 * * * *';
 export const CRON_DAILY_2AM_UTC = '0 2 * * *';
+export const CRON_DAILY_4AM_UTC = '0 4 * * *';
+export const CRON_SUNDAY_2AM_UTC = '0 2 * * 0';

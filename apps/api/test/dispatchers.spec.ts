@@ -35,6 +35,7 @@ describe('GdprDispatcher', () => {
       cleanupRetention as never,
       dataExport as never,
       accountDeletion as never,
+      makeHandler() as never,
     );
   });
 
@@ -85,6 +86,8 @@ describe('BookingsDispatcher', () => {
       abandonedRecovery as never,
       processCompleted as never,
       enforceApprovals as never,
+      makeHandler() as never,
+      makeHandler() as never,
     );
   });
 
@@ -163,6 +166,24 @@ describe('PaymentsDispatcher', () => {
     const job = makeJob('retryFailedPayments');
     await dispatcher.process(job);
     expect(retryFailed.handle).toHaveBeenCalledWith(job);
+  });
+
+  it('should route processWebhookRetries correctly', async () => {
+    const job = makeJob('processWebhookRetries');
+    await dispatcher.process(job);
+    expect(processWebhookRetries.handle).toHaveBeenCalledWith(job);
+  });
+
+  it('should route detectOrphanPayments correctly', async () => {
+    const job = makeJob('detectOrphanPayments');
+    await dispatcher.process(job);
+    expect(detectOrphanPayments.handle).toHaveBeenCalledWith(job);
+  });
+
+  it('should route reconcilePayments correctly', async () => {
+    const job = makeJob('reconcilePayments');
+    await dispatcher.process(job);
+    expect(reconcilePayments.handle).toHaveBeenCalledWith(job);
   });
 
   it('should not throw for unknown job names', async () => {
@@ -253,6 +274,7 @@ describe('CommunicationsDispatcher', () => {
       browserPush as never,
       supportTriage as never,
       notificationDigests as never,
+      makeHandler() as never,
     );
   });
 
