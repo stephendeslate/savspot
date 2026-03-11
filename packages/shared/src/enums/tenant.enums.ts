@@ -18,3 +18,18 @@ export type SubscriptionTier = z.infer<typeof SubscriptionTier>;
 
 export const TenantStatus = z.enum(['ACTIVE', 'SUSPENDED', 'DEACTIVATED']);
 export type TenantStatus = z.infer<typeof TenantStatus>;
+
+export const SubscriptionStatus = z.enum([
+  'ACTIVE',
+  'PAST_DUE',
+  'CANCELED',
+  'TRIALING',
+]);
+export type SubscriptionStatus = z.infer<typeof SubscriptionStatus>;
+
+export const SlotInsightType = z.enum([
+  'HIGH_DEMAND_SLOT',
+  'LOW_FILL_SLOT',
+  'CANCELLATION_PATTERN',
+]);
+export type SlotInsightType = z.infer<typeof SlotInsightType>;

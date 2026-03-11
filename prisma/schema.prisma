@@ -47,6 +47,19 @@ enum TenantStatus {
   DEACTIVATED
 }
 
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+enum SlotInsightType {
+  HIGH_DEMAND_SLOT
+  LOW_FILL_SLOT
+  CANCELLATION_PATTERN
+}
+
 enum PlatformRole {
   PLATFORM_ADMIN
   USER
@@ -638,6 +651,10 @@ model Tenant {
   paymentProviderOnboarded Boolean                  @default(false) @map("payment_provider_onboarded")
   subscriptionTier         SubscriptionTier         @default(FREE) @map("subscription_tier")
   subscriptionProviderId   String?                  @map("subscription_provider_id")
+  subscriptionStatus       SubscriptionStatus       @default(ACTIVE) @map("subscription_status")
+  subscriptionCurrentPeriodEnd DateTime?             @map("subscription_current_period_end")
+  subscriptionGracePeriodEnd   DateTime?             @map("subscription_grace_period_end")
+  benchmarkOptOut          Boolean                  @default(false) @map("benchmark_opt_out")
   isPublished              Boolean                  @default(false) @map("is_published")
   searchVector             Unsupported("tsvector")? @map("search_vector")
   tosAcceptedAt            DateTime?                @map("tos_accepted_at")
@@ -698,6 +715,7 @@ model Tenant {
   bookingFlowAnalytics     BookingFlowAnalytics[]
   serviceAddons            ServiceAddon[]
   browserPushSubscriptions BrowserPushSubscription[]
+  slotDemandInsights       SlotDemandInsight[]
 
   @@index([category])
   @@map("tenants")
@@ -760,6 +778,7 @@ model User {
   bookingWorkflowOverrides BookingWorkflowOverride[]
   securityBreachesAssigned SecurityBreach[]
   browserPushSubscriptions BrowserPushSubscription[]
+  insightsDismissed        SlotDemandInsight[]       @relation("InsightDismissedBy")
 
   @@map("users")
 }
@@ -861,6 +880,7 @@ model Booking {
   rescheduleCount        Int                 @default(0) @map("reschedule_count")
   cancellationReason     CancellationReason? @map("cancellation_reason")
   cancelledAt            DateTime?           @map("cancelled_at")
+  noShowRiskScore        Decimal?            @map("no_show_risk_score") @db.Decimal(3, 2)
   excessHours            Decimal             @default(0) @map("excess_hours")
   excessHourFee          Decimal             @default(0) @map("excess_hour_fee")
   createdAt              DateTime            @default(now()) @map("created_at")
@@ -1295,6 +1315,7 @@ model ServiceAddon {
   name        String
   description String?
   price       Decimal
+  isRequired  Boolean  @default(false) @map("is_required")
   isActive    Boolean  @default(true) @map("is_active")
   sortOrder   Int      @default(0) @map("sort_order")
   createdAt   DateTime @default(now()) @map("created_at")
@@ -1570,9 +1591,10 @@ model Contract {
   bookingId  String         @map("booking_id")
   templateId String         @map("template_id")
   quoteId    String?        @map("quote_id")
-  content    String
-  status     ContractStatus
-  expiryDate DateTime?      @map("expiry_date")
+  content      String
+  documentHash String?        @map("document_hash")
+  status       ContractStatus
+  expiryDate   DateTime?      @map("expiry_date")
   signedAt   DateTime?      @map("signed_at")
   voidedAt   DateTime?      @map("voided_at")
   voidedBy   String?        @map("voided_by")
@@ -1989,9 +2011,11 @@ model ClientProfile {
   id             String   @id @default(uuid())
   tenantId       String   @map("tenant_id")
   clientId       String   @map("client_id")
-  preferences    Json?
-  tags           Json?
-  internalRating Int?     @map("internal_rating")
+  preferences              Json?
+  tags                     Json?
+  internalRating           Int?     @map("internal_rating")
+  optimalReminderLeadHours Decimal? @map("optimal_reminder_lead_hours")
+  rebookingIntervalDays    Int?     @map("rebooking_interval_days")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -2468,4 +2492,48 @@ model BrowserPushSubscription {
   @@index([userId])
   @@index([tenantId])
   @@map("browser_push_subscriptions")
+}
+
+// ---------------------------------------------------------------------------
+// Slot Demand Insights (SRS-2 Section 13b — AI Operations)
+// ---------------------------------------------------------------------------
+
+model SlotDemandInsight {
+  id             String          @id @default(uuid())
+  tenantId       String          @map("tenant_id")
+  insightType    SlotInsightType @map("insight_type")
+  dayOfWeek      Int             @map("day_of_week")
+  timeSlot       DateTime        @map("time_slot") @db.Time
+  metricValue    Decimal         @map("metric_value")
+  recommendation String
+  isDismissed    Boolean         @default(false) @map("is_dismissed")
+  dismissedBy    String?         @map("dismissed_by")
+  expiresAt      DateTime        @map("expires_at")
+  computedAt     DateTime        @default(now()) @map("computed_at")
+
+  // Relations
+  tenant         Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dismissedByUser User?  @relation("InsightDismissedBy", fields: [dismissedBy], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, isDismissed, expiresAt])
+  @@map("slot_demand_insights")
+}
+
+// ---------------------------------------------------------------------------
+// Category Benchmarks (SRS-2 Section 13b — Cross-Tenant Benchmarking)
+// ---------------------------------------------------------------------------
+
+model CategoryBenchmark {
+  id               String           @id @default(uuid())
+  businessCategory BusinessCategory @map("business_category")
+  metricKey        String           @map("metric_key")
+  p25              Decimal
+  p50              Decimal
+  p75              Decimal
+  sampleSize       Int              @map("sample_size")
+  computedAt       DateTime         @default(now()) @map("computed_at")
+
+  @@unique([businessCategory, metricKey])
+  @@map("category_benchmarks")
 }

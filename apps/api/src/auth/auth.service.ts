@@ -98,6 +98,13 @@ export class AuthService {
       );
     }
 
+    if (user.mfaEnabled) {
+      return {
+        mfaRequired: true as const,
+        userId: user.id,
+      };
+    }
+
     // If user has exactly one tenant membership, include it in tokens
     const membership = user.memberships.length === 1 ? user.memberships[0] : undefined;
 

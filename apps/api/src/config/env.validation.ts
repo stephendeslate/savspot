@@ -176,6 +176,9 @@ export const envSchema = z.object({
   // ---- Encryption ----
   ENCRYPTION_KEY: z.string().optional(),
 
+  // ---- MFA ----
+  MFA_ENCRYPTION_KEY: z.string().optional(),
+
   // ---- AI Triage ----
   AI_CONFIDENCE_THRESHOLD: z.coerce.number().min(0).max(1).default(0.85),
 });

@@ -4,7 +4,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { TenantRole, WorkflowTriggerEvent } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationsService, CreateAndSendParams } from '../communications/communications.service';
-import { TwilioService } from '../sms/sms.service';
+import { SmsService } from '../sms/sms.service';
 import { InvoicesService } from '../invoices/invoices.service';
 import {
   BOOKING_CREATED,
@@ -44,7 +44,7 @@ export class WorkflowEngineService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly communicationsService: CommunicationsService,
-    private readonly twilioService: TwilioService,
+    private readonly smsService: SmsService,
     private readonly configService: ConfigService,
     private readonly invoicesService: InvoicesService,
   ) {
@@ -464,7 +464,7 @@ export class WorkflowEngineService {
   }
 
   /**
-   * SEND_SMS action — sends an SMS to the client via TwilioService.
+   * SEND_SMS action — sends an SMS to the client via SmsService.
    * Looks up the client's phone number from the DB, formats the message
    * from actionConfig or a default template, and records the communication.
    */
@@ -521,7 +521,7 @@ export class WorkflowEngineService {
         : `[${tenant.name}] Hi ${payload.clientName}, your booking for ${payload.serviceName} on ${dateTime} has been updated.`;
 
       // Send via Twilio
-      const result = await this.twilioService.sendSms(client.phone, message);
+      const result = await this.smsService.sendSms(client.phone, message);
 
       // Record the communication in the DB
       await this.prisma.communication.create({

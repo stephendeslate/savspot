@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Patch,
   Delete,
   Body,
@@ -20,15 +21,20 @@ import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { TeamService } from './team.service';
+import { PermissionsService } from '../auth/permissions/permissions.service';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { AssignServicesDto } from './dto/assign-services.dto';
+import { UpdatePermissionsDto } from './dto/update-permissions.dto';
 
 @ApiTags('Team')
 @ApiBearerAuth()
 @Controller()
 export class TeamController {
-  constructor(private readonly teamService: TeamService) {}
+  constructor(
+    private readonly teamService: TeamService,
+    private readonly permissionsService: PermissionsService,
+  ) {}
 
   // -------------------------------------------------------------------------
   // Tenant-scoped team endpoints
@@ -142,6 +148,41 @@ export class TeamController {
     @Param('userId', UuidValidationPipe) userId: string,
   ) {
     return this.teamService.getAssignedServices(tenantId, userId);
+  }
+
+  // -------------------------------------------------------------------------
+  // Permissions endpoints
+  // -------------------------------------------------------------------------
+
+  @Get('tenants/:tenantId/team/:userId/permissions')
+  @UseGuards(TenantRolesGuard)
+  @TenantRoles('OWNER', 'ADMIN')
+  @ApiOperation({ summary: 'Get effective permissions for a team member' })
+  @ApiResponse({ status: 200, description: 'Effective permissions returned' })
+  @ApiResponse({ status: 404, description: 'Team member not found' })
+  async getPermissions(
+    @Param('tenantId', UuidValidationPipe) tenantId: string,
+    @Param('userId', UuidValidationPipe) userId: string,
+  ) {
+    return this.permissionsService.getEffectivePermissionsForMember(
+      tenantId,
+      userId,
+    );
+  }
+
+  @Put('tenants/:tenantId/team/:userId/permissions')
+  @UseGuards(TenantRolesGuard)
+  @TenantRoles('OWNER', 'ADMIN')
+  @ApiOperation({ summary: 'Update permission overrides for a team member' })
+  @ApiResponse({ status: 200, description: 'Permissions updated' })
+  @ApiResponse({ status: 400, description: 'Cannot expand permissions beyond role defaults' })
+  @ApiResponse({ status: 404, description: 'Team member not found' })
+  async updatePermissions(
+    @Param('tenantId', UuidValidationPipe) tenantId: string,
+    @Param('userId', UuidValidationPipe) userId: string,
+    @Body() dto: UpdatePermissionsDto,
+  ) {
+    return this.permissionsService.updatePermissions(tenantId, userId, dto);
   }
 
   // -------------------------------------------------------------------------
