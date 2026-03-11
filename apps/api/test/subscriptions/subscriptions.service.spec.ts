@@ -4,7 +4,6 @@ import { SubscriptionsService } from '@/subscriptions/subscriptions.service';
 
 const TENANT_ID = 'tenant-001';
 const SUBSCRIPTION_ID = 'sub_abc123';
-const CUSTOMER_ID = 'cus_abc123';
 
 function makePrisma() {
   return {
