@@ -66,7 +66,7 @@ Tenant is root aggregate; all business data scoped via `tenant_id` + RLS. Bookin
 | tos_version | VARCHAR | | Version identifier of the accepted ToS (e.g., "2026-02-25") |
 | dpa_accepted_at | TIMESTAMPTZ | | Timestamp of Data Processing Agreement acceptance; null if not yet accepted |
 | dpa_version | VARCHAR | | Version identifier of the accepted DPA |
-| status | VARCHAR(20) | NOT NULL DEFAULT 'active' | Enum: active, suspended, deactivated. Controls tenant access and booking page visibility. |
+| status | VARCHAR(20) | NOT NULL DEFAULT 'active' | Enum: active, suspended (Phase 1), deactivated (Phase 2+ — voluntary closure by tenant owner). Controls tenant access and booking page visibility. See SRS-4 §30c. |
 | retention_overrides | JSONB | | Per-tenant retention period overrides for regional compliance (e.g., `{"invoices_years": 10}` for German tax law). NULL = use defaults from SRS-4 §30b. Phase 3. |
 | created_at, updated_at | TIMESTAMPTZ | NOT NULL | |
 
@@ -299,7 +299,7 @@ The `permissions` column on `tenant_memberships` allows OWNER to **restrict** a 
 | questionnaire_responses | JSONB | | Null when service has no intake_form_config |
 | source | ENUM | NOT NULL | DIRECT, DIRECTORY, API, WIDGET, REFERRAL, **WALK_IN** -- Phase 1: DIRECT and WALK_IN used; WIDGET (Phase 2), REFERRAL/API (Phase 3), DIRECTORY (Phase 4); see SRS-3 §2. WALK_IN bookings bypass the session/reservation flow and enter CONFIRMED directly from the Quick-Add action (FR-BFW-18, FR-CRM-28). |
 | metadata | JSONB | | |
-| check_in_status | ENUM | DEFAULT 'PENDING' | PENDING, CHECKED_IN, CHECKED_OUT, NO_SHOW |
+| check_in_status | ENUM | DEFAULT 'PENDING' | PENDING, CHECKED_IN, CHECKED_OUT, NO_SHOW. **(Phase 2+ — FR-CRM-23.)** In Phase 1, always PENDING. NO_SHOW in this field indicates check-in never occurred within grace period; booking's `status` field also transitions to NO_SHOW. See SRS-3 §3 and §16 Job #3. |
 | checked_in_at/out_at | TIMESTAMPTZ | | |
 | checked_in_by/out_by | UUID | FK->users | Staff attribution |
 | original_start_date | DATE | | Preserved on first reschedule |
@@ -320,6 +320,8 @@ id (PK), tenant_id (FK, RLS), session_id (FK->booking_sessions), venue_id (FK, n
 
 > **Timezone clarification:** `reserved_date` stores the **tenant-local date** (derived from `start_time` converted to `tenants.timezone`), not the UTC date. This ensures date-based availability queries (which operate in tenant timezone per SRS-3 §6) align with the tenant's operating calendar. Overlap detection uses `start_time`/`end_time` TIMESTAMPTZ, not `reserved_date`. See SRS-3 §20 Edge Case #14 for the midnight UTC crossing scenario.
 
+> **Status disambiguation:** `date_reservations.status = CONFIRMED` indicates the reservation lock has been converted to a booking. This is distinct from `bookings.status = CONFIRMED` (the booking has been confirmed by the system or staff). Use table context to disambiguate.
+
 ### `availability_rules`
 id (PK), tenant_id (FK, RLS), venue_id/service_id (FK, nullable = applies to all), day_of_week (INT 0-6), start_time/end_time (TIME), is_active (BOOL DEFAULT true), created_at.
 
@@ -335,6 +337,8 @@ id (PK), tenant_id (FK, RLS), name, is_default (BOOL), step_overrides (JSONB -- 
 
 ### `calendar_connections`
 id (PK), tenant_id/user_id (FK, RLS), provider (GOOGLE/MICROSOFT), access_token/refresh_token (AES-256 encrypted), token_expires_at, calendar_id, sync_direction (ONE_WAY/TWO_WAY), sync_calendars (JSONB — array of external calendar IDs to sync for INBOUND blocking, per FR-CAL-11), sync_frequency_minutes (DEFAULT 15), last_synced_at, status (ACTIVE/DISCONNECTED/ERROR), error_message, ical_feed_token (UUID UNIQUE — generated on connection creation; used as auth token for the iCal feed URL per FR-CAL-16; Phase 2).
+
+> **Status transitions:** ACTIVE → ERROR on token refresh failure or sync failure (re-auth notification sent to tenant). ERROR → ACTIVE on subsequent successful token refresh or manual reconnection. DISCONNECTED is set when tenant explicitly removes the calendar connection.
 
 ### `calendar_events`
 id (PK), tenant_id (FK, RLS), calendar_connection_id (FK), booking_id (FK, nullable — null means this is an INBOUND block from an external calendar, not a SavSpot booking), external_event_id, direction (OUTBOUND/INBOUND), start_time/end_time (TIMESTAMPTZ UTC), title, synced_at, created_at.
@@ -373,7 +377,7 @@ id (PK), payment_id/tenant_id (FK, RLS), provider_dispute_id, reason (DUPLICATE/
 Webhook logs: id (PK), gateway (STRIPE/ADYEN/PAYPAL), event_id (UNIQUE), event_type, raw_data (JSONB), processed (BOOL), processing_error, retry_count, created_at. Dead letters: id (PK), webhook_log_id (FK), final_error, retry_count, resolved (BOOL), resolved_by (FK->users), resolved_at, created_at.
 
 ### `invoices`
-id (PK), tenant_id (FK, RLS), booking_id (FK), invoice_number (UNIQUE per tenant), subtotal/tax_amount/discount_amount/total/amount_paid (DECIMAL), currency, status (DRAFT/SENT/PAID/PARTIALLY_PAID/OVERDUE/CANCELLED), due_date, pdf_url (R2), created_at.
+id (PK), tenant_id (FK, RLS), booking_id (FK), invoice_number (UNIQUE per tenant), subtotal/tax_amount/discount_amount/total/amount_paid (DECIMAL), currency, status (DRAFT/SENT/PARTIALLY_PAID/PAID/OVERDUE/CANCELLED) — see SRS-3 §10 for status flow, due_date, pdf_url (R2), created_at.
 
 ### `invoice_line_items`
 id (PK), invoice_id (FK), description, quantity, unit_price, tax_rate_id (FK->tax_rates), tax_amount, discount_amount, total, sort_order.
@@ -406,7 +410,7 @@ id (PK), invoice_id (FK), description, quantity, unit_price, tax_rate_id (FK->ta
 | tier_config | JSONB | null | FIXED pricing used | Array of `{min_guests, max_guests, price}` tiers for TIERED model |
 | guest_config | JSONB | null | No guest tracking; guest step hidden in booking flow | `{min, max}` for simple guest count; `{min, max, age_tiers: [{label, min_age, max_age, price_modifier}]}` for age-range pricing |
 | deposit_config | JSONB | null | Full payment or free (no deposit) | `{type: "percentage"\|"fixed", amount, due_at: "booking"\|"custom"}` |
-| intake_form_config | JSONB | null | No questionnaire step in booking flow | `{fields: [{key, label, type, required, options}]}` |
+| intake_form_config | JSONB | null | No questionnaire step in booking flow | **(Phase 2 — FR-BFW-5.)** `{fields: [{key, label, type, required, options}]}`. In Phase 1, always null; questionnaire step not rendered. |
 | contract_template_id | UUID | null | No contract step in booking flow | FK->contract_templates; contract step appears with signature capture |
 | buffer_before_minutes | INT | 0 | No buffer | Minutes blocked before booking starts |
 | buffer_after_minutes | INT | 0 | No buffer | Minutes blocked after booking ends |
@@ -451,6 +455,7 @@ id (PK), invoice_id (FK), description, quantity, unit_price, tax_rate_id (FK->ta
 | price | DECIMAL | NOT NULL | |
 | is_active | BOOLEAN | DEFAULT true | |
 | sort_order | INT | DEFAULT 0 | |
+| is_required | BOOLEAN | DEFAULT false | When true, this add-on is automatically included and cannot be deselected |
 | created_at, updated_at | TIMESTAMPTZ | NOT NULL | |
 
 > **Phase 2 (FR-BFW-6):** Service add-ons (e.g., extra equipment, premium options) are optional purchasable items attached to a service. When a service has active add-ons, the ADD_ONS step appears in the booking flow (see SRS-1 §8 step resolution). Selected add-ons are recorded in `bookings.metadata` and as separate `invoice_line_items` rows. This table is empty in Phase 1; the step resolution algorithm's addons check evaluates to false.
@@ -523,7 +528,7 @@ id (PK), tenant_id (FK, RLS), provider (QUICKBOOKS/XERO), access_token/refresh_t
 | subject | VARCHAR | | |
 | body | TEXT | NOT NULL | Rendered |
 | status | ENUM | NOT NULL | QUEUED, SENDING, SENT, DELIVERED, OPENED, BOUNCED, FAILED |
-| provider_message_id | VARCHAR | | Resend/Twilio ID |
+| provider_message_id | VARCHAR | | Resend/Plivo ID |
 | sent_at, delivered_at, opened_at | TIMESTAMPTZ | | |
 | failure_reason | VARCHAR | | |
 | metadata | JSONB | | |
@@ -555,7 +560,7 @@ id (PK), user_id (FK), frequency, notification_ids (JSONB), status (PENDING/SENT
 ### `device_push_tokens`
 id (PK), user_id (FK), token (UNIQUE, ExponentPushToken format), device_type (IOS/ANDROID), device_name, is_active (DEFAULT true, auto-deactivated after 5 failures), failure_count, last_used_at, created_at.
 
-> **Phase 2:** Push notification delivery requires the native mobile app (PRD §4.5, Phase 2). The `device_push_tokens` table schema is included in Phase 1 migrations for completeness, but token registration and push delivery are Phase 2 features. See SRS-4 §10 for push token lifecycle.
+> **Phase 3:** Push notification delivery requires the native mobile app (PRD §4.5, Phase 3). The `device_push_tokens` table schema is included in Phase 1 migrations for completeness, but token registration and push delivery are Phase 3 features. See SRS-4 §10 for push token lifecycle.
 
 ### `browser_push_subscriptions`
 id (PK), user_id (FK->users, NOT NULL), tenant_id (FK->tenants, NOT NULL, RLS key), endpoint (VARCHAR, NOT NULL), p256dh (VARCHAR, NOT NULL), auth (VARCHAR, NOT NULL), last_used_at (TIMESTAMPTZ), created_at (TIMESTAMPTZ, NOT NULL).
@@ -568,7 +573,7 @@ id (PK), user_id (FK->users, NOT NULL), tenant_id (FK->tenants, NOT NULL, RLS ke
 id (PK), tenant_id (FK, RLS), name, content (HTML with merge fields), signature_requirements (JSONB: [{role, required, order}]), category, is_active, version, created_at, updated_at.
 
 ### `contracts`
-id (PK), tenant_id (FK, RLS), booking_id (FK), template_id (FK), quote_id (FK, nullable), content (frozen HTML), status (DRAFT/SENT/PARTIALLY_SIGNED/SIGNED/EXPIRED/VOID/AMENDED), expiry_date, signed_at, voided_at, voided_by (FK), void_reason, created_at, updated_at.
+id (PK), tenant_id (FK, RLS), booking_id (FK), template_id (FK), quote_id (FK, nullable), content (frozen HTML), status (DRAFT/SENT/PARTIALLY_SIGNED/SIGNED/EXPIRED/VOID/AMENDED), expiry_date, signed_at, voided_at, voided_by (FK), void_reason, document_hash (VARCHAR), created_at, updated_at.
 
 ### `contract_signatures`
 id (PK), contract_id (FK), signer_id (FK), role (CLIENT/WITNESS/COMPANY_REP/GUARDIAN/PARTNER/OTHER), signature_data (Base64), signature_type (DRAWN/TYPED/UPLOADED), signed_at, ip_address, user_agent, device_fingerprint (JSONB), legal_disclosure_accepted, electronic_consent_at (TIMESTAMPTZ -- E-SIGN Act: timestamp when signer accepted electronic disclosure), signature_confidence (DECIMAL 0.0-1.0 -- confidence score per signature), order, created_at.
@@ -719,7 +724,7 @@ id (PK), breach_id (FK), user_id (FK), data_types_exposed (JSONB), notified_at, 
 ### `review_photos` [NEW]
 id (PK), review_id (FK->reviews, NOT NULL), url (VARCHAR, R2 storage), thumbnail_url (VARCHAR), sort_order (INT, DEFAULT 0), created_at (TIMESTAMPTZ, NOT NULL).
 
-> Supports FR-MOB-10 (Phase 2): review submission with photos. Photos are uploaded to R2 and referenced by review.
+> Supports FR-MOB-10 (Phase 3, deferred with mobile app): review submission with photos. Photos are uploaded to R2 and referenced by review. Phase 2 web review submission uses the existing upload flow without a dedicated photo table.
 
 ### `api_keys` [NEW]
 | Column | Type | Constraints | Notes |
@@ -863,6 +868,7 @@ id (PK), tenant_id (FK->tenants, RLS), author_id (FK->users, NOT NULL), entity_t
 | metric_value | DECIMAL | NOT NULL | Fill rate, cancellation rate, or days-to-fill depending on type |
 | recommendation | TEXT | | Human-readable actionable insight |
 | is_dismissed | BOOLEAN | DEFAULT false | Tenant dismissed this card |
+| dismissed_by | UUID | FK->users | User who dismissed this insight; null if not dismissed |
 | computed_at | TIMESTAMPTZ | NOT NULL | |
 | expires_at | TIMESTAMPTZ | NOT NULL | Insights expire after 7 days to force re-computation |
 

@@ -13,11 +13,11 @@
 |--------|-------|------|------|
 | **Payment Processing** | Platform fee on all Savspot Pay transactions (in addition to the payment provider's standard processing fee borne by the connected account) | 1.0% | Every payment |
 | **Platform Referral Commission** | One-time fee on bookings from platform-sourced clients (AI agents, directory, referrals) | 15-20% of first booking (default 20%, capped at $500 default) | Only first booking from a new platform-sourced client |
-| **Premium Features** | Optional add-ons | $9-$49/mo per feature | Monthly subscription |
+| **Premium Features** | Flat-tier bundles | $29/mo Premium, $79/mo Enterprise | Monthly subscription |
 
 ### Premium Features
 - Advanced embeddable booking widget (inline/popup modes with branding customization; redirect mode is free)
-- Custom domain booking page (book.mybusiness.com)
+- Custom domain booking page (book.mybusiness.com) — Phase 4, demand-driven
 - Advanced analytics & reporting dashboards
 - Advanced multi-stage workflow automation (workflow templates with progression conditions; simple trigger-action automations are free)
 - Multi-location management
@@ -26,7 +26,9 @@
 - QuickBooks / Xero accounting integration
 - AI Voice Receptionist (after-hours call handling, availability checking, and appointment booking via voice AI). Industry data: Zenoti reports $3-4K/month revenue lift per location from AI receptionist; 34% of appointment requests come after hours (Zenoti 2025 consumer survey). See [AI-STRATEGY.md](AI-STRATEGY.md) §4, Tier 3.
 
-> **Free vs. premium AI boundary:** Invisible operational intelligence (smart reminder timing, no-show risk indicators, rebooking interval detection, slot demand analysis, smart morning summaries) is included in the free tier -- these features improve outcomes for all tenants and strengthen the platform's data flywheel. Cross-tenant benchmarking is free when activated (Phase 3, 50+ tenants). AI Voice Receptionist and advanced AI analytics are premium. This boundary ensures that AI amplifies the free-tier value proposition (outcome-aligned revenue model) while creating premium upsell for high-value AI capabilities that have direct, measurable ROI.
+> **Standard features (all tiers):** Pricing models (FIXED, HOURLY, TIERED) at service level. Deposit payment configuration (% or fixed amount). Check-in/check-out management (Phase 2). Reviews and ratings (Phase 2). Failed payment retry mechanism.
+
+> **Free vs. premium AI boundary:** Invisible operational intelligence (smart reminder timing, no-show risk indicators, rebooking interval detection, slot demand analysis, smart morning summaries) is included in the free tier starting Phase 2 (FR-AI-1 through FR-AI-6) -- these features improve outcomes for all tenants and strengthen the platform's data flywheel. Cross-tenant benchmarking data collection begins Phase 2; user-facing comparisons activate in Phase 3 when 50+ tenants exist in a business category (privacy floor: no benchmark shown for categories with fewer than 4 tenants per filter). AI Voice Receptionist and advanced AI analytics are premium. This boundary ensures that AI amplifies the free-tier value proposition (outcome-aligned revenue model) while creating premium upsell for high-value AI capabilities that have direct, measurable ROI.
 
 ### Why This Model Works
 - Zero barrier to entry (free core software)
@@ -44,8 +46,8 @@
 | Tier | Price | Features |
 |------|-------|----------|
 | **Free** | $0 | Booking page, CRM, client portal, two-way calendar sync (including INBOUND blocking per FR-CAL-10), basic metrics, basic embed widget (redirect mode), invisible AI operations (smart reminders, no-show risk indicators, rebooking optimization, slot demand analysis -- Phase 2) |
-| **Premium** | $9-$49/mo per feature | Embeddable widget, custom domain, advanced analytics, advanced multi-stage workflow automation, accounting integrations, headless API access |
-| **Enterprise** | Custom | Multi-location, dedicated support, custom integrations |
+| **Premium** | $29/mo | Embeddable widget, advanced analytics, advanced multi-stage workflow automation, accounting integrations, headless API access, custom email templates (Phase 2) |
+| **Enterprise** | $79/mo | Multi-location, dedicated support, custom integrations |
 
 > **Phase 1 note:** Subscription tier management is manually administered via database for Phase 1. The `tenants.subscription_tier` field and a `subscription_provider_id` placeholder exist in the schema, but subscription billing integration (automated upgrades, downgrades, billing cycles, feature entitlement checks) is deferred to Phase 2. Premium features that ship in Phase 2+ will require subscription infrastructure at that time.
 >
@@ -75,6 +77,7 @@ No business (tenant) may access, view, or modify another tenant's data under any
 - Total effective merchant cost: ~3.9% + $0.30 per transaction
 - For platform-sourced clients, referral commission is additionally included in the platform fee passed to `IPaymentProvider.createPaymentIntent()`
 - Overpayment prevention: payment amount must not exceed invoice remaining balance (validated server-side)
+- **Failed payments:** Up to 3 retry attempts on failed charges with exponential backoff (30 min, 2h, 24h). Automated payment reminders sent to client at 7, 3, and 1 days before invoice due date. See SRS-3 §17 and SRS-4 §24.
 
 ### BR-RULE-4: Client Account Portability
 - Single client account works across multiple businesses
@@ -228,15 +231,15 @@ Functional requirements: FR-ONB-1 through FR-ONB-12 in [PRD.md](PRD.md).
 
 ### Technical
 - **Solo developer with AI assistance:** Architecture must be maintainable by one developer operating a two-tier AI pipeline: Claude Code for complex architecture and design, Qwen3 (128GB local) for high-volume code generation, and Open Claw for 24/7 monitoring and support triage. The compressed 6-month timeline for Phases 1-3 is validated by LifePlace (~543K LOC, 805 commits, 122 models, 20 domains, 6 months, Claude Code only).
-- **Phase 1 is web-only:** The native mobile app (React Native + Expo) is deferred to Phase 2 to tighten Phase 1 scope and accelerate time-to-validation. Mobile-responsive web covers all client booking scenarios in Phase 1. See PRD §4.5 for mobile Phase 2 rationale.
+- **Phase 1 is web-only:** The native mobile app (React Native + Expo) is deferred to Phase 3 to tighten Phase 1 scope and accelerate time-to-validation. Mobile-responsive web covers all client booking scenarios in Phases 1-2. See PRD §4.5 for mobile Phase 3 rationale.
 - **TypeScript monorepo:** All code must be TypeScript
-- **Payment provider dependency:** Payment processing depends on the availability and country coverage of the active provider. Mitigated by PaymentProvider abstraction interface (Phase 1), enabling provider switching per-tenant; offline payment fallback for unsupported regions; Adyen + PayPal added in Phase 3; regional providers in Phase 4
+- **Payment provider dependency:** Payment processing depends on the availability and country coverage of the active provider. Mitigated by PaymentProvider abstraction interface (Phase 1 — Stripe Connect only; Adyen + PayPal Phase 3; regional providers Phase 4), enabling future provider switching per-tenant; offline payment fallback for unsupported regions
 
 ### Business
 - **Bootstrap funding:** Revenue must sustain operations; minimize infrastructure costs
 - **Free tier economics:** Revenue from payment processing + premium features; early unit economics negative
 - **Single operator:** Product must be self-service enough to minimize support burden; AI-powered support triage (Open Claw + Qwen3/Claude Code) provides automated L1 resolution to sustain quality without a dedicated support team
-- **Signal-first acquisition:** Rather than scaling user acquisition during active development, Phase 1 is followed by a deliberate soft launch: personally onboard up to 10 businesses (structured cohort across 2–4 verticals) to gather real signal on retention, booking completion, and organic sharing before investing in broader distribution. Phase 2–3 development priorities are informed by this early signal. Distribution is the founder's least developed professional dimension (technical execution is thoroughly proven — LifePlace, published patent US20250140075A1, UCSD CS degree); the GTM strategy is designed to force structured repetition through each design partner installation (discovery, demo, objection handling, activation monitoring, referral ask). See PVD §8a and savspot-gtm-distribution-strategy.md.
+- **Signal-first acquisition:** Rather than scaling user acquisition during active development, Phase 1 is followed by a deliberate soft launch: personally onboard up to 10 businesses (structured cohort across 1–2 verticals) to gather real signal on retention, booking completion, and organic sharing before investing in broader distribution. Phase 2–3 development priorities are informed by this early signal. Distribution is the founder's least developed professional dimension (technical execution is thoroughly proven — LifePlace, published patent US20250140075A1, UCSD CS degree); the GTM strategy is designed to force structured repetition through each design partner installation (discovery, demo, objection handling, activation monitoring, referral ask). See PVD §8a and savspot-gtm-distribution-strategy.md.
 - **Design partner engagement:** Slot 1 in the soft launch cohort is a confirmed barber design partner (Marcus) who will run SavSpot alongside Booksy for 90 days. This parallel-run engagement produces structured competitive signal — feature gap analysis, walk-in workflow viability, INBOUND calendar blocking reliability, and a migration decision at week 8–12 — that is qualitatively different from standard beta testing. Each design partner installation also functions as a compressed sales cycle (discovery, demo, objection handling, activation monitoring, referral ask, closing) — the engagement is simultaneously product validation and founder distribution skill development (see savspot-gtm-distribution-strategy.md §5 and §14). Architectural features that enable this engagement (walk-in booking FR-BFW-18, two-way calendar sync FR-CAL-10 through FR-CAL-15, data import pipeline FR-IMP-1 through FR-IMP-5, provider SMS FR-COM-2a) are classified as Must/Should Phase 1 requirements, not Phase 2+, specifically because the design partner engagement begins at Phase 1 launch.
 
 ### Regulatory
@@ -316,8 +319,8 @@ Functional requirements: FR-SUP-1 through FR-SUP-4 in [PRD.md](PRD.md).
 |-----------|------|------|-----------|
 | Stripe Connect | External | Low | Phase 1 provider behind PaymentProvider abstraction; Adyen + PayPal in Phase 3; offline fallback; no vendor lock-in |
 | Resend | External | Low | Commodity provider; easy to switch |
-| Twilio | External | Low | SMS provider for FR-COM-2a (provider SMS, Phase 1) and FR-COM-2b (client SMS, Phase 2). Commodity provider; abstracted behind the communications layer |
-| Expo / React Native | Framework | Low | Well-funded backing (Expo + Meta); deferred to Phase 2 |
+| Twilio → Plivo | External | Low | SMS provider for FR-COM-2a (provider SMS, Phase 1 via Twilio) and FR-COM-2b (client SMS, Phase 2 via Plivo). Migrated in Phase 2 for ~55% cost savings. Commodity provider; abstracted behind the communications layer |
+| Expo / React Native | Framework | Low | Well-funded backing (Expo + Meta); deferred to Phase 3 |
 | Fly.io / Vercel | Hosting | Low | Portable architecture; Fly.io proven with LifePlace |
 | Anthropic MCP | Protocol | Medium | Linux Foundation backed; REST API serves same purpose |
 | Google Calendar API | External | Low | Required for FR-CAL-10 through FR-CAL-15 (two-way sync, Phase 1) and the design partner parallel-run bridge. Well-established API with high reliability. Revoked OAuth token risk mitigated by `calendar_connections.status` tracking and re-auth prompts |

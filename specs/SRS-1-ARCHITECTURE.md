@@ -21,7 +21,7 @@ This document covers the technology stack, system architecture, multi-tenancy im
 | Frontend | Next.js App Router | 15+ | RSC, server actions, SSR for booking pages |
 | UI | shadcn/ui + Radix | Latest | Accessible, Tailwind-based, lighter than MUI |
 | Styling | Tailwind CSS | 4+ | Utility-first, design tokens |
-| Mobile | React Native + Expo | 54+ | Code sharing with web, managed builds, OTA updates **(Phase 2)** |
+| Mobile | React Native + Expo | 54+ | Code sharing with web, managed builds, OTA updates **(Phase 3)** |
 | State (Web) | TanStack Query v5 + Context API | v5 | No Redux/Zustand; simpler mental model for web |
 | State (Mobile) | Zustand + TanStack Query | Latest | Intentional divergence; Zustand better suited for mobile state |
 | Forms | React Hook Form + Zod | Latest | Type-safe validation, shared schemas between client and server |
@@ -39,8 +39,8 @@ This document covers the technology stack, system architecture, multi-tenancy im
 |---------|----------|---------|
 | Payments | PaymentProvider abstraction interface (Stripe Connect Express in Phase 1; Adyen, PayPal Commerce Platform in Phase 3; regional providers in Phase 4) | Payment processing, KYC, automated payouts; offline payment as first-class fallback |
 | Email | Resend | Transactional email with React Email templates |
-| SMS | Twilio | Booking confirmations, appointment reminders |
-| Push Notifications | Expo Push | iOS and Android push notifications **(Phase 2)** |
+| SMS | Plivo (migrated from Twilio in Phase 2) | Booking confirmations, appointment reminders |
+| Push Notifications | Expo Push | iOS and Android push notifications **(Phase 3)** |
 | Object Storage | Cloudflare R2 | S3-compatible file storage (images, documents) |
 | Error Tracking | Sentry | Error tracking + performance monitoring |
 | Analytics | PostHog | Product analytics, feature flags, session replay |
@@ -61,11 +61,11 @@ This document covers the technology stack, system architecture, multi-tenancy im
 | GitHub Actions | CI/CD pipeline automation |
 | Fly.io | Backend hosting (API server + workers + Redis + PostgreSQL) |
 | Vercel | Frontend hosting (Next.js SSR/SSG) |
-| EAS Build | Mobile app builds (iOS + Android) **(Phase 2)** |
+| EAS Build | Mobile app builds (iOS + Android) **(Phase 3)** |
 | Docker | Local dev environment + Fly.io deployment containers |
 | ESLint, Prettier, Biome | Code linting and formatting |
 | TypeScript strict mode | Type safety enforcement across all packages |
-| Vitest, Playwright, Jest, Maestro | Unit, integration, E2E web, and E2E mobile testing (Maestro: Phase 2) |
+| Vitest, Playwright, Jest, Maestro | Unit, integration, E2E web, and E2E mobile testing (Maestro: Phase 3) |
 | Swagger/OpenAPI | API documentation auto-generated from NestJS decorators |
 
 ---
@@ -113,7 +113,7 @@ This document covers the technology stack, system architecture, multi-tenancy im
 
 *PaymentProvider abstraction interface: Stripe Connect Express (Phase 1), Adyen + PayPal (Phase 3), regional providers (Phase 4), offline payment fallback. Tenant's `payment_provider` column selects implementation at runtime via NestJS DI.*
 
-**Request Flow:** Clients hit Cloudflare CDN, which routes to Vercel (web) or directly to Fly.io (API). In Phase 1, all client interactions are via mobile-responsive web; the native mobile app ships in Phase 2 and communicates directly with the Fly.io API. All applications communicate with the NestJS API server hosted on Fly.io. The API uses PostgreSQL with Row-Level Security for data isolation, Redis for caching and job brokering, and BullMQ workers for asynchronous task processing (emails, SMS, webhooks, calendar sync).
+**Request Flow:** Clients hit Cloudflare CDN, which routes to Vercel (web) or directly to Fly.io (API). In Phase 1, all client interactions are via mobile-responsive web; the native mobile app ships in Phase 3 and communicates directly with the Fly.io API. All applications communicate with the NestJS API server hosted on Fly.io. The API uses PostgreSQL with Row-Level Security for data isolation, Redis for caching and job brokering, and BullMQ workers for asynchronous task processing (emails, SMS, webhooks, calendar sync).
 
 ---
 
@@ -124,7 +124,7 @@ savspot/
 ├── apps/
 │   ├── api/                  # NestJS backend (REST API)
 │   ├── web/                  # Next.js frontend (Admin CRM, Client Portal, Booking Pages)
-│   └── mobile/               # React Native + Expo app (Phase 2; scaffolded in Phase 1 for shared package compatibility)
+│   └── mobile/               # React Native + Expo app (Phase 3; scaffolded in Phase 1 for shared package compatibility)
 ├── packages/
 │   ├── shared/               # Shared types, Zod schemas, constants, utils
 │   ├── ui/                   # shadcn/ui components, design tokens
@@ -144,7 +144,7 @@ savspot/
         ├── ci.yml            # Lint, typecheck, test
         ├── deploy-api.yml    # Deploy API to Fly.io
         ├── deploy-web.yml    # Deploy web to Vercel
-        └── deploy-mobile.yml # EAS Build trigger (Phase 2)
+        └── deploy-mobile.yml # EAS Build trigger (Phase 3)
 ```
 
 ---
@@ -296,7 +296,7 @@ Install ──> Lint + Typecheck ──> Test ──> Build ──> Deploy
 | Build | `turbo run build` | Build all apps and packages |
 | Deploy API | `fly deploy --app savspot-api` | Deploy NestJS to Fly.io |
 | Deploy Web | Vercel auto-deploy | Triggered by Git push |
-| Deploy Mobile | `eas build --platform all` | Triggered manually or on release tag **(Phase 2)** |
+| Deploy Mobile | `eas build --platform all` | Triggered manually or on release tag **(Phase 3)** |
 
 ### Database Migration Strategy
 
@@ -319,7 +319,7 @@ Install ──> Lint + Typecheck ──> Test ──> Build ──> Deploy
 | Integration | Vitest + Prisma | API endpoints, database queries, service interactions | 70%+ |
 | Component | Vitest + Testing Library | React components, hooks, form validation | 70%+ |
 | E2E Web | Playwright | Full user flows (booking, payment, admin) | Critical paths |
-| E2E Mobile | Maestro | Mobile user flows (booking, notifications) | Critical paths **(Phase 2)** |
+| E2E Mobile | Maestro | Mobile user flows (booking, notifications) | Critical paths **(Phase 3)** |
 
 ### Test Data Strategy
 
@@ -328,7 +328,7 @@ Install ──> Lint + Typecheck ──> Test ──> Build ──> Deploy
 | Factory functions | TypeScript factories (e.g., `createTestBooking()`) for consistent test data |
 | Seeded database | `prisma db seed` with representative multi-tenant data |
 | Payment provider test mode | Provider-specific test keys (e.g., Stripe test API keys), test card numbers, test webhook events |
-| Mocked services | Resend, Twilio, Expo Push mocked in test environment |
+| Mocked services | Resend, Plivo, Expo Push mocked in test environment |
 | Seed scripts | `pnpm db:seed` populates local/staging with realistic demo data |
 
 ---

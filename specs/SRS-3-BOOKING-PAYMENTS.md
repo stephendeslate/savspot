@@ -305,8 +305,8 @@ Providers supported: `GOOGLE`, `MICROSOFT`. Sync direction per connection: `ONE_
 | SUCCEEDED | REFUNDED | Full refund processed |
 | SUCCEEDED | DISPUTED | Payment provider dispute webhook received (e.g., Stripe `charge.dispute.created`) |
 | PARTIALLY_REFUNDED | REFUNDED | Remaining balance refunded |
-| DISPUTED | SUCCEEDED | Dispute resolved in merchant's favor (e.g., Stripe `charge.dispute.closed` with `status = won`) |
-| DISPUTED | REFUNDED | Dispute resolved in client's favor (e.g., Stripe `charge.dispute.closed` with `status = lost`); provider auto-refunds the charge |
+| DISPUTED | SUCCEEDED | Dispute resolved in merchant's favor (e.g., Stripe `charge.dispute.closed` with `status = WON`) |
+| DISPUTED | REFUNDED | Dispute resolved in client's favor (e.g., Stripe `charge.dispute.closed` with `status = LOST`); provider auto-refunds the charge |
 
 ### Blocked Transitions
 
@@ -395,7 +395,7 @@ On invoice creation, `usage_count` is incremented atomically. Only one discount 
 3. **Tax calculation:** `line_tax = quantity * unit_price * tax_rate.rate`. When `is_inclusive = true`: `tax = line_total - (line_total / (1 + rate))`. Default tax rate applied unless overridden per line.
 4. **Totals:** `subtotal = SUM(line_totals)`, `tax_amount = SUM(line_taxes)`, `discount_amount` applied, `total = subtotal + tax_amount - discount_amount`.
 5. **PDF generation:** `generateInvoicePdf` job renders with tenant branding and uploads to R2 storage. `pdf_url` is set on the invoice record.
-6. **Status flow:** DRAFT -> SENT -> PARTIALLY_PAID -> PAID (or OVERDUE if past `due_date`, CANCELLED on booking cancellation). `amount_paid` is a running total updated on each succeeded payment.
+6. **Status flow:** DRAFT -> SENT -> PAID (single payment) or DRAFT -> SENT -> PARTIALLY_PAID -> PAID (multi-payment scenario). OVERDUE: set when `due_date` passes and `amount_paid < total`. CANCELLED: on booking cancellation. `amount_paid` is a running total updated on each succeeded payment.
 
 ### Post-Checkout Invoice Amendment (Phase 2 -- excess hours)
 
@@ -443,6 +443,8 @@ These fees are **in addition to** the provider's own processing fee (e.g., Strip
 processing_fee = payment_amount * 0.01   // 1.0% of the actual payment amount (not booking_total)
 // For full payments: payment_amount == booking_total, so fee == booking_total * 0.01
 // For deposits/balance: each payment carries 1.0% of its own amount; sum across all payments == booking_total * 0.01
+// Note: processing_fee is always on actual payment_amount. This differs from referral_commission,
+// which is always calculated on booking_total regardless of payment type (deposit vs balance).
 
 // 2. Referral commission -- ONLY on first platform-sourced booking per client per tenant
 referral_commission = 0
@@ -604,7 +606,7 @@ Default `base_delay = 30 min`, `max_retries = 5`. After max retries, payment is 
 | 5 | `calendarTwoWaySync` | calendar | Per-connection frequency | Pull external events to block availability |
 | 6 | `calendarTokenRefresh` | calendar | Hourly | Refresh expiring Google/Outlook OAuth tokens |
 | 7 | `calendarEventPush` | calendar | On confirm/reschedule/cancel | Push outbound event to connected calendar |
-| 8 | `enforceApprovalDeadlines` | bookings | Hourly | Auto-cancel PENDING bookings with MANUAL_APPROVAL past `services.approval_deadline_hours` (default 48h); issue full refund; send cancellation notification |
+| 8 | `enforceApprovalDeadlines` | bookings | Hourly (cron: `0 * * * *`, top of each UTC hour) | Auto-cancel PENDING bookings with MANUAL_APPROVAL past `services.approval_deadline_hours` (default 48h); issue full refund; send cancellation notification. Note: enforcement delay of up to 1 hour means a 48h deadline may be enforced at 48h+59min. |
 
 ---
 
@@ -644,7 +646,7 @@ Default `base_delay = 30 min`, `max_retries = 5`. After max retries, payment is 
 
 ## 19. Scheduled Jobs
 
-This table covers booking, payment, and calendar-domain scheduled jobs. For communications, notifications, workflow, and GDPR jobs see SRS-4 §40 (6 jobs), §41 (7 jobs), and §41a (2 jobs). **Note:** `sendPaymentReminders` (every 15 min) and `enforcePaymentDeadlines` (daily 6 AM) are payment-domain jobs canonically defined in SRS-4 §41 due to their dependency on the payment deadline automation specification in SRS-4 §24. They run on the `payments` queue.
+This table covers booking, payment, and calendar-domain scheduled jobs. For communications, notifications, workflow, and GDPR jobs see SRS-4 §40 (6 jobs), §41 (7 jobs), and §41a (2 jobs). **Note:** `sendPaymentReminders` (every 15 min) and `enforcePaymentDeadlines` (daily 6 AM) are payment-domain jobs canonically defined in SRS-4 §41 due to their dependency on the payment deadline automation specification in SRS-4 §24. They run on the `payments` queue. `processWebhookRetries` (every 10 min) is a payment-domain job canonically defined in SRS-3 §17 and runs on the `payments` queue — it is NOT part of SRS-4 §41 workflow jobs.
 
 | # | Job | Cron | Description |
 |---|-----|------|-------------|

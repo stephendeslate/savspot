@@ -48,7 +48,7 @@ At render time: `wrapper_template` wraps `header_template` + rendered `body_temp
 Every edit creates a `template_history` record (auto-incremented version, subject/body snapshot, acting user, optional reason). Admins can **rollback** to any version, creating a new history entry. If a tenant template key is inactive, the platform default is used.
 
 ## 5. Communications Circuit Breaker
-Three-state pattern per provider (Resend, Twilio), stored in Redis. Config: `failure_threshold=5`, `recovery_timeout=60s`.
+Three-state pattern per provider (Resend, Plivo), stored in Redis. Config: `failure_threshold=5`, `recovery_timeout=60s`.
 
 | State | Behavior |
 |-------|----------|
@@ -80,7 +80,7 @@ When OPEN, critical comms (payment receipts, security alerts) fall back to alter
 
 ## 10. Push Token Lifecycle
 
-> **Phase 2:** Push notification infrastructure ships with the native mobile app in Phase 2 (PRD §4.5). The specification below applies from Phase 2 onward. Phase 1 relies on email for all transactional notifications (booking confirmations, reminders, receipts).
+> **Phase 3:** Push notification infrastructure ships with the native mobile app in Phase 3 (PRD §4.5). The specification below applies from Phase 3 onward. Phase 1-2 relies on email and browser push (VAPID) for transactional notifications (booking confirmations, reminders, receipts).
 
 Tokens must match `ExponentPushToken[...]`; invalid rejected at registration. Records `device_type`, `is_active`, `failure_count`. Auto-deactivation: 5 consecutive failures or `DeviceNotRegisteredError`. Duplicates deduplicated by value (keep most recent). Inactive >90 days purged daily.
 
@@ -126,7 +126,7 @@ Evaluated in user's IANA timezone when `quiet_hours_start`/`quiet_hours_end` con
 | PARTIALLY_SIGNED | SIGNED | All required signatures collected |
 | SIGNED | AMENDED | Amendment signed by all parties |
 | SENT/PARTIALLY_SIGNED | EXPIRED | `expiry_date` passes |
-| Any (except SIGNED) | VOID | Business voids (mandatory reason) |
+| Any | VOID | Business voids (mandatory reason; SIGNED contracts require void_reason) |
 
 ## 13. Multi-Party Signatures
 
@@ -240,7 +240,7 @@ Signed with `HMAC-SHA256(secret, body)` via `X-Savspot-Signature` header. Retry:
 
 > **Scope:** Payment deadline automation applies to **CONFIRMED bookings with outstanding invoices**. For MANUAL_APPROVAL bookings still in PENDING state (no invoice exists), the approval deadline is handled separately via `services.approval_deadline_hours` and the `enforceApprovalDeadlines` job — see SRS-3 §2.
 
-Payment deadline is derived from `invoices.due_date`. Reminders are sent at 7, 3, and 1 days before `due_date`. Duplicate prevention: `UNIQUE(booking_id, reminder_type, interval_days, channel)`. On deadline: auto-cancel behavior is controlled by `services.auto_cancel_on_overdue` (null = platform default `true`). When enabled (null or `true`): the `enforcePaymentDeadlines` job auto-cancels the booking and sends a cancellation notification. When `false`: the booking is flagged OVERDUE but not auto-cancelled; admin is notified. In both cases, the `PAYMENT_OVERDUE` event (see §21) is fired when an invoice transitions to OVERDUE status (`due_date` passed and `amount_paid < total`), enabling workflow automations triggered by this event. Payment after cancel: refund, notify to re-book. Rescheduled: regenerate reminders.
+Payment deadline is derived from `invoices.due_date`. Reminders are sent at 7, 3, and 1 days before `due_date`. Duplicate prevention: `UNIQUE(booking_id, reminder_type, interval_days, channel)`. Each reminder is sent at most once per booking per channel per interval. On deadline: auto-cancel behavior is controlled by `services.auto_cancel_on_overdue` (null = platform default `true`). When enabled (null or `true`): the `enforcePaymentDeadlines` job auto-cancels the booking and sends a cancellation notification. When `false`: the booking is flagged OVERDUE but not auto-cancelled; admin is notified. In both cases, the `PAYMENT_OVERDUE` event (see §21) is fired when an invoice transitions to OVERDUE status (`due_date` passed and `amount_paid < total`), enabling workflow automations triggered by this event. Payment after cancel: refund, notify to re-book. Rescheduled: regenerate reminders.
 
 ## 25. Session & Reservation Cleanup
 
@@ -256,8 +256,8 @@ Payment deadline is derived from `invoices.due_date`. Reminders are sent at 7, 3
 
 ## 26. Authentication Flows
 **Registration:** `POST /auth/register` -> Zod -> bcrypt (12 rounds) -> user (`email_verified=false`) -> verification email -> 201. Signed token, 24h expiry.
-**Login:** `POST /auth/login` -> credentials -> `email_verified` -> MFA if enabled -> RS256 JWT (15-min access, 7-day refresh) -> httpOnly cookie (web) / tokens (mobile, Phase 2).
-**Token Refresh:** `POST /auth/refresh` -> validate -> blacklist old (rotation) -> new pair. Phase 1 is web-only: tokens are stored in httpOnly cookies. Mobile secure token storage (Keychain/Keystore) ships in Phase 2 (PRD §4.5 FR-MOB-6).
+**Login:** `POST /auth/login` -> credentials -> `email_verified` -> MFA if enabled -> RS256 JWT (15-min access, 7-day refresh) -> httpOnly cookie (web) / tokens (mobile, Phase 3).
+**Token Refresh:** `POST /auth/refresh` -> validate -> blacklist old (rotation) -> new pair. Phase 1-2 is web-only: tokens are stored in httpOnly cookies. Mobile secure token storage (Keychain/Keystore) ships in Phase 3 (PRD §4.5 FR-MOB-6).
 **Tenant Resolution:** JWT -> `tenant_id` -> `SET app.current_tenant` -> RLS isolation.
 **Role Model:** `users.role` = platform-level (`PLATFORM_ADMIN`/`USER`). Business roles (`OWNER`/`ADMIN`/`STAFF`) on `tenant_memberships`. NestJS guards enforce the Tenant Role Permission Matrix (SRS-2 §3) on every Admin CRM request; `permissions` JSONB overrides can narrow base role access. (See SRS-1 §7 for RLS, SRS-2 §3 for the full matrix.)
 
@@ -283,6 +283,8 @@ Redis sliding window. `X-RateLimit-*` headers on all responses.
 | `file-upload` | 10/min per user | File uploads |
 | `api/v1` | Per key config | Public API |
 | `mcp/tools` | 60/min per key | MCP tools |
+
+> **Test mode:** Rate limits may be adjusted in test environments to prevent E2E test flakiness. Production limits are as specified above. See CLAUDE.md memory for test-mode adjustments.
 
 ## 28. Security Measures
 
@@ -322,7 +324,7 @@ All admin actions, auth events, sensitive data access in `audit_logs`. Actions: 
 | Document | Requirement | Acceptance Mechanism | Phase |
 |----------|------------|---------------------|-------|
 | **Terms of Service** | Governs the business owner's use of the Savspot platform. Displayed and accepted during business registration. | Checkbox + timestamp stored on `tenants.tos_accepted_at` and `tenants.tos_version`. Updated ToS requires re-acceptance on next admin login. | Must -- Phase 1 |
-| **Privacy Policy** | Covers data collection, processing purposes, third-party sharing (Stripe, Resend, Twilio), data retention periods, and user rights. | Linked in all booking page footers, client portal footer, and email footers. Client consent captured via CONFIRMATION step checkbox (see SRS-1 §8). | Must -- Phase 1 |
+| **Privacy Policy** | Covers data collection, processing purposes, third-party sharing (Stripe, Resend, Plivo), data retention periods, and user rights. | Linked in all booking page footers, client portal footer, and email footers. Client consent captured via CONFIRMATION step checkbox (see SRS-1 §8). | Must -- Phase 1 |
 | **Data Processing Agreement (DPA)** | Required by GDPR Article 28 when Savspot processes personal data on behalf of the tenant. Covers data processing scope, security measures, sub-processor list, breach notification obligations, and data return/deletion on termination. | Self-service acceptance via Admin CRM during or after onboarding. Acceptance stored on `tenants.dpa_accepted_at` and `tenants.dpa_version`. | Must -- Phase 1 |
 | **Acceptable Use Policy** | Covers prohibited content, abuse prevention, and platform integrity rules. | Linked from ToS. Violation may result in tenant suspension. | Should -- Phase 1 |
 
@@ -431,9 +433,9 @@ Output: HTML. DOMPurify sanitization on save and render.
 ## 37. Widget Implementation
 Premium JS snippet from CDN (Cloudflare R2). Modes: popup, inline iframe, redirect. Iframe sandbox + PostMessage bridge. **50 KB gzipped** max. Async loading. `WIDGET` source attribution. Service pre-selection via URL params. Guest checkout.
 
-## 38. Mobile Offline Support (Phase 2)
+## 38. Mobile Offline Support (Phase 3)
 
-> **Phase 2:** Mobile offline support ships with the native mobile app in Phase 2 (PRD §4.5). Phase 1 is web-only; mobile-responsive web (FR-BP-5) covers client booking scenarios.
+> **Phase 3:** Mobile offline support ships with the native mobile app in Phase 3 (PRD §4.5). Phase 1-2 is web-only; mobile-responsive web (FR-BP-5) covers client booking scenarios.
 
 React Native + Expo. **MMKV** (key-value) + **TanStack Query** persistence. Offline: view cached bookings/businesses. Zustand (client state) + TanStack Query (server). Biometric via `expo-local-authentication`. Secure tokens: Keychain (iOS) / Keystore (Android).
 
@@ -448,18 +450,18 @@ React Native + Expo. **MMKV** (key-value) + **TanStack Query** persistence. Offl
 | `trackDeliveryStatus` | communications | 5 min | Poll for delivery/open/bounce |
 | `processDigests` | communications | Hourly/Daily/Weekly | Batch + send digest email |
 | `cleanupExpiredNotifications` | communications | Daily 3 AM | Mark expired as read |
-| `cleanupInactivePushTokens` | communications | Daily 4 AM | Purge tokens >90 days inactive **(Phase 2)** |
+| `cleanupInactivePushTokens` | communications | Daily 4 AM | Purge tokens >90 days inactive **(Phase 3)** |
 | `retryFailedDeliveries` | communications | 10 min | Retry FAILED (max 3) |
-| `sendMorningSummary` | communications | Daily at configurable per-tenant time (default 7:30 AM tenant timezone) | For each tenant with at least one booking today: query the day's bookings, compose SMS summary ("Today: {N} bookings. Next: {Client} at {Time} ({Service}, {Duration})."), deliver via Twilio to the OWNER's phone (FR-COM-10). Skip tenants with no phone on OWNER record or who have disabled morning summary. Rate: one SMS per tenant per day. |
+| `sendMorningSummary` | communications | Daily at configurable per-tenant time (default 7:30 AM tenant timezone) | For each tenant with at least one booking today: query the day's bookings, compose SMS summary ("Today: {N} bookings. Next: {Client} at {Time} ({Service}, {Duration})."), deliver via SMS provider (Plivo) to the OWNER's phone (FR-COM-10). Skip tenants with no phone on OWNER record or who have disabled morning summary. Rate: one SMS per tenant per day. |
 | `sendWeeklyDigest` | communications | Monday 08:00 UTC (configurable) | For each active tenant: compute prior week stats (bookings completed, revenue collected, booking page views from PostHog, no-show count, new clients). Compose and send email digest to OWNER (FR-COM-11). Skip tenants with zero activity in the week. |
 | `processPostAppointmentTriggers` | communications | Every 15 min | Scan for bookings where `status = COMPLETED` AND `updated_at` is within the last 15 min. For each: (1) enqueue review request communication (email + SMS in Phase 2) to be delivered 2 hours after completion — check `communications` table to avoid duplicate sends; (2) enqueue rebooking prompt inclusion in the post-appointment follow-up email (FR-BFW-19 — deep-link pre-populated with same service/provider). Idempotent: deduplication via `UNIQUE(booking_id, reminder_type)` on `booking_reminders` table. |
-| `deliverProviderSMS` | communications | Event-driven | Triggered by BOOKING_CONFIRMED, BOOKING_CANCELLED, BOOKING_RESCHEDULED, PAYMENT_RECEIVED, and BOOKING_WALK_IN events. Sends real-time SMS to the tenant OWNER's phone via Twilio (FR-COM-2a). Respects quiet hours (SRS-4 §11). Message templates: "New booking: {Client} booked {Service} at {Time}" / "{Client} cancelled their {Time} appointment" / "Walk-in added: {Service} at {Time}" / "Payment received: ${Amount} from {Client}". Does NOT send for client-facing events (client SMS is Phase 2 per FR-COM-2b). |
+| `deliverProviderSMS` | communications | Event-driven | Triggered by BOOKING_CONFIRMED, BOOKING_CANCELLED, BOOKING_RESCHEDULED, PAYMENT_RECEIVED, and BOOKING_WALK_IN events. Sends real-time SMS to the tenant OWNER's phone via SMS provider (Plivo) (FR-COM-2a). Respects quiet hours (SRS-4 §11). Message templates: "New booking: {Client} booked {Service} at {Time}" / "{Client} cancelled their {Time} appointment" / "Walk-in added: {Service} at {Time}" / "Payment received: ${Amount} from {Client}". Does NOT send for client-facing events (client SMS is Phase 2 per FR-COM-2b). |
 
 > **Cross-reference:** Booking reminders (`sendBookingReminders`, every 15 min) and abandoned booking recovery (`abandonedBookingRecovery`, hourly) are canonically defined in SRS-3 §16. These jobs produce communications that are delivered via `deliverCommunication` above.
 
 ## 40a. Browser Push Notifications (Phase 1 — Admin CRM Web)
 
-> **Distinct from mobile push (FR-NOT-2, Phase 2):** Browser push uses the Web Push API (service worker + push subscription) on the Next.js Admin CRM web app. It works on desktop and mobile browsers without a native app. Mobile app push (Expo Push Notifications to `device_push_tokens`) ships in Phase 2.
+> **Distinct from mobile push (FR-NOT-2, Phase 3):** Browser push uses the Web Push API (service worker + push subscription) on the Next.js Admin CRM web app. It works on desktop and mobile browsers without a native app. Mobile app push (Expo Push Notifications to `device_push_tokens`) ships in Phase 3.
 
 **Registration:** On Admin CRM first login, the browser is prompted for notification permission. On grant, a push subscription (`PushSubscription` object) is stored server-side linked to the `users` record. The subscription endpoint and keys are stored in a new `browser_push_subscriptions` table (id, user_id FK, endpoint, p256dh, auth, tenant_id FK, created_at, last_used_at). Multiple subscriptions per user are supported (different browsers/devices).
 
@@ -481,7 +483,7 @@ React Native + Expo. **MMKV** (key-value) + **TanStack Query** persistence. Offl
 | `fireWebhooks` | workflows | Event-driven | Deliver webhook payloads |
 | `retryFailedWebhooks` | workflows | 10 min | Retry in backoff window |
 
-> **Cross-reference:** Reservation expiry (`expireReservations`, every 5 min), abandoned session cleanup (`abandonedBookingRecovery`, hourly), and booking reminders (`sendBookingReminders`, every 15 min) are canonically defined in SRS-3 §16/§19. See §25 above for the consolidated reference.
+> **Cross-reference:** Reservation expiry (`expireReservations`, every 5 min), abandoned session cleanup (`abandonedBookingRecovery`, hourly), and booking reminders (`sendBookingReminders`, every 15 min) are canonically defined in SRS-3 §16/§19. See §25 above for the consolidated reference. `fireWebhooks` and `retryFailedWebhooks` above handle **outgoing tenant-configured webhooks** (§23). Payment provider webhook retries are handled by `processWebhookRetries` in SRS-3 §17 on the `payments` queue — distinct from these outgoing webhook jobs.
 
 ## 41a. Background Jobs -- GDPR & Data Requests
 
