@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { BadRequestException } from '@nestjs/common';
 import { SubscriptionsController } from '@/subscriptions/subscriptions.controller';
 import { TIER_FEATURES } from '@/subscriptions/entitlements';
 

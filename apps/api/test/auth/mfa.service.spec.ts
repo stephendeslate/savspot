@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { createHmac } from 'crypto';
 import { MfaService } from '@/auth/mfa/mfa.service';
 
 function makePrisma() {
@@ -230,7 +231,6 @@ function generateTestTOTP(
   _time: number,
 ): string {
   // We use the same algorithm as the service to generate a valid token
-  const { createHmac } = require('crypto') as typeof import('crypto');
   const base32Decode = (encoded: string): Buffer => {
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
     const cleanInput = encoded.replace(/=+$/, '').toUpperCase();
