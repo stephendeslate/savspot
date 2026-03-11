@@ -45,6 +45,9 @@ import { GalleryModule } from './gallery/gallery.module';
 import { OnboardingToursModule } from './onboarding-tours/onboarding-tours.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { MessagingModule } from './messaging/messaging.module';
+import { ContractsModule } from './contracts/contracts.module';
+import { QuotesModule } from './quotes/quotes.module';
 import { CustomThrottlerGuard } from './common/guards/throttle.guard';
 import { CsrfGuard } from './common/guards/csrf.guard';
 import { TenantStatusGuard } from './common/guards/tenant-status.guard';
@@ -126,6 +129,9 @@ import {
     OnboardingToursModule,
     ReviewsModule,
     SubscriptionsModule,
+    MessagingModule,
+    ContractsModule,
+    QuotesModule,
   ],
   controllers: [AppController],
   providers: [

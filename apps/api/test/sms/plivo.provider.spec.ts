@@ -110,7 +110,7 @@ describe('PlivoSmsProvider', () => {
 
       await provider.send('+1234567890', 'Test', '+19999999999');
 
-      const callBody = JSON.parse(fetchSpy.mock.calls[0][1].body as string);
+      const callBody = JSON.parse(fetchSpy.mock.calls[0]![1]!.body as string);
       expect(callBody.src).toBe('+19999999999');
     });
 

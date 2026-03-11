@@ -55,10 +55,10 @@ describe('FeatureEntitlementGuard', () => {
   describe('RequiresTier', () => {
     it('should allow when tenant meets tier requirement', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        ((key: string) => {
           if (key === REQUIRES_TIER_KEY) return 'PREMIUM';
           return undefined;
-        },
+        }) as never,
       );
 
       prisma.tenant.findUnique.mockResolvedValue({
@@ -72,10 +72,10 @@ describe('FeatureEntitlementGuard', () => {
 
     it('should allow when tenant has exact tier', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        ((key: string) => {
           if (key === REQUIRES_TIER_KEY) return 'PREMIUM';
           return undefined;
-        },
+        }) as never,
       );
 
       prisma.tenant.findUnique.mockResolvedValue({
@@ -89,10 +89,10 @@ describe('FeatureEntitlementGuard', () => {
 
     it('should deny when tenant tier is below requirement', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        ((key: string) => {
           if (key === REQUIRES_TIER_KEY) return 'PREMIUM';
           return undefined;
-        },
+        }) as never,
       );
 
       prisma.tenant.findUnique.mockResolvedValue({
@@ -107,10 +107,10 @@ describe('FeatureEntitlementGuard', () => {
 
     it('should deny when tenant tier is FREE and ENTERPRISE required', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        ((key: string) => {
           if (key === REQUIRES_TIER_KEY) return 'ENTERPRISE';
           return undefined;
-        },
+        }) as never,
       );
 
       prisma.tenant.findUnique.mockResolvedValue({
@@ -127,10 +127,10 @@ describe('FeatureEntitlementGuard', () => {
   describe('RequiresFeature', () => {
     it('should allow when feature is enabled', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        ((key: string) => {
           if (key === REQUIRES_FEATURE_KEY) return 'teamManagement';
           return undefined;
-        },
+        }) as never,
       );
 
       prisma.tenant.findUnique.mockResolvedValue({
@@ -144,10 +144,10 @@ describe('FeatureEntitlementGuard', () => {
 
     it('should deny when feature is disabled (boolean false)', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        ((key: string) => {
           if (key === REQUIRES_FEATURE_KEY) return 'teamManagement';
           return undefined;
-        },
+        }) as never,
       );
 
       prisma.tenant.findUnique.mockResolvedValue({
@@ -162,10 +162,10 @@ describe('FeatureEntitlementGuard', () => {
 
     it('should deny when feature is disabled (numeric 0)', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        ((key: string) => {
           if (key === REQUIRES_FEATURE_KEY) return 'smsAllocation';
           return undefined;
-        },
+        }) as never,
       );
 
       prisma.tenant.findUnique.mockResolvedValue({
@@ -180,10 +180,10 @@ describe('FeatureEntitlementGuard', () => {
 
     it('should allow smsAllocation for PREMIUM tier', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        ((key: string) => {
           if (key === REQUIRES_FEATURE_KEY) return 'smsAllocation';
           return undefined;
-        },
+        }) as never,
       );
 
       prisma.tenant.findUnique.mockResolvedValue({
@@ -197,10 +197,10 @@ describe('FeatureEntitlementGuard', () => {
 
     it('should allow multiLocation for ENTERPRISE tier', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        ((key: string) => {
           if (key === REQUIRES_FEATURE_KEY) return 'multiLocation';
           return undefined;
-        },
+        }) as never,
       );
 
       prisma.tenant.findUnique.mockResolvedValue({
@@ -214,10 +214,10 @@ describe('FeatureEntitlementGuard', () => {
 
     it('should deny multiLocation for PREMIUM tier', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        ((key: string) => {
           if (key === REQUIRES_FEATURE_KEY) return 'multiLocation';
           return undefined;
-        },
+        }) as never,
       );
 
       prisma.tenant.findUnique.mockResolvedValue({
@@ -234,10 +234,10 @@ describe('FeatureEntitlementGuard', () => {
   describe('edge cases', () => {
     it('should throw when no tenant context', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        ((key: string) => {
           if (key === REQUIRES_TIER_KEY) return 'PREMIUM';
           return undefined;
-        },
+        }) as never,
       );
 
       const ctx = makeExecutionContext(undefined, { id: 'user-1' });
@@ -248,10 +248,10 @@ describe('FeatureEntitlementGuard', () => {
 
     it('should throw when tenant not found', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        ((key: string) => {
           if (key === REQUIRES_TIER_KEY) return 'PREMIUM';
           return undefined;
-        },
+        }) as never,
       );
 
       prisma.tenant.findUnique.mockResolvedValue(null);

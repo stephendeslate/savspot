@@ -69,7 +69,7 @@ describe('TwilioSmsProvider', () => {
 
     it('should send SMS and return messageId on success', async () => {
       const twilio = await import('twilio');
-      const mockCreate = (twilio as Record<string, unknown>).__mockCreate as ReturnType<typeof vi.fn>;
+      const mockCreate = (twilio as Record<string, unknown>)['__mockCreate'] as ReturnType<typeof vi.fn>;
       mockCreate.mockResolvedValueOnce({ sid: 'SM_TEST_SID' });
 
       const result = await provider.send('+1234567890', 'Test message');
@@ -85,7 +85,7 @@ describe('TwilioSmsProvider', () => {
 
     it('should use custom from number when provided', async () => {
       const twilio = await import('twilio');
-      const mockCreate = (twilio as Record<string, unknown>).__mockCreate as ReturnType<typeof vi.fn>;
+      const mockCreate = (twilio as Record<string, unknown>)['__mockCreate'] as ReturnType<typeof vi.fn>;
       mockCreate.mockResolvedValueOnce({ sid: 'SM_CUSTOM' });
 
       await provider.send('+1234567890', 'Test', '+19999999999');
@@ -98,7 +98,7 @@ describe('TwilioSmsProvider', () => {
 
     it('should return failure with error on Twilio error', async () => {
       const twilio = await import('twilio');
-      const mockCreate = (twilio as Record<string, unknown>).__mockCreate as ReturnType<typeof vi.fn>;
+      const mockCreate = (twilio as Record<string, unknown>)['__mockCreate'] as ReturnType<typeof vi.fn>;
       mockCreate.mockRejectedValueOnce(new Error('Invalid number'));
 
       const result = await provider.send('+1234567890', 'Test');
@@ -109,7 +109,7 @@ describe('TwilioSmsProvider', () => {
 
     it('should fetch delivery status', async () => {
       const twilio = await import('twilio');
-      const mockFetch = (twilio as Record<string, unknown>).__mockFetch as ReturnType<typeof vi.fn>;
+      const mockFetch = (twilio as Record<string, unknown>)['__mockFetch'] as ReturnType<typeof vi.fn>;
       mockFetch.mockResolvedValueOnce({ status: 'delivered' });
 
       const status = await provider.getDeliveryStatus('SM123');
@@ -118,7 +118,7 @@ describe('TwilioSmsProvider', () => {
 
     it('should return "unknown" when delivery status fetch fails', async () => {
       const twilio = await import('twilio');
-      const mockFetch = (twilio as Record<string, unknown>).__mockFetch as ReturnType<typeof vi.fn>;
+      const mockFetch = (twilio as Record<string, unknown>)['__mockFetch'] as ReturnType<typeof vi.fn>;
       mockFetch.mockRejectedValueOnce(new Error('Not found'));
 
       const status = await provider.getDeliveryStatus('SM123');

@@ -4,6 +4,7 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
+import { Prisma } from '../../../../../prisma/generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   PermissionSet,
@@ -82,7 +83,7 @@ export class PermissionsService {
 
     await this.prisma.tenantMembership.update({
       where: { tenantId_userId: { tenantId, userId } },
-      data: { permissions: overrides as Record<string, unknown> },
+      data: { permissions: overrides as unknown as Prisma.InputJsonValue },
     });
 
     this.logger.log(

@@ -16,12 +16,18 @@ interface CompletedBookingRow {
   source: string;
 }
 
+interface NoShowBookingRow {
+  id: string;
+  tenant_id: string;
+}
+
 /**
- * Auto-completes CONFIRMED bookings whose end_time has passed.
+ * Auto-completes CONFIRMED bookings whose end_time has passed and
+ * auto-detects no-shows.
  * Scheduled every 30 minutes via BullMQ repeatable job.
  *
- * Phase A (No-Show): In Phase 1 this is minimal — no-show detection
- * requires explicit admin flagging via the bookings controller.
+ * Phase A (No-Show): Detects CONFIRMED bookings where endTime + 15 min
+ * has passed and checkInStatus is still PENDING, sets them to NO_SHOW.
  *
  * Phase B (Auto-Complete): Transitions CONFIRMED bookings past their
  * end_time to COMPLETED, creates BookingStateHistory records, and
@@ -42,6 +48,10 @@ export class ProcessCompletedBookingsHandler {
     this.logger.log('Running process completed bookings job...');
 
     try {
+      // Phase A: No-show auto-detection
+      // Find CONFIRMED bookings where endTime + 15 minutes < now AND checkInStatus = PENDING
+      await this.detectNoShows();
+
       // Phase B: Auto-complete CONFIRMED bookings past their end_time
       // We query without tenant context first to find all eligible bookings
       // across all tenants, then process each within its own tenant context.
@@ -131,5 +141,49 @@ export class ProcessCompletedBookingsHandler {
       this.logger.error(`Failed process completed bookings: ${message}`);
       throw error;
     }
+  }
+
+  private async detectNoShows(): Promise<void> {
+    const noShowBookings = await this.prisma.$queryRaw<NoShowBookingRow[]>`
+      SELECT b.id, b.tenant_id
+      FROM bookings b
+      WHERE b.status = 'CONFIRMED'
+        AND b.check_in_status = 'PENDING'
+        AND b.end_time + INTERVAL '15 minutes' < NOW()
+    `;
+
+    if (noShowBookings.length === 0) {
+      this.logger.log('No bookings eligible for no-show detection');
+      return;
+    }
+
+    let noShowCount = 0;
+
+    for (const booking of noShowBookings) {
+      try {
+        await this.prisma.$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT set_config('app.current_tenant', ${booking.tenant_id}, TRUE)`;
+
+          await tx.$executeRaw`
+            UPDATE bookings
+            SET check_in_status = 'NO_SHOW', updated_at = NOW()
+            WHERE id = ${booking.id}
+              AND status = 'CONFIRMED'
+              AND check_in_status = 'PENDING'
+          `;
+        });
+
+        noShowCount++;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error(
+          `Failed to mark booking ${booking.id} as no-show: ${message}`,
+        );
+      }
+    }
+
+    this.logger.log(
+      `Auto-detected ${noShowCount}/${noShowBookings.length} no-show booking(s)`,
+    );
   }
 }

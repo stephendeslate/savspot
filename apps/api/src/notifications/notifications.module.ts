@@ -1,15 +1,21 @@
 import { Module } from '@nestjs/common';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
+import { NotificationSseController } from './notification-sse.controller';
+import { NotificationPreferencesController } from './notification-preferences.controller';
+import { NotificationPreferencesService } from './notification-preferences.service';
 
-/**
- * Handles in-app notification creation, listing, and read-state management.
- * Provides NotificationsService for other modules to create notifications
- * when domain events occur (e.g. booking confirmed, payment received).
- */
 @Module({
-  controllers: [NotificationsController],
-  providers: [NotificationsService],
-  exports: [NotificationsService],
+  controllers: [
+    NotificationsController,
+    NotificationSseController,
+    NotificationPreferencesController,
+  ],
+  providers: [
+    NotificationsService,
+    NotificationPreferencesService,
+    NotificationSseController,
+  ],
+  exports: [NotificationsService, NotificationPreferencesService, NotificationSseController],
 })
 export class NotificationsModule {}

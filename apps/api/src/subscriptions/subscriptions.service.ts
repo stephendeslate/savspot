@@ -11,7 +11,7 @@ import { TIER_FEATURES } from './entitlements';
 
 type SubscriptionTierType = 'FREE' | 'PREMIUM' | 'ENTERPRISE';
 
-interface PlanInfo {
+export interface PlanInfo {
   tier: SubscriptionTierType;
   name: string;
   monthlyPrice: number;
@@ -252,10 +252,11 @@ export class SubscriptionsService {
 
   private async handleInvoicePaymentFailed(event: Stripe.Event) {
     const invoice = event.data.object as Stripe.Invoice;
-    const subscriptionId =
-      typeof invoice.subscription === 'string'
-        ? invoice.subscription
-        : invoice.subscription?.id;
+    const sub = (invoice as unknown as Record<string, unknown>)['subscription'] as
+      | string
+      | { id: string }
+      | null;
+    const subscriptionId = typeof sub === 'string' ? sub : sub?.id;
 
     if (!subscriptionId) {
       this.logger.warn('Invoice payment failed but no subscription ID found');
@@ -292,10 +293,11 @@ export class SubscriptionsService {
 
   private async handleInvoicePaid(event: Stripe.Event) {
     const invoice = event.data.object as Stripe.Invoice;
-    const subscriptionId =
-      typeof invoice.subscription === 'string'
-        ? invoice.subscription
-        : invoice.subscription?.id;
+    const sub = (invoice as unknown as Record<string, unknown>)['subscription'] as
+      | string
+      | { id: string }
+      | null;
+    const subscriptionId = typeof sub === 'string' ? sub : sub?.id;
 
     if (!subscriptionId) {
       return;
@@ -403,7 +405,7 @@ export class SubscriptionsService {
       data: {
         subscriptionProviderId: subscription.id,
         subscriptionCurrentPeriodEnd: new Date(
-          subscription.current_period_end * 1000,
+          ((subscription as unknown as Record<string, number>)['current_period_end'] ?? 0) * 1000,
         ),
         ...(validTier ? { subscriptionTier: validTier } : {}),
         ...(subscriptionStatus ? { subscriptionStatus } : {}),
