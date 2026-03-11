@@ -14,3 +14,4 @@ export * from './accounting.enums.js';
 export * from './breach.enums.js';
 export * from './discount.enums.js';
 export * from './note.enums.js';
+export * from './ai-operations.enums.js';

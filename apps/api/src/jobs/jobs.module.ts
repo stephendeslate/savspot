@@ -24,15 +24,17 @@ import { EnforceApprovalDeadlinesHandler } from './enforce-approval-deadlines.pr
 import { SendPaymentRemindersHandler } from './send-payment-reminders.processor';
 import { EnforcePaymentDeadlinesHandler } from './enforce-payment-deadlines.processor';
 import { RetryFailedPaymentsHandler } from './retry-failed-payments.processor';
-import { ProcessWebhookRetriesHandler } from './process-webhook-retries.processor';
-import { DetectOrphanPaymentsHandler } from './detect-orphan-payments.processor';
-import { ReconcilePaymentsHandler } from './reconcile-payments.processor';
 // Invoice processor (single worker — no dispatcher needed)
 import { GenerateInvoicePdfProcessor } from './generate-invoice-pdf.processor';
 // GDPR handlers
 import { CleanupRetentionHandler } from './cleanup-retention.processor';
 import { DataExportHandler } from './data-export.processor';
 import { AccountDeletionHandler } from './account-deletion.processor';
+// AI Operations handlers
+import { ComputeNoShowRiskHandler } from './compute-no-show-risk.processor';
+import { ComputeClientInsightsHandler } from './compute-client-insights.processor';
+import { ComputeDemandAnalysisHandler } from './compute-demand-analysis.processor';
+import { ComputeBenchmarksHandler } from './compute-benchmarks.processor';
 import { JobSchedulerService } from './job-scheduler.service';
 
 /**
@@ -73,15 +75,17 @@ import { JobSchedulerService } from './job-scheduler.service';
     SendPaymentRemindersHandler,
     EnforcePaymentDeadlinesHandler,
     RetryFailedPaymentsHandler,
-    ProcessWebhookRetriesHandler,
-    DetectOrphanPaymentsHandler,
-    ReconcilePaymentsHandler,
     // Invoice (single processor, no dispatcher)
     GenerateInvoicePdfProcessor,
     // GDPR handlers
     CleanupRetentionHandler,
     DataExportHandler,
     AccountDeletionHandler,
+    // AI Operations handlers
+    ComputeNoShowRiskHandler,
+    ComputeClientInsightsHandler,
+    ComputeDemandAnalysisHandler,
+    ComputeBenchmarksHandler,
   ],
 })
 export class JobsModule {}

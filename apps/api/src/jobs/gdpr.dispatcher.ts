@@ -6,10 +6,12 @@ import {
   JOB_CLEANUP_RETENTION,
   JOB_PROCESS_DATA_EXPORT,
   JOB_PROCESS_ACCOUNT_DELETION,
+  JOB_COMPUTE_BENCHMARKS,
 } from '../bullmq/queue.constants';
 import { CleanupRetentionHandler } from './cleanup-retention.processor';
 import { DataExportHandler } from './data-export.processor';
 import { AccountDeletionHandler } from './account-deletion.processor';
+import { ComputeBenchmarksHandler } from './compute-benchmarks.processor';
 
 @Processor(QUEUE_GDPR)
 export class GdprDispatcher extends WorkerHost {
@@ -19,6 +21,7 @@ export class GdprDispatcher extends WorkerHost {
     private readonly cleanupRetention: CleanupRetentionHandler,
     private readonly dataExport: DataExportHandler,
     private readonly accountDeletion: AccountDeletionHandler,
+    private readonly computeBenchmarks: ComputeBenchmarksHandler,
   ) {
     super();
   }
@@ -31,6 +34,8 @@ export class GdprDispatcher extends WorkerHost {
         return this.dataExport.handle(job);
       case JOB_PROCESS_ACCOUNT_DELETION:
         return this.accountDeletion.handle(job);
+      case JOB_COMPUTE_BENCHMARKS:
+        return this.computeBenchmarks.handle(job);
       default:
         this.logger.warn(`Unknown GDPR job: ${job.name}`);
     }

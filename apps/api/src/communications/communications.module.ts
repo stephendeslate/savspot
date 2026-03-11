@@ -13,6 +13,7 @@ import { BrowserPushModule } from '../browser-push/browser-push.module';
 import { SupportTriageHandler } from '../jobs/support-triage.processor';
 import { SendBookingRemindersHandler } from '../jobs/send-booking-reminders.processor';
 import { ProcessNotificationDigestsHandler } from '../jobs/process-notification-digests.processor';
+import { ComputeClientInsightsHandler } from '../jobs/compute-client-insights.processor';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ProcessNotificationDigestsHandler } from '../jobs/process-notification-
     SendBookingRemindersHandler,
     SupportTriageHandler,
     ProcessNotificationDigestsHandler,
+    ComputeClientInsightsHandler,
     CircuitBreaker,
     CommunicationsDispatcher,
   ],

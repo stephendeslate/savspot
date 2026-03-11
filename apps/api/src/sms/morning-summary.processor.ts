@@ -115,7 +115,6 @@ export class MorningSummaryHandler {
     tenantName: string,
     timezone: string,
   ): Promise<string | null> {
-    // Calculate today's date range in the tenant's timezone
     const { startOfDay, endOfDay } = this.getTodayRange(timezone);
 
     const bookings = await this.prisma.booking.findMany({
@@ -132,7 +131,7 @@ export class MorningSummaryHandler {
     });
 
     if (bookings.length === 0) {
-      return null; // No bookings today — skip
+      return null;
     }
 
     const count = bookings.length;
@@ -144,11 +143,54 @@ export class MorningSummaryHandler {
       hour12: true,
     });
 
-    return (
+    const parts: string[] = [
       `[${tenantName}] Today: ${count} booking${count > 1 ? 's' : ''}. ` +
       `Next: ${next.client.name} at ${nextTime} ` +
-      `(${next.service.name}, ${next.service.durationMinutes}min).`
+      `(${next.service.name}, ${next.service.durationMinutes}min).`,
+    ];
+
+    const highRisk = bookings.filter(
+      (b) => b.noShowRiskScore && b.noShowRiskScore.toNumber() > 0.6,
     );
+    if (highRisk.length > 0) {
+      const names = highRisk.map((b) => b.client.name).join(', ');
+      parts.push(`High no-show risk: ${names}.`);
+    }
+
+    const clientIds = bookings.map((b) => b.clientId);
+    const completedCounts = await this.prisma.booking.groupBy({
+      by: ['clientId'],
+      where: {
+        tenantId,
+        clientId: { in: clientIds },
+        status: 'COMPLETED',
+      },
+      _count: { id: true },
+    });
+    const completedMap = new Map(
+      completedCounts.map((c) => [c.clientId, c._count.id]),
+    );
+    const firstTimers = bookings.filter(
+      (b) => !completedMap.has(b.clientId) || completedMap.get(b.clientId) === 0,
+    );
+    if (firstTimers.length > 0) {
+      const names = firstTimers.map((b) => b.client.name).join(', ');
+      parts.push(`First-time: ${names}.`);
+    }
+
+    const { startOfDay: yStart, endOfDay: yEnd } = this.getYesterdayRange(timezone);
+    const yesterdayNoShows = await this.prisma.booking.count({
+      where: {
+        tenantId,
+        startTime: { gte: yStart, lt: yEnd },
+        status: 'NO_SHOW',
+      },
+    });
+    if (yesterdayNoShows > 0) {
+      parts.push(`Yesterday: ${yesterdayNoShows} no-show${yesterdayNoShows > 1 ? 's' : ''}.`);
+    }
+
+    return parts.join(' ');
   }
 
   /**
@@ -211,5 +253,17 @@ export class MorningSummaryHandler {
       );
       return { startOfDay, endOfDay };
     }
+  }
+
+  private getYesterdayRange(timezone: string): {
+    startOfDay: Date;
+    endOfDay: Date;
+  } {
+    const todayRange = this.getTodayRange(timezone);
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    return {
+      startOfDay: new Date(todayRange.startOfDay.getTime() - oneDayMs),
+      endOfDay: new Date(todayRange.endOfDay.getTime() - oneDayMs),
+    };
   }
 }

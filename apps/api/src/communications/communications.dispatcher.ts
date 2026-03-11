@@ -12,6 +12,7 @@ import {
   JOB_SEND_BOOKING_REMINDERS,
   JOB_PROCESS_HOURLY_DIGESTS,
   JOB_PROCESS_DAILY_DIGESTS,
+  JOB_COMPUTE_CLIENT_INSIGHTS,
 } from '../bullmq/queue.constants';
 import { SupportTriageHandler } from '../jobs/support-triage.processor';
 import { JOB_SUPPORT_TRIAGE } from '../bullmq/queue.constants';
@@ -21,6 +22,7 @@ import { MorningSummaryHandler } from '../sms/morning-summary.processor';
 import { WeeklyDigestHandler } from '../sms/weekly-digest.processor';
 import { BrowserPushHandler } from '../browser-push/browser-push.processor';
 import { ProcessNotificationDigestsHandler } from '../jobs/process-notification-digests.processor';
+import { ComputeClientInsightsHandler } from '../jobs/compute-client-insights.processor';
 
 @Processor(QUEUE_COMMUNICATIONS)
 export class CommunicationsDispatcher extends WorkerHost {
@@ -34,6 +36,7 @@ export class CommunicationsDispatcher extends WorkerHost {
     private readonly browserPush: BrowserPushHandler,
     private readonly supportTriage: SupportTriageHandler,
     private readonly notificationDigests: ProcessNotificationDigestsHandler,
+    private readonly computeClientInsights: ComputeClientInsightsHandler,
   ) {
     super();
   }
@@ -58,6 +61,8 @@ export class CommunicationsDispatcher extends WorkerHost {
         return this.notificationDigests.handleHourly(job);
       case JOB_PROCESS_DAILY_DIGESTS:
         return this.notificationDigests.handleDaily(job);
+      case JOB_COMPUTE_CLIENT_INSIGHTS:
+        return this.computeClientInsights.handle(job);
       default:
         this.logger.warn(`Unknown communications job: ${job.name}`);
     }

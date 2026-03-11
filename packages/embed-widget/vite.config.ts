@@ -4,7 +4,7 @@ import { resolve } from 'path';
 export default defineConfig({
   build: {
     lib: {
-      entry: resolve(__dirname, 'src/savspot-embed.ts'),
+      entry: resolve(__dirname, 'src/index.ts'),
       name: 'SavSpotEmbed',
       formats: ['iife'],
       fileName: () => 'savspot-embed.js',
