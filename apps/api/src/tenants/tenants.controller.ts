@@ -96,20 +96,22 @@ export class TenantsController {
     return this.tenantsService.requestExport(id, userId);
   }
 
-  @Get(':id/export/:requestId')
+  @Post(':id/deactivate')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(TenantRolesGuard)
-  @TenantRoles('OWNER', 'ADMIN')
+  @TenantRoles('OWNER')
   @ApiOperation({
-    summary: 'Get export request status',
-    description: 'Returns the status of a data export request and download URL if ready.',
+    summary: 'Deactivate tenant with 30-day grace period',
+    description:
+      'Sets tenant status to DEACTIVATED, triggers data export, and schedules deletion after 30 days.',
   })
-  @ApiResponse({ status: 200, description: 'Export request status' })
-  @ApiResponse({ status: 404, description: 'Export request not found' })
-  async getExportStatus(
-    @Param('id', UuidValidationPipe) _tenantId: string,
-    @Param('requestId', UuidValidationPipe) requestId: string,
+  @ApiResponse({ status: 200, description: 'Tenant deactivated' })
+  @ApiResponse({ status: 404, description: 'Tenant not found' })
+  @ApiResponse({ status: 409, description: 'Tenant already deactivated' })
+  async deactivate(
+    @Param('id', UuidValidationPipe) id: string,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.tenantsService.getExportStatus(requestId, userId);
+    return this.tenantsService.deactivate(id, userId);
   }
 }

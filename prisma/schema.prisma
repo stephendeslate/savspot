@@ -1220,6 +1220,7 @@ model Service {
   confirmationMode      ConfirmationMode         @default(AUTO_CONFIRM) @map("confirmation_mode")
   approvalDeadlineHours Int?                     @map("approval_deadline_hours")
   images                Json?
+  preferenceTemplate    Json?                    @map("preference_template")
   venueId               String?                  @map("venue_id")
   categoryId            String?                  @map("category_id")
   searchVector          Unsupported("tsvector")? @map("search_vector")

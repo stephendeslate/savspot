@@ -4,6 +4,8 @@ import { QUEUE_CALENDAR } from '../bullmq/queue.constants';
 import { GoogleCalendarService } from './calendar.service';
 import { CalendarController } from './calendar.controller';
 import { CalendarWebhookController } from './calendar-webhook.controller';
+import { IcalFeedController } from './ical-feed.controller';
+import { IcalFeedService } from './ical-feed.service';
 import { CalendarDispatcher } from './calendar.dispatcher';
 import { CalendarPushHandler } from './calendar-push.processor';
 import { CalendarSyncHandler } from './calendar-sync.processor';
@@ -14,15 +16,16 @@ import { CalendarEventListener } from './calendar-event.listener';
 /**
  * Calendar integration module.
  * Provides Google Calendar OAuth, two-way sync, push notifications,
- * and event CRUD for booking ↔ calendar synchronization.
+ * iCal feed generation, and event CRUD for booking ↔ calendar synchronization.
  */
 @Module({
   imports: [
     BullModule.registerQueue({ name: QUEUE_CALENDAR }),
   ],
-  controllers: [CalendarController, CalendarWebhookController],
+  controllers: [CalendarController, CalendarWebhookController, IcalFeedController],
   providers: [
     GoogleCalendarService,
+    IcalFeedService,
     CalendarDispatcher,
     CalendarPushHandler,
     CalendarSyncHandler,
@@ -30,6 +33,6 @@ import { CalendarEventListener } from './calendar-event.listener';
     CalendarWatchRenewalHandler,
     CalendarEventListener,
   ],
-  exports: [GoogleCalendarService],
+  exports: [GoogleCalendarService, IcalFeedService],
 })
 export class CalendarModule {}

@@ -15,6 +15,7 @@ import { UpdateTenantDto } from './dto/update-tenant.dto';
 import {
   QUEUE_GDPR,
   JOB_PROCESS_DATA_EXPORT,
+  JOB_PROCESS_ACCOUNT_DELETION,
 } from '../bullmq/queue.constants';
 
 /**
@@ -311,28 +312,67 @@ export class TenantsService {
   }
 
   /**
-   * Get the status of a data export request.
-   * Returns status and download URL if the export is complete.
+   * Deactivate a tenant with a 30-day grace period before data deletion.
+   * Sets tenant status to DEACTIVATED, triggers a data export, and
+   * schedules a deletion job after the grace period.
    */
-  async getExportStatus(requestId: string, userId: string) {
-    const dataRequest = await this.prisma.dataRequest.findUnique({
-      where: { id: requestId },
+  async deactivate(tenantId: string, userId: string) {
+    const tenant = await this.findById(tenantId);
+
+    if (tenant.status === 'DEACTIVATED') {
+      throw new ConflictException('Tenant is already deactivated');
+    }
+
+    const GRACE_PERIOD_MS = 30 * 24 * 60 * 60 * 1000;
+
+    await this.prisma.tenant.update({
+      where: { id: tenantId },
+      data: { status: 'DEACTIVATED' },
     });
 
-    if (!dataRequest) {
-      throw new NotFoundException('Export request not found');
-    }
+    this.logger.log(`Tenant ${tenantId} deactivated by user ${userId}`);
 
-    if (dataRequest.userId !== userId) {
-      throw new NotFoundException('Export request not found');
-    }
+    // Trigger a data export so the owner can download their data during the grace period
+    const now = new Date();
+    const exportDeadline = new Date(now.getTime() + GRACE_PERIOD_MS);
+
+    const dataRequest = await this.prisma.dataRequest.create({
+      data: {
+        userId,
+        requestType: 'EXPORT',
+        status: 'PENDING',
+        requestedAt: now,
+        deadlineAt: exportDeadline,
+        notes: `Deactivation export for tenant ${tenantId}`,
+      },
+    });
+
+    await this.gdprQueue.add(
+      JOB_PROCESS_DATA_EXPORT,
+      { dataRequestId: dataRequest.id, userId, tenantId, type: 'DEACTIVATION_EXPORT' },
+      { removeOnComplete: { count: 10 }, removeOnFail: { count: 50 } },
+    );
+
+    // Schedule data deletion after the 30-day grace period
+    await this.gdprQueue.add(
+      JOB_PROCESS_ACCOUNT_DELETION,
+      { tenantId, userId, reason: 'TENANT_DEACTIVATION' },
+      {
+        delay: GRACE_PERIOD_MS,
+        removeOnComplete: { count: 10 },
+        removeOnFail: { count: 50 },
+      },
+    );
+
+    this.logger.log(
+      `Scheduled data deletion for tenant ${tenantId} after 30-day grace period`,
+    );
 
     return {
-      id: dataRequest.id,
-      status: dataRequest.status,
-      requestedAt: dataRequest.requestedAt,
-      completedAt: dataRequest.completedAt,
-      downloadUrl: dataRequest.exportUrl,
+      tenantId,
+      status: 'DEACTIVATED',
+      exportRequestId: dataRequest.id,
+      deletionScheduledAt: new Date(now.getTime() + GRACE_PERIOD_MS).toISOString(),
     };
   }
 }

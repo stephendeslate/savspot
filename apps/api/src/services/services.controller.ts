@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Patch,
   Delete,
   Body,
@@ -18,6 +19,7 @@ import { Throttle } from '@nestjs/throttler';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
+import { SetPreferenceTemplateDto } from './dto/preference-template.dto';
 import { TenantRoles } from '../common/decorators/tenant-roles.decorator';
 import { TenantRolesGuard } from '../common/guards/tenant-roles.guard';
 import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
@@ -97,5 +99,30 @@ export class ServicesController {
     @Param('id', UuidValidationPipe) id: string,
   ) {
     return this.servicesService.copy(tenantId, id);
+  }
+
+  @Get(':id/preference-template')
+  @TenantRoles('OWNER', 'ADMIN', 'STAFF')
+  @ApiOperation({ summary: 'Get preference template for a service' })
+  @ApiResponse({ status: 200, description: 'Preference template' })
+  @ApiResponse({ status: 404, description: 'Service not found' })
+  async getPreferenceTemplate(
+    @Param('tenantId', UuidValidationPipe) tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+  ) {
+    return this.servicesService.getPreferenceTemplate(tenantId, id);
+  }
+
+  @Put(':id/preference-template')
+  @TenantRoles('OWNER', 'ADMIN')
+  @ApiOperation({ summary: 'Set or update preference template for a service' })
+  @ApiResponse({ status: 200, description: 'Preference template updated' })
+  @ApiResponse({ status: 404, description: 'Service not found' })
+  async setPreferenceTemplate(
+    @Param('tenantId', UuidValidationPipe) tenantId: string,
+    @Param('id', UuidValidationPipe) id: string,
+    @Body() dto: SetPreferenceTemplateDto,
+  ) {
+    return this.servicesService.setPreferenceTemplate(tenantId, id, dto.template);
   }
 }

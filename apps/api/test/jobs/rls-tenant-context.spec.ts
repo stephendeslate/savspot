@@ -49,7 +49,7 @@ function makeMockTx(overrides: Record<string, unknown> = {}) {
     payment: { update: vi.fn() },
     paymentStateHistory: { create: vi.fn() },
     bookingReminder: { findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
-    communication: { findUnique: vi.fn(), update: vi.fn() },
+    communication: { findUnique: vi.fn(), update: vi.fn(), deleteMany: vi.fn() },
     calendarConnection: { findFirst: vi.fn() },
     calendarEvent: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn() },
     tenantMembership: { findMany: vi.fn() },
@@ -78,7 +78,7 @@ function makePrisma() {
     payment: { update: vi.fn() },
     paymentStateHistory: { create: vi.fn() },
     bookingReminder: { findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
-    communication: { findUnique: vi.fn(), update: vi.fn() },
+    communication: { findUnique: vi.fn(), update: vi.fn(), deleteMany: vi.fn() },
     calendarConnection: { findFirst: vi.fn() },
     calendarEvent: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn() },
     tenantMembership: { findMany: vi.fn() },
@@ -89,6 +89,7 @@ function makePrisma() {
     browserPushSubscription: { deleteMany: vi.fn() },
     dataRequest: { findMany: vi.fn(), update: vi.fn() },
     serviceProvider: { findFirst: vi.fn() },
+    auditLog: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
   };
 }
 
@@ -147,6 +148,7 @@ describe('RLS tenant context in BullMQ job processors', () => {
         tx.dateReservation.deleteMany.mockResolvedValue({ count: 0 });
         tx.bookingSession.deleteMany.mockResolvedValue({ count: 0 });
         tx.notification.deleteMany.mockResolvedValue({ count: 0 });
+        tx.communication.deleteMany.mockResolvedValue({ count: 0 });
         const result = await fn(tx);
         const calls = captureSetConfigCalls(tx.$executeRaw);
         if (calls.length > 0) capturedTenantIds.push(calls[0]![1]);
