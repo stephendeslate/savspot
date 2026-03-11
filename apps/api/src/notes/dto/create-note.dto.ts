@@ -24,7 +24,7 @@ export class CreateNoteDto {
 
   @ApiProperty({
     example: 'Client prefers morning appointments',
-    description: 'Note body text',
+    description: 'Note body text (supports markdown formatting)',
   })
   @IsString()
   @IsNotEmpty()

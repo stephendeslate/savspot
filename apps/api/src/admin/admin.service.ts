@@ -294,6 +294,138 @@ export class AdminService {
     };
   }
 
+  async getMigrationReadiness(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        paymentProviderAccountId: true,
+      },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found');
+    }
+
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+    const [
+      totalClients,
+      clientsWithEmail,
+      serviceCount,
+      calendarConnectionCount,
+      recentBookingCount,
+      previousBookingCount,
+    ] = await Promise.all([
+      this.prisma.clientProfile.count({
+        where: { tenantId },
+      }),
+      this.prisma.clientProfile.count({
+        where: {
+          tenantId,
+          client: { email: { not: '' } },
+        },
+      }),
+      this.prisma.service.count({
+        where: { tenantId, isActive: true },
+      }),
+      this.prisma.calendarConnection.count({
+        where: { tenantId, status: 'ACTIVE' },
+      }),
+      this.prisma.booking.count({
+        where: {
+          tenantId,
+          createdAt: { gte: thirtyDaysAgo },
+        },
+      }),
+      this.prisma.booking.count({
+        where: {
+          tenantId,
+          createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo },
+        },
+      }),
+    ]);
+
+    const clientCoverage =
+      totalClients > 0 ? clientsWithEmail / totalClients : 0;
+    const calendarSyncStatus = calendarConnectionCount > 0;
+    const stripeOnboardingStatus =
+      tenant.paymentProviderAccountId !== null &&
+      tenant.paymentProviderAccountId !== '';
+
+    const bookingVolumeTrend = {
+      last30Days: recentBookingCount,
+      previous30Days: previousBookingCount,
+      percentageChange:
+        previousBookingCount > 0
+          ? ((recentBookingCount - previousBookingCount) /
+              previousBookingCount) *
+            100
+          : recentBookingCount > 0
+            ? 100
+            : 0,
+    };
+
+    const clientCoverageScore = Math.min(clientCoverage * 100, 100);
+    const serviceCoverageScore = serviceCount >= 3 ? 100 : (serviceCount / 3) * 100;
+    const calendarSyncScore = calendarSyncStatus ? 100 : 0;
+    const stripeOnboardingScore = stripeOnboardingStatus ? 100 : 0;
+    const bookingVolumeScore =
+      recentBookingCount >= 10
+        ? 100
+        : (recentBookingCount / 10) * 100;
+
+    const switchScore = Math.round(
+      clientCoverageScore * 0.25 +
+        serviceCoverageScore * 0.2 +
+        calendarSyncScore * 0.2 +
+        stripeOnboardingScore * 0.2 +
+        bookingVolumeScore * 0.15,
+    );
+
+    return {
+      tenantId: tenant.id,
+      tenantName: tenant.name,
+      clientCoverage,
+      serviceCoverage: serviceCount,
+      calendarSyncStatus,
+      stripeOnboardingStatus,
+      bookingVolumeTrend,
+      switchScore,
+    };
+  }
+
+  async getMigrationReadinessSummary() {
+    const tenants = await this.prisma.tenant.findMany({
+      where: { status: 'ACTIVE' },
+      select: { id: true },
+    });
+
+    if (tenants.length === 0) {
+      return {
+        totalTenants: 0,
+        averageSwitchScore: 0,
+        tenants: [],
+      };
+    }
+
+    const results = await Promise.all(
+      tenants.map((t) => this.getMigrationReadiness(t.id)),
+    );
+
+    const totalScore = results.reduce((sum, r) => sum + r.switchScore, 0);
+
+    return {
+      totalTenants: tenants.length,
+      averageSwitchScore: Math.round(totalScore / tenants.length),
+      tenants: results,
+    };
+  }
+
   async getSupportMetrics() {
     const [resolutionMetrics, escalationMetrics] = await Promise.all([
       this.prisma.$queryRaw<
