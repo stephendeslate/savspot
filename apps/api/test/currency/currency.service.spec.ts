@@ -55,8 +55,8 @@ describe('CurrencyService', () => {
 
       const result = await service.getRates();
 
-      expect(result.rates.USD).toBe(1);
-      expect(result.rates.EUR).toBe(0.92);
+      expect(result.rates['USD']).toBe(1);
+      expect(result.rates['EUR']).toBe(0.92);
       expect(result.stale).toBe(false);
     });
 
@@ -78,7 +78,7 @@ describe('CurrencyService', () => {
 
       const result = await service.getRates();
 
-      expect(result.rates.USD).toBe(1);
+      expect(result.rates['USD']).toBe(1);
       expect(result.stale).toBe(true); // epoch date is always stale
     });
 
@@ -94,7 +94,7 @@ describe('CurrencyService', () => {
 
       const result = await service.getRates();
 
-      expect(result.rates.EUR).toBe(0.91);
+      expect(result.rates['EUR']).toBe(0.91);
     });
 
     it('marks rates as stale when older than 24 hours', async () => {

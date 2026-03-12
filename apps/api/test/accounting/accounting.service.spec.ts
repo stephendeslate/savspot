@@ -254,7 +254,7 @@ describe('AccountingService', () => {
       await service.triggerSync(TENANT_ID, CONNECTION_ID, { syncType: 'invoices' } as never);
 
       expect(queue.add).toHaveBeenCalledTimes(1);
-      expect(queue.add.mock.calls[0][0]).toBe('accountingSyncInvoices');
+      expect(queue.add.mock.calls[0]![0]).toBe('accountingSyncInvoices');
     });
 
     it('enqueues only payments sync when syncType is payments', async () => {
@@ -263,7 +263,7 @@ describe('AccountingService', () => {
       await service.triggerSync(TENANT_ID, CONNECTION_ID, { syncType: 'payments' } as never);
 
       expect(queue.add).toHaveBeenCalledTimes(1);
-      expect(queue.add.mock.calls[0][0]).toBe('accountingSyncPayments');
+      expect(queue.add.mock.calls[0]![0]).toBe('accountingSyncPayments');
     });
 
     it('enqueues only clients sync when syncType is clients', async () => {
@@ -272,7 +272,7 @@ describe('AccountingService', () => {
       await service.triggerSync(TENANT_ID, CONNECTION_ID, { syncType: 'clients' } as never);
 
       expect(queue.add).toHaveBeenCalledTimes(1);
-      expect(queue.add.mock.calls[0][0]).toBe('accountingSyncClients');
+      expect(queue.add.mock.calls[0]![0]).toBe('accountingSyncClients');
     });
 
     it('throws NotFoundException when connection not found or inactive', async () => {

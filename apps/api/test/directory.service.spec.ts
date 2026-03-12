@@ -119,7 +119,7 @@ describe('DirectoryService', () => {
       await service.search({ q: 'salon', page: 1, limit: 10 });
 
       // Check that the query includes plainto_tsquery
-      const queryArg = prisma.$queryRawUnsafe.mock.calls[0][0] as string;
+      const queryArg = prisma.$queryRawUnsafe.mock.calls[0]![0] as string;
       expect(queryArg).toContain('plainto_tsquery');
     });
 
@@ -130,7 +130,7 @@ describe('DirectoryService', () => {
 
       await service.search({ category: 'BEAUTY', page: 1, limit: 10 });
 
-      const queryArg = prisma.$queryRawUnsafe.mock.calls[0][0] as string;
+      const queryArg = prisma.$queryRawUnsafe.mock.calls[0]![0] as string;
       expect(queryArg).toContain('"BusinessCategory"');
     });
 
@@ -147,7 +147,7 @@ describe('DirectoryService', () => {
         limit: 10,
       });
 
-      const queryArg = prisma.$queryRawUnsafe.mock.calls[0][0] as string;
+      const queryArg = prisma.$queryRawUnsafe.mock.calls[0]![0] as string;
       expect(queryArg).toContain('distance_miles');
     });
 

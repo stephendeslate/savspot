@@ -25,6 +25,14 @@ jobs:
       - name: Setup Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 
+      - name: Resolve failed migration (one-time cleanup)
+        run: |
+          flyctl ssh console --config apps/api/fly.toml -C \
+            "cd /app && ./prisma/node_modules/.bin/prisma migrate resolve --rolled-back 20260311000000_add_phase4_rls_and_cascades --schema /app/prisma/schema.prisma" \
+            || echo "No failed migration to resolve (or already resolved)"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
       - name: Deploy API
         run: flyctl deploy --config apps/api/fly.toml --dockerfile apps/api/Dockerfile --remote-only
         env:

@@ -18,15 +18,18 @@ describe('AccountingSyncDispatcher', () => {
   let invoicesHandler: ReturnType<typeof makeHandler>;
   let paymentsHandler: ReturnType<typeof makeHandler>;
   let clientsHandler: ReturnType<typeof makeHandler>;
+  let singleInvoiceHandler: ReturnType<typeof makeHandler>;
 
   beforeEach(() => {
     invoicesHandler = makeHandler();
     paymentsHandler = makeHandler();
     clientsHandler = makeHandler();
+    singleInvoiceHandler = makeHandler();
     dispatcher = new AccountingSyncDispatcher(
       invoicesHandler as never,
       paymentsHandler as never,
       clientsHandler as never,
+      singleInvoiceHandler as never,
     );
   });
 
