@@ -17,3 +17,7 @@ export * from './note.enums.js';
 export * from './ai-operations.enums.js';
 export * from './voice.enums.js';
 export * from './automation.enums.js';
+export * from './directory.enums.js';
+export * from './custom-domain.enums.js';
+export * from './recommendation.enums.js';
+export * from './partner.enums.js';

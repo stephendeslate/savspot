@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Post,
   Body,
@@ -39,7 +40,10 @@ export class UploadController {
     @Req() req: Request,
   ): Promise<PresignedUploadResult> {
     const user = req.user as { tenantId?: string };
-    const tenantId = user?.tenantId || 'default';
+    if (!user?.tenantId) {
+      throw new BadRequestException('Missing tenant context');
+    }
+    const tenantId = user.tenantId;
 
     return this.uploadService.getPresignedUploadUrl({
       tenantId,

@@ -786,6 +786,24 @@ export class GoogleCalendarService {
   }
 
   // ---------------------------------------------------------------------------
+  // Webhook Subscription Management
+  // ---------------------------------------------------------------------------
+
+  async renewWebhookSubscription(connectionId: string): Promise<void> {
+    this.logger.log(`Renewing webhook subscription for Google connection ${connectionId}`);
+    await this.renewWatchChannels(connectionId);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Connection Sync (used by fallback handler)
+  // ---------------------------------------------------------------------------
+
+  async syncConnection(connectionId: string, _tenantId: string): Promise<void> {
+    this.logger.log(`Running sync for connection ${connectionId}`);
+    await this.syncInboundEvents(connectionId);
+  }
+
+  // ---------------------------------------------------------------------------
   // Private Helpers
   // ---------------------------------------------------------------------------
 

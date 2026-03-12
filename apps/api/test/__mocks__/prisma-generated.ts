@@ -12,6 +12,17 @@ export const Prisma = {
   InputJsonValue: undefined as unknown,
   // Needed for where-input type references
   ModelName: {} as Record<string, string>,
+  // Template tag for raw SQL fragments
+  sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values }),
+  join: (arr: unknown[], sep?: string) => ({ arr, sep }),
+  // Decimal constructor used in services
+  Decimal: class Decimal {
+    value: number;
+    constructor(v: string | number) { this.value = typeof v === 'string' ? parseFloat(v) : v; }
+    toNumber() { return this.value; }
+    toString() { return String(this.value); }
+    toFixed(dp: number) { return this.value.toFixed(dp); }
+  },
 };
 
 // Enums referenced directly in service code
@@ -149,6 +160,33 @@ export enum WorkflowTriggerEvent {
   BOOKING_CANCELLED = 'BOOKING_CANCELLED',
   BOOKING_COMPLETED = 'BOOKING_COMPLETED',
   PAYMENT_RECEIVED = 'PAYMENT_RECEIVED',
+}
+
+export enum PartnerStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  SUSPENDED = 'SUSPENDED',
+  TERMINATED = 'TERMINATED',
+}
+
+export enum PartnerTier {
+  STANDARD = 'STANDARD',
+  SILVER = 'SILVER',
+  GOLD = 'GOLD',
+}
+
+export enum PayoutStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+}
+
+export enum CustomDomainStatus {
+  PENDING_VERIFICATION = 'PENDING_VERIFICATION',
+  ACTIVE = 'ACTIVE',
+  SSL_PROVISIONING = 'SSL_PROVISIONING',
+  FAILED = 'FAILED',
 }
 
 // PrismaClient stub

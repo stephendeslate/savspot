@@ -7,6 +7,11 @@ import {
   QUEUE_COMMUNICATIONS,
   QUEUE_INVOICES,
   QUEUE_GDPR,
+  QUEUE_PLATFORM_METRICS,
+  QUEUE_AI_OPERATIONS,
+  QUEUE_DIRECTORY,
+  QUEUE_CUSTOM_DOMAINS,
+  QUEUE_PARTNERS,
 } from '../bullmq/queue.constants';
 import { PaymentsModule } from '../payments/payments.module';
 import { CommunicationsModule } from '../communications/communications.module';
@@ -58,6 +63,11 @@ import { JobSchedulerService } from './job-scheduler.service';
       { name: QUEUE_COMMUNICATIONS },
       { name: QUEUE_INVOICES },
       { name: QUEUE_GDPR },
+      { name: QUEUE_PLATFORM_METRICS },
+      { name: QUEUE_AI_OPERATIONS },
+      { name: QUEUE_DIRECTORY },
+      { name: QUEUE_CUSTOM_DOMAINS },
+      { name: QUEUE_PARTNERS },
     ),
     PaymentsModule,
     CommunicationsModule,

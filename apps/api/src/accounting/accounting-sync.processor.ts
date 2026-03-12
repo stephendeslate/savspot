@@ -204,6 +204,110 @@ export class AccountingSyncPaymentsHandler {
   }
 }
 
+interface AccountingSyncSingleInvoiceJobData {
+  connectionId: string;
+  tenantId: string;
+  invoiceId: string;
+}
+
+@Injectable()
+export class AccountingSyncSingleInvoiceHandler {
+  private readonly logger = new Logger(AccountingSyncSingleInvoiceHandler.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly accountingService: AccountingService,
+  ) {}
+
+  async handle(job: Job<AccountingSyncSingleInvoiceJobData>): Promise<void> {
+    const { connectionId, tenantId, invoiceId } = job.data;
+    this.logger.log(`Starting single invoice sync for invoice ${invoiceId} (connection: ${connectionId}, tenant: ${tenantId})`);
+
+    try {
+      const connection = await this.prisma.accountingConnection.findFirst({
+        where: { id: connectionId, tenantId, status: 'ACTIVE' },
+      });
+
+      if (!connection) {
+        this.logger.warn(`Connection ${connectionId} not found or inactive, skipping`);
+        return;
+      }
+
+      let tokens = this.accountingService.getTokensFromConnection(connection);
+      const provider = this.accountingService.getProvider(connection.provider);
+
+      if (connection.tokenExpiresAt && connection.tokenExpiresAt < new Date()) {
+        this.logger.log(`Refreshing expired token for connection ${connectionId}`);
+        tokens = await provider.refreshToken(tokens.refreshToken);
+
+        await this.prisma.accountingConnection.update({
+          where: { id: connectionId },
+          data: {
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+            tokenExpiresAt: tokens.expiresAt,
+          },
+        });
+      }
+
+      const invoice = await this.prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+
+        return tx.invoice.findFirst({
+          where: { id: invoiceId, tenantId },
+          include: {
+            lineItems: { orderBy: { sortOrder: 'asc' } },
+            booking: {
+              select: {
+                client: { select: { name: true, email: true } },
+              },
+            },
+          },
+        });
+      });
+
+      if (!invoice) {
+        this.logger.warn(`Invoice ${invoiceId} not found for tenant ${tenantId}, skipping`);
+        return;
+      }
+
+      const result = await provider.syncInvoice(tokens, {
+        id: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        clientName: invoice.booking?.client?.name ?? 'Unknown',
+        clientEmail: invoice.booking?.client?.email ?? '',
+        lineItems: invoice.lineItems.map((li) => ({
+          description: li.description,
+          quantity: li.quantity,
+          unitPrice: li.unitPrice.toNumber(),
+          total: li.total.toNumber(),
+        })),
+        subtotal: invoice.subtotal.toNumber(),
+        taxAmount: invoice.taxAmount.toNumber(),
+        total: invoice.total.toNumber(),
+        currency: invoice.currency,
+        dueDate: invoice.dueDate ?? new Date(),
+      });
+
+      if (result.success) {
+        this.logger.log(`Single invoice sync complete for invoice ${invoiceId}`);
+      } else {
+        this.logger.warn(`Failed to sync invoice ${invoice.invoiceNumber}: ${result.error}`);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.logger.error(`Single invoice sync failed for invoice ${invoiceId}: ${message}`);
+
+      await this.prisma.accountingConnection.update({
+        where: { id: connectionId },
+        data: { status: 'ERROR', errorMessage: message },
+      }).catch(() => { /* best effort */ });
+
+      throw err;
+    }
+  }
+}
+
 @Injectable()
 export class AccountingSyncClientsHandler {
   private readonly logger = new Logger(AccountingSyncClientsHandler.name);

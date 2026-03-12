@@ -10,6 +10,7 @@ import {
   AccountingSyncInvoicesHandler,
   AccountingSyncPaymentsHandler,
   AccountingSyncClientsHandler,
+  AccountingSyncSingleInvoiceHandler,
 } from './accounting-sync.processor';
 
 @Module({
@@ -23,6 +24,7 @@ import {
     AccountingSyncInvoicesHandler,
     AccountingSyncPaymentsHandler,
     AccountingSyncClientsHandler,
+    AccountingSyncSingleInvoiceHandler,
   ],
   exports: [AccountingService],
 })

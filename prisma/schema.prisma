@@ -33,6 +33,12 @@ enum PaymentProviderType {
   ADYEN
   PAYPAL
   OFFLINE
+  // Phase 4 additions
+  GCASH
+  MAYA
+  RAZORPAY
+  MOLLIE
+  DLOCAL
 }
 
 enum SubscriptionTier {
@@ -657,6 +663,77 @@ enum BreachNotificationChannel {
   POSTAL
 }
 
+// --- Phase 4: Custom Domains ---
+
+enum CustomDomainStatus {
+  PENDING_VERIFICATION
+  DNS_VERIFIED
+  SSL_PROVISIONING
+  ACTIVE
+  VERIFICATION_FAILED
+  SSL_FAILED
+  SUSPENDED
+}
+
+enum SslStatus {
+  PENDING
+  ISSUING
+  ACTIVE
+  RENEWAL_PENDING
+  EXPIRED
+  FAILED
+}
+
+// --- Phase 4: AI Recommendations ---
+
+enum RecommendationType {
+  SERVICE_AFFINITY
+  CLIENT_PREFERENCE
+  CHURN_RISK
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// --- Phase 4: Partner Program ---
+
+enum PartnerType {
+  REFERRAL
+  INTEGRATION
+  RESELLER
+}
+
+enum PartnerStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+  TERMINATED
+}
+
+enum PartnerTier {
+  STANDARD
+  SILVER
+  GOLD
+}
+
+enum PartnerReferralStatus {
+  PENDING
+  ACTIVATED
+  QUALIFIED
+  CHURNED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+}
+
 // =============================================================================
 // MODELS
 // =============================================================================
@@ -762,6 +839,13 @@ model Tenant {
   voiceCallLogs            VoiceCallLog[]
   accountingSyncLogs       AccountingSyncLog[]
 
+  // Phase 4 relations
+  directoryListing      DirectoryListing?
+  savedBusinesses       SavedBusiness[]
+  customDomain          CustomDomain?
+  clientRecommendations ClientRecommendation[]
+  partnerReferrals      PartnerReferral[]
+
   @@index([category])
   @@map("tenants")
 }
@@ -825,6 +909,12 @@ model User {
   browserPushSubscriptions BrowserPushSubscription[]
   insightsDismissed        SlotDemandInsight[]       @relation("InsightDismissedBy")
   voiceCallsAsCaller       VoiceCallLog[]            @relation("VoiceCallCaller")
+
+  // Phase 4 relations
+  savedBusinesses           SavedBusiness[]
+  clientRecommendations     ClientRecommendation[]
+  partner                   Partner?
+  venueStaffAssignments     VenueStaff[]
 
   @@map("users")
 }
@@ -1293,8 +1383,9 @@ model Service {
   serviceProviders  ServiceProvider[]
   serviceAddons     ServiceAddon[]
   galleryPhotos     GalleryPhoto[]
-  quoteLineItems    QuoteLineItem[]
-  quoteOptionItems  QuoteOptionItem[]
+  quoteLineItems         QuoteLineItem[]
+  quoteOptionItems       QuoteOptionItem[]
+  clientRecommendations  ClientRecommendation[]
 
   @@index([tenantId])
   @@map("services")
@@ -1310,7 +1401,16 @@ model Venue {
   images       Json?
   isActive     Boolean                  @default(true) @map("is_active")
   sortOrder    Int                      @default(0) @map("sort_order")
-  searchVector Unsupported("tsvector")? @map("search_vector")
+  searchVector   Unsupported("tsvector")? @map("search_vector")
+
+  // Phase 4 additions
+  contactEmail   String?  @map("contact_email")
+  contactPhone   String?  @map("contact_phone")
+  timezone       String?
+  branding       Json?
+  bookingSlug    String?  @unique @map("booking_slug")
+  operatingHours Json?    @map("operating_hours")
+
   createdAt    DateTime                 @default(now()) @map("created_at")
   updatedAt    DateTime                 @updatedAt @map("updated_at")
 
@@ -1322,6 +1422,7 @@ model Venue {
   availabilityRules AvailabilityRule[]
   blockedDates      BlockedDate[]
   galleryPhotos     GalleryPhoto[]
+  venueStaff        VenueStaff[]
 
   @@index([tenantId])
   @@map("venues")
@@ -1656,7 +1757,7 @@ model Contract {
 
   // Relations
   tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  booking      Booking             @relation(fields: [bookingId], references: [id])
+  booking      Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   template     ContractTemplate    @relation(fields: [templateId], references: [id])
   quote        Quote?              @relation(fields: [quoteId], references: [id])
   voidedByUser User?               @relation("ContractVoidedBy", fields: [voidedBy], references: [id])
@@ -1738,7 +1839,7 @@ model Quote {
 
   // Relations
   tenant    Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  booking   Booking         @relation(fields: [bookingId], references: [id])
+  booking   Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   lineItems QuoteLineItem[]
   options   QuoteOption[]
   contracts Contract[]
@@ -1947,6 +2048,15 @@ model CalendarConnection {
   status               CalendarConnectionStatus @default(ACTIVE)
   errorMessage         String?                  @map("error_message")
   icalFeedToken        String?                  @unique @map("ical_feed_token")
+
+  // Phase 4 additions
+  webhookChannelId String?   @map("webhook_channel_id")
+  webhookToken     String?   @map("webhook_token")
+  webhookExpiresAt DateTime? @map("webhook_expires_at")
+  webhookStatus    String?   @map("webhook_status")
+  syncToken        String?   @map("sync_token")
+  deltaLink        String?   @map("delta_link")
+
   createdAt            DateTime                 @default(now()) @map("created_at")
   updatedAt            DateTime                 @updatedAt @map("updated_at")
 
@@ -2250,7 +2360,7 @@ model DataRequest {
 
   // Relations
   user   User    @relation(fields: [userId], references: [id])
-  tenant Tenant? @relation(fields: [tenantId], references: [id])
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@map("data_requests")
@@ -2454,7 +2564,7 @@ model Feedback {
   updatedAt      DateTime       @updatedAt @map("updated_at")
 
   // Relations
-  tenant    Tenant @relation(fields: [tenantId], references: [id])
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   submitter User   @relation(fields: [submittedBy], references: [id])
 
   @@index([tenantId])
@@ -2746,4 +2856,233 @@ model AccountingSyncLog {
   @@index([entityType, entityId])
   @@index([status])
   @@map("accounting_sync_logs")
+}
+
+// =============================================================================
+// PHASE 4 — PLATFORM METRICS
+// =============================================================================
+
+model PlatformMetric {
+  id         String   @id @default(uuid())
+  key        String
+  value      Int
+  metadata   Json?
+  measuredAt DateTime @map("measured_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([key, measuredAt])
+  @@map("platform_metrics")
+}
+
+model PlatformAlert {
+  id             String    @id @default(uuid())
+  metricKey      String    @map("metric_key")
+  threshold      Int
+  currentValue   Int       @map("current_value")
+  message        String
+  acknowledged   Boolean   @default(false)
+  acknowledgedAt DateTime? @map("acknowledged_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@map("platform_alerts")
+}
+
+// =============================================================================
+// PHASE 4 — PLATFORM DIRECTORY
+// =============================================================================
+
+model DirectoryListing {
+  id              String    @id @default(uuid())
+  tenantId        String    @unique @map("tenant_id")
+  featuredUntil   DateTime? @map("featured_until")
+  sortBoost       Int       @default(0) @map("sort_boost")
+  totalBookings   Int       @default(0) @map("total_bookings")
+  averageRating   Decimal?  @map("average_rating") @db.Decimal(3, 2)
+  reviewCount     Int       @default(0) @map("review_count")
+  responseRate    Decimal?  @map("response_rate") @db.Decimal(5, 2)
+  responseTimeMin Int?      @map("response_time_min")
+  lastActiveAt    DateTime? @map("last_active_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("directory_listings")
+}
+
+model SavedBusiness {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tenantId  String   @map("tenant_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@map("saved_businesses")
+}
+
+// =============================================================================
+// PHASE 4 — CUSTOM DOMAINS
+// =============================================================================
+
+model CustomDomain {
+  id                String             @id @default(uuid())
+  tenantId          String             @unique @map("tenant_id")
+  domain            String             @unique
+  status            CustomDomainStatus @default(PENDING_VERIFICATION)
+  verificationToken String             @map("verification_token")
+  verifiedAt        DateTime?          @map("verified_at")
+  sslStatus         SslStatus          @default(PENDING) @map("ssl_status")
+  sslIssuedAt       DateTime?          @map("ssl_issued_at")
+  sslExpiresAt      DateTime?          @map("ssl_expires_at")
+  lastCheckedAt     DateTime?          @map("last_checked_at")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("custom_domains")
+}
+
+// =============================================================================
+// PHASE 4 — MULTI-LOCATION (VenueStaff join table)
+// =============================================================================
+
+model VenueStaff {
+  id        String   @id @default(uuid())
+  venueId   String   @map("venue_id")
+  userId    String   @map("user_id")
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([venueId, userId])
+  @@map("venue_staff")
+}
+
+// =============================================================================
+// PHASE 4 — AI RECOMMENDATIONS
+// =============================================================================
+
+model RecommendationModel {
+  id           String             @id @default(uuid())
+  type         RecommendationType
+  category     String?
+  modelData    Json               @map("model_data")
+  trainingSize Int                @map("training_size")
+  accuracy     Decimal?           @db.Decimal(5, 4)
+  trainedAt    DateTime           @map("trained_at")
+  createdAt    DateTime           @default(now()) @map("created_at")
+
+  @@map("recommendation_models")
+}
+
+model ClientRecommendation {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  tenantId      String   @map("tenant_id")
+  serviceId     String   @map("service_id")
+  score         Decimal  @db.Decimal(5, 4)
+  reason        String
+  impressions   Int      @default(0)
+  clicked       Boolean  @default(false)
+  bookedFromRec Boolean  @default(false) @map("booked_from_rec")
+  expiresAt     DateTime @map("expires_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@map("client_recommendations")
+}
+
+model ChurnRiskScore {
+  id           String    @id @default(uuid())
+  clientId     String    @map("client_id")
+  tenantId     String    @map("tenant_id")
+  riskLevel    RiskLevel @map("risk_level")
+  score        Decimal   @db.Decimal(5, 4)
+  factors      Json
+  lastBooking  DateTime  @map("last_booking")
+  expectedNext DateTime? @map("expected_next")
+  computedAt   DateTime  @map("computed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@unique([clientId, tenantId])
+  @@map("churn_risk_scores")
+}
+
+// =============================================================================
+// PHASE 4 — PARTNER PROGRAM
+// =============================================================================
+
+model Partner {
+  id             String        @id @default(uuid())
+  userId         String        @unique @map("user_id")
+  type           PartnerType
+  companyName    String        @map("company_name")
+  companyUrl     String?       @map("company_url")
+  status         PartnerStatus @default(PENDING)
+  tier           PartnerTier   @default(STANDARD)
+  referralCode   String        @unique @map("referral_code")
+  commissionRate Decimal       @default(0.10) @map("commission_rate") @db.Decimal(5, 4)
+  totalReferrals Int           @default(0) @map("total_referrals")
+  totalEarnings  Decimal       @default(0) @map("total_earnings") @db.Decimal(12, 2)
+  payoutMethod   String?       @map("payout_method")
+  approvedAt     DateTime?     @map("approved_at")
+  approvedBy     String?       @map("approved_by")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referredTenants PartnerReferral[]
+  payouts         PartnerPayout[]
+
+  @@map("partners")
+}
+
+model PartnerReferral {
+  id             String                @id @default(uuid())
+  partnerId      String                @map("partner_id")
+  tenantId       String                @map("tenant_id")
+  status         PartnerReferralStatus @default(PENDING)
+  activatedAt    DateTime?             @map("activated_at")
+  firstBookingAt DateTime?             @map("first_booking_at")
+  createdAt      DateTime              @default(now()) @map("created_at")
+
+  // Relations
+  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([partnerId, tenantId])
+  @@map("partner_referrals")
+}
+
+model PartnerPayout {
+  id               String       @id @default(uuid())
+  partnerId        String       @map("partner_id")
+  amount           Decimal      @db.Decimal(12, 2)
+  currency         String       @default("USD")
+  status           PayoutStatus @default(PENDING)
+  periodStart      DateTime     @map("period_start")
+  periodEnd        DateTime     @map("period_end")
+  paidAt           DateTime?    @map("paid_at")
+  providerPayoutId String?      @map("provider_payout_id")
+  createdAt        DateTime     @default(now()) @map("created_at")
+
+  // Relations
+  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@map("partner_payouts")
 }

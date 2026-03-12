@@ -129,4 +129,72 @@ export class ImportsService {
       totalErrors: errorRecords.length,
     };
   }
+
+  async processImport(importJobId: string, tenantId: string): Promise<void> {
+    this.logger.log(
+      `Processing import job ${importJobId} for tenant ${tenantId}`,
+    );
+
+    try {
+      const importJob = await this.prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+
+        const job = await tx.importJob.findFirst({
+          where: { id: importJobId, tenantId },
+        });
+
+        if (!job) {
+          throw new Error(`Import job ${importJobId} not found`);
+        }
+
+        await tx.importJob.update({
+          where: { id: importJobId },
+          data: { status: 'PROCESSING' },
+        });
+
+        return job;
+      });
+
+      // Process based on importType and sourcePlatform
+      // Placeholder: mark as completed with zero records processed
+      this.logger.log(
+        `Processing import type=${importJob.importType} source=${importJob.sourcePlatform}`,
+      );
+
+      await this.prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+
+        await tx.importJob.update({
+          where: { id: importJobId },
+          data: {
+            status: 'COMPLETED',
+            completedAt: new Date(),
+            stats: { totalRecords: 0, successCount: 0, errorCount: 0 },
+          },
+        });
+      });
+
+      this.logger.log(`Import job ${importJobId} completed successfully`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.logger.error(
+        `Import job ${importJobId} failed: ${message}`,
+      );
+
+      await this.prisma.importJob
+        .update({
+          where: { id: importJobId },
+          data: {
+            status: 'FAILED',
+            completedAt: new Date(),
+            errorLog: { error: message },
+          },
+        })
+        .catch(() => {
+          /* best effort */
+        });
+
+      throw err;
+    }
+  }
 }
