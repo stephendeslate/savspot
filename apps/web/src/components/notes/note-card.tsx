@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { Check, Loader2, Pencil, Pin, Trash2, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { Button, Textarea } from '@savspot/ui';
 import { cn } from '@/lib/utils';
 
 export interface NoteData {

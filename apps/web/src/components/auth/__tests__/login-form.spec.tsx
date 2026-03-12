@@ -21,7 +21,7 @@ vi.mock('@/hooks/use-auth', () => ({
 }));
 
 vi.mock('@/lib/api-client', () => ({
-  apiClient: { setTokens: vi.fn() },
+  apiClient: {},
   ApiError: class extends Error {
     status: number;
     constructor(status: number, message: string) {

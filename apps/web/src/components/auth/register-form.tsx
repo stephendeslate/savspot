@@ -6,14 +6,12 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Input, Label, Separator } from '@savspot/ui';
 import { useAuth } from '@/hooks/use-auth';
 import { ROUTES } from '@/lib/constants';
 import { ApiError } from '@/lib/api-client';
 import { GoogleButton } from './google-button';
 import { AppleButton } from './apple-button';
-import { Separator } from '@/components/ui/separator';
 
 const registerSchema = z
   .object({

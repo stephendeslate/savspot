@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
   Building2,
@@ -26,6 +27,33 @@ import {
   Phone,
   Workflow,
 } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'SavSpot — The Booking Platform That Pays for Itself',
+  description:
+    'All-in-one booking and business management platform for service businesses. Online scheduling, payments, client management, and AI-powered tools. Free to start.',
+  openGraph: {
+    title: 'SavSpot — The Booking Platform That Pays for Itself',
+    description:
+      'All-in-one booking and business management platform for service businesses. Online scheduling, payments, client management, and AI-powered tools.',
+    type: 'website',
+    url: 'https://savspot.com',
+    siteName: 'SavSpot',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'SavSpot — The Booking Platform That Pays for Itself',
+    description:
+      'All-in-one booking and business management platform for service businesses.',
+  },
+  keywords: [
+    'booking platform',
+    'appointment scheduling',
+    'business management',
+    'online booking',
+    'service business software',
+  ],
+};
 
 const BUSINESS_TYPES = [
   { label: 'Venues', icon: Building2, description: 'Event spaces, conference rooms, coworking' },

@@ -9,15 +9,7 @@ import {
   Clock,
   ArrowRight,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Skeleton } from '@savspot/ui';
 import { useAuth } from '@/hooks/use-auth';
 import { apiClient } from '@/lib/api-client';
 import {

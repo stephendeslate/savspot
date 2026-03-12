@@ -2,8 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Minus, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { Button, Separator } from '@savspot/ui';
 import type { GuestConfig, BookingSessionData } from './booking-types';
 
 // ---------------------------------------------------------------------------

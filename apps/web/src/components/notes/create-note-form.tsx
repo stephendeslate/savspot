@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { Loader2, Send } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { Button, Textarea } from '@savspot/ui';
 
 interface CreateNoteFormProps {
   onSubmit: (body: string) => Promise<void>;
