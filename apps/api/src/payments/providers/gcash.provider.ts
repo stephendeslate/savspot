@@ -2,8 +2,8 @@ import {
   Injectable,
   Logger,
   BadRequestException,
+  NotImplementedException,
 } from '@nestjs/common';
-import { randomUUID } from 'crypto';
 import {
   PaymentProviderInterface,
   CreatePaymentIntentParams,
@@ -27,108 +27,46 @@ export class GcashProvider implements PaymentProviderInterface {
   }
 
   async createConnectedAccount(
-    email: string,
-    country: string,
+    _email: string,
+    _country: string,
   ): Promise<ConnectedAccount> {
     this.ensureEnabled();
-
-    const accountId = `GCASH_SUB_${randomUUID().slice(0, 8).toUpperCase()}`;
-
-    this.logger.log(
-      `[STUB] Created GCash sub-merchant account ${accountId} for ${email} (${country})`,
-    );
-
-    return {
-      accountId,
-      onboardingComplete: false,
-    };
+    throw new NotImplementedException('GCash provider is not yet implemented. Use Stripe or Offline.');
   }
 
   async getOnboardingLink(
-    accountId: string,
+    _accountId: string,
     _refreshUrl: string,
-    returnUrl: string,
+    _returnUrl: string,
   ): Promise<string> {
     this.ensureEnabled();
-
-    const onboardingUrl = `https://test.gcash.com/onboarding/${accountId}?returnUrl=${encodeURIComponent(returnUrl)}`;
-
-    this.logger.log(
-      `[STUB] Generated GCash onboarding link for account ${accountId}`,
-    );
-
-    return onboardingUrl;
+    throw new NotImplementedException('GCash provider is not yet implemented. Use Stripe or Offline.');
   }
 
-  async getDashboardLink(accountId: string): Promise<string> {
+  async getDashboardLink(_accountId: string): Promise<string> {
     this.ensureEnabled();
-
-    const dashboardUrl = `https://dashboard.test.gcash.com/accounts/${accountId}`;
-
-    this.logger.log(
-      `[STUB] Generated GCash dashboard link for account ${accountId}`,
-    );
-
-    return dashboardUrl;
+    throw new NotImplementedException('GCash provider is not yet implemented. Use Stripe or Offline.');
   }
 
-  async getAccountStatus(accountId: string): Promise<AccountStatus> {
+  async getAccountStatus(_accountId: string): Promise<AccountStatus> {
     this.ensureEnabled();
-
-    this.logger.log(
-      `[STUB] Fetched GCash account status for ${accountId}`,
-    );
-
-    return {
-      accountId,
-      chargesEnabled: true,
-      payoutsEnabled: true,
-      detailsSubmitted: true,
-    };
+    throw new NotImplementedException('GCash provider is not yet implemented. Use Stripe or Offline.');
   }
 
   async createPaymentIntent(
-    params: CreatePaymentIntentParams,
+    _params: CreatePaymentIntentParams,
   ): Promise<PaymentIntentResult> {
     this.ensureEnabled();
-
-    const sessionId = `GCASH_SESSION_${randomUUID().replace(/-/g, '')}`;
-    const sessionData = `mock_session_data_${randomUUID().slice(0, 8)}`;
-
-    this.logger.log(
-      `[STUB] Created GCash checkout session ${sessionId} for ${params.amount} ${params.currency}`,
-    );
-
-    return {
-      id: sessionId,
-      clientSecret: sessionData,
-      status: 'pending',
-      amount: params.amount,
-      currency: params.currency,
-    };
+    throw new NotImplementedException('GCash provider is not yet implemented. Use Stripe or Offline.');
   }
 
-  async cancelPaymentIntent(intentId: string): Promise<void> {
+  async cancelPaymentIntent(_intentId: string): Promise<void> {
     this.ensureEnabled();
-
-    this.logger.log(
-      `[STUB] Cancelled GCash payment session ${intentId}`,
-    );
+    throw new NotImplementedException('GCash provider is not yet implemented. Use Stripe or Offline.');
   }
 
-  async createRefund(params: CreateRefundParams): Promise<RefundResult> {
+  async createRefund(_params: CreateRefundParams): Promise<RefundResult> {
     this.ensureEnabled();
-
-    const refundId = `GCASH_REFUND_${randomUUID().slice(0, 8).toUpperCase()}`;
-
-    this.logger.log(
-      `[STUB] Created GCash refund ${refundId} for payment ${params.paymentIntentId}`,
-    );
-
-    return {
-      id: refundId,
-      amount: params.amount ?? 0,
-      status: 'received',
-    };
+    throw new NotImplementedException('GCash provider is not yet implemented. Use Stripe or Offline.');
   }
 }

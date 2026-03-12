@@ -1,6 +1,7 @@
 import {
   Injectable,
   NotFoundException,
+  NotImplementedException,
   Logger,
 } from '@nestjs/common';
 import { Queue } from 'bullmq';
@@ -136,7 +137,7 @@ export class ImportsService {
     );
 
     try {
-      const importJob = await this.prisma.$transaction(async (tx) => {
+      await this.prisma.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
 
         const job = await tx.importJob.findFirst({
@@ -155,26 +156,24 @@ export class ImportsService {
         return job;
       });
 
-      // Process based on importType and sourcePlatform
-      // Placeholder: mark as completed with zero records processed
-      this.logger.log(
-        `Processing import type=${importJob.importType} source=${importJob.sourcePlatform}`,
-      );
-
+      // Bulk import processing is not yet implemented
+      // Set job to FAILED so the caller knows
       await this.prisma.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
 
         await tx.importJob.update({
           where: { id: importJobId },
           data: {
-            status: 'COMPLETED',
+            status: 'FAILED',
             completedAt: new Date(),
-            stats: { totalRecords: 0, successCount: 0, errorCount: 0 },
+            errorLog: { error: 'Bulk import processing is not yet implemented' },
           },
         });
       });
 
-      this.logger.log(`Import job ${importJobId} completed successfully`);
+      throw new NotImplementedException(
+        'Bulk import processing is not yet implemented',
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       this.logger.error(

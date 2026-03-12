@@ -30,7 +30,7 @@ describe('SettingsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('should render all 11 settings sections', () => {
+  it('should render all settings sections', () => {
     render(<SettingsPage />);
 
     const expectedSections = [
@@ -45,6 +45,19 @@ describe('SettingsPage', () => {
       'Gallery',
       'Team',
       'Embed Widget',
+      'Booking Flow',
+      'Workflows',
+      'Communications',
+      'Venues',
+      'Referrals',
+      'Accounting',
+      'Custom Domains',
+      'Billing & Plans',
+      'Service Categories',
+      'API Keys',
+      'Notification Preferences',
+      'Voice & Telephony',
+      'Partner Program',
     ];
 
     for (const name of expectedSections) {
@@ -68,10 +81,22 @@ describe('SettingsPage', () => {
       Team: '/settings/team',
       'Booking Flow': '/settings/booking-flow',
       'Embed Widget': '/settings/embed',
+      Workflows: '/settings/workflows',
+      Communications: '/settings/communications',
+      Venues: '/settings/venues',
+      Referrals: '/settings/referrals',
+      Accounting: '/settings/accounting',
+      'Custom Domains': '/settings/domains',
+      'Billing & Plans': '/settings/billing',
+      'Service Categories': '/settings/service-categories',
+      'API Keys': '/settings/api-keys',
+      'Notification Preferences': '/settings/notification-preferences',
+      'Voice & Telephony': '/settings/voice',
+      'Partner Program': '/settings/partner-program',
     };
 
     const links = screen.getAllByRole('link');
-    expect(links).toHaveLength(12);
+    expect(links).toHaveLength(24);
 
     for (const [name, href] of Object.entries(expectedLinks)) {
       const link = screen.getByText(name).closest('a');

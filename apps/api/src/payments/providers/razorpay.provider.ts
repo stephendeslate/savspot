@@ -2,8 +2,8 @@ import {
   Injectable,
   Logger,
   BadRequestException,
+  NotImplementedException,
 } from '@nestjs/common';
-import { randomUUID } from 'crypto';
 import {
   PaymentProviderInterface,
   CreatePaymentIntentParams,
@@ -27,108 +27,46 @@ export class RazorpayProvider implements PaymentProviderInterface {
   }
 
   async createConnectedAccount(
-    email: string,
-    country: string,
+    _email: string,
+    _country: string,
   ): Promise<ConnectedAccount> {
     this.ensureEnabled();
-
-    const accountId = `RZP_SUB_${randomUUID().slice(0, 8).toUpperCase()}`;
-
-    this.logger.log(
-      `[STUB] Created Razorpay sub-merchant account ${accountId} for ${email} (${country})`,
-    );
-
-    return {
-      accountId,
-      onboardingComplete: false,
-    };
+    throw new NotImplementedException('Razorpay provider is not yet implemented. Use Stripe or Offline.');
   }
 
   async getOnboardingLink(
-    accountId: string,
+    _accountId: string,
     _refreshUrl: string,
-    returnUrl: string,
+    _returnUrl: string,
   ): Promise<string> {
     this.ensureEnabled();
-
-    const onboardingUrl = `https://test.razorpay.com/onboarding/${accountId}?returnUrl=${encodeURIComponent(returnUrl)}`;
-
-    this.logger.log(
-      `[STUB] Generated Razorpay onboarding link for account ${accountId}`,
-    );
-
-    return onboardingUrl;
+    throw new NotImplementedException('Razorpay provider is not yet implemented. Use Stripe or Offline.');
   }
 
-  async getDashboardLink(accountId: string): Promise<string> {
+  async getDashboardLink(_accountId: string): Promise<string> {
     this.ensureEnabled();
-
-    const dashboardUrl = `https://dashboard.test.razorpay.com/accounts/${accountId}`;
-
-    this.logger.log(
-      `[STUB] Generated Razorpay dashboard link for account ${accountId}`,
-    );
-
-    return dashboardUrl;
+    throw new NotImplementedException('Razorpay provider is not yet implemented. Use Stripe or Offline.');
   }
 
-  async getAccountStatus(accountId: string): Promise<AccountStatus> {
+  async getAccountStatus(_accountId: string): Promise<AccountStatus> {
     this.ensureEnabled();
-
-    this.logger.log(
-      `[STUB] Fetched Razorpay account status for ${accountId}`,
-    );
-
-    return {
-      accountId,
-      chargesEnabled: true,
-      payoutsEnabled: true,
-      detailsSubmitted: true,
-    };
+    throw new NotImplementedException('Razorpay provider is not yet implemented. Use Stripe or Offline.');
   }
 
   async createPaymentIntent(
-    params: CreatePaymentIntentParams,
+    _params: CreatePaymentIntentParams,
   ): Promise<PaymentIntentResult> {
     this.ensureEnabled();
-
-    const sessionId = `RZP_SESSION_${randomUUID().replace(/-/g, '')}`;
-    const sessionData = `mock_session_data_${randomUUID().slice(0, 8)}`;
-
-    this.logger.log(
-      `[STUB] Created Razorpay checkout session ${sessionId} for ${params.amount} ${params.currency}`,
-    );
-
-    return {
-      id: sessionId,
-      clientSecret: sessionData,
-      status: 'pending',
-      amount: params.amount,
-      currency: params.currency,
-    };
+    throw new NotImplementedException('Razorpay provider is not yet implemented. Use Stripe or Offline.');
   }
 
-  async cancelPaymentIntent(intentId: string): Promise<void> {
+  async cancelPaymentIntent(_intentId: string): Promise<void> {
     this.ensureEnabled();
-
-    this.logger.log(
-      `[STUB] Cancelled Razorpay payment session ${intentId}`,
-    );
+    throw new NotImplementedException('Razorpay provider is not yet implemented. Use Stripe or Offline.');
   }
 
-  async createRefund(params: CreateRefundParams): Promise<RefundResult> {
+  async createRefund(_params: CreateRefundParams): Promise<RefundResult> {
     this.ensureEnabled();
-
-    const refundId = `RZP_REFUND_${randomUUID().slice(0, 8).toUpperCase()}`;
-
-    this.logger.log(
-      `[STUB] Created Razorpay refund ${refundId} for payment ${params.paymentIntentId}`,
-    );
-
-    return {
-      id: refundId,
-      amount: params.amount ?? 0,
-      status: 'received',
-    };
+    throw new NotImplementedException('Razorpay provider is not yet implemented. Use Stripe or Offline.');
   }
 }

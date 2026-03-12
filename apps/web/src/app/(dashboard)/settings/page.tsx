@@ -3,18 +3,29 @@
 import Link from 'next/link';
 import {
   Bell,
+  BellRing,
   Building2,
   CalendarSync,
   ChevronRight,
   Clock,
   Code,
   CreditCard,
+  FolderTree,
+  Globe,
+  Handshake,
   Image,
+  Key,
+  Link2,
   ListOrdered,
+  Mail,
+  MapPin,
   Palette,
+  Phone,
   Receipt,
+  Share2,
   Tag,
   Users,
+  Workflow,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -90,6 +101,78 @@ const settingsSections = [
     description: 'Add a "Book Now" button to your website',
     href: '/settings/embed',
     icon: Code,
+  },
+  {
+    name: 'Workflows',
+    description: 'Automate actions based on booking events',
+    href: '/settings/workflows',
+    icon: Workflow,
+  },
+  {
+    name: 'Communications',
+    description: 'Manage email and SMS templates',
+    href: '/settings/communications',
+    icon: Mail,
+  },
+  {
+    name: 'Venues',
+    description: 'Manage multiple locations and staff assignments',
+    href: '/settings/venues',
+    icon: MapPin,
+  },
+  {
+    name: 'Referrals',
+    description: 'Set up referral programs and track commissions',
+    href: '/settings/referrals',
+    icon: Share2,
+  },
+  {
+    name: 'Accounting',
+    description: 'Connect QuickBooks or Xero for financial sync',
+    href: '/settings/accounting',
+    icon: Link2,
+  },
+  {
+    name: 'Custom Domains',
+    description: 'Use your own domain for your booking page',
+    href: '/settings/domains',
+    icon: Globe,
+  },
+  {
+    name: 'Billing & Plans',
+    description: 'Manage your subscription plan and billing',
+    href: '/settings/billing',
+    icon: CreditCard,
+  },
+  {
+    name: 'Service Categories',
+    description: 'Organize services into categories',
+    href: '/settings/service-categories',
+    icon: FolderTree,
+  },
+  {
+    name: 'API Keys',
+    description: 'Manage API keys for integrations',
+    href: '/settings/api-keys',
+    icon: Key,
+  },
+  {
+    name: 'Notification Preferences',
+    description: 'Configure notification channels and digest settings',
+    href: '/settings/notification-preferences',
+    icon: BellRing,
+  },
+  {
+    name: 'Voice & Telephony',
+    description: 'Manage phone system and call settings',
+    href: '/settings/voice',
+    icon: Phone,
+  },
+  {
+    name: 'Partner Program',
+    description: 'Join our referral program and earn commissions',
+    href: '/settings/partner-program',
+    icon: Handshake,
   },
 ];
 
