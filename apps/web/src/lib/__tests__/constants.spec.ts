@@ -68,6 +68,6 @@ describe('API_ROUTES', () => {
 
 describe('SESSION_COOKIE_NAME', () => {
   it('should be defined', () => {
-    expect(SESSION_COOKIE_NAME).toBe('savspot-has-session');
+    expect(SESSION_COOKIE_NAME).toBe('savspot_session');
   });
 });

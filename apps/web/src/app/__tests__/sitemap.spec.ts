@@ -50,8 +50,8 @@ describe('sitemap', () => {
 
     const result = await sitemap();
 
-    // Should only have static pages
-    expect(result.length).toBe(3);
+    // Should only have static pages (6: home, login, register, directory, privacy, terms)
+    expect(result.length).toBe(6);
   });
 
   it('should set correct change frequencies', async () => {

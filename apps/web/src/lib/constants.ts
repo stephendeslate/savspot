@@ -110,4 +110,4 @@ export const API_ROUTES = {
   USERS: '/api/users',
 } as const;
 
-export const SESSION_COOKIE_NAME = 'savspot-has-session';
+export const SESSION_COOKIE_NAME = 'savspot_session';

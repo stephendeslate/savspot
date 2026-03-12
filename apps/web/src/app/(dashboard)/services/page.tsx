@@ -2,18 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Briefcase, Plus, Pencil, Ban } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Button, Badge, Card, CardContent, CardHeader, CardTitle, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Skeleton } from '@savspot/ui';
 import { ROUTES } from '@/lib/constants';
 import { useServices, useDeactivateService } from '@/hooks/use-api';
 

@@ -12,8 +12,7 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Button, Avatar, AvatarImage, AvatarFallback } from '@savspot/ui';
 import { useAuth } from '@/hooks/use-auth';
 
 const NAV_LINKS = [

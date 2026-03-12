@@ -2,13 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, Loader2, StickyNote } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Button, Card, CardContent, CardHeader, CardTitle } from '@savspot/ui';
 import { apiClient } from '@/lib/api-client';
 import { useAuth } from '@/hooks/use-auth';
 import { NoteCard, type NoteData } from './note-card';

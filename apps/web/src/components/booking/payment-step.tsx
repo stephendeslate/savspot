@@ -10,7 +10,7 @@ import {
 import { loadStripe } from '@stripe/stripe-js';
 import type { StripeElementsOptions } from '@stripe/stripe-js';
 import { Lock, Loader2, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@savspot/ui';
 import type { BookingSessionData } from './booking-types';
 import { API_URL } from './booking-types';
 

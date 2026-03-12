@@ -27,7 +27,7 @@ import {
   Users,
   Workflow,
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@savspot/ui';
 
 const settingsSections = [
   {

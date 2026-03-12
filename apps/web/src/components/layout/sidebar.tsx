@@ -21,7 +21,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Separator } from '@/components/ui/separator';
+import { Separator } from '@savspot/ui';
 import { ROUTES } from '@/lib/constants';
 import { useAuth } from '@/hooks/use-auth';
 

@@ -1,24 +1,9 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
-// We need a fresh module for each test to get a fresh singleton
 let apiClient: typeof import('../api-client').apiClient;
 let ApiError: typeof import('../api-client').ApiError;
 
 beforeEach(async () => {
-  const store: Record<string, string> = {};
-  vi.stubGlobal('localStorage', {
-    getItem(key: string) {
-      return store[key] ?? null;
-    },
-    setItem(key: string, value: string) {
-      store[key] = value;
-    },
-    removeItem(key: string) {
-      delete store[key];
-    },
-  });
-
-  // Re-import to get a fresh instance
   vi.resetModules();
   const mod = await import('../api-client');
   apiClient = mod.apiClient;
@@ -31,35 +16,8 @@ afterEach(() => {
 });
 
 describe('ApiClient', () => {
-  describe('setTokens / clearTokens / loadTokens', () => {
-    it('should store tokens in localStorage', () => {
-      apiClient.setTokens('access-123', 'refresh-456');
-
-      expect(localStorage.getItem('savspot_access_token')).toBe('access-123');
-      expect(localStorage.getItem('savspot_refresh_token')).toBe('refresh-456');
-    });
-
-    it('should clear tokens from localStorage', () => {
-      apiClient.setTokens('access-123', 'refresh-456');
-      apiClient.clearTokens();
-
-      expect(localStorage.getItem('savspot_access_token')).toBeNull();
-      expect(localStorage.getItem('savspot_refresh_token')).toBeNull();
-    });
-
-    it('should load tokens from localStorage', () => {
-      localStorage.setItem('savspot_access_token', 'loaded-access');
-      localStorage.setItem('savspot_refresh_token', 'loaded-refresh');
-
-      apiClient.loadTokens();
-
-      // Verify by making a request — the Authorization header should be set
-      // We'll test this indirectly through request()
-    });
-  });
-
   describe('request', () => {
-    it('should make a fetch request with correct headers', async () => {
+    it('should make a fetch request with credentials included', async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
@@ -73,27 +31,12 @@ describe('ApiClient', () => {
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:3001/api/test',
         expect.objectContaining({
+          credentials: 'include',
           headers: expect.objectContaining({
             'Content-Type': 'application/json',
           }),
         }),
       );
-    });
-
-    it('should include Authorization header when token is set', async () => {
-      apiClient.setTokens('my-token', 'my-refresh');
-
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve({ result: 'ok' }),
-      });
-      vi.stubGlobal('fetch', mockFetch);
-
-      await apiClient.get('/api/test');
-
-      const headers = mockFetch.mock.calls[0]![1].headers;
-      expect(headers['Authorization']).toBe('Bearer my-token');
     });
 
     it('should unwrap { data: ... } response envelope', async () => {
@@ -147,12 +90,9 @@ describe('ApiClient', () => {
     });
 
     it('should attempt token refresh on 401', async () => {
-      apiClient.setTokens('expired-token', 'valid-refresh');
-
       let callCount = 0;
       const mockFetch = vi.fn().mockImplementation((url: string) => {
         callCount++;
-        // First call: 401
         if (callCount === 1) {
           return Promise.resolve({
             ok: false,
@@ -160,19 +100,13 @@ describe('ApiClient', () => {
             text: () => Promise.resolve('Unauthorized'),
           });
         }
-        // Second call: refresh endpoint
         if ((url as string).includes('/api/auth/refresh')) {
           return Promise.resolve({
             ok: true,
             status: 200,
-            json: () =>
-              Promise.resolve({
-                accessToken: 'new-access',
-                refreshToken: 'new-refresh',
-              }),
+            json: () => Promise.resolve({}),
           });
         }
-        // Third call: retry original request
         return Promise.resolve({
           ok: true,
           status: 200,
@@ -184,7 +118,6 @@ describe('ApiClient', () => {
       const result = await apiClient.get<{ success: boolean }>('/api/test');
 
       expect(result).toEqual({ success: true });
-      // 3 calls: original, refresh, retry
       expect(mockFetch).toHaveBeenCalledTimes(3);
     });
   });
@@ -208,6 +141,7 @@ describe('ApiClient', () => {
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({ name: 'Test' }),
+          credentials: 'include',
         }),
       );
     });
@@ -227,6 +161,7 @@ describe('ApiClient', () => {
         expect.objectContaining({
           method: 'PATCH',
           body: JSON.stringify({ name: 'Updated' }),
+          credentials: 'include',
         }),
       );
     });
@@ -243,7 +178,10 @@ describe('ApiClient', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:3001/api/items/1',
-        expect.objectContaining({ method: 'DELETE' }),
+        expect.objectContaining({
+          method: 'DELETE',
+          credentials: 'include',
+        }),
       );
     });
   });
@@ -285,7 +223,6 @@ describe('ApiClient', () => {
 
       const resultPromise = apiClient.get<{ success: boolean }>('/api/test');
 
-      // Advance past the first retry delay (2^0 * 1000 = 1000ms)
       await vi.advanceTimersByTimeAsync(1000);
 
       const result = await resultPromise;
@@ -353,7 +290,6 @@ describe('ApiClient', () => {
     it('should use exponential backoff timing', async () => {
       vi.useFakeTimers();
       const mockFetch = vi.fn().mockImplementation(() => {
-        // Always return 500 to force retries
         return Promise.resolve({
           ok: false,
           status: 500,
@@ -364,18 +300,14 @@ describe('ApiClient', () => {
 
       const resultPromise = apiClient.get('/api/test').catch(() => {});
 
-      // Initial attempt (attempt 0)
       expect(mockFetch).toHaveBeenCalledTimes(1);
 
-      // First retry after 2^0 * 1000 = 1000ms
       await vi.advanceTimersByTimeAsync(1000);
       expect(mockFetch).toHaveBeenCalledTimes(2);
 
-      // Second retry after 2^1 * 1000 = 2000ms
       await vi.advanceTimersByTimeAsync(2000);
       expect(mockFetch).toHaveBeenCalledTimes(3);
 
-      // Third retry after 2^2 * 1000 = 4000ms
       await vi.advanceTimersByTimeAsync(4000);
       expect(mockFetch).toHaveBeenCalledTimes(4);
 

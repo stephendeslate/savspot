@@ -8,18 +8,7 @@ import {
   CreditCard,
   Receipt,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/components/ui/table';
+import { Button, Badge, Card, CardContent, CardHeader, CardTitle, Skeleton, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@savspot/ui';
 import { apiClient } from '@/lib/api-client';
 import {
   getInvoiceStatusColor,

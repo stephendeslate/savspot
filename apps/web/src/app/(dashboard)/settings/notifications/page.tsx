@@ -4,15 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Bell, CalendarCheck, CreditCard, CalendarSync, AlertCircle, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Separator } from '@savspot/ui';
 import { ROUTES } from '@/lib/constants';
 
 // ---------- Types ----------

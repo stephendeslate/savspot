@@ -3,11 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { MapPin, Search, Star } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
+import { Button, Card, CardContent, Input, Skeleton, Badge } from '@savspot/ui';
 import { apiClient } from '@/lib/api-client';
 
 // ---------- Types ----------

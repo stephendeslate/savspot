@@ -1,4 +1,4 @@
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@savspot/ui';
 
 export default function ClientsLoading() {
   return (
