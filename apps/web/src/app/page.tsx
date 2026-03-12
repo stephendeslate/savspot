@@ -6,11 +6,22 @@ import {
   Dumbbell,
   Briefcase,
   MoreHorizontal,
-  CalendarCheck,
   CreditCard,
   Users,
   ArrowRight,
-  Zap,
+  Calendar,
+  Bell,
+  Shield,
+  Download,
+  Globe,
+  Smartphone,
+  Clock,
+  CheckCircle2,
+  Star,
+  FileText,
+  MessageSquare,
+  BarChart3,
+  UserPlus,
 } from 'lucide-react';
 
 const BUSINESS_TYPES = [
@@ -23,17 +34,122 @@ const BUSINESS_TYPES = [
 ] as const;
 
 const STEPS = [
-  { number: '1', title: 'Choose your business type', description: 'Select a category and we set up smart defaults for you.' },
-  { number: '2', title: 'Add your first service', description: 'Name, duration, and price. That\'s all you need.' },
-  { number: '3', title: 'Share your booking page', description: 'Your page is live. Share the link and start getting bookings.' },
+  {
+    number: '1',
+    title: 'Pick your business type',
+    description: 'Choose a category and we auto-configure everything — calendar settings, booking flow, reminders, and payment options.',
+  },
+  {
+    number: '2',
+    title: 'Add services & availability',
+    description: 'Set your services, prices, and hours. Connect Google Calendar to sync your existing schedule instantly.',
+  },
+  {
+    number: '3',
+    title: 'Share & start booking',
+    description: 'Your booking page is live at savspot.co/your-name. Share the link, embed it on your site, or print the QR code.',
+  },
 ] as const;
 
-const VALUE_PROPS = [
-  { icon: Zap, title: 'Free forever', description: 'No subscriptions, no monthly fees. We only earn when you do.' },
-  { icon: CalendarCheck, title: 'Works for any business', description: 'From solo freelancers to multi-provider shops. One platform, every service type.' },
-  { icon: CreditCard, title: 'Payments built in', description: 'Accept online payments or track offline ones. Invoices generated automatically.' },
-  { icon: Users, title: 'CRM included', description: 'Client history, booking records, and communications in one place.' },
+const CORE_FEATURES = [
+  {
+    icon: Calendar,
+    title: 'Google Calendar sync',
+    description: 'Two-way sync keeps your schedule accurate. Existing events block availability automatically — perfect for running SavSpot alongside your current system.',
+  },
+  {
+    icon: CreditCard,
+    title: 'Flexible payments',
+    description: 'Accept full payment or deposits online via Stripe. Track cash and offline payments. Invoices and receipts generated automatically.',
+  },
+  {
+    icon: Users,
+    title: 'Built-in CRM',
+    description: 'Client profiles with full booking history, contact details, and communication logs. Know your customers without a separate tool.',
+  },
+  {
+    icon: Bell,
+    title: 'Smart notifications',
+    description: 'Automated confirmations, reminders, and follow-ups via email. SMS alerts to you for new bookings and cancellations. Morning summaries and weekly digests.',
+  },
+  {
+    icon: Download,
+    title: 'Import your clients',
+    description: 'Switching from Booksy, Fresha, Square, or Vagaro? Import your client list and appointment history in minutes — no data left behind.',
+  },
+  {
+    icon: UserPlus,
+    title: 'Walk-ins welcome',
+    description: 'Quick-add walk-in appointments directly from your calendar. Not every booking starts online — SavSpot handles both.',
+  },
+  {
+    icon: Clock,
+    title: 'Smart availability',
+    description: 'Real-time slot checking with double-booking prevention. Buffer times, business hours, and provider schedules all factored in.',
+  },
+  {
+    icon: Shield,
+    title: 'Cancellation policies',
+    description: 'Set cancellation windows and fees per service. Enforce policies automatically so you don\'t have to chase no-shows.',
+  },
+  {
+    icon: BarChart3,
+    title: 'No-show insights',
+    description: 'Risk indicators help you spot likely no-shows. Slot demand analysis shows your busiest times so you can plan staffing.',
+  },
+  {
+    icon: FileText,
+    title: 'Invoices & receipts',
+    description: 'Professional PDF invoices generated for every booking. Track payment status, issue refunds, and keep your records clean.',
+  },
+  {
+    icon: MessageSquare,
+    title: 'Client communications',
+    description: 'Email templates with smart variable substitution. Category-aware reminder timing — 24 hours for appointments, 48 hours for venues.',
+  },
+  {
+    icon: Globe,
+    title: 'Your booking page',
+    description: 'A clean, mobile-optimized booking page at savspot.co/your-name. Embed it on your website or share via QR code.',
+  },
 ] as const;
+
+const PRICING_FEATURES = {
+  free: [
+    'Unlimited bookings',
+    'Online & offline payments',
+    'Google Calendar sync',
+    'Client CRM',
+    'Email notifications & reminders',
+    'SMS alerts (to you)',
+    'Client import from competitors',
+    'Walk-in booking support',
+    'Invoice generation',
+    'Booking page + QR code',
+    'Cancellation policy enforcement',
+    'Data export (GDPR-compliant)',
+  ],
+  premium: [
+    'Everything in Free',
+    'Custom email templates',
+    'SMS to clients',
+    'Advanced analytics dashboard',
+    'Embeddable booking widget',
+    'Intake forms & questionnaires',
+    'Digital contracts & signatures',
+    'Workflow automation',
+    'Priority support',
+  ],
+  enterprise: [
+    'Everything in Premium',
+    'Multi-location management',
+    'Team & staff management',
+    'Custom integrations',
+    'Dedicated account manager',
+    'Custom domain support',
+    'Advanced reporting',
+  ],
+} as const;
 
 export default function Home() {
   return (
@@ -63,12 +179,13 @@ export default function Home() {
         {/* Hero */}
         <section className="mx-auto max-w-6xl px-4 py-20 text-center sm:py-28">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            Find your spot.
+            The booking platform
             <br />
-            Book your moment.
+            that pays for itself.
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl">
-            The free booking platform that works for any business in under 5 minutes.
+            Free scheduling, payments, CRM, and Google Calendar sync for any service business.
+            Live in under 5 minutes. No monthly fees — we only earn when you do.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
@@ -85,6 +202,9 @@ export default function Home() {
               Sign In
             </Link>
           </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            No credit card required. Import your clients from Booksy, Fresha, Square, or Vagaro.
+          </p>
         </section>
 
         {/* Business Types */}
@@ -94,7 +214,7 @@ export default function Home() {
               Built for every service business
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-center text-muted-foreground">
-              One platform that adapts to your business type with smart defaults.
+              Pick your business type and we configure everything — booking flow, reminders, payment options, and calendar settings.
             </p>
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {BUSINESS_TYPES.map((type) => (
@@ -111,6 +231,65 @@ export default function Home() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Features Grid */}
+        <section className="py-16 sm:py-20">
+          <div className="mx-auto max-w-6xl px-4">
+            <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">
+              Everything you need to run your business
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-center text-muted-foreground">
+              Scheduling, payments, CRM, notifications, and analytics — all included from day one.
+            </p>
+            <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {CORE_FEATURES.map((feature) => (
+                <div key={feature.title} className="rounded-lg border bg-card p-6 shadow-sm">
+                  <feature.icon className="h-6 w-6 text-primary" />
+                  <h3 className="mt-3 text-base font-semibold">{feature.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Switching Section */}
+        <section className="border-t bg-muted/50 py-16 sm:py-20">
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="mx-auto max-w-3xl text-center">
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                Switching from another platform?
+              </h2>
+              <p className="mt-4 text-muted-foreground sm:text-lg">
+                Import your client list and appointment history from Booksy, Fresha, Square, Vagaro, or any CSV export.
+                No data left behind, no starting over.
+              </p>
+              <div className="mt-8 grid gap-4 sm:grid-cols-3">
+                <div className="rounded-lg border bg-card p-5 shadow-sm">
+                  <Download className="mx-auto h-6 w-6 text-primary" />
+                  <p className="mt-3 font-medium">Import clients</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Bring your full client list with contact details and notes.
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-card p-5 shadow-sm">
+                  <Calendar className="mx-auto h-6 w-6 text-primary" />
+                  <p className="mt-3 font-medium">Run in parallel</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Google Calendar sync blocks slots from both systems — no double bookings.
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-card p-5 shadow-sm">
+                  <CheckCircle2 className="mx-auto h-6 w-6 text-primary" />
+                  <p className="mt-3 font-medium">Switch when ready</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Try SavSpot risk-free. Move at your own pace — no contracts.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -138,40 +317,163 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Value Props */}
+        {/* Pricing */}
         <section className="border-t bg-muted/50 py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-4">
             <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">
-              Everything you need, nothing you don&apos;t
+              Simple, honest pricing
             </h2>
-            <div className="mt-10 grid gap-6 sm:grid-cols-2">
-              {VALUE_PROPS.map((prop) => (
-                <div key={prop.title} className="rounded-lg border bg-card p-6 shadow-sm">
-                  <prop.icon className="h-6 w-6 text-primary" />
-                  <h3 className="mt-3 text-lg font-semibold">{prop.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{prop.description}</p>
+            <p className="mx-auto mt-3 max-w-xl text-center text-muted-foreground">
+              Start free with everything you need. Upgrade only when you want more.
+            </p>
+            <div className="mt-12 grid gap-6 lg:grid-cols-3">
+              {/* Free Tier */}
+              <div className="flex flex-col rounded-lg border bg-card p-6 shadow-sm">
+                <div>
+                  <h3 className="text-lg font-semibold">Free</h3>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <span className="text-3xl font-bold">$0</span>
+                    <span className="text-sm text-muted-foreground">/month</span>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    1% processing fee on payments. That&apos;s it.
+                  </p>
                 </div>
-              ))}
+                <ul className="mt-6 flex-1 space-y-2.5">
+                  {PRICING_FEATURES.free.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2 text-sm">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/register"
+                  className="mt-8 inline-flex h-11 w-full items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  Get Started Free
+                </Link>
+              </div>
+
+              {/* Premium Tier */}
+              <div className="relative flex flex-col rounded-lg border-2 border-primary bg-card p-6 shadow-sm">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
+                    Most Popular
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">Premium</h3>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <span className="text-3xl font-bold">$29</span>
+                    <span className="text-sm text-muted-foreground">/month</span>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    For growing businesses that want more control.
+                  </p>
+                </div>
+                <ul className="mt-6 flex-1 space-y-2.5">
+                  {PRICING_FEATURES.premium.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2 text-sm">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/register"
+                  className="mt-8 inline-flex h-11 w-full items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  Start Free, Upgrade Later
+                </Link>
+              </div>
+
+              {/* Enterprise Tier */}
+              <div className="flex flex-col rounded-lg border bg-card p-6 shadow-sm">
+                <div>
+                  <h3 className="text-lg font-semibold">Enterprise</h3>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <span className="text-3xl font-bold">$79</span>
+                    <span className="text-sm text-muted-foreground">/month</span>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    For multi-location businesses and teams.
+                  </p>
+                </div>
+                <ul className="mt-6 flex-1 space-y-2.5">
+                  {PRICING_FEATURES.enterprise.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2 text-sm">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/register"
+                  className="mt-8 inline-flex h-11 w-full items-center justify-center rounded-md border border-input bg-background text-sm font-medium transition-colors hover:bg-accent"
+                >
+                  Contact Sales
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Security & Trust */}
+        <section className="py-16 sm:py-20">
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="text-center">
+                <Shield className="mx-auto h-6 w-6 text-primary" />
+                <p className="mt-3 text-sm font-medium">Secure by default</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Row-level security, encrypted tokens, GDPR-compliant data handling.
+                </p>
+              </div>
+              <div className="text-center">
+                <Smartphone className="mx-auto h-6 w-6 text-primary" />
+                <p className="mt-3 text-sm font-medium">Mobile-optimized</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Your booking page and admin dashboard work beautifully on any device.
+                </p>
+              </div>
+              <div className="text-center">
+                <Globe className="mx-auto h-6 w-6 text-primary" />
+                <p className="mt-3 text-sm font-medium">Multi-timezone</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  UTC storage with timezone-aware display. Serve clients anywhere.
+                </p>
+              </div>
+              <div className="text-center">
+                <Star className="mx-auto h-6 w-6 text-primary" />
+                <p className="mt-3 text-sm font-medium">Always improving</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  New features shipping regularly — SMS to clients, workflows, and more coming soon.
+                </p>
+              </div>
             </div>
           </div>
         </section>
 
         {/* Final CTA */}
-        <section className="py-16 sm:py-20">
+        <section className="border-t bg-muted/50 py-16 sm:py-20">
           <div className="mx-auto max-w-2xl px-4 text-center">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              Ready to get started?
+              Your next booking is 5 minutes away.
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Set up your booking page for free. No credit card required.
+              Join service businesses already using SavSpot to manage their schedule, payments, and clients — all in one place.
             </p>
             <Link
               href="/register"
               className="mt-8 inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-base font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              Create Your Booking Page
+              Create Your Free Booking Page
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
+            <p className="mt-3 text-sm text-muted-foreground">
+              No credit card. No contracts. Cancel anytime.
+            </p>
           </div>
         </section>
       </main>
