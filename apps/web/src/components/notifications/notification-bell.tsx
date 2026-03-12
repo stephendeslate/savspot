@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import {
   Bell,
   CalendarCheck,
@@ -13,6 +14,12 @@ import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
+import {
+  useUnreadCount,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+  queryKeys,
+} from '@/hooks/use-api';
 
 // ---------- Types ----------
 
@@ -26,13 +33,8 @@ interface Notification {
   createdAt: string;
 }
 
-interface UnreadCount {
-  count: number;
-}
-
 // ---------- Constants ----------
 
-const POLL_INTERVAL_MS = 30_000;
 const MAX_BODY_LENGTH = 80;
 
 const CATEGORY_ICONS: Record<string, typeof Bell> = {
@@ -48,57 +50,23 @@ export function NotificationBell() {
   const router = useRouter();
   const { tenantId } = useTenant();
 
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const fetchUnreadCount = useCallback(async () => {
-    if (!tenantId) return;
-    try {
-      const data = await apiClient.get<UnreadCount>(
-        `/api/tenants/${tenantId}/notifications/unread-count`,
-      );
-      setUnreadCount(data.count);
-    } catch {
-      // Silently fail — notification count is non-critical
-    }
-  }, [tenantId]);
+  const { data: unreadData } = useUnreadCount();
+  const unreadCount = unreadData?.count ?? 0;
 
-  const fetchNotifications = useCallback(async () => {
-    if (!tenantId) return;
-    setIsLoading(true);
-    try {
-      const data = await apiClient.get<Notification[]>(
+  const { data: notifications = [], isLoading } = useQuery({
+    queryKey: queryKeys.notifications(tenantId!),
+    queryFn: () =>
+      apiClient.get<Notification[]>(
         `/api/tenants/${tenantId}/notifications?limit=10`,
-      );
-      setNotifications(data);
-    } catch {
-      // Silently fail
-    } finally {
-      setIsLoading(false);
-    }
-  }, [tenantId]);
+      ),
+    enabled: !!tenantId && isOpen,
+  });
 
-  // Poll for unread count
-  useEffect(() => {
-    if (!tenantId) return;
-
-    void fetchUnreadCount();
-    const interval = setInterval(() => {
-      void fetchUnreadCount();
-    }, POLL_INTERVAL_MS);
-
-    return () => clearInterval(interval);
-  }, [tenantId, fetchUnreadCount]);
-
-  // Fetch notifications when dropdown opens
-  useEffect(() => {
-    if (isOpen) {
-      void fetchNotifications();
-    }
-  }, [isOpen, fetchNotifications]);
+  const markReadMutation = useMarkNotificationRead();
+  const markAllReadMutation = useMarkAllNotificationsRead();
 
   // Close on outside click
   useEffect(() => {
@@ -120,39 +88,17 @@ export function NotificationBell() {
     };
   }, [isOpen]);
 
-  const handleMarkAsRead = async (notificationId: string) => {
-    if (!tenantId) return;
-    try {
-      await apiClient.patch(
-        `/api/tenants/${tenantId}/notifications/${notificationId}/read`,
-      );
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notificationId ? { ...n, isRead: true } : n,
-        ),
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch {
-      // Silently fail
-    }
+  const handleMarkAsRead = (notificationId: string) => {
+    markReadMutation.mutate(notificationId);
   };
 
-  const handleMarkAllAsRead = async () => {
-    if (!tenantId) return;
-    try {
-      await apiClient.post(
-        `/api/tenants/${tenantId}/notifications/read-all`,
-      );
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-      setUnreadCount(0);
-    } catch {
-      // Silently fail
-    }
+  const handleMarkAllAsRead = () => {
+    markAllReadMutation.mutate();
   };
 
-  const handleNotificationClick = async (notification: Notification) => {
+  const handleNotificationClick = (notification: Notification) => {
     if (!notification.isRead) {
-      await handleMarkAsRead(notification.id);
+      handleMarkAsRead(notification.id);
     }
     if (notification.actionUrl) {
       setIsOpen(false);

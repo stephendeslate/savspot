@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CalendarCheck,
   Eye,
@@ -29,6 +30,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
+import { useDebounce } from '@/hooks/use-debounce';
 import { WalkInDialog } from '@/components/bookings/walk-in-dialog';
 import {
   getStatusColor,
@@ -101,87 +103,72 @@ const PAGE_LIMIT = 20;
 export default function BookingsPage() {
   const router = useRouter();
   const { tenantId } = useTenant();
+  const queryClient = useQueryClient();
 
-  // Data state
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Filter state
+  // Filter state (UI state)
   const [statusFilter, setStatusFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
 
   // Walk-in dialog
   const [walkInOpen, setWalkInOpen] = useState(false);
 
-  const fetchBookings = useCallback(
-    async (pageNum: number) => {
-      if (!tenantId) return;
+  const debouncedSearch = useDebounce(search, 300);
 
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const params = new URLSearchParams();
-        params.set('page', String(pageNum));
-        params.set('limit', String(PAGE_LIMIT));
-        if (statusFilter) params.set('status', statusFilter);
-        if (startDate) params.set('startDate', startDate);
-        if (endDate) params.set('endDate', endDate);
-        if (search) params.set('search', search);
-
-        const res = await apiClient.getRaw<BookingsResponse>(
-          `/api/tenants/${tenantId}/bookings?${params.toString()}`,
-        );
-        setBookings(res.data);
-        setTotal(res.meta.total);
-        setPage(res.meta.page);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to load bookings',
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [tenantId, statusFilter, startDate, endDate, search],
-  );
-
+  // Reset page when filters change
   useEffect(() => {
-    if (!tenantId) {
-      setIsLoading(false);
-      return;
-    }
-    void fetchBookings(1);
-  }, [tenantId, fetchBookings]);
+    setPage(1);
+  }, [debouncedSearch, statusFilter]);
+
+  const queryParams = useMemo(() => {
+    const params: Record<string, string> = {
+      page: String(page),
+      limit: String(PAGE_LIMIT),
+    };
+    if (statusFilter) params['status'] = statusFilter;
+    if (startDate) params['startDate'] = startDate;
+    if (endDate) params['endDate'] = endDate;
+    if (debouncedSearch) params['search'] = debouncedSearch;
+    return params;
+  }, [page, statusFilter, startDate, endDate, debouncedSearch]);
+
+  const { data: bookingsRes, isLoading, error: queryError } = useQuery({
+    queryKey: ['bookings', tenantId, queryParams],
+    queryFn: () => {
+      const searchParams = new URLSearchParams(queryParams).toString();
+      return apiClient.getRaw<BookingsResponse>(
+        `/api/tenants/${tenantId}/bookings?${searchParams}`,
+      );
+    },
+    enabled: !!tenantId,
+  });
+
+  const bookings = bookingsRes?.data ?? [];
+  const total = bookingsRes?.meta?.total ?? 0;
+  const currentPage = bookingsRes?.meta?.page ?? 1;
+  const error = queryError
+    ? (queryError instanceof Error ? queryError.message : 'Failed to load bookings')
+    : null;
+  const totalPages = Math.ceil(total / PAGE_LIMIT);
 
   const handleApplyFilters = () => {
-    void fetchBookings(1);
+    setPage(1);
   };
 
   const handlePreviousPage = () => {
-    if (page > 1) {
-      void fetchBookings(page - 1);
-    }
+    setPage((p) => p - 1);
   };
 
   const handleNextPage = () => {
-    const totalPages = Math.ceil(total / PAGE_LIMIT);
-    if (page < totalPages) {
-      void fetchBookings(page + 1);
-    }
+    setPage((p) => p + 1);
   };
 
   const handleWalkInSuccess = () => {
-    void fetchBookings(page);
+    void queryClient.invalidateQueries({ queryKey: ['bookings', tenantId] });
   };
-
-  const totalPages = Math.ceil(total / PAGE_LIMIT);
 
   // ---------- Loading ----------
 
@@ -423,14 +410,14 @@ export default function BookingsPage() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-between border-t pt-4 mt-4">
                   <p className="text-sm text-muted-foreground">
-                    Page {page} of {totalPages}
+                    Page {currentPage} of {totalPages}
                   </p>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handlePreviousPage}
-                      disabled={page <= 1}
+                      disabled={currentPage <= 1}
                     >
                       <ChevronLeft className="mr-1 h-4 w-4" />
                       Previous
@@ -439,7 +426,7 @@ export default function BookingsPage() {
                       variant="outline"
                       size="sm"
                       onClick={handleNextPage}
-                      disabled={page >= totalPages}
+                      disabled={currentPage >= totalPages}
                     >
                       Next
                       <ChevronRight className="ml-1 h-4 w-4" />

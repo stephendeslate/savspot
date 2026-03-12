@@ -44,10 +44,20 @@ export const stripeConfig = registerAs('stripe', () => ({
   platformFeePercent: parseInt(process.env['STRIPE_PLATFORM_FEE_PERCENT'] || '1', 10),
 }));
 
+export const smsConfig = registerAs('sms', () => ({
+  provider: process.env['SMS_PROVIDER'] || 'twilio',
+}));
+
 export const twilioConfig = registerAs('twilio', () => ({
   accountSid: process.env['TWILIO_ACCOUNT_SID'],
   authToken: process.env['TWILIO_AUTH_TOKEN'],
   phoneNumber: process.env['TWILIO_PHONE_NUMBER'],
+}));
+
+export const plivoConfig = registerAs('plivo', () => ({
+  authId: process.env['PLIVO_AUTH_ID'],
+  authToken: process.env['PLIVO_AUTH_TOKEN'],
+  fromNumber: process.env['PLIVO_FROM_NUMBER'],
 }));
 
 export const googleCalendarConfig = registerAs('googleCalendar', () => ({
@@ -65,6 +75,11 @@ export const microsoftCalendarConfig = registerAs('microsoftCalendar', () => ({
   redirectUri:
     process.env['MICROSOFT_REDIRECT_URI'] ||
     'http://localhost:3001/api/auth/outlook-calendar/callback',
+}));
+
+export const posthogConfig = registerAs('posthog', () => ({
+  apiKey: process.env['POSTHOG_API_KEY'],
+  host: process.env['POSTHOG_HOST'] || 'https://us.i.posthog.com',
 }));
 
 export const vapidConfig = registerAs('vapid', () => ({
