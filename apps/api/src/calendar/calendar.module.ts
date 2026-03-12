@@ -14,6 +14,8 @@ import { CalendarWatchRenewalHandler } from './calendar-watch-renewal.processor'
 import { CalendarEventListener } from './calendar-event.listener';
 import { OutlookCalendarService } from './outlook-calendar.service';
 import { OutlookCalendarController } from './outlook-calendar.controller';
+import { CalendarWebhookRenewGoogleHandler, CalendarWebhookRenewOutlookHandler } from './handlers/calendar-webhook-renew.handler';
+import { CalendarSyncFallbackHandler } from './handlers/calendar-sync-fallback.handler';
 
 /**
  * Calendar integration module.
@@ -35,6 +37,9 @@ import { OutlookCalendarController } from './outlook-calendar.controller';
     CalendarWatchRenewalHandler,
     CalendarEventListener,
     OutlookCalendarService,
+    CalendarWebhookRenewGoogleHandler,
+    CalendarWebhookRenewOutlookHandler,
+    CalendarSyncFallbackHandler,
   ],
   exports: [GoogleCalendarService, IcalFeedService, OutlookCalendarService],
 })

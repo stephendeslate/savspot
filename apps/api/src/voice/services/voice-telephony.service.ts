@@ -1,4 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { validateRequest } from 'twilio';
 
 interface GatherOptions {
   timeout?: number;
@@ -10,6 +12,8 @@ interface GatherOptions {
 @Injectable()
 export class VoiceTelephonyService {
   private readonly logger = new Logger(VoiceTelephonyService.name);
+
+  constructor(private readonly configService: ConfigService) {}
 
   generateGatherTwiml(prompt: string, options?: GatherOptions): string {
     const timeout = options?.timeout ?? 5;
@@ -57,14 +61,16 @@ export class VoiceTelephonyService {
   }
 
   verifySignature(
-    _url: string,
-    _params: Record<string, string>,
-    _signature: string,
+    url: string,
+    params: Record<string, string>,
+    signature: string,
   ): boolean {
-    this.logger.warn(
-      'Twilio signature verification is stubbed — returning true',
-    );
-    return true;
+    const authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
+    if (!authToken) {
+      this.logger.error('TWILIO_AUTH_TOKEN not configured — rejecting request');
+      return false;
+    }
+    return validateRequest(authToken, signature, url, params);
   }
 
   private escapeXml(text: string): string {

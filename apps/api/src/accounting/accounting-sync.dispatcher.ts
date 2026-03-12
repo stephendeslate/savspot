@@ -6,10 +6,14 @@ import {
   JOB_ACCOUNTING_SYNC_INVOICES,
   JOB_ACCOUNTING_SYNC_PAYMENTS,
   JOB_ACCOUNTING_SYNC_CLIENTS,
+  JOB_ACCOUNTING_SYNC_SINGLE_INVOICE,
 } from '../bullmq/queue.constants';
-import { AccountingSyncInvoicesHandler } from './accounting-sync.processor';
-import { AccountingSyncPaymentsHandler } from './accounting-sync.processor';
-import { AccountingSyncClientsHandler } from './accounting-sync.processor';
+import {
+  AccountingSyncInvoicesHandler,
+  AccountingSyncPaymentsHandler,
+  AccountingSyncClientsHandler,
+  AccountingSyncSingleInvoiceHandler,
+} from './accounting-sync.processor';
 
 @Processor(QUEUE_ACCOUNTING)
 export class AccountingSyncDispatcher extends WorkerHost {
@@ -19,6 +23,7 @@ export class AccountingSyncDispatcher extends WorkerHost {
     private readonly invoicesHandler: AccountingSyncInvoicesHandler,
     private readonly paymentsHandler: AccountingSyncPaymentsHandler,
     private readonly clientsHandler: AccountingSyncClientsHandler,
+    private readonly singleInvoiceHandler: AccountingSyncSingleInvoiceHandler,
   ) {
     super();
   }
@@ -31,6 +36,8 @@ export class AccountingSyncDispatcher extends WorkerHost {
         return this.paymentsHandler.handle(job);
       case JOB_ACCOUNTING_SYNC_CLIENTS:
         return this.clientsHandler.handle(job);
+      case JOB_ACCOUNTING_SYNC_SINGLE_INVOICE:
+        return this.singleInvoiceHandler.handle(job);
       default:
         this.logger.warn(`Unknown accounting sync job name: ${job.name}`);
     }

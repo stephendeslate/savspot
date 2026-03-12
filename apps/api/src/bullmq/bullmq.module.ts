@@ -13,6 +13,11 @@ import {
   QUEUE_WEBHOOKS,
   QUEUE_VOICE_CALLS,
   QUEUE_ACCOUNTING,
+  QUEUE_PLATFORM_METRICS,
+  QUEUE_AI_OPERATIONS,
+  QUEUE_DIRECTORY,
+  QUEUE_CUSTOM_DOMAINS,
+  QUEUE_PARTNERS,
 } from './queue.constants';
 
 /**
@@ -59,6 +64,11 @@ import {
       { name: QUEUE_WEBHOOKS },
       { name: QUEUE_VOICE_CALLS },
       { name: QUEUE_ACCOUNTING },
+      { name: QUEUE_PLATFORM_METRICS },
+      { name: QUEUE_AI_OPERATIONS },
+      { name: QUEUE_DIRECTORY },
+      { name: QUEUE_CUSTOM_DOMAINS },
+      { name: QUEUE_PARTNERS },
     ),
   ],
   exports: [BullModule],

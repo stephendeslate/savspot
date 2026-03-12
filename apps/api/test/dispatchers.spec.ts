@@ -201,17 +201,26 @@ describe('CalendarDispatcher', () => {
   let syncHandler: ReturnType<typeof makeHandler>;
   let tokenHandler: ReturnType<typeof makeHandler>;
   let watchRenewalHandler: ReturnType<typeof makeHandler>;
+  let webhookRenewGoogleHandler: ReturnType<typeof makeHandler>;
+  let webhookRenewOutlookHandler: ReturnType<typeof makeHandler>;
+  let syncFallbackHandler: ReturnType<typeof makeHandler>;
 
   beforeEach(() => {
     pushHandler = makeHandler();
     syncHandler = makeHandler();
     tokenHandler = makeHandler();
     watchRenewalHandler = makeHandler();
+    webhookRenewGoogleHandler = makeHandler();
+    webhookRenewOutlookHandler = makeHandler();
+    syncFallbackHandler = makeHandler();
     dispatcher = new CalendarDispatcher(
       pushHandler as never,
       syncHandler as never,
       tokenHandler as never,
       watchRenewalHandler as never,
+      webhookRenewGoogleHandler as never,
+      webhookRenewOutlookHandler as never,
+      syncFallbackHandler as never,
     );
   });
 
@@ -237,6 +246,24 @@ describe('CalendarDispatcher', () => {
     const job = makeJob('calendarWatchRenewal');
     await dispatcher.process(job);
     expect(watchRenewalHandler.handle).toHaveBeenCalledWith(job);
+  });
+
+  it('should route calendarWebhookRenewGoogle correctly', async () => {
+    const job = makeJob('calendarWebhookRenewGoogle');
+    await dispatcher.process(job);
+    expect(webhookRenewGoogleHandler.handle).toHaveBeenCalledWith(job);
+  });
+
+  it('should route calendarWebhookRenewOutlook correctly', async () => {
+    const job = makeJob('calendarWebhookRenewOutlook');
+    await dispatcher.process(job);
+    expect(webhookRenewOutlookHandler.handle).toHaveBeenCalledWith(job);
+  });
+
+  it('should route calendarSyncFallback correctly', async () => {
+    const job = makeJob('calendarSyncFallback');
+    await dispatcher.process(job);
+    expect(syncFallbackHandler.handle).toHaveBeenCalledWith(job);
   });
 
   it('should not throw for unknown job names', async () => {

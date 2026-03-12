@@ -16,6 +16,13 @@ export const QUEUE_WEBHOOKS = 'webhooks';
 export const QUEUE_VOICE_CALLS = 'voice-calls';
 export const QUEUE_ACCOUNTING = 'accounting';
 
+// Phase 4 queues
+export const QUEUE_PLATFORM_METRICS = 'platform-metrics';
+export const QUEUE_AI_OPERATIONS = 'ai-operations';
+export const QUEUE_DIRECTORY = 'directory';
+export const QUEUE_CUSTOM_DOMAINS = 'custom-domains';
+export const QUEUE_PARTNERS = 'partners';
+
 export const ALL_QUEUES = [
   QUEUE_BOOKINGS,
   QUEUE_PAYMENTS,
@@ -28,6 +35,11 @@ export const ALL_QUEUES = [
   QUEUE_WEBHOOKS,
   QUEUE_VOICE_CALLS,
   QUEUE_ACCOUNTING,
+  QUEUE_PLATFORM_METRICS,
+  QUEUE_AI_OPERATIONS,
+  QUEUE_DIRECTORY,
+  QUEUE_CUSTOM_DOMAINS,
+  QUEUE_PARTNERS,
 ] as const;
 
 // ---- Queue Concurrency ----
@@ -43,6 +55,11 @@ export const QUEUE_CONCURRENCY: Record<string, number> = {
   [QUEUE_WEBHOOKS]: 5,
   [QUEUE_VOICE_CALLS]: 3,
   [QUEUE_ACCOUNTING]: 3,
+  [QUEUE_PLATFORM_METRICS]: 2,
+  [QUEUE_AI_OPERATIONS]: 3,
+  [QUEUE_DIRECTORY]: 2,
+  [QUEUE_CUSTOM_DOMAINS]: 2,
+  [QUEUE_PARTNERS]: 1,
 };
 
 // ---- Job Names ----
@@ -116,6 +133,30 @@ export const JOB_ACCOUNTING_SYNC_SINGLE_INVOICE = 'accountingSyncSingleInvoice';
 export const JOB_PROCESS_TRANSCRIPT = 'processTranscript';
 export const JOB_POST_CALL_ACTIONS = 'postCallActions';
 
+// Platform Metrics queue jobs (Phase 4)
+export const JOB_COMPUTE_PLATFORM_METRICS = 'computePlatformMetrics';
+export const JOB_DIRECTORY_LISTING_REFRESH = 'directoryListingRefresh';
+export const JOB_DIRECTORY_SITEMAP_GENERATE = 'directorySitemapGenerate';
+
+// Custom Domain queue jobs (Phase 4)
+export const JOB_CUSTOM_DOMAIN_DNS_VERIFY = 'customDomainDnsVerify';
+export const JOB_CUSTOM_DOMAIN_SSL_RENEW = 'customDomainSslRenew';
+export const JOB_CUSTOM_DOMAIN_HEALTH_CHECK = 'customDomainHealthCheck';
+
+// Calendar push sync jobs (Phase 4)
+export const JOB_CALENDAR_WEBHOOK_RENEW_GOOGLE = 'calendarWebhookRenewGoogle';
+export const JOB_CALENDAR_WEBHOOK_RENEW_OUTLOOK = 'calendarWebhookRenewOutlook';
+export const JOB_CALENDAR_SYNC_FALLBACK = 'calendarSyncFallback';
+
+// AI Recommendation queue jobs (Phase 4)
+export const JOB_RECOMMENDATION_SERVICE_AFFINITY = 'recommendationServiceAffinity';
+export const JOB_RECOMMENDATION_CLIENT_PREFERENCE = 'recommendationClientPreference';
+export const JOB_CHURN_RISK_COMPUTE = 'churnRiskCompute';
+export const JOB_RECOMMENDATION_CLEANUP = 'recommendationCleanup';
+
+// Partner payout queue jobs (Phase 4)
+export const JOB_PARTNER_PAYOUT_BATCH = 'partnerPayoutBatch';
+
 // ---- Cron Schedules ----
 export const CRON_EVERY_5_MIN = '*/5 * * * *';
 export const CRON_EVERY_15_MIN = '*/15 * * * *';
@@ -128,3 +169,5 @@ export const CRON_DAILY_8AM_UTC = '0 8 * * *';
 export const CRON_MONDAY_8AM_UTC = '0 8 * * 1';
 export const CRON_DAILY_4AM_UTC = '0 4 * * *';
 export const CRON_SUNDAY_2AM_UTC = '0 2 * * 0';
+export const CRON_EVERY_6_HOURS = '0 */6 * * *';
+export const CRON_FIRST_OF_MONTH = '0 0 1 * *';

@@ -59,6 +59,12 @@ import { PublicApiModule } from './public-api/public-api.module';
 import { AccountingModule } from './accounting/accounting.module';
 import { VoiceModule } from './voice/voice.module';
 import { DevicePushTokensModule } from './device-push-tokens/device-push-tokens.module';
+import { PlatformMetricsModule } from './platform-metrics/platform-metrics.module';
+import { DirectoryModule } from './directory/directory.module';
+import { CustomDomainsModule } from './custom-domains/custom-domains.module';
+import { PartnersModule } from './partners/partners.module';
+import { RecommendationsModule } from './recommendations/recommendations.module';
+import { MultiLocationModule } from './multi-location/multi-location.module';
 import { CustomThrottlerGuard } from './common/guards/throttle.guard';
 import { CsrfGuard } from './common/guards/csrf.guard';
 import { TenantStatusGuard } from './common/guards/tenant-status.guard';
@@ -155,6 +161,12 @@ import {
     AccountingModule,
     VoiceModule,
     DevicePushTokensModule,
+    PlatformMetricsModule,
+    DirectoryModule,
+    CustomDomainsModule,
+    PartnersModule,
+    RecommendationsModule,
+    MultiLocationModule,
   ],
   controllers: [AppController],
   providers: [

@@ -183,6 +183,25 @@ export class OutlookCalendarService {
   }
 
   // ---------------------------------------------------------------------------
+  // Webhook Subscription Management
+  // ---------------------------------------------------------------------------
+
+  async findConnectionBySubscriptionId(subscriptionId: string) {
+    return this.prisma.calendarConnection.findFirst({
+      where: {
+        provider: 'MICROSOFT',
+        webhookChannelId: subscriptionId,
+        status: 'ACTIVE',
+      },
+    });
+  }
+
+  async renewWebhookSubscription(connectionId: string): Promise<void> {
+    this.logger.log(`Renewing webhook subscription for Outlook connection ${connectionId}`);
+    // TODO: Implement Microsoft Graph subscription renewal
+  }
+
+  // ---------------------------------------------------------------------------
   // Private Helpers
   // ---------------------------------------------------------------------------
 
