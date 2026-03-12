@@ -184,7 +184,7 @@ describe('PlatformMetricsService', () => {
         acknowledgedAt: new Date(),
       });
 
-      const result = await service.acknowledgeAlert(ALERT_ID);
+      await service.acknowledgeAlert(ALERT_ID);
 
       expect(prisma.platformAlert.update).toHaveBeenCalledWith({
         where: { id: ALERT_ID },

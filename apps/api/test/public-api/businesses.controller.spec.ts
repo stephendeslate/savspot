@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NotFoundException } from '@nestjs/common';
 import { BusinessesController } from '@/public-api/v1/controllers/businesses.controller';
