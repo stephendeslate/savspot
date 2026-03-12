@@ -39,6 +39,7 @@ export class ComputeNoShowRiskHandler {
       FROM bookings
       WHERE status = 'CONFIRMED'
         AND start_time > NOW()
+      LIMIT 5000
     `;
 
     if (upcomingBookings.length === 0) {
@@ -97,63 +98,67 @@ export class ComputeNoShowRiskHandler {
         const serviceMean =
           serviceRates.length > 0 ? serviceSum / serviceRates.length : 1;
 
-        await this.prisma.$transaction(async (tx) => {
-          await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+        const BATCH_SIZE = 100;
+        for (let i = 0; i < tenantBookings.length; i += BATCH_SIZE) {
+          const batch = tenantBookings.slice(i, i + BATCH_SIZE);
+          await this.prisma.$transaction(async (tx) => {
+            await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
 
-          for (const booking of tenantBookings) {
-            const clientHistory = await tx.$queryRaw<NoShowRateRow[]>`
-              SELECT
-                COUNT(*) FILTER (WHERE status = 'NO_SHOW') AS no_show_count,
-                COUNT(*) AS total_count
-              FROM bookings
-              WHERE tenant_id = ${tenantId}
-                AND client_id = ${booking.client_id}
-                AND status IN ('COMPLETED', 'NO_SHOW')
-            `;
+            for (const booking of batch) {
+              const clientHistory = await tx.$queryRaw<NoShowRateRow[]>`
+                SELECT
+                  COUNT(*) FILTER (WHERE status = 'NO_SHOW') AS no_show_count,
+                  COUNT(*) AS total_count
+                FROM bookings
+                WHERE tenant_id = ${tenantId}
+                  AND client_id = ${booking.client_id}
+                  AND status IN ('COMPLETED', 'NO_SHOW')
+              `;
 
-            const row = clientHistory[0];
-            const totalBookings = Number(row?.total_count ?? 0);
-            const noShows = Number(row?.no_show_count ?? 0);
-            const baseScore =
-              totalBookings > 0 ? noShows / totalBookings : 0.5;
+              const row = clientHistory[0];
+              const totalBookings = Number(row?.total_count ?? 0);
+              const noShows = Number(row?.no_show_count ?? 0);
+              const baseScore =
+                totalBookings > 0 ? noShows / totalBookings : 0.5;
 
-            const hoursUntil =
-              (booking.start_time.getTime() - Date.now()) / (1000 * 60 * 60);
-            let leadTimeFactor = 1.0;
-            if (hoursUntil > 14 * 24) leadTimeFactor = 1.3;
-            else if (hoursUntil < 24) leadTimeFactor = 0.7;
+              const hoursUntil =
+                (booking.start_time.getTime() - Date.now()) / (1000 * 60 * 60);
+              let leadTimeFactor = 1.0;
+              if (hoursUntil > 14 * 24) leadTimeFactor = 1.3;
+              else if (hoursUntil < 24) leadTimeFactor = 0.7;
 
-            const completedCount = totalBookings - noShows;
-            const firstTimeFactor = completedCount === 0 ? 1.5 : 1.0;
+              const completedCount = totalBookings - noShows;
+              const firstTimeFactor = completedCount === 0 ? 1.5 : 1.0;
 
-            const bookingDow = booking.start_time.getUTCDay();
-            const dayRate = dayOfWeekMap.get(bookingDow) ?? dayMean;
-            const dayFactor = dayMean > 0 ? dayRate / dayMean : 1.0;
+              const bookingDow = booking.start_time.getUTCDay();
+              const dayRate = dayOfWeekMap.get(bookingDow) ?? dayMean;
+              const dayFactor = dayMean > 0 ? dayRate / dayMean : 1.0;
 
-            const serviceRate =
-              serviceMap.get(booking.service_id) ?? serviceMean;
-            const serviceFactor =
-              serviceMean > 0 ? serviceRate / serviceMean : 1.0;
+              const serviceRate =
+                serviceMap.get(booking.service_id) ?? serviceMean;
+              const serviceFactor =
+                serviceMean > 0 ? serviceRate / serviceMean : 1.0;
 
-            let score =
-              baseScore *
-              leadTimeFactor *
-              firstTimeFactor *
-              dayFactor *
-              serviceFactor;
-            score = Math.max(0, Math.min(1, score));
+              let score =
+                baseScore *
+                leadTimeFactor *
+                firstTimeFactor *
+                dayFactor *
+                serviceFactor;
+              score = Math.max(0, Math.min(1, score));
 
-            const roundedScore = Math.round(score * 100) / 100;
+              const roundedScore = Math.round(score * 100) / 100;
 
-            await tx.$executeRaw`
-              UPDATE bookings
-              SET no_show_risk_score = ${roundedScore}
-              WHERE id = ${booking.id}
-            `;
+              await tx.$executeRaw`
+                UPDATE bookings
+                SET no_show_risk_score = ${roundedScore}
+                WHERE id = ${booking.id}
+              `;
 
-            updated++;
-          }
-        });
+              updated++;
+            }
+          });
+        }
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Unknown error';

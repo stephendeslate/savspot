@@ -1,11 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { CreateRuleDto } from './dto/create-rule.dto';
 import { UpdateRuleDto } from './dto/update-rule.dto';
 
 @Injectable()
 export class AvailabilityRulesService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(AvailabilityRulesService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   /**
    * Convert an "HH:mm" string to a Date object (1970-01-01).
@@ -68,6 +74,7 @@ export class AvailabilityRulesService {
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
       },
     });
+    await this.invalidateRulesCache(tenantId);
     return this.serializeRule(rule);
   }
 
@@ -94,6 +101,7 @@ export class AvailabilityRulesService {
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
       },
     });
+    await this.invalidateRulesCache(tenantId);
     return this.serializeRule(rule);
   }
 
@@ -112,7 +120,29 @@ export class AvailabilityRulesService {
     await this.prisma.availabilityRule.delete({
       where: { id },
     });
+    await this.invalidateRulesCache(tenantId);
 
     return { message: 'Availability rule deleted successfully' };
+  }
+
+  /**
+   * Invalidate all availability rule cache keys for a tenant.
+   * Uses a wildcard scan since rules can be cached under multiple service/venue combinations.
+   */
+  private async invalidateRulesCache(tenantId: string): Promise<void> {
+    try {
+      const client = this.redis.getClient();
+      const pattern = `availability:rules:${tenantId}:*`;
+      let cursor = '0';
+      do {
+        const [nextCursor, keys] = await client.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+        cursor = nextCursor;
+        if (keys.length > 0) {
+          await this.redis.del(...keys);
+        }
+      } while (cursor !== '0');
+    } catch {
+      this.logger.warn(`Failed to invalidate availability rules cache for tenant ${tenantId}`);
+    }
   }
 }

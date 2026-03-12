@@ -132,21 +132,19 @@ export class RecommendationsService {
       ORDER BY co_occurrence DESC
     `;
 
-    for (const row of rows) {
-      await this.prisma.recommendationModel.create({
-        data: {
-          type: 'SERVICE_AFFINITY',
-          modelData: {
-            serviceA: row.service_a,
-            serviceB: row.service_b,
-            coOccurrence: Number(row.co_occurrence),
-            tenantId: row.tenant_id,
-          },
-          trainingSize: Number(row.co_occurrence),
-          trainedAt: new Date(),
+    await this.prisma.recommendationModel.createMany({
+      data: rows.map((row) => ({
+        type: 'SERVICE_AFFINITY' as const,
+        modelData: {
+          serviceA: row.service_a,
+          serviceB: row.service_b,
+          coOccurrence: Number(row.co_occurrence),
+          tenantId: row.tenant_id,
         },
-      });
-    }
+        trainingSize: Number(row.co_occurrence),
+        trainedAt: new Date(),
+      })),
+    });
 
     this.logger.log(`Computed ${rows.length} service affinity pairs`);
   }
@@ -210,27 +208,22 @@ export class RecommendationsService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
-    let created = 0;
-    for (const row of rows) {
-      const maxBookings = rows.length > 0
-        ? Math.max(...rows.map(r => Number(r.booking_count)))
-        : 1;
-      const score = Number(row.booking_count) / maxBookings;
+    const maxBookings = rows.length > 0
+      ? Math.max(...rows.map((r) => Number(r.booking_count)))
+      : 1;
 
-      await this.prisma.clientRecommendation.create({
-        data: {
-          userId: row.user_id,
-          tenantId: row.tenant_id,
-          serviceId: row.service_id,
-          score,
-          reason: `Popular in your frequently booked category: ${row.service_name}`,
-          expiresAt,
-        },
-      });
-      created++;
-    }
+    const result = await this.prisma.clientRecommendation.createMany({
+      data: rows.map((row) => ({
+        userId: row.user_id,
+        tenantId: row.tenant_id,
+        serviceId: row.service_id,
+        score: Number(row.booking_count) / maxBookings,
+        reason: `Popular in your frequently booked category: ${row.service_name}`,
+        expiresAt,
+      })),
+    });
 
-    this.logger.log(`Created ${created} client preference recommendations`);
+    this.logger.log(`Created ${result.count} client preference recommendations`);
   }
 
   async cleanupExpired(): Promise<void> {

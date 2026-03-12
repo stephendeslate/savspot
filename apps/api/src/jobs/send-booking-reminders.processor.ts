@@ -69,6 +69,7 @@ export class SendBookingRemindersHandler {
         WHERE b.status = 'CONFIRMED'
           AND b.start_time > NOW()
           AND b.start_time <= NOW() + INTERVAL '8 days'
+        LIMIT 1000
       `;
 
       if (upcomingBookings.length === 0) {

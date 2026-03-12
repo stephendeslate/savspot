@@ -11,6 +11,7 @@ import {
   TenantRoleType,
 } from '../decorators/tenant-roles.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../../redis/redis.service';
 import { Request } from 'express';
 
 interface AuthenticatedUser {
@@ -37,6 +38,7 @@ export class TenantRolesGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly prismaService: PrismaService,
+    private readonly redis: RedisService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -67,21 +69,39 @@ export class TenantRolesGuard implements CanActivate {
       throw new ForbiddenException('Tenant context required');
     }
 
-    // Look up the membership in an interactive transaction so that
-    // set_config and the query share the same pooled connection.
-    // This is required for FORCE ROW LEVEL SECURITY compatibility.
-    const membership = await this.prismaService.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
-      return tx.tenantMembership.findUnique({
-        where: {
-          tenantId_userId: {
-            tenantId,
-            userId,
+    const cacheKey = `tenant:role:${tenantId}:${userId}`;
+
+    let membership: { role: string } | null = null;
+
+    try {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) {
+        membership = JSON.parse(cached) as { role: string };
+      }
+    } catch {
+      // Redis error — fall through to DB
+    }
+
+    if (!membership) {
+      membership = await this.prismaService.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+        return tx.tenantMembership.findUnique({
+          where: {
+            tenantId_userId: {
+              tenantId,
+              userId,
+            },
           },
-        },
-        select: { role: true },
+          select: { role: true },
+        });
       });
-    });
+
+      if (membership) {
+        await this.redis
+          .setex(cacheKey, 900, JSON.stringify(membership))
+          .catch(() => {});
+      }
+    }
 
     if (!membership) {
       throw new ForbiddenException('Not a member of this tenant');

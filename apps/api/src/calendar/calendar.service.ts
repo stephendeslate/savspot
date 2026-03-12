@@ -691,26 +691,20 @@ export class GoogleCalendarService {
    * Find a connection by its watch channel ID (used by webhook handler).
    */
   async findConnectionByChannelId(channelId: string) {
-    // Search connections where icalFeedToken contains the channelId
-    const connections = await this.prisma.calendarConnection.findMany({
-      where: {
-        status: 'ACTIVE',
-        icalFeedToken: { not: null },
-      },
+    const connections = await this.prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT id FROM calendar_connections
+      WHERE status = 'ACTIVE'
+        AND ical_feed_token IS NOT NULL
+        AND pg_input_is_valid(ical_feed_token, 'jsonb')
+        AND ical_feed_token::jsonb->>'channelId' = ${channelId}
+      LIMIT 1
+    `;
+
+    if (connections.length === 0) return null;
+
+    return this.prisma.calendarConnection.findUnique({
+      where: { id: connections[0]!.id },
     });
-
-    for (const conn of connections) {
-      try {
-        const meta = JSON.parse(conn.icalFeedToken!);
-        if (meta.channelId === channelId) {
-          return conn;
-        }
-      } catch {
-        continue;
-      }
-    }
-
-    return null;
   }
 
   // ---------------------------------------------------------------------------

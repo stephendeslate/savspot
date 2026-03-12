@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { TenantRole, InvitationStatus } from '../../../../prisma/generated/prisma';
 
@@ -14,7 +15,10 @@ import { TenantRole, InvitationStatus } from '../../../../prisma/generated/prism
 export class TeamService {
   private readonly logger = new Logger(TeamService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   /**
    * List all team members (TenantMembership records) for a tenant,
@@ -166,12 +170,18 @@ export class TeamService {
       }
     }
 
-    return this.prisma.tenantMembership.update({
+    const updated = await this.prisma.tenantMembership.update({
       where: {
         tenantId_userId: { tenantId, userId: targetUserId },
       },
       data: { role },
     });
+
+    await this.redis
+      .del(`tenant:role:${tenantId}:${targetUserId}`)
+      .catch(() => {});
+
+    return updated;
   }
 
   /**
@@ -210,11 +220,17 @@ export class TeamService {
       }
     }
 
-    return this.prisma.tenantMembership.delete({
+    const deleted = await this.prisma.tenantMembership.delete({
       where: {
         tenantId_userId: { tenantId, userId: targetUserId },
       },
     });
+
+    await this.redis
+      .del(`tenant:role:${tenantId}:${targetUserId}`)
+      .catch(() => {});
+
+    return deleted;
   }
 
   /**
@@ -310,6 +326,10 @@ export class TeamService {
         role: invitation.role,
       },
     });
+
+    await this.redis
+      .del(`tenant:role:${invitation.tenantId}:${user.id}`)
+      .catch(() => {});
 
     // Mark invitation as accepted
     await this.prisma.teamInvitation.update({
