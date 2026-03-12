@@ -48,14 +48,54 @@ export class AuthController {
     private readonly prisma: PrismaService,
   ) {}
 
+  private setAuthCookies(res: Response, tokens: { accessToken: string; refreshToken: string }) {
+    const isProduction = process.env['NODE_ENV'] === 'production';
+
+    res.cookie('savspot_access', tokens.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 900 * 1000,
+    });
+
+    res.cookie('savspot_refresh', tokens.refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/api/auth/refresh',
+      maxAge: 604800 * 1000,
+    });
+
+    res.cookie('savspot_session', 'true', {
+      httpOnly: false,
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 604800 * 1000,
+    });
+  }
+
+  private clearAuthCookies(res: Response) {
+    const isProduction = process.env['NODE_ENV'] === 'production';
+    res.clearCookie('savspot_access', { path: '/', secure: isProduction, sameSite: 'lax' });
+    res.clearCookie('savspot_refresh', { path: '/api/auth/refresh', secure: isProduction, sameSite: 'lax' });
+    res.clearCookie('savspot_session', { path: '/', secure: isProduction, sameSite: 'lax' });
+  }
+
   @Public()
   @Post('register')
   @Throttle({ default: { limit: 3, ttl: 60_000 } })
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 409, description: 'Email already registered' })
-  async register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+  async register(
+    @Body() dto: RegisterDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.register(dto);
+    this.setAuthCookies(res, { accessToken: result.accessToken as string, refreshToken: result.refreshToken as string });
+    return result;
   }
 
   @Public()
@@ -66,8 +106,15 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @ApiResponse({ status: 403, description: 'Email not verified' })
-  async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto.email, dto.password);
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.login(dto.email, dto.password);
+    if ('accessToken' in result && 'refreshToken' in result) {
+      this.setAuthCookies(res, { accessToken: result.accessToken as string, refreshToken: result.refreshToken as string });
+    }
+    return result;
   }
 
   @ApiBearerAuth()
@@ -77,8 +124,10 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
   async logout(
     @CurrentUser() user: { jti: string; exp: number },
+    @Res({ passthrough: true }) res: Response,
   ) {
     await this.authService.logout(user.jti, user.exp);
+    this.clearAuthCookies(res);
     return { message: 'Logged out successfully' };
   }
 
@@ -88,8 +137,18 @@ export class AuthController {
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({ status: 200, description: 'Tokens refreshed' })
   @ApiResponse({ status: 401, description: 'Invalid refresh token' })
-  async refresh(@Body() dto: RefreshTokenDto) {
-    return this.authService.refreshTokens(dto.refreshToken);
+  async refresh(
+    @Body() dto: RefreshTokenDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = (req.cookies as Record<string, string> | undefined)?.['savspot_refresh'] ?? dto.refreshToken;
+    if (!refreshToken) {
+      throw new BadRequestException('Refresh token is required');
+    }
+    const result = await this.authService.refreshTokens(refreshToken);
+    this.setAuthCookies(res, { accessToken: result.accessToken as string, refreshToken: result.refreshToken as string });
+    return result;
   }
 
   @Public()
@@ -171,11 +230,8 @@ export class AuthController {
 
     try {
       const result = await this.authService.loginOAuthUser(user['id'] as string);
-      const params = new URLSearchParams({
-        accessToken: result.accessToken as string,
-        refreshToken: result.refreshToken as string,
-      });
-      return res.redirect(`${webUrl}/login?${params.toString()}`);
+      this.setAuthCookies(res, { accessToken: result.accessToken as string, refreshToken: result.refreshToken as string });
+      return res.redirect(`${webUrl}/login?oauth=success`);
     } catch {
       return res.redirect(`${webUrl}/login?error=google_auth_failed`);
     }
@@ -207,11 +263,8 @@ export class AuthController {
 
     try {
       const result = await this.authService.loginOAuthUser(user['id'] as string);
-      const params = new URLSearchParams({
-        accessToken: result.accessToken as string,
-        refreshToken: result.refreshToken as string,
-      });
-      return res.redirect(`${webUrl}/login?${params.toString()}`);
+      this.setAuthCookies(res, { accessToken: result.accessToken as string, refreshToken: result.refreshToken as string });
+      return res.redirect(`${webUrl}/login?oauth=success`);
     } catch {
       return res.redirect(`${webUrl}/login?error=apple_auth_failed`);
     }

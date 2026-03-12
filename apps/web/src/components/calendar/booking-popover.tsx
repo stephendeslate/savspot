@@ -2,16 +2,7 @@
 
 import { useState } from 'react';
 import { format } from 'date-fns';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Button, Badge, Separator } from '@savspot/ui';
 import { apiClient } from '@/lib/api-client';
 
 // ---------- Types ----------

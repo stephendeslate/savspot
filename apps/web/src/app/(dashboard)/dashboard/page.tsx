@@ -16,15 +16,7 @@ import {
   Plus,
   ArrowRight,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Skeleton } from '@savspot/ui';
 import { FadeIn } from '@/components/ui/motion';
 import { useAuth } from '@/hooks/use-auth';
 import { useTenant } from '@/hooks/use-tenant';

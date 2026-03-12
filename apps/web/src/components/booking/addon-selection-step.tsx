@@ -2,16 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { ArrowRight, ArrowLeft, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Button, Checkbox, Card, CardContent, CardHeader, CardTitle, CardDescription, Separator } from '@savspot/ui';
 import type { ServiceAddon } from './booking-types';
 
 // ---------------------------------------------------------------------------

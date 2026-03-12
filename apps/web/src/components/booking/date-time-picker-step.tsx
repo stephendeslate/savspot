@@ -17,8 +17,7 @@ import {
   parseISO,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Button, Skeleton } from '@savspot/ui';
 import { FadeIn } from '@/components/ui/motion';
 import { cn } from '@/lib/utils';
 import type { BookingSessionData, TimeSlot } from './booking-types';

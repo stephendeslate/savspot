@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { ArrowLeft, ArrowRight, Eye, Loader2, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@savspot/ui';
 import { FadeIn, StepTransition } from '@/components/ui/motion';
 import { BookingProgress } from './booking-progress';
 import { ServiceSelectionStep } from './service-selection-step';

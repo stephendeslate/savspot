@@ -8,7 +8,7 @@ import { PushPrompt } from '@/components/push-prompt';
 import { MobileNav } from '@/components/layout/mobile-nav';
 import { SupportWidget } from '@/components/support/support-widget';
 import { FeedbackWidget } from '@/components/feedback/feedback-widget';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@savspot/ui';
 import { useAuth } from '@/hooks/use-auth';
 import { ROUTES } from '@/lib/constants';
 
