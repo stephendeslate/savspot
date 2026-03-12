@@ -26,7 +26,7 @@ async function loginAndWaitForDashboard(page: import('@playwright/test').Page) {
   // blocking the submit button
   await page.getByLabel(/password/i).press('Enter');
 
-  await page.waitForURL('**/dashboard', { timeout: 30_000 });
+  await page.waitForURL('**/dashboard', { timeout: 15_000 });
   await page.waitForLoadState('networkidle');
 }
 
@@ -92,7 +92,8 @@ test.describe('Admin Authentication', () => {
     }
 
     // Click the Logout button in the sidebar
-    await page.getByRole('button', { name: /logout/i }).click();
+    // Use dispatchEvent to bypass Next.js dev overlay (<nextjs-portal>) intercepting clicks
+    await page.getByRole('button', { name: /logout/i }).dispatchEvent('click');
 
     // Should redirect back to login
     await page.waitForURL('**/login', { timeout: 15_000 });
