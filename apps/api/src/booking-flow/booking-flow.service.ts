@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { UpdateBookingFlowDto } from './dto/update-booking-flow.dto';
 
 export interface StepResolution {
@@ -20,7 +21,10 @@ interface ServiceForStepResolution {
 export class BookingFlowService {
   private readonly logger = new Logger(BookingFlowService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   async getBookingFlow(tenantId: string) {
     const flow = await this.prisma.bookingFlow.findFirst({
@@ -60,6 +64,7 @@ export class BookingFlowService {
       },
     });
 
+    await this.redis.del(`booking:flow:${tenantId}`).catch(() => {});
     this.logger.log(`Booking flow ${updated.id} updated for tenant ${tenantId}`);
     return updated;
   }

@@ -16,12 +16,13 @@ function makePrisma() {
     clientRecommendation: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
+      createMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       deleteMany: vi.fn(),
     },
     recommendationModel: {
-      create: vi.fn(),
+      createMany: vi.fn(),
     },
     $queryRaw: vi.fn(),
   };
@@ -180,29 +181,34 @@ describe('RecommendationsService', () => {
       prisma.$queryRaw.mockResolvedValue([
         { service_a: 'svc-1', service_b: 'svc-2', co_occurrence: BigInt(5), tenant_id: TENANT_ID },
       ]);
-      prisma.recommendationModel.create.mockResolvedValue({});
+      prisma.recommendationModel.createMany.mockResolvedValue({ count: 1 });
 
       await service.computeServiceAffinity(TENANT_ID);
 
-      expect(prisma.recommendationModel.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          type: 'SERVICE_AFFINITY',
-          modelData: expect.objectContaining({
-            serviceA: 'svc-1',
-            serviceB: 'svc-2',
-            coOccurrence: 5,
+      expect(prisma.recommendationModel.createMany).toHaveBeenCalledWith({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            type: 'SERVICE_AFFINITY',
+            modelData: expect.objectContaining({
+              serviceA: 'svc-1',
+              serviceB: 'svc-2',
+              coOccurrence: 5,
+            }),
+            trainingSize: 5,
           }),
-          trainingSize: 5,
-        }),
+        ]),
       });
     });
 
-    it('should handle empty results without creating models', async () => {
+    it('should handle empty results by passing empty data array', async () => {
       prisma.$queryRaw.mockResolvedValue([]);
+      prisma.recommendationModel.createMany.mockResolvedValue({ count: 0 });
 
       await service.computeServiceAffinity();
 
-      expect(prisma.recommendationModel.create).not.toHaveBeenCalled();
+      expect(prisma.recommendationModel.createMany).toHaveBeenCalledWith({
+        data: [],
+      });
     });
   });
 
@@ -222,18 +228,20 @@ describe('RecommendationsService', () => {
           booking_count: BigInt(10),
         },
       ]);
-      prisma.clientRecommendation.create.mockResolvedValue({});
+      prisma.clientRecommendation.createMany.mockResolvedValue({ count: 1 });
 
       await service.computeClientPreferences(TENANT_ID);
 
-      expect(prisma.clientRecommendation.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          userId: USER_ID,
-          tenantId: TENANT_ID,
-          serviceId: SERVICE_ID,
-          score: 1, // 10/10 = 1.0 since it's the max
-          reason: expect.stringContaining('Swedish Massage'),
-        }),
+      expect(prisma.clientRecommendation.createMany).toHaveBeenCalledWith({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            userId: USER_ID,
+            tenantId: TENANT_ID,
+            serviceId: SERVICE_ID,
+            score: 1, // 10/10 = 1.0 since it's the max
+            reason: expect.stringContaining('Swedish Massage'),
+          }),
+        ]),
       });
     });
 
@@ -256,24 +264,16 @@ describe('RecommendationsService', () => {
           booking_count: BigInt(5),
         },
       ]);
-      prisma.clientRecommendation.create.mockResolvedValue({});
+      prisma.clientRecommendation.createMany.mockResolvedValue({ count: 2 });
 
       await service.computeClientPreferences();
 
-      // First call: score = 10/10 = 1.0
-      expect(prisma.clientRecommendation.create).toHaveBeenNthCalledWith(
-        1,
-        expect.objectContaining({
-          data: expect.objectContaining({ score: 1 }),
-        }),
-      );
-      // Second call: score = 5/10 = 0.5
-      expect(prisma.clientRecommendation.create).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({
-          data: expect.objectContaining({ score: 0.5 }),
-        }),
-      );
+      expect(prisma.clientRecommendation.createMany).toHaveBeenCalledWith({
+        data: expect.arrayContaining([
+          expect.objectContaining({ serviceId: 'svc-a', score: 1 }),
+          expect.objectContaining({ serviceId: 'svc-b', score: 0.5 }),
+        ]),
+      });
     });
   });
 

@@ -1258,6 +1258,7 @@ model PaymentWebhookLog {
   // Relations
   deadLetters WebhookDeadLetter[]
 
+  @@index([processed, createdAt])
   @@map("payment_webhook_logs")
 }
 
@@ -1597,6 +1598,7 @@ model EmailLayout {
   tenant    Tenant?                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   templates CommunicationTemplate[]
 
+  @@index([tenantId])
   @@map("email_layouts")
 }
 
@@ -1846,6 +1848,7 @@ model Quote {
 
   @@unique([bookingId, version])
   @@index([tenantId])
+  @@index([tenantId, status])
   @@map("quotes")
 }
 
@@ -1903,6 +1906,7 @@ model QuoteOptionItem {
   option  QuoteOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
   product Service?    @relation(fields: [productId], references: [id])
 
+  @@index([optionId])
   @@map("quote_option_items")
 }
 
@@ -2310,6 +2314,8 @@ model SecurityBreach {
   breachNotifications BreachNotification[]
   affectedUsers       AffectedUser[]
 
+  @@index([status])
+  @@index([severity])
   @@map("security_breaches")
 }
 
@@ -2326,6 +2332,7 @@ model BreachNotification {
   // Relations
   breach SecurityBreach @relation(fields: [breachId], references: [id], onDelete: Cascade)
 
+  @@index([breachId])
   @@map("breach_notifications")
 }
 
@@ -2884,6 +2891,8 @@ model PlatformAlert {
   acknowledgedAt DateTime? @map("acknowledged_at")
   createdAt      DateTime  @default(now()) @map("created_at")
 
+  @@index([metricKey])
+  @@index([acknowledged, createdAt])
   @@map("platform_alerts")
 }
 
@@ -2908,6 +2917,8 @@ model DirectoryListing {
   // Relations
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@index([featuredUntil])
+  @@index([lastActiveAt])
   @@map("directory_listings")
 }
 
@@ -2946,6 +2957,7 @@ model CustomDomain {
   // Relations
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@index([status])
   @@map("custom_domains")
 }
 
@@ -2982,6 +2994,7 @@ model RecommendationModel {
   trainedAt    DateTime           @map("trained_at")
   createdAt    DateTime           @default(now()) @map("created_at")
 
+  @@index([type])
   @@map("recommendation_models")
 }
 
@@ -3003,6 +3016,9 @@ model ClientRecommendation {
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
+  @@index([tenantId])
+  @@index([userId, tenantId, expiresAt])
+  @@index([expiresAt])
   @@map("client_recommendations")
 }
 
@@ -3019,6 +3035,7 @@ model ChurnRiskScore {
   createdAt    DateTime  @default(now()) @map("created_at")
 
   @@unique([clientId, tenantId])
+  @@index([tenantId, riskLevel])
   @@map("churn_risk_scores")
 }
 
@@ -3049,6 +3066,7 @@ model Partner {
   referredTenants PartnerReferral[]
   payouts         PartnerPayout[]
 
+  @@index([status])
   @@map("partners")
 }
 
@@ -3066,6 +3084,7 @@ model PartnerReferral {
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([partnerId, tenantId])
+  @@index([partnerId])
   @@map("partner_referrals")
 }
 
@@ -3084,5 +3103,6 @@ model PartnerPayout {
   // Relations
   partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
+  @@index([partnerId, status])
   @@map("partner_payouts")
 }

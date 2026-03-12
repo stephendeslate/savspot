@@ -1,24 +1,37 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class PublicBookingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly redis: RedisService,
   ) {}
 
   /**
    * List all active tenant slugs for sitemap generation.
    */
   async listActiveBookingSlugs(): Promise<string[]> {
+    const cacheKey = 'public:tenant:slugs';
+    try {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) return JSON.parse(cached) as string[];
+    } catch {
+      /* fall through to DB */
+    }
+
     const tenants = await this.prisma.tenant.findMany({
       where: { status: 'ACTIVE' },
       select: { slug: true },
       orderBy: { slug: 'asc' },
     });
-    return tenants.map((t) => t.slug);
+    const slugs = tenants.map((t) => t.slug);
+
+    await this.redis.setex(cacheKey, 3600, JSON.stringify(slugs)).catch(() => {});
+    return slugs;
   }
 
   /**
@@ -50,6 +63,14 @@ export class PublicBookingService {
    * Used for the public booking widget.
    */
   async getTenantBySlug(slug: string) {
+    const cacheKey = `public:tenant:${slug}`;
+    try {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch {
+      /* fall through to DB */
+    }
+
     // Resolve tenant first (tenants table is not tenant-scoped, no RLS issue)
     const tenant = await this.prisma.tenant.findUnique({
       where: { slug },
@@ -120,6 +141,7 @@ export class PublicBookingService {
       throw new NotFoundException('Business not found');
     }
 
+    await this.redis.setex(cacheKey, 3600, JSON.stringify(fullTenant)).catch(() => {});
     return fullTenant;
   }
 
@@ -128,6 +150,14 @@ export class PublicBookingService {
    * Returns an array of category groups, each with its services.
    */
   async getServicesGroupedByCategory(slug: string) {
+    const cacheKey = `public:services:grouped:${slug}`;
+    try {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch {
+      /* fall through to DB */
+    }
+
     const tenant = await this.prisma.tenant.findUnique({
       where: { slug },
       select: { id: true, status: true },
@@ -190,7 +220,9 @@ export class PublicBookingService {
       grouped.get(categoryKey)!.services.push(service);
     }
 
-    return Array.from(grouped.values());
+    const result = Array.from(grouped.values());
+    await this.redis.setex(cacheKey, 1800, JSON.stringify(result)).catch(() => {});
+    return result;
   }
 
   /**

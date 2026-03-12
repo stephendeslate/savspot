@@ -35,10 +35,16 @@ export class IcalFeedService {
       throw new UnauthorizedException('Invalid feed token');
     }
 
+    // Limit to recent + future bookings to avoid unbounded query
+    const LOOKBACK_DAYS = 90;
+    const lookbackDate = new Date();
+    lookbackDate.setDate(lookbackDate.getDate() - LOOKBACK_DAYS);
+
     const bookings = await this.prisma.booking.findMany({
       where: {
         tenantId: tenant.id,
         status: 'CONFIRMED',
+        startTime: { gte: lookbackDate },
       },
       include: {
         service: { select: { name: true } },

@@ -255,10 +255,13 @@ export class WebhookService {
       ),
     );
 
-    for (const delivery of deliveries) {
-      await this.webhookQueue.add('dispatchWebhook', {
-        deliveryId: delivery.id,
-      });
+    if (deliveries.length > 0) {
+      await this.webhookQueue.addBulk(
+        deliveries.map((delivery) => ({
+          name: 'dispatchWebhook',
+          data: { deliveryId: delivery.id },
+        })),
+      );
     }
 
     this.logger.log(

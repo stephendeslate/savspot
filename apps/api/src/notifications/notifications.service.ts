@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 
 /**
  * Parameters for creating a notification.
@@ -27,7 +28,10 @@ export interface ListNotificationsOptions {
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   /**
    * Creates a notification for a user within a tenant.
@@ -45,26 +49,42 @@ export class NotificationsService {
       metadata,
     } = params;
 
-    // Resolve or create NotificationType by key
+    // Resolve or create NotificationType by key, with Redis caching
     const typeKey = `${category.toLowerCase()}.general`;
-    const notificationType = await this.prisma.notificationType.upsert({
-      where: { key: typeKey },
-      update: {},
-      create: {
-        key: typeKey,
-        name: `${category} Notification`,
-        category,
-        priority,
-        defaultChannels: ['IN_APP'],
-        isSystem: true,
-      },
-    });
+    const cacheKey = `notification:type:${typeKey}`;
+
+    let typeId: string | undefined;
+    try {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) {
+        typeId = (JSON.parse(cached) as { id: string }).id;
+      }
+    } catch {
+      // Redis error — fall through to database lookup
+    }
+
+    if (!typeId) {
+      const notificationType = await this.prisma.notificationType.upsert({
+        where: { key: typeKey },
+        update: {},
+        create: {
+          key: typeKey,
+          name: `${category} Notification`,
+          category,
+          priority,
+          defaultChannels: ['IN_APP'],
+          isSystem: true,
+        },
+      });
+      typeId = notificationType.id;
+      await this.redis.setex(cacheKey, 3600, JSON.stringify({ id: typeId })).catch(() => {});
+    }
 
     const notification = await this.prisma.notification.create({
       data: {
         tenantId,
         userId,
-        typeId: notificationType.id,
+        typeId,
         title,
         body,
         data: metadata as Prisma.InputJsonValue ?? Prisma.JsonNull,

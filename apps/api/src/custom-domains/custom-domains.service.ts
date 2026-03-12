@@ -20,13 +20,17 @@ export class CustomDomainsService {
       throw new BadRequestException('Custom domains feature is not enabled');
     }
 
-    const existing = await this.prisma.customDomain.findUnique({ where: { domain } });
-    if (existing) {
-      throw new ConflictException('Domain is already in use');
-    }
+    const existing = await this.prisma.customDomain.findFirst({
+      where: {
+        OR: [{ domain }, { tenantId }],
+      },
+      select: { domain: true, tenantId: true },
+    });
 
-    const tenantDomain = await this.prisma.customDomain.findUnique({ where: { tenantId } });
-    if (tenantDomain) {
+    if (existing) {
+      if (existing.domain === domain) {
+        throw new ConflictException('Domain is already in use');
+      }
       throw new ConflictException('Tenant already has a custom domain configured. Remove it first.');
     }
 

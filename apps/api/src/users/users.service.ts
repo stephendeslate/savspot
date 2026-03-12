@@ -25,7 +25,7 @@ export class UsersService {
             tenantId: true,
             role: true,
             tenant: {
-              select: { id: true, name: true, slug: true, logoUrl: true },
+              select: { id: true, name: true, slug: true, logoUrl: true, status: true },
             },
           },
         },

@@ -1,18 +1,32 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 
+const CACHE_TTL = 1800;
+
 @Injectable()
 export class ServicesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   /**
    * List all active services for a tenant.
    */
   async findAll(tenantId: string) {
-    return this.prisma.service.findMany({
+    const cacheKey = `services:list:${tenantId}`;
+    try {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch {
+      /* fall through to DB */
+    }
+
+    const services = await this.prisma.service.findMany({
       where: { tenantId, isActive: true },
       orderBy: { sortOrder: 'asc' },
       include: {
@@ -24,12 +38,24 @@ export class ServicesService {
         },
       },
     });
+
+    this.redis.setex(cacheKey, CACHE_TTL, JSON.stringify(services)).catch(() => {});
+
+    return services;
   }
 
   /**
    * Get a single service by ID within a tenant.
    */
   async findById(tenantId: string, id: string) {
+    const cacheKey = `service:${tenantId}:${id}`;
+    try {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch {
+      /* fall through to DB */
+    }
+
     const service = await this.prisma.service.findFirst({
       where: { id, tenantId },
       include: {
@@ -46,6 +72,8 @@ export class ServicesService {
       throw new NotFoundException('Service not found');
     }
 
+    this.redis.setex(cacheKey, CACHE_TTL, JSON.stringify(service)).catch(() => {});
+
     return service;
   }
 
@@ -53,7 +81,7 @@ export class ServicesService {
    * Create a new service for a tenant.
    */
   async create(tenantId: string, dto: CreateServiceDto) {
-    return this.prisma.service.create({
+    const result = await this.prisma.service.create({
       data: {
         tenantId,
         name: dto.name,
@@ -99,6 +127,10 @@ export class ServicesService {
         },
       },
     });
+
+    this.redis.del(`services:list:${tenantId}`).catch(() => {});
+
+    return result;
   }
 
   /**
@@ -152,7 +184,7 @@ export class ServicesService {
       data.cancellationPolicy = dto.cancellationPolicy as Prisma.InputJsonValue;
     }
 
-    return this.prisma.service.update({
+    const result = await this.prisma.service.update({
       where: { id },
       data,
       include: {
@@ -164,6 +196,10 @@ export class ServicesService {
         },
       },
     });
+
+    this.redis.del(`services:list:${tenantId}`, `service:${tenantId}:${id}`).catch(() => {});
+
+    return result;
   }
 
   /**
@@ -177,6 +213,8 @@ export class ServicesService {
       where: { id },
       data: { isActive: false },
     });
+
+    this.redis.del(`services:list:${tenantId}`, `service:${tenantId}:${id}`).catch(() => {});
 
     return { message: 'Service deactivated successfully' };
   }
@@ -213,6 +251,8 @@ export class ServicesService {
       },
     });
 
+    this.redis.del(`services:list:${tenantId}`, `service:${tenantId}:${serviceId}`).catch(() => {});
+
     return {
       serviceId: updated.id,
       template: updated.preferenceTemplate,
@@ -232,7 +272,7 @@ export class ServicesService {
     });
     const nextSortOrder = (maxSort._max.sortOrder ?? 0) + 1;
 
-    return this.prisma.service.create({
+    const result = await this.prisma.service.create({
       data: {
         tenantId,
         name: `${original.name} (Copy)`,
@@ -277,5 +317,9 @@ export class ServicesService {
         },
       },
     });
+
+    this.redis.del(`services:list:${tenantId}`).catch(() => {});
+
+    return result;
   }
 }

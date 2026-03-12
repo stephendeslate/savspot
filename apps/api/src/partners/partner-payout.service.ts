@@ -12,65 +12,89 @@ export class PartnerPayoutService {
   constructor(private readonly prisma: PrismaService) {}
 
   async processPayoutBatch() {
-    const eligiblePartners = await this.prisma.partner.findMany({
-      where: {
-        status: PartnerStatus.APPROVED,
-        totalEarnings: { gte: PAYOUT_THRESHOLD },
-      },
-    });
-
-    const now = new Date();
-    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const results: { partnerId: string; amount: Decimal }[] = [];
-
-    for (const partner of eligiblePartners) {
-      const lastPayout = await this.prisma.partnerPayout.findFirst({
-        where: { partnerId: partner.id },
-        orderBy: { periodEnd: 'desc' },
+    return this.prisma.$transaction(async (tx) => {
+      const eligiblePartners = await tx.partner.findMany({
+        where: {
+          status: PartnerStatus.APPROVED,
+          totalEarnings: { gte: PAYOUT_THRESHOLD },
+        },
       });
 
-      const sinceDate = lastPayout?.periodEnd ?? partner.createdAt;
-
-      const earnings = partner.totalEarnings.minus(
-        lastPayout
-          ? (await this.prisma.partnerPayout.aggregate({
-              where: {
-                partnerId: partner.id,
-                status: { not: PayoutStatus.FAILED },
-              },
-              _sum: { amount: true },
-            }))._sum.amount ?? new Decimal(0)
-          : new Decimal(0),
-      );
-
-      if (earnings.lt(PAYOUT_THRESHOLD)) {
-        continue;
+      if (eligiblePartners.length === 0) {
+        return { processed: 0, payouts: [] };
       }
 
-      const payout = await this.prisma.partnerPayout.create({
-        data: {
+      const partnerIds = eligiblePartners.map((p) => p.id);
+      const now = new Date();
+      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      // Batch fetch: last payout per partner + total paid out
+      const [lastPayouts, paidSums] = await Promise.all([
+        tx.partnerPayout.findMany({
+          where: { partnerId: { in: partnerIds } },
+          orderBy: { periodEnd: 'desc' },
+          distinct: ['partnerId'],
+          select: { partnerId: true, periodEnd: true },
+        }),
+        tx.partnerPayout.groupBy({
+          by: ['partnerId'],
+          where: {
+            partnerId: { in: partnerIds },
+            status: { not: PayoutStatus.FAILED },
+          },
+          _sum: { amount: true },
+        }),
+      ]);
+
+      const lastPayoutMap = new Map(lastPayouts.map((p) => [p.partnerId, p.periodEnd]));
+      const paidSumMap = new Map(paidSums.map((p) => [p.partnerId, p._sum.amount ?? new Decimal(0)]));
+
+      const payoutData: Array<{
+        partnerId: string;
+        amount: Decimal;
+        currency: string;
+        status: PayoutStatus;
+        periodStart: Date;
+        periodEnd: Date;
+      }> = [];
+
+      for (const partner of eligiblePartners) {
+        const totalPaid = paidSumMap.get(partner.id) ?? new Decimal(0);
+        const earnings = partner.totalEarnings.minus(totalPaid);
+
+        if (earnings.lt(PAYOUT_THRESHOLD)) {
+          continue;
+        }
+
+        const sinceDate = lastPayoutMap.get(partner.id) ?? partner.createdAt;
+
+        payoutData.push({
           partnerId: partner.id,
           amount: earnings,
           currency: 'USD',
           status: PayoutStatus.PENDING,
           periodStart: sinceDate,
           periodEnd: periodStart,
-        },
-      });
+        });
+      }
 
-      this.logger.log(
-        `[STUB] Stripe transfer for partner ${partner.id}: $${earnings.toString()} — payout ${payout.id}`,
-      );
+      if (payoutData.length > 0) {
+        await tx.partnerPayout.createMany({ data: payoutData });
+      }
 
-      results.push({ partnerId: partner.id, amount: earnings });
-    }
+      for (const payout of payoutData) {
+        this.logger.log(
+          `[STUB] Stripe transfer for partner ${payout.partnerId}: $${payout.amount.toString()}`,
+        );
+      }
 
-    this.logger.log(`Payout batch complete: ${results.length} payouts created`);
+      this.logger.log(`Payout batch complete: ${payoutData.length} payouts created`);
 
-    return {
-      processed: results.length,
-      payouts: results,
-    };
+      return {
+        processed: payoutData.length,
+        payouts: payoutData.map((p) => ({ partnerId: p.partnerId, amount: p.amount })),
+      };
+    });
   }
 
   async getPayoutHistory(partnerId: string) {

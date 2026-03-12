@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 
 export interface AvailableSlot {
   date: string;
@@ -15,9 +16,21 @@ interface QueryParams {
   venueId?: string;
 }
 
+interface CachedRule {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  [key: string]: unknown;
+}
+
 @Injectable()
 export class AvailabilityService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(AvailabilityService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   /**
    * Resolve available time slots for a service within a date range.
@@ -48,11 +61,27 @@ export class AvailabilityService {
     const bufferAfter = service.bufferAfterMinutes;
     const effectiveVenueId = venueId ?? service.venueId;
 
-    // 1b. Load booking flow for advance booking window enforcement
-    const bookingFlow = await this.prisma.bookingFlow.findFirst({
-      where: { tenantId, isDefault: true },
-      select: { minBookingAdvanceDays: true, maxBookingAdvanceDays: true },
-    });
+    // 1b. Load booking flow for advance booking window enforcement (cached 60 min)
+    const flowCacheKey = `booking:flow:${tenantId}`;
+    let bookingFlow: { minBookingAdvanceDays: number | null; maxBookingAdvanceDays: number | null } | null = null;
+    try {
+      const cached = await this.redis.get(flowCacheKey);
+      if (cached) {
+        bookingFlow = JSON.parse(cached) as typeof bookingFlow;
+      }
+    } catch {
+      this.logger.debug('Redis cache miss/error for booking flow');
+    }
+
+    if (!bookingFlow) {
+      bookingFlow = await this.prisma.bookingFlow.findFirst({
+        where: { tenantId, isDefault: true },
+        select: { minBookingAdvanceDays: true, maxBookingAdvanceDays: true },
+      });
+      if (bookingFlow) {
+        await this.redis.setex(flowCacheKey, 3600, JSON.stringify(bookingFlow)).catch(() => {});
+      }
+    }
 
     const now = new Date();
     const minAdvanceMs = bookingFlow?.minBookingAdvanceDays
@@ -64,26 +93,39 @@ export class AvailabilityService {
     const earliestAllowed = minAdvanceMs ? new Date(now.getTime() + minAdvanceMs) : null;
     const latestAllowed = maxAdvanceMs ? new Date(now.getTime() + maxAdvanceMs) : null;
 
-    // 2. Load availability rules — service-specific first, then tenant-wide fallback
-    const serviceRules = await this.prisma.availabilityRule.findMany({
-      where: {
-        tenantId,
-        serviceId,
-        isActive: true,
-        ...(effectiveVenueId ? { venueId: effectiveVenueId } : {}),
-      },
-      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
-    });
+    // 2. Load availability rules — service-specific first, then tenant-wide fallback (cached 30 min)
+    const venueKeyPart = effectiveVenueId ?? 'none';
+    const serviceRulesCacheKey = `availability:rules:${tenantId}:${serviceId}:${venueKeyPart}`;
+    let serviceRules = await this.getCachedRules(serviceRulesCacheKey);
 
-    const tenantWideRules = await this.prisma.availabilityRule.findMany({
-      where: {
-        tenantId,
-        serviceId: null,
-        isActive: true,
-        ...(effectiveVenueId ? { OR: [{ venueId: effectiveVenueId }, { venueId: null }] } : {}),
-      },
-      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
-    });
+    if (!serviceRules) {
+      serviceRules = await this.prisma.availabilityRule.findMany({
+        where: {
+          tenantId,
+          serviceId,
+          isActive: true,
+          ...(effectiveVenueId ? { venueId: effectiveVenueId } : {}),
+        },
+        orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+      });
+      await this.setCachedRules(serviceRulesCacheKey, serviceRules);
+    }
+
+    const tenantWideCacheKey = `availability:rules:${tenantId}:tenant-wide:${venueKeyPart}`;
+    let tenantWideRules = await this.getCachedRules(tenantWideCacheKey);
+
+    if (!tenantWideRules) {
+      tenantWideRules = await this.prisma.availabilityRule.findMany({
+        where: {
+          tenantId,
+          serviceId: null,
+          isActive: true,
+          ...(effectiveVenueId ? { OR: [{ venueId: effectiveVenueId }, { venueId: null }] } : {}),
+        },
+        orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+      });
+      await this.setCachedRules(tenantWideCacheKey, tenantWideRules);
+    }
 
     // Group rules by day of week. Service-specific rules override tenant-wide for that day.
     const rulesByDay = this.buildRulesByDay(serviceRules, tenantWideRules);
@@ -212,6 +254,38 @@ export class AvailabilityService {
     });
 
     return filteredSlots;
+  }
+
+  /**
+   * Attempt to read availability rules from Redis cache and revive Date fields.
+   */
+  private async getCachedRules(
+    key: string,
+  ): Promise<Array<{ dayOfWeek: number; startTime: Date; endTime: Date }> | null> {
+    try {
+      const cached = await this.redis.get(key);
+      if (cached) {
+        const parsed = JSON.parse(cached) as CachedRule[];
+        return parsed.map((r) => ({
+          ...r,
+          startTime: new Date(r.startTime),
+          endTime: new Date(r.endTime),
+        }));
+      }
+    } catch {
+      this.logger.debug(`Redis cache miss/error for ${key}`);
+    }
+    return null;
+  }
+
+  /**
+   * Store availability rules in Redis cache with 30 min TTL.
+   */
+  private async setCachedRules(
+    key: string,
+    rules: Array<{ dayOfWeek: number; startTime: Date; endTime: Date }>,
+  ): Promise<void> {
+    await this.redis.setex(key, 1800, JSON.stringify(rules)).catch(() => {});
   }
 
   /**

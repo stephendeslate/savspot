@@ -19,6 +19,7 @@ const DOMAIN_ID = 'domain-001';
 function makePrisma() {
   return {
     customDomain: {
+      findFirst: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn(),
       create: vi.fn(),
@@ -87,15 +88,17 @@ describe('CustomDomainsService', () => {
 
   describe('addDomain', () => {
     it('should create a domain with DNS instructions', async () => {
-      prisma.customDomain.findUnique
-        .mockResolvedValueOnce(null) // domain check
-        .mockResolvedValueOnce(null); // tenant check
+      prisma.customDomain.findFirst.mockResolvedValue(null); // no existing domain or tenant
       prisma.customDomain.create.mockResolvedValue(makeDomainRecord());
 
       const result = await service.addDomain(TENANT_ID, DOMAIN);
 
       expect(result.dnsInstructions.txt.name).toBe(`_savspot-verify.${DOMAIN}`);
       expect(result.dnsInstructions.cname.value).toBe('custom.savspot.co');
+      expect(prisma.customDomain.findFirst).toHaveBeenCalledWith({
+        where: { OR: [{ domain: DOMAIN }, { tenantId: TENANT_ID }] },
+        select: { domain: true, tenantId: true },
+      });
       expect(prisma.customDomain.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           tenantId: TENANT_ID,
@@ -107,7 +110,10 @@ describe('CustomDomainsService', () => {
     });
 
     it('should throw ConflictException when domain already in use', async () => {
-      prisma.customDomain.findUnique.mockResolvedValueOnce(makeDomainRecord());
+      prisma.customDomain.findFirst.mockResolvedValue({
+        domain: DOMAIN,
+        tenantId: 'other-tenant',
+      });
 
       await expect(service.addDomain(TENANT_ID, DOMAIN)).rejects.toThrow(
         ConflictException,
@@ -115,9 +121,10 @@ describe('CustomDomainsService', () => {
     });
 
     it('should throw ConflictException when tenant already has a domain', async () => {
-      prisma.customDomain.findUnique
-        .mockResolvedValueOnce(null) // domain check passes
-        .mockResolvedValueOnce(makeDomainRecord()); // tenant already has domain
+      prisma.customDomain.findFirst.mockResolvedValue({
+        domain: 'other.example.com',
+        tenantId: TENANT_ID,
+      });
 
       await expect(service.addDomain(TENANT_ID, DOMAIN)).rejects.toThrow(
         ConflictException,

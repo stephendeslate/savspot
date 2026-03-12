@@ -13,8 +13,15 @@ export class DirectoryListingService {
       select: { id: true },
     });
 
-    for (const tenant of publishedTenants) {
-      await this.refreshListing(tenant.id);
+    // Process in batches of 20 to avoid overwhelming the database
+    const BATCH_SIZE = 20;
+    for (let i = 0; i < publishedTenants.length; i += BATCH_SIZE) {
+      const batch = publishedTenants.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(batch.map((t) => this.refreshListing(t.id)));
+      const failures = results.filter((r) => r.status === 'rejected');
+      if (failures.length > 0) {
+        this.logger.warn(`${failures.length} listings failed to refresh in batch`);
+      }
     }
 
     this.logger.log(`Refreshed directory listings for ${publishedTenants.length} tenants`);
