@@ -21,6 +21,15 @@ function makePrisma() {
   };
 }
 
+function makeRedis() {
+  return {
+    get: vi.fn().mockResolvedValue(null),
+    setex: vi.fn().mockResolvedValue('OK'),
+    del: vi.fn().mockResolvedValue(1),
+    getClient: vi.fn(),
+  };
+}
+
 function makeService(overrides: Record<string, unknown> = {}) {
   return {
     id: SERVICE_ID,
@@ -61,7 +70,7 @@ describe('ServicesService', () => {
 
   beforeEach(() => {
     prisma = makePrisma();
-    service = new ServicesService(prisma as never);
+    service = new ServicesService(prisma as never, makeRedis() as never);
   });
 
   // ---------- findAll ----------

@@ -47,6 +47,14 @@ function makePrisma() {
   };
 }
 
+function makeRedis() {
+  return {
+    get: vi.fn().mockResolvedValue(null),
+    setex: vi.fn().mockResolvedValue('OK'),
+    del: vi.fn().mockResolvedValue(1),
+  };
+}
+
 function makeMembership(overrides: Record<string, unknown> = {}) {
   return {
     id: 'membership-001',
@@ -91,10 +99,12 @@ function makeInvitation(overrides: Record<string, unknown> = {}) {
 describe('TeamService', () => {
   let service: TeamService;
   let prisma: ReturnType<typeof makePrisma>;
+  let redis: ReturnType<typeof makeRedis>;
 
   beforeEach(() => {
     prisma = makePrisma();
-    service = new TeamService(prisma as never);
+    redis = makeRedis();
+    service = new TeamService(prisma as never, redis as never);
   });
 
   // -----------------------------------------------------------------------

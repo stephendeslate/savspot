@@ -44,6 +44,15 @@ function makePrisma() {
   };
 }
 
+function makeRedis() {
+  return {
+    get: vi.fn().mockResolvedValue(null),
+    setex: vi.fn().mockResolvedValue('OK'),
+    del: vi.fn().mockResolvedValue(1),
+    getClient: vi.fn(),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Suite
 // ---------------------------------------------------------------------------
@@ -54,7 +63,7 @@ describe('AvailabilityService', () => {
 
   beforeEach(() => {
     prisma = makePrisma();
-    service = new AvailabilityService(prisma as never);
+    service = new AvailabilityService(prisma as never, makeRedis() as never);
   });
 
   // -----------------------------------------------------------------------

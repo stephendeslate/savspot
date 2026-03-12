@@ -24,6 +24,15 @@ function makePrisma() {
   };
 }
 
+function makeRedis() {
+  return {
+    get: vi.fn().mockResolvedValue(null),
+    setex: vi.fn().mockResolvedValue('OK'),
+    del: vi.fn().mockResolvedValue(1),
+    getClient: vi.fn(),
+  };
+}
+
 function makeFlow(overrides: Record<string, unknown> = {}) {
   return {
     id: FLOW_ID,
@@ -62,7 +71,7 @@ describe('BookingFlowService', () => {
 
   beforeEach(() => {
     prisma = makePrisma();
-    service = new BookingFlowService(prisma as never);
+    service = new BookingFlowService(prisma as never, makeRedis() as never);
   });
 
   // -----------------------------------------------------------------------
