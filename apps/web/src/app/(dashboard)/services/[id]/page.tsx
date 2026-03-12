@@ -10,7 +10,9 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  Package,
   Trash2,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -297,20 +299,38 @@ export default function EditServicePage() {
             </p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleDeactivate}
-          disabled={isDeleting}
-          className="text-destructive hover:bg-destructive/10"
-        >
-          {isDeleting ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Trash2 className="mr-2 h-4 w-4" />
-          )}
-          Deactivate
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push(`/services/${serviceId}/addons`)}
+          >
+            <Package className="mr-2 h-4 w-4" />
+            Manage Add-ons
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push(`/services/${serviceId}/providers`)}
+          >
+            <Users className="mr-2 h-4 w-4" />
+            Manage Providers
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDeactivate}
+            disabled={isDeleting}
+            className="text-destructive hover:bg-destructive/10"
+          >
+            {isDeleting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="mr-2 h-4 w-4" />
+            )}
+            Deactivate
+          </Button>
+        </div>
       </div>
 
       {error && (

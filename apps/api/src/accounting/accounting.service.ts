@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  NotImplementedException,
   Logger,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -255,19 +256,9 @@ export class AccountingService {
       throw new NotFoundException('Accounting connection not found');
     }
 
-    // Stub: actual provider API calls are deferred to Phase 3 integration
-    const stubAccounts = [
-      { id: '1000', name: 'Sales Revenue', type: 'Revenue', code: '4000' },
-      { id: '1001', name: 'Service Income', type: 'Revenue', code: '4100' },
-      { id: '1002', name: 'Accounts Receivable', type: 'Asset', code: '1200' },
-      { id: '1003', name: 'Bank Account', type: 'Asset', code: '1000' },
-      { id: '1004', name: 'Tax Payable', type: 'Liability', code: '2100' },
-    ];
-
-    return {
-      provider: connection.provider,
-      accounts: stubAccounts,
-    };
+    throw new NotImplementedException(
+      'Account refresh requires provider integration. Connect to QuickBooks or Xero to sync accounts.',
+    );
   }
 
   async getConnectionStatus(tenantId: string, connectionId: string) {
