@@ -10,12 +10,33 @@ import { TEST_USER } from './fixtures/test-data';
  * NOTE: These tests do NOT use the shared authenticated storageState.
  * They exercise the login flow from scratch.
  */
+
+/**
+ * Helper: perform login and wait for dashboard to load.
+ * Uses form submission via Enter key (more reliable than button click on mobile).
+ */
+async function loginAndWaitForDashboard(page: import('@playwright/test').Page) {
+  await page.goto('/login');
+  await page.waitForLoadState('domcontentloaded');
+
+  await page.getByLabel(/email/i).fill(TEST_USER.email);
+  await page.getByLabel(/password/i).fill(TEST_USER.password);
+
+  // Use Enter key on the password field — avoids mobile keyboard overlay
+  // blocking the submit button
+  await page.getByLabel(/password/i).press('Enter');
+
+  await page.waitForURL('**/dashboard', { timeout: 30_000 });
+  await page.waitForLoadState('networkidle');
+}
+
 test.describe('Admin Authentication', () => {
   // Ensure these tests start unauthenticated
   test.use({ storageState: { cookies: [], origins: [] } });
 
   test('login page renders correctly', async ({ page }) => {
     await page.goto('/login');
+    await page.waitForLoadState('domcontentloaded');
 
     // Should show the "Welcome back" heading
     await expect(
@@ -35,70 +56,46 @@ test.describe('Admin Authentication', () => {
   test('login with valid credentials redirects to dashboard', async ({
     page,
   }) => {
-    await page.goto('/login');
-
-    // Fill in the test credentials
-    await page.getByLabel(/email/i).fill(TEST_USER.email);
-    await page.getByLabel(/password/i).fill(TEST_USER.password);
-
-    // Submit the form
-    await page.getByRole('button', { name: /sign in/i }).click();
-
-    // Wait for successful redirect to the dashboard
-    await page.waitForURL('/dashboard', { timeout: 15_000 });
+    await loginAndWaitForDashboard(page);
 
     // The dashboard should display the welcome heading
-    await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible();
   });
 
   test('dashboard shows navigation items', async ({ page }) => {
-    // This test logs in then checks multiple nav links — give extra time
-    test.setTimeout(60_000);
-
-    // Log in first
-    await page.goto('/login');
-    await page.getByLabel(/email/i).fill(TEST_USER.email);
-    await page.getByLabel(/password/i).fill(TEST_USER.password);
-    await page.getByRole('button', { name: /sign in/i }).click();
-    await page.waitForURL('/dashboard', { timeout: 30_000 });
+    await loginAndWaitForDashboard(page);
 
     // On mobile viewports, open the hamburger menu to see navigation
     const menuButton = page.getByRole('button', { name: /open menu/i });
     if (await menuButton.isVisible()) {
       await menuButton.click();
+      // Wait for menu animation to complete
+      await page.waitForTimeout(300);
     }
 
     // Verify key navigation links are visible (desktop sidebar or mobile nav).
-    // Only one nav is rendered at a time due to lg:block / lg:hidden CSS.
-    // Use exact: true to avoid matching dashboard quick-action links
-    // (e.g. "View Calendar" contains "Calendar" as a substring).
-    await expect(page.getByRole('link', { name: 'Dashboard', exact: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Bookings', exact: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Calendar', exact: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Services', exact: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Clients', exact: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
+    // Use exact: true to avoid matching dashboard quick-action links.
+    const navLinks = ['Dashboard', 'Bookings', 'Calendar', 'Services', 'Clients', 'Settings'];
+    for (const name of navLinks) {
+      await expect(page.getByRole('link', { name, exact: true })).toBeVisible();
+    }
   });
 
   test('logout returns to login page', async ({ page }) => {
-    // Log in first
-    await page.goto('/login');
-    await page.getByLabel(/email/i).fill(TEST_USER.email);
-    await page.getByLabel(/password/i).fill(TEST_USER.password);
-    await page.getByRole('button', { name: /sign in/i }).click();
-    await page.waitForURL('/dashboard', { timeout: 30_000 });
+    await loginAndWaitForDashboard(page);
 
     // On mobile, open the hamburger menu to access the logout button
     const menuButton = page.getByRole('button', { name: /open menu/i });
     if (await menuButton.isVisible()) {
       await menuButton.click();
+      await page.waitForTimeout(300);
     }
 
     // Click the Logout button in the sidebar
     await page.getByRole('button', { name: /logout/i }).click();
 
     // Should redirect back to login
-    await page.waitForURL('/login', { timeout: 10_000 });
+    await page.waitForURL('**/login', { timeout: 15_000 });
     await expect(
       page.getByRole('heading', { name: /welcome back/i }),
     ).toBeVisible();

@@ -28,10 +28,11 @@ test.describe('Settings Navigation', () => {
     page,
   }) => {
     await page.goto('/settings');
+    await page.waitForLoadState('networkidle');
 
     // Page heading
     const heading = page.getByRole('heading', { level: 2, name: 'Settings' });
-    await expect(heading).toBeVisible({ timeout: 15_000 });
+    await expect(heading).toBeVisible();
 
     // Subtitle text
     await expect(
@@ -48,48 +49,52 @@ test.describe('Settings Navigation', () => {
     page,
   }) => {
     await page.goto('/settings');
+    await page.waitForLoadState('networkidle');
 
     // Wait for cards to render
     await expect(
       page.getByRole('heading', { name: 'Team' }),
-    ).toBeVisible({ timeout: 15_000 });
+    ).toBeVisible();
 
     // Click the Team card link
     await page.getByRole('heading', { name: 'Team' }).click();
 
     // Should navigate to /settings/team
-    await page.waitForURL('/settings/team', { timeout: 10_000 });
+    await page.waitForURL('**/settings/team');
+    await page.waitForLoadState('networkidle');
 
     // The team page should show a heading
     await expect(
       page.getByRole('heading', { level: 2, name: 'Team' }),
-    ).toBeVisible({ timeout: 10_000 });
+    ).toBeVisible();
   });
 
   test('clicking "Branding" card navigates to branding settings', async ({
     page,
   }) => {
     await page.goto('/settings');
+    await page.waitForLoadState('networkidle');
 
     // Wait for cards to render
     await expect(
       page.getByRole('heading', { name: 'Branding' }),
-    ).toBeVisible({ timeout: 15_000 });
+    ).toBeVisible();
 
     // Click the Branding card link
     await page.getByRole('heading', { name: 'Branding' }).click();
 
     // Should navigate to /settings/branding
-    await page.waitForURL('/settings/branding', { timeout: 10_000 });
+    await page.waitForURL('**/settings/branding');
   });
 
   test('settings cards have descriptive text', async ({ page }) => {
     await page.goto('/settings');
+    await page.waitForLoadState('networkidle');
 
     // Wait for the page to render
     await expect(
       page.getByRole('heading', { level: 2, name: 'Settings' }),
-    ).toBeVisible({ timeout: 15_000 });
+    ).toBeVisible();
 
     // Verify descriptions for a subset of settings cards
     await expect(

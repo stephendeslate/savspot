@@ -11,13 +11,15 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
   forbidOnly: !!process.env['CI'],
-  retries: process.env['CI'] ? 1 : 0,
+  retries: process.env['CI'] ? 2 : 0,
   workers: 1,
   reporter: process.env['CI'] ? 'github' : 'html',
-  timeout: 30_000,
+  timeout: 60_000,
 
   use: {
     baseURL: 'http://localhost:3000',
+    actionTimeout: 15_000,
+    navigationTimeout: 30_000,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },

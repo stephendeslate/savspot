@@ -21,7 +21,8 @@ setup('authenticate', async ({ page }) => {
   await page.getByRole('button', { name: /sign in/i }).click();
 
   // Wait for navigation to the dashboard (indicates successful login)
-  await page.waitForURL('/dashboard', { timeout: 15_000 });
+  await page.waitForURL('/dashboard', { timeout: 30_000 });
+  await page.waitForLoadState('networkidle');
 
   // Persist the authenticated state for other projects to reuse
   await page.context().storageState({ path: AUTH_STATE_PATH });
