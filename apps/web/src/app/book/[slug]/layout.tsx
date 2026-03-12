@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] || 'http://localhost:3001';
 
@@ -75,12 +76,12 @@ export default function BookingLayout({
         <div className="flex items-center justify-center gap-4">
           <p>
             Powered by{' '}
-            <a
+            <Link
               href="/"
               className="font-medium text-foreground hover:underline"
             >
               SavSpot
-            </a>
+            </Link>
           </p>
           <span className="text-border">|</span>
           <a href="/privacy" className="hover:text-foreground">

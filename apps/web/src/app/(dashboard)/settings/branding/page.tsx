@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -424,10 +425,12 @@ export default function BrandingSettingsPage() {
               <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted">
                 {logoUrl ? (
                   <>
-                    <img
+                    <Image
                       src={logoUrl}
                       alt="Business logo"
-                      className="h-full w-full object-cover"
+                      fill
+                      className="object-cover"
+                      unoptimized
                     />
                     <button
                       type="button"
@@ -490,10 +493,12 @@ export default function BrandingSettingsPage() {
               <div className="relative h-40 w-full overflow-hidden rounded-lg border bg-muted">
                 {coverPhotoUrl ? (
                   <>
-                    <img
+                    <Image
                       src={coverPhotoUrl}
                       alt="Cover photo"
-                      className="h-full w-full object-cover"
+                      fill
+                      className="object-cover"
+                      unoptimized
                     />
                     <button
                       type="button"

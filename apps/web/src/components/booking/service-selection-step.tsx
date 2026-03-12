@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Clock } from 'lucide-react';
 import {
   Card,
@@ -95,10 +96,12 @@ export function ServiceSelectionStep({
             >
               {service.imageUrl && (
                 <div className="relative h-32 w-full overflow-hidden rounded-t-lg">
-                  <img
+                  <Image
                     src={service.imageUrl}
                     alt={service.name}
-                    className="h-full w-full object-cover"
+                    fill
+                    className="object-cover"
+                    unoptimized
                   />
                 </div>
               )}
