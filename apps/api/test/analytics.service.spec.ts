@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AnalyticsQueryService } from '@/analytics/services/analytics-query.service';
 import { BookingFlowTrackerService } from '@/analytics/services/booking-flow-tracker.service';
@@ -470,7 +469,7 @@ describe('ExportService', () => {
     });
 
     it('should collect multiple metrics', async () => {
-      const result = await service.exportCsv(
+      await service.exportCsv(
         TENANT_ID,
         ['overview', 'revenue'],
         DATE_RANGE,

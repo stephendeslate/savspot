@@ -108,7 +108,7 @@ describe('BrowserPushService', () => {
     it('should enter no-op mode when VAPID keys are missing', () => {
       vi.clearAllMocks();
       const noKeyConfig = makeConfigService(false);
-      const noOpService = new BrowserPushService(
+      const _noOpService = new BrowserPushService(
         prisma as never,
         noKeyConfig as never,
         redis as never,
@@ -246,7 +246,7 @@ describe('BrowserPushService', () => {
       prisma.browserPushSubscription.findMany.mockResolvedValue([
         makeSubscription(),
       ]);
-      const err = new (webPush as any).WebPushError('Gone', 410);
+      const err = new (webPush as unknown as { WebPushError: new (msg: string, code: number) => Error }).WebPushError('Gone', 410);
       vi.mocked(webPush.sendNotification).mockRejectedValue(err);
       prisma.browserPushSubscription.delete.mockResolvedValue({});
 
