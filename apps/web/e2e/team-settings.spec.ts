@@ -11,10 +11,11 @@ import { test, expect } from '@playwright/test';
 test.describe('Team Settings', () => {
   test('team page loads with heading and invite button', async ({ page }) => {
     await page.goto('/settings/team');
+    await page.waitForLoadState('networkidle');
 
     // The page should show the "Team" heading
     const heading = page.getByRole('heading', { level: 2, name: 'Team' });
-    await expect(heading).toBeVisible({ timeout: 15_000 });
+    await expect(heading).toBeVisible();
 
     // Descriptive subtitle
     await expect(
@@ -30,11 +31,12 @@ test.describe('Team Settings', () => {
 
   test('team page shows "Team Members" card', async ({ page }) => {
     await page.goto('/settings/team');
+    await page.waitForLoadState('networkidle');
 
     // Wait for the page to load
     await expect(
       page.getByRole('heading', { level: 2, name: 'Team' }),
-    ).toBeVisible({ timeout: 15_000 });
+    ).toBeVisible();
 
     // The "Team Members" card title should be visible
     await expect(page.getByRole('heading', { name: 'Team Members', exact: true })).toBeVisible();
@@ -53,11 +55,12 @@ test.describe('Team Settings', () => {
     page,
   }) => {
     await page.goto('/settings/team');
+    await page.waitForLoadState('networkidle');
 
     // Wait for the page to load
     await expect(
       page.getByRole('heading', { level: 2, name: 'Team' }),
-    ).toBeVisible({ timeout: 15_000 });
+    ).toBeVisible();
 
     // Click the "Invite Member" button in the header
     await page.getByRole('button', { name: /invite member/i }).first().click();
@@ -70,11 +73,12 @@ test.describe('Team Settings', () => {
 
   test('back button navigates to settings index', async ({ page }) => {
     await page.goto('/settings/team');
+    await page.waitForLoadState('networkidle');
 
     // Wait for the page to load
     await expect(
       page.getByRole('heading', { level: 2, name: 'Team' }),
-    ).toBeVisible({ timeout: 15_000 });
+    ).toBeVisible();
 
     // There is a back/arrow button that navigates to /settings
     // The back button is a ghost variant button with an ArrowLeft icon
@@ -84,6 +88,6 @@ test.describe('Team Settings', () => {
     await expect(backButton).toBeVisible();
 
     await backButton.click();
-    await page.waitForURL('/settings', { timeout: 10_000 });
+    await page.waitForURL('**/settings');
   });
 });

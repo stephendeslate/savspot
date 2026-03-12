@@ -14,10 +14,11 @@ test.describe('Bookings Management', () => {
     page,
   }) => {
     await page.goto('/bookings');
+    await page.waitForLoadState('networkidle');
 
     // The page should display the "Bookings" heading
     const heading = page.getByRole('heading', { name: 'Bookings' });
-    await expect(heading).toBeVisible({ timeout: 15_000 });
+    await expect(heading).toBeVisible();
 
     // The descriptive subtitle should be present
     await expect(
@@ -31,11 +32,12 @@ test.describe('Bookings Management', () => {
 
   test('bookings page shows filter controls', async ({ page }) => {
     await page.goto('/bookings');
+    await page.waitForLoadState('networkidle');
 
     // Wait for the page to load
     await expect(
       page.getByText(/manage and track all your bookings/i),
-    ).toBeVisible({ timeout: 15_000 });
+    ).toBeVisible();
 
     // On mobile viewports, filters are collapsed behind a toggle button
     const filtersToggle = page.getByRole('button', { name: /filters/i });
@@ -57,11 +59,12 @@ test.describe('Bookings Management', () => {
 
   test('bookings table or empty state is displayed', async ({ page }) => {
     await page.goto('/bookings');
+    await page.waitForLoadState('networkidle');
 
     // Wait for loading to complete
     await expect(
       page.getByRole('heading', { name: 'Bookings' }),
-    ).toBeVisible({ timeout: 15_000 });
+    ).toBeVisible();
 
     // Either the "All Bookings" card title appears (with a table),
     // or the "No bookings yet" empty state appears
@@ -69,8 +72,6 @@ test.describe('Bookings Management', () => {
     const emptyState = page.getByText(/no bookings yet/i);
 
     // One of these should be visible
-    await expect(allBookingsHeader.or(emptyState)).toBeVisible({
-      timeout: 10_000,
-    });
+    await expect(allBookingsHeader.or(emptyState)).toBeVisible();
   });
 });

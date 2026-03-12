@@ -13,13 +13,14 @@ test.describe('Public Booking Flow', () => {
     page,
   }) => {
     await page.goto(`/book/${TEST_TENANT.slug}`);
+    await page.waitForLoadState('networkidle');
 
     // The page should render the tenant name as an h1
     const heading = page.getByRole('heading', {
       level: 1,
       name: TEST_TENANT.name,
     });
-    await expect(heading).toBeVisible({ timeout: 15_000 });
+    await expect(heading).toBeVisible();
   });
 
   test('service cards are displayed with "Book Now" buttons', async ({
@@ -27,11 +28,13 @@ test.describe('Public Booking Flow', () => {
   }) => {
     await page.goto(`/book/${TEST_TENANT.slug}`);
 
+    await page.waitForLoadState('networkidle');
+
     // Wait for the "Our Services" section heading to appear
     const servicesHeading = page.getByRole('heading', {
       name: /our services/i,
     });
-    await expect(servicesHeading).toBeVisible({ timeout: 15_000 });
+    await expect(servicesHeading).toBeVisible();
 
     // Verify at least one "Book Now" button exists (one per service card)
     const bookNowButtons = page.getByRole('button', { name: /book now/i });
@@ -46,9 +49,11 @@ test.describe('Public Booking Flow', () => {
   test('clicking "Book Now" starts the booking wizard', async ({ page }) => {
     await page.goto(`/book/${TEST_TENANT.slug}`);
 
+    await page.waitForLoadState('networkidle');
+
     // Wait for services to render
     const bookNowButtons = page.getByRole('button', { name: /book now/i });
-    await expect(bookNowButtons.first()).toBeVisible({ timeout: 15_000 });
+    await expect(bookNowButtons.first()).toBeVisible();
 
     // Click "Book Now" and wait for the API response
     const [response] = await Promise.all([
@@ -74,11 +79,12 @@ test.describe('Public Booking Flow', () => {
     page,
   }) => {
     await page.goto('/book/nonexistent-business-12345');
+    await page.waitForLoadState('networkidle');
 
     // The not-found state should show the appropriate heading
     const heading = page.getByRole('heading', {
       name: /business not found/i,
     });
-    await expect(heading).toBeVisible({ timeout: 15_000 });
+    await expect(heading).toBeVisible();
   });
 });

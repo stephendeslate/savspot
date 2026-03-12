@@ -13,13 +13,14 @@ import { TEST_TENANT } from './fixtures/test-data';
 test.describe('Mobile Responsive', () => {
   test('booking page renders correctly on mobile', async ({ page }) => {
     await page.goto(`/book/${TEST_TENANT.slug}`);
+    await page.waitForLoadState('networkidle');
 
     // The tenant name heading should be visible on mobile
     const heading = page.getByRole('heading', {
       level: 1,
       name: TEST_TENANT.name,
     });
-    await expect(heading).toBeVisible({ timeout: 15_000 });
+    await expect(heading).toBeVisible();
 
     // "Our Services" section should be visible
     await expect(
@@ -33,14 +34,16 @@ test.describe('Mobile Responsive', () => {
 
   test('dashboard shows hamburger menu on mobile', async ({ page }) => {
     await page.goto('/dashboard');
+    await page.waitForLoadState('networkidle');
 
     // On mobile viewports, the sidebar is hidden and a hamburger
     // menu button (aria-label "Open menu") is visible instead
     const menuButton = page.getByRole('button', { name: /open menu/i });
-    await expect(menuButton).toBeVisible({ timeout: 15_000 });
+    await expect(menuButton).toBeVisible();
 
     // Click the hamburger menu to open the mobile navigation
     await menuButton.click();
+    await page.waitForTimeout(300);
 
     // The mobile nav slide-over should become visible with navigation items.
     // Use exact: true to avoid matching dashboard quick-action links behind the overlay.
@@ -60,11 +63,12 @@ test.describe('Mobile Responsive', () => {
 
   test('calendar defaults to agenda view on mobile', async ({ page }) => {
     await page.goto('/calendar');
+    await page.waitForLoadState('networkidle');
 
     // The calendar heading should be visible
     await expect(
       page.getByRole('heading', { name: 'Calendar' }),
-    ).toBeVisible({ timeout: 15_000 });
+    ).toBeVisible();
 
     // On mobile, the calendar should default to agenda view.
     // react-big-calendar renders an "Agenda" button with .rbc-active class
