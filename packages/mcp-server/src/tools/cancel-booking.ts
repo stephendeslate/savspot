@@ -1,8 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { SavSpotApiClient } from '../api-client.js';
-
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { UUID_REGEX } from '../validation.js';
 
 export function registerCancelBooking(
   server: McpServer,
@@ -10,10 +9,9 @@ export function registerCancelBooking(
 ): void {
   server.tool(
     'cancel_booking',
-    'Cancel an existing booking. Returns cancellation details including any refund information.',
+    'Cancel an existing booking. Returns cancellation status.',
     {
       booking_id: z.string().describe('UUID of the booking to cancel'),
-      reason: z.string().optional().describe('Reason for cancellation (optional)'),
     },
     async (params) => {
       if (!UUID_REGEX.test(params.booking_id)) {
@@ -26,7 +24,7 @@ export function registerCancelBooking(
       }
 
       try {
-        const result = await apiClient.cancelBooking(params.booking_id, params.reason);
+        const result = await apiClient.cancelBooking(params.booking_id);
         return {
           content: [
             {

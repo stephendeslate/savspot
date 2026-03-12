@@ -1,9 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { SavSpotApiClient } from '../api-client.js';
+import { UUID_REGEX, DATE_REGEX } from '../validation.js';
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_DAYS_AHEAD = 90;
 
 export function registerCheckAvailability(
@@ -72,14 +71,14 @@ export function registerCheckAvailability(
       }
 
       try {
-        const slots = await apiClient.checkAvailability({
+        const availability = await apiClient.checkAvailability({
           serviceId: params.service_id,
           date: params.date,
           staffId: params.staff_id,
           guestCount: params.guest_count,
         });
 
-        if (slots.length === 0) {
+        if (availability.slots.length === 0) {
           return {
             content: [
               {
@@ -94,7 +93,7 @@ export function registerCheckAvailability(
           content: [
             {
               type: 'text' as const,
-              text: JSON.stringify(slots, null, 2),
+              text: JSON.stringify(availability, null, 2),
             },
           ],
         };
