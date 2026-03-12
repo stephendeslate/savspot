@@ -33,6 +33,35 @@ export const ROUTES = {
   SETTINGS_TAX_RATES: '/settings/tax-rates',
   SETTINGS_GALLERY: '/settings/gallery',
   SETTINGS_BOOKING_FLOW: '/settings/booking-flow',
+  SETTINGS_PARTNER_PROGRAM: '/settings/partner-program',
+
+  // Analytics & Management
+  ANALYTICS: '/analytics',
+  INVOICES: '/invoices',
+  REVIEWS: '/reviews',
+  QUOTES: '/quotes',
+  CONTRACTS: '/contracts',
+
+  // Additional Settings
+  SETTINGS_WORKFLOWS: '/settings/workflows',
+  SETTINGS_COMMUNICATIONS: '/settings/communications',
+  SETTINGS_VENUES: '/settings/venues',
+  SETTINGS_REFERRALS: '/settings/referrals',
+  SETTINGS_ACCOUNTING: '/settings/accounting',
+  SETTINGS_DOMAINS: '/settings/domains',
+  SETTINGS_BILLING: '/settings/billing',
+  SETTINGS_SERVICE_CATEGORIES: '/settings/service-categories',
+  SETTINGS_API_KEYS: '/settings/api-keys',
+  SETTINGS_NOTIFICATION_PREFERENCES: '/settings/notification-preferences',
+  SETTINGS_VOICE: '/settings/voice',
+
+  // Additional Features
+  IMPORTS: '/imports',
+  MESSAGES: '/messages',
+  INSIGHTS: '/insights',
+
+  // Directory (public)
+  DIRECTORY: '/directory',
 
   // Auth (public)
   ACCEPT_INVITATION: '/accept-invitation',

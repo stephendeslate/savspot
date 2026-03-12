@@ -3,13 +3,21 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  BarChart3,
   Calendar,
   CalendarCheck,
   CreditCard,
+  FileCheck,
+  FileText,
   LayoutDashboard,
+  Lightbulb,
+  MessageSquare,
+  ScrollText,
+  Upload,
   Users,
   Briefcase,
   Settings,
+  Star,
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -24,6 +32,14 @@ const navigation = [
   { name: 'Services', href: ROUTES.SERVICES, icon: Briefcase },
   { name: 'Payments', href: ROUTES.PAYMENTS, icon: CreditCard },
   { name: 'Clients', href: ROUTES.CLIENTS, icon: Users },
+  { name: 'Analytics', href: ROUTES.ANALYTICS, icon: BarChart3 },
+  { name: 'Invoices', href: ROUTES.INVOICES, icon: FileText },
+  { name: 'Reviews', href: ROUTES.REVIEWS, icon: Star },
+  { name: 'Quotes', href: ROUTES.QUOTES, icon: ScrollText },
+  { name: 'Contracts', href: ROUTES.CONTRACTS, icon: FileCheck },
+  { name: 'Messages', href: ROUTES.MESSAGES, icon: MessageSquare },
+  { name: 'Imports', href: ROUTES.IMPORTS, icon: Upload },
+  { name: 'Insights', href: ROUTES.INSIGHTS, icon: Lightbulb },
   { name: 'Settings', href: ROUTES.SETTINGS, icon: Settings },
 ];
 

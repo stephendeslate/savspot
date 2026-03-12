@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   NotFoundException,
   BadRequestException,
+  NotImplementedException,
 } from '@nestjs/common';
 import { AccountingService } from '@/accounting/accounting.service';
 
@@ -328,13 +329,12 @@ describe('AccountingService', () => {
   // ---------- refreshAccounts ----------
 
   describe('refreshAccounts', () => {
-    it('returns stub accounts for a valid connection', async () => {
+    it('throws NotImplementedException for a valid connection', async () => {
       prisma.accountingConnection.findFirst.mockResolvedValue(makeConnection());
 
-      const result = await service.refreshAccounts(TENANT_ID, CONNECTION_ID);
-
-      expect(result.provider).toBe('QUICKBOOKS');
-      expect(result.accounts).toHaveLength(5);
+      await expect(
+        service.refreshAccounts(TENANT_ID, CONNECTION_ID),
+      ).rejects.toThrow(NotImplementedException);
     });
 
     it('throws NotFoundException when connection not found', async () => {
