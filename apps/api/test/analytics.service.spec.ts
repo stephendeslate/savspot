@@ -225,10 +225,10 @@ describe('AnalyticsQueryService', () => {
       const result = await service.getBenchmarks(TENANT_ID);
 
       expect(result).toHaveLength(1);
-      expect(result[0].metricKey).toBe('avg_booking_value');
-      expect(result[0].p25).toBe(30);
-      expect(result[0].p50).toBe(50);
-      expect(result[0].p75).toBe(80);
+      expect(result[0]!.metricKey).toBe('avg_booking_value');
+      expect(result[0]!.p25).toBe(30);
+      expect(result[0]!.p50).toBe(50);
+      expect(result[0]!.p75).toBe(80);
     });
   });
 });
@@ -453,7 +453,7 @@ describe('ExportService', () => {
     });
 
     it('should handle array metric data', async () => {
-      analyticsQuery.getRevenueTrends.mockResolvedValue([
+      analyticsQuery['getRevenueTrends']!.mockResolvedValue([
         { period: '2026-01-01', revenue: 500, bookingCount: 5 },
       ]);
 
@@ -476,8 +476,8 @@ describe('ExportService', () => {
         {},
       );
 
-      expect(analyticsQuery.getOverview).toHaveBeenCalled();
-      expect(analyticsQuery.getRevenueTrends).toHaveBeenCalled();
+      expect(analyticsQuery['getOverview']).toHaveBeenCalled();
+      expect(analyticsQuery['getRevenueTrends']).toHaveBeenCalled();
     });
   });
 

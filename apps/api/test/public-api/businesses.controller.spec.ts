@@ -53,7 +53,7 @@ describe('BusinessesController', () => {
       const result = await controller.listBusinesses({} as never);
 
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].bookingPageUrl).toBe('/book/test-salon');
+      expect(result.data[0]!.bookingPageUrl).toBe('/book/test-salon');
       expect(result.pagination.has_more).toBe(false);
     });
 

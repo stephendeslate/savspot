@@ -55,7 +55,7 @@ describe('ServicesController (Public API)', () => {
       const result = await controller.listServicesForBusiness('biz-1', {} as never);
 
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].name).toBe('Haircut');
+      expect(result.data[0]!.name).toBe('Haircut');
     });
 
     it('throws NotFoundException when business not found', async () => {
@@ -94,7 +94,7 @@ describe('ServicesController (Public API)', () => {
       const result = await controller.getServiceDetail('svc-001');
 
       expect(result.data.addOns).toHaveLength(1);
-      expect(result.data.addOns[0].name).toBe('Deep Conditioning');
+      expect(result.data.addOns[0]!.name).toBe('Deep Conditioning');
     });
 
     it('throws NotFoundException when service not found', async () => {

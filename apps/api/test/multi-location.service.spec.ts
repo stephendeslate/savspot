@@ -241,8 +241,8 @@ describe('MultiLocationService', () => {
         totalRevenue: '2000.00',
         utilization: '65.00',
       });
-      expect(result[1].totalRevenue).toBe('0');
-      expect(result[1].utilization).toBe('0');
+      expect(result[1]!.totalRevenue).toBe('0');
+      expect(result[1]!.utilization).toBe('0');
     });
   });
 });
