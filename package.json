@@ -35,7 +35,10 @@
     "admin:feedback": "tsx scripts/admin/feedback.ts"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@parcel/watcher", "@sentry/cli", "@swc/core"]
+    "onlyBuiltDependencies": ["@parcel/watcher", "@sentry/cli", "@swc/core"],
+    "overrides": {
+      "@types/react": "^19.0.0"
+    }
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
