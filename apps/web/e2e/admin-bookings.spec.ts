@@ -16,8 +16,8 @@ test.describe('Bookings Management', () => {
     await page.goto('/bookings');
     await page.waitForLoadState('networkidle');
 
-    // The page should display the "Bookings" heading
-    const heading = page.getByRole('heading', { name: 'Bookings' });
+    // The page should display the "Bookings" heading (h2 is the page title)
+    const heading = page.getByRole('heading', { name: 'Bookings', level: 2 });
     await expect(heading).toBeVisible();
 
     // The descriptive subtitle should be present
@@ -63,7 +63,7 @@ test.describe('Bookings Management', () => {
 
     // Wait for loading to complete
     await expect(
-      page.getByRole('heading', { name: 'Bookings' }),
+      page.getByRole('heading', { name: 'Bookings', level: 2 }),
     ).toBeVisible();
 
     // Either the "All Bookings" card title appears (with a table),

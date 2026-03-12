@@ -65,9 +65,9 @@ test.describe('Mobile Responsive', () => {
     await page.goto('/calendar');
     await page.waitForLoadState('networkidle');
 
-    // The calendar heading should be visible
+    // The calendar heading should be visible (h2 is the page title)
     await expect(
-      page.getByRole('heading', { name: 'Calendar' }),
+      page.getByRole('heading', { name: 'Calendar', level: 2 }),
     ).toBeVisible();
 
     // On mobile, the calendar should default to agenda view.
