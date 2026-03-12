@@ -32,6 +32,14 @@ function makePrisma() {
   };
 }
 
+function makeRedis() {
+  return {
+    get: vi.fn().mockResolvedValue(null),
+    setex: vi.fn().mockResolvedValue('OK'),
+    del: vi.fn().mockResolvedValue(1),
+  };
+}
+
 function makeExecutionContext(user: unknown, params: Record<string, string> = {}) {
   const request = { user, params };
   return {
@@ -50,11 +58,13 @@ describe('TenantRolesGuard', () => {
   let guard: TenantRolesGuard;
   let reflector: ReturnType<typeof makeReflector>;
   let prisma: ReturnType<typeof makePrisma>;
+  let redis: ReturnType<typeof makeRedis>;
 
   beforeEach(() => {
     reflector = makeReflector();
     prisma = makePrisma();
-    guard = new TenantRolesGuard(reflector as never, prisma as never);
+    redis = makeRedis();
+    guard = new TenantRolesGuard(reflector as never, prisma as never, redis as never);
   });
 
   it('should allow access when no @TenantRoles decorator is present', async () => {

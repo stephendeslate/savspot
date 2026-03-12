@@ -103,57 +103,63 @@ export class ChurnRiskService {
       FROM client_stats
     `;
 
-    let upserted = 0;
-    for (const row of rows) {
-      const medianInterval = Number(row.median_interval_days);
-      const daysSinceLast = Number(row.days_since_last);
+    const operations = rows
+      .filter((row) => Number(row.median_interval_days) > 0)
+      .map((row) => {
+        const medianInterval = Number(row.median_interval_days);
+        const daysSinceLast = Number(row.days_since_last);
+        const rawScore = daysSinceLast / (1.5 * medianInterval);
+        const score = Math.min(rawScore, 1.0);
+        const riskLevel = computeRiskLevel(score);
 
-      if (medianInterval <= 0) continue;
+        const expectedNext = new Date(row.last_booking);
+        expectedNext.setDate(expectedNext.getDate() + Math.round(medianInterval));
 
-      const rawScore = daysSinceLast / (1.5 * medianInterval);
-      const score = Math.min(rawScore, 1.0);
-      const riskLevel = computeRiskLevel(score);
-
-      const expectedNext = new Date(row.last_booking);
-      expectedNext.setDate(expectedNext.getDate() + Math.round(medianInterval));
-
-      await this.prisma.churnRiskScore.upsert({
-        where: {
-          clientId_tenantId: {
+        return this.prisma.churnRiskScore.upsert({
+          where: {
+            clientId_tenantId: {
+              clientId: row.client_id,
+              tenantId: row.tenant_id,
+            },
+          },
+          update: {
+            riskLevel,
+            score: new Prisma.Decimal(score.toFixed(4)),
+            factors: {
+              daysSinceLast: Math.round(daysSinceLast),
+              medianIntervalDays: Math.round(medianInterval),
+              rawScore: Number(rawScore.toFixed(4)),
+            },
+            lastBooking: row.last_booking,
+            expectedNext,
+            computedAt: new Date(),
+          },
+          create: {
             clientId: row.client_id,
             tenantId: row.tenant_id,
+            riskLevel,
+            score: new Prisma.Decimal(score.toFixed(4)),
+            factors: {
+              daysSinceLast: Math.round(daysSinceLast),
+              medianIntervalDays: Math.round(medianInterval),
+              rawScore: Number(rawScore.toFixed(4)),
+            },
+            lastBooking: row.last_booking,
+            expectedNext,
+            computedAt: new Date(),
           },
-        },
-        update: {
-          riskLevel,
-          score: new Prisma.Decimal(score.toFixed(4)),
-          factors: {
-            daysSinceLast: Math.round(daysSinceLast),
-            medianIntervalDays: Math.round(medianInterval),
-            rawScore: Number(rawScore.toFixed(4)),
-          },
-          lastBooking: row.last_booking,
-          expectedNext,
-          computedAt: new Date(),
-        },
-        create: {
-          clientId: row.client_id,
-          tenantId: row.tenant_id,
-          riskLevel,
-          score: new Prisma.Decimal(score.toFixed(4)),
-          factors: {
-            daysSinceLast: Math.round(daysSinceLast),
-            medianIntervalDays: Math.round(medianInterval),
-            rawScore: Number(rawScore.toFixed(4)),
-          },
-          lastBooking: row.last_booking,
-          expectedNext,
-          computedAt: new Date(),
-        },
+        });
       });
-      upserted++;
+
+    // Batch in chunks of 100 to avoid transaction timeout
+    const CHUNK_SIZE = 100;
+    let totalUpserted = 0;
+    for (let i = 0; i < operations.length; i += CHUNK_SIZE) {
+      const chunk = operations.slice(i, i + CHUNK_SIZE);
+      const results = await this.prisma.$transaction(chunk);
+      totalUpserted += results.length;
     }
 
-    this.logger.log(`Upserted ${upserted} churn risk scores`);
+    this.logger.log(`Upserted ${totalUpserted} churn risk scores`);
   }
 }

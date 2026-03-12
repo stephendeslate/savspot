@@ -136,17 +136,22 @@ export class WeeklyDigestHandler {
     });
 
     let newClients = 0;
-    for (const { clientId } of newClientBookings) {
-      const priorBookingCount = await this.prisma.booking.count({
+    const clientIds = [...new Set(newClientBookings.map((b) => b.clientId))];
+
+    if (clientIds.length > 0) {
+      const existingClients = await this.prisma.booking.groupBy({
+        by: ['clientId'],
         where: {
           tenantId,
-          clientId,
+          clientId: { in: clientIds },
+          status: { in: ['CONFIRMED', 'COMPLETED'] },
           createdAt: { lt: weekStart },
         },
       });
-      if (priorBookingCount === 0) {
-        newClients++;
-      }
+      const existingClientIds = new Set(
+        existingClients.map((c) => c.clientId),
+      );
+      newClients = clientIds.filter((id) => !existingClientIds.has(id)).length;
     }
 
     // No-shows in the prior week

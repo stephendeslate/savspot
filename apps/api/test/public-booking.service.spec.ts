@@ -27,6 +27,14 @@ function makeConfig() {
   return { get: vi.fn() };
 }
 
+function makeRedis() {
+  return {
+    get: vi.fn().mockResolvedValue(null),
+    setex: vi.fn().mockResolvedValue('OK'),
+    del: vi.fn().mockResolvedValue(1),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Suite
 // ---------------------------------------------------------------------------
@@ -37,7 +45,7 @@ describe('PublicBookingService', () => {
 
   beforeEach(() => {
     prisma = makePrisma();
-    service = new PublicBookingService(prisma as never, makeConfig() as never);
+    service = new PublicBookingService(prisma as never, makeConfig() as never, makeRedis() as never);
   });
 
   // -----------------------------------------------------------------------

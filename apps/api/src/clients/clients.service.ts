@@ -217,63 +217,58 @@ export class ClientsService {
       throw new NotFoundException('Client not found');
     }
 
-    // Fetch recent bookings for this client at this tenant
-    const recentBookings = await this.prisma.booking.findMany({
-      where: { tenantId, clientId: profile.clientId },
-      include: {
-        service: {
-          select: { id: true, name: true, durationMinutes: true },
+    const [recentBookings, recentPayments, notes, stats] = await Promise.all([
+      this.prisma.booking.findMany({
+        where: { tenantId, clientId: profile.clientId },
+        include: {
+          service: {
+            select: { id: true, name: true, durationMinutes: true },
+          },
         },
-      },
-      orderBy: { startTime: 'desc' },
-      take: 10,
-    });
-
-    // Fetch recent payments for this client's bookings at this tenant
-    const recentPayments = await this.prisma.payment.findMany({
-      where: {
-        tenantId,
-        booking: { clientId: profile.clientId },
-      },
-      include: {
-        booking: {
-          select: { id: true, startTime: true },
+        orderBy: { startTime: 'desc' },
+        take: 10,
+      }),
+      this.prisma.payment.findMany({
+        where: {
+          tenantId,
+          booking: { clientId: profile.clientId },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    });
-
-    // Fetch notes for this client
-    const notes = await this.prisma.note.findMany({
-      where: {
-        tenantId,
-        entityType: 'CLIENT',
-        entityId: profile.clientId,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    // Aggregate stats
-    const stats = await this.prisma.$queryRaw<
-      Array<{
-        total_bookings: bigint;
-        total_revenue: Prisma.Decimal | null;
-        last_visit: Date | null;
-        first_visit: Date | null;
-        no_show_count: bigint;
-      }>
-    >`
-      SELECT
-        COUNT(b.id)::bigint AS total_bookings,
-        COALESCE(SUM(CASE WHEN b.status = 'COMPLETED' THEN b.total_amount ELSE 0 END), 0) AS total_revenue,
-        MAX(CASE WHEN b.status = 'COMPLETED' THEN b.start_time END) AS last_visit,
-        MIN(CASE WHEN b.status = 'COMPLETED' THEN b.start_time END) AS first_visit,
-        COUNT(CASE WHEN b.status = 'NO_SHOW' THEN 1 END)::bigint AS no_show_count
-      FROM bookings b
-      WHERE b.tenant_id = ${tenantId}
-        AND b.client_id = ${profile.clientId}
-    `;
+        include: {
+          booking: {
+            select: { id: true, startTime: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      this.prisma.note.findMany({
+        where: {
+          tenantId,
+          entityType: 'CLIENT',
+          entityId: profile.clientId,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.$queryRaw<
+        Array<{
+          total_bookings: bigint;
+          total_revenue: Prisma.Decimal | null;
+          last_visit: Date | null;
+          first_visit: Date | null;
+          no_show_count: bigint;
+        }>
+      >`
+        SELECT
+          COUNT(b.id)::bigint AS total_bookings,
+          COALESCE(SUM(CASE WHEN b.status = 'COMPLETED' THEN b.total_amount ELSE 0 END), 0) AS total_revenue,
+          MAX(CASE WHEN b.status = 'COMPLETED' THEN b.start_time END) AS last_visit,
+          MIN(CASE WHEN b.status = 'COMPLETED' THEN b.start_time END) AS first_visit,
+          COUNT(CASE WHEN b.status = 'NO_SHOW' THEN 1 END)::bigint AS no_show_count
+        FROM bookings b
+        WHERE b.tenant_id = ${tenantId}
+          AND b.client_id = ${profile.clientId}
+      `,
+    ]);
 
     const clientStats = stats[0]
       ? {

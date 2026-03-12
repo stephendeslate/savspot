@@ -39,6 +39,14 @@ function makeConfig() {
   };
 }
 
+function makeRedis() {
+  return {
+    get: vi.fn().mockResolvedValue(null),
+    setex: vi.fn().mockResolvedValue('OK'),
+    del: vi.fn().mockResolvedValue(1),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Suite
 // ---------------------------------------------------------------------------
@@ -52,7 +60,7 @@ describe('PublicBookingService – generateQrCode', () => {
     vi.clearAllMocks();
     prisma = makePrisma();
     config = makeConfig();
-    service = new PublicBookingService(prisma as never, config as never);
+    service = new PublicBookingService(prisma as never, config as never, makeRedis() as never);
   });
 
   it('should throw NotFoundException when tenant is not found', async () => {

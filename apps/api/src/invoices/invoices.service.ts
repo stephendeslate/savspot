@@ -185,7 +185,7 @@ export class InvoicesService {
               client: { select: { id: true, name: true, email: true } },
             },
           },
-          lineItems: true,
+          _count: { select: { lineItems: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip,

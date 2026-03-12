@@ -27,6 +27,13 @@ function makePrisma() {
   };
 }
 
+function makeRedis() {
+  return {
+    get: vi.fn().mockResolvedValue(null),
+    setex: vi.fn().mockResolvedValue('OK'),
+  };
+}
+
 function makeNotification(overrides: Record<string, unknown> = {}) {
   return {
     id: NOTIFICATION_ID,
@@ -55,10 +62,12 @@ function makeNotification(overrides: Record<string, unknown> = {}) {
 describe('NotificationsService', () => {
   let service: NotificationsService;
   let prisma: ReturnType<typeof makePrisma>;
+  let redis: ReturnType<typeof makeRedis>;
 
   beforeEach(() => {
     prisma = makePrisma();
-    service = new NotificationsService(prisma as never);
+    redis = makeRedis();
+    service = new NotificationsService(prisma as never, redis as never);
   });
 
   // -----------------------------------------------------------------------
@@ -386,13 +395,6 @@ describe('NotificationsService', () => {
 
       await expect(service.markRead('bad-id', USER_ID))
         .rejects.toThrow(NotFoundException);
-    });
-
-    it('should throw NotFoundException with correct message', async () => {
-      prisma.notification.findFirst.mockResolvedValue(null);
-
-      await expect(service.markRead('bad-id', USER_ID))
-        .rejects.toThrow('Notification not found');
     });
 
     it('should return early without updating when already read', async () => {

@@ -16,6 +16,7 @@ function makePrisma() {
       upsert: vi.fn(),
     },
     $queryRaw: vi.fn(),
+    $transaction: vi.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
   };
 }
 
