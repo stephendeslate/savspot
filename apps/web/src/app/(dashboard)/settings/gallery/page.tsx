@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -299,11 +300,13 @@ export default function GalleryPage() {
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {photos.map((photo) => (
             <Card key={photo.id} className="group relative overflow-hidden">
-              <div className="aspect-square">
-                <img
+              <div className="relative aspect-square">
+                <Image
                   src={photo.thumbnailUrl || photo.url}
                   alt={photo.altText || photo.caption || 'Gallery photo'}
-                  className="h-full w-full object-cover"
+                  fill
+                  className="object-cover"
+                  unoptimized
                 />
               </div>
               {photo.isFeatured && (

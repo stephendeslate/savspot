@@ -56,17 +56,19 @@ const CATEGORIES = [
   },
 ];
 
+// ---------- Defaults ----------
+
+const defaultPrefs: NotificationPreferences = {
+  BOOKING: { email: true, push: true },
+  PAYMENT: { email: true, push: true },
+  SYSTEM: { email: true, push: false },
+  CALENDAR: { email: false, push: true },
+};
+
 // ---------- Component ----------
 
 export default function NotificationPreferencesPage() {
   const router = useRouter();
-
-  const defaultPrefs: NotificationPreferences = {
-    BOOKING: { email: true, push: true },
-    PAYMENT: { email: true, push: true },
-    SYSTEM: { email: true, push: false },
-    CALENDAR: { email: false, push: true },
-  };
 
   const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPrefs);
   const [isSaving, setIsSaving] = useState(false);

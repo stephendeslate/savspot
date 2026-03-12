@@ -44,6 +44,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
     "@axe-core/react": "^4.11.1",
+    "@eslint/eslintrc": "^3.3.5",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.0.0",
     "@testing-library/jest-dom": "^6.9.1",

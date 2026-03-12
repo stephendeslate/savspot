@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import { useParams, useSearchParams } from 'next/navigation';
 import {
   MapPin,
@@ -125,10 +126,12 @@ function ServiceCard({
     <Card className="flex flex-col transition-shadow hover:shadow-md">
       {service.imageUrl && (
         <div className="relative h-40 w-full overflow-hidden rounded-t-lg">
-          <img
+          <Image
             src={service.imageUrl}
             alt={service.name}
-            className="h-full w-full object-cover"
+            fill
+            className="object-cover"
+            unoptimized
           />
         </div>
       )}
@@ -256,10 +259,12 @@ function HeroSection({
       {/* Cover photo */}
       {tenant.coverPhotoUrl ? (
         <div className="relative mb-6 h-48 w-full overflow-hidden rounded-xl sm:h-64">
-          <img
+          <Image
             src={tenant.coverPhotoUrl}
             alt={`${tenant.name} cover`}
-            className="h-full w-full object-cover"
+            fill
+            className="object-cover"
+            unoptimized
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
         </div>
@@ -279,10 +284,12 @@ function HeroSection({
         {/* Logo */}
         {tenant.logoUrl ? (
           <div className="-mt-10 ml-4 h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border-4 border-background bg-background shadow-md sm:-mt-12 sm:h-24 sm:w-24">
-            <img
+            <Image
               src={tenant.logoUrl}
               alt={`${tenant.name} logo`}
-              className="h-full w-full object-cover"
+              fill
+              className="object-cover"
+              unoptimized
             />
           </div>
         ) : (
@@ -479,11 +486,13 @@ export default function BookingPage() {
         {/* Business header (compact) */}
         <div className="mb-6 flex items-center gap-3">
           {tenant.logoUrl ? (
-            <div className="h-10 w-10 overflow-hidden rounded-lg">
-              <img
+            <div className="relative h-10 w-10 overflow-hidden rounded-lg">
+              <Image
                 src={tenant.logoUrl}
                 alt={tenant.name}
-                className="h-full w-full object-cover"
+                fill
+                className="object-cover"
+                unoptimized
               />
             </div>
           ) : (

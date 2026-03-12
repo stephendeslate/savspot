@@ -151,6 +151,54 @@ export function PaymentStep({
   const deposit = sessionData.depositAmount;
   const chargeAmount = deposit && deposit < total ? deposit : total;
 
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [loading, setLoading] = useState(!isPreview);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isPreview) return;
+
+    let cancelled = false;
+
+    async function createPaymentIntent() {
+      try {
+        const res = await fetch(
+          `${API_URL}/api/booking-sessions/${sessionId}/pay`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || 'Failed to create payment');
+        }
+
+        const json = (await res.json()) as {
+          data: { clientSecret: string };
+        };
+
+        if (!cancelled) {
+          setClientSecret(json.data.clientSecret);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : 'Payment initialization failed',
+          );
+          setLoading(false);
+        }
+      }
+    }
+
+    createPaymentIntent();
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, isPreview]);
+
   // Preview mode: show mock payment UI
   if (isPreview) {
     return (
@@ -204,52 +252,6 @@ export function PaymentStep({
       </div>
     );
   }
-
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function createPaymentIntent() {
-      try {
-        const res = await fetch(
-          `${API_URL}/api/booking-sessions/${sessionId}/pay`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-          },
-        );
-
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || 'Failed to create payment');
-        }
-
-        const json = (await res.json()) as {
-          data: { clientSecret: string };
-        };
-
-        if (!cancelled) {
-          setClientSecret(json.data.clientSecret);
-          setLoading(false);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : 'Payment initialization failed',
-          );
-          setLoading(false);
-        }
-      }
-    }
-
-    createPaymentIntent();
-    return () => {
-      cancelled = true;
-    };
-  }, [sessionId]);
 
   // No Stripe key configured
   if (!stripePromise) {

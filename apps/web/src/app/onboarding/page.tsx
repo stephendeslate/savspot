@@ -96,8 +96,6 @@ export default function OnboardingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const saved = loadSavedProgress();
-
   const {
     register,
     handleSubmit,
@@ -120,6 +118,7 @@ export default function OnboardingPage() {
 
   // Restore saved progress on mount
   useEffect(() => {
+    const saved = loadSavedProgress();
     if (saved) {
       setCurrentStep(saved.step);
       if (saved.selectedType) setSelectedType(saved.selectedType);
@@ -136,7 +135,7 @@ export default function OnboardingPage() {
         });
       }
     }
-  }, []);
+  }, [reset]);
 
   // Persist progress on step/type changes
   const saveProgress = useCallback(() => {

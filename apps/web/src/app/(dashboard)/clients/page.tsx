@@ -101,7 +101,7 @@ export default function ClientsPage() {
     enabled: !!tenantId,
   });
 
-  const clients = clientsRes?.data ?? [];
+  const clients = useMemo(() => clientsRes?.data ?? [], [clientsRes?.data]);
   const total = clientsRes?.meta?.total ?? 0;
   const error = queryError
     ? (queryError instanceof Error ? queryError.message : 'Failed to load clients')
