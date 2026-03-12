@@ -36,6 +36,9 @@
     "react-hook-form": "^7.71.2",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.0.0",
+    "@sentry/nextjs": "^10.42.0",
+    "next-intl": "^4.8.3",
+    "posthog-js": "^1.200.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {

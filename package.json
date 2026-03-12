@@ -34,6 +34,9 @@
     "admin:import-appointments": "tsx scripts/admin/import-appointments.ts",
     "admin:feedback": "tsx scripts/admin/feedback.ts"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["@parcel/watcher", "@sentry/cli", "@swc/core"]
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.0.2",

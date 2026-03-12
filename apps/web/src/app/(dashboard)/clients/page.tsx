@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
 import {
   Users,
   Search,
@@ -20,6 +21,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
+import { useDebounce } from '@/hooks/use-debounce';
 import { formatAmount } from '@/lib/format-utils';
 
 // ---------- Types ----------
@@ -64,95 +66,63 @@ export default function ClientsPage() {
   const router = useRouter();
   const { tenantId } = useTenant();
 
-  // Data state
-  const [clients, setClients] = useState<Client[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Filter state
+  // Filter state (UI state)
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('lastVisit');
   const [tagFilter, setTagFilter] = useState('');
+  const [page, setPage] = useState(1);
 
-  // All unique tags for the filter dropdown
-  const [allTags, setAllTags] = useState<string[]>([]);
+  const debouncedSearch = useDebounce(search, 300);
 
-  const fetchClients = useCallback(
-    async (pageNum: number) => {
-      if (!tenantId) return;
-
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const params = new URLSearchParams();
-        params.set('page', String(pageNum));
-        params.set('limit', String(PAGE_LIMIT));
-        if (search) params.set('search', search);
-        if (sortBy) params.set('sortBy', sortBy);
-        if (tagFilter) params.set('tag', tagFilter);
-
-        const res = await apiClient.getRaw<ClientsResponse>(
-          `/api/tenants/${tenantId}/clients?${params.toString()}`,
-        );
-        setClients(res.data);
-        setTotal(res.meta.total);
-        setPage(res.meta.page);
-
-        // Collect unique tags
-        const tags = new Set<string>();
-        res.data.forEach((client) => {
-          client.tags?.forEach((tag) => tags.add(tag));
-        });
-        setAllTags((prev) => {
-          const merged = new Set([...prev, ...tags]);
-          return Array.from(merged).sort();
-        });
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to load clients',
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [tenantId, search, sortBy, tagFilter],
-  );
-
+  // Reset page when filters change
   useEffect(() => {
-    if (!tenantId) {
-      setIsLoading(false);
-      return;
-    }
-    void fetchClients(1);
-  }, [tenantId, fetchClients]);
+    setPage(1);
+  }, [debouncedSearch, sortBy, tagFilter]);
 
-  const handleSearch = () => {
-    void fetchClients(1);
-  };
+  const queryParams = useMemo(() => {
+    const params: Record<string, string> = {
+      page: String(page),
+      limit: String(PAGE_LIMIT),
+    };
+    if (debouncedSearch) params['search'] = debouncedSearch;
+    if (sortBy) params['sortBy'] = sortBy;
+    if (tagFilter) params['tag'] = tagFilter;
+    return params;
+  }, [page, debouncedSearch, sortBy, tagFilter]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      void fetchClients(1);
-    }
-  };
+  const { data: clientsRes, isLoading, error: queryError } = useQuery({
+    queryKey: ['clients', tenantId, queryParams],
+    queryFn: () => {
+      const searchParams = new URLSearchParams(queryParams).toString();
+      return apiClient.getRaw<ClientsResponse>(
+        `/api/tenants/${tenantId}/clients?${searchParams}`,
+      );
+    },
+    enabled: !!tenantId,
+  });
+
+  const clients = clientsRes?.data ?? [];
+  const total = clientsRes?.meta?.total ?? 0;
+  const error = queryError
+    ? (queryError instanceof Error ? queryError.message : 'Failed to load clients')
+    : null;
+  const totalPages = Math.ceil(total / PAGE_LIMIT);
+
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    clients.forEach((client) => {
+      client.tags?.forEach((tag: string) => tags.add(tag));
+    });
+    return Array.from(tags).sort();
+  }, [clients]);
 
   const handlePreviousPage = () => {
-    if (page > 1) {
-      void fetchClients(page - 1);
-    }
+    setPage((p) => p - 1);
   };
 
   const handleNextPage = () => {
-    const totalPages = Math.ceil(total / PAGE_LIMIT);
-    if (page < totalPages) {
-      void fetchClients(page + 1);
-    }
+    setPage((p) => p + 1);
   };
-
-  const totalPages = Math.ceil(total / PAGE_LIMIT);
 
   // ---------- Loading ----------
 
@@ -222,7 +192,6 @@ export default function ClientsPage() {
               placeholder="Search by name, email, or phone..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={handleKeyDown}
               className="pl-10"
             />
           </div>
@@ -274,10 +243,6 @@ export default function ClientsPage() {
             </Select>
           </div>
         </div>
-
-        <Button onClick={handleSearch} size="sm" className="shrink-0">
-          Search
-        </Button>
       </div>
 
       {/* Client List */}
@@ -409,7 +374,7 @@ export default function ClientsPage() {
                           variant={pageNum === page ? 'default' : 'outline'}
                           size="sm"
                           className="h-8 w-8 p-0"
-                          onClick={() => fetchClients(pageNum)}
+                          onClick={() => setPage(pageNum)}
                         >
                           {pageNum}
                         </Button>

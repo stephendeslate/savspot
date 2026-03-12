@@ -112,6 +112,12 @@ export const envSchema = z.object({
     .pipe(z.number().min(0).max(100))
     .default('1'),
 
+  // ---- SMS Provider ----
+  SMS_PROVIDER: z
+    .enum(['twilio', 'plivo'])
+    .optional()
+    .default('twilio'),
+
   // ---- Twilio (SMS) ----
   TWILIO_ACCOUNT_SID: z
     .string()
@@ -122,6 +128,19 @@ export const envSchema = z.object({
     .optional(),
 
   TWILIO_PHONE_NUMBER: z
+    .string()
+    .optional(),
+
+  // ---- Plivo (SMS) ----
+  PLIVO_AUTH_ID: z
+    .string()
+    .optional(),
+
+  PLIVO_AUTH_TOKEN: z
+    .string()
+    .optional(),
+
+  PLIVO_FROM_NUMBER: z
     .string()
     .optional(),
 
@@ -192,6 +211,10 @@ export const envSchema = z.object({
 
   // ---- MFA ----
   MFA_ENCRYPTION_KEY: z.string().optional(),
+
+  // ---- PostHog (Product Analytics) ----
+  POSTHOG_API_KEY: z.string().optional(),
+  POSTHOG_HOST: z.string().url().optional().default('https://us.i.posthog.com'),
 
   // ---- AI Triage ----
   AI_CONFIDENCE_THRESHOLD: z.coerce.number().min(0).max(1).default(0.85),

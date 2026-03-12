@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Briefcase, Plus, Pencil, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,9 +14,8 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { apiClient } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
-import { useTenant } from '@/hooks/use-tenant';
+import { useServices, useDeactivateService } from '@/hooks/use-api';
 
 interface Service {
   id: string;
@@ -34,52 +32,18 @@ interface Service {
 
 export default function ServicesPage() {
   const router = useRouter();
-  const { tenantId } = useTenant();
-  const [services, setServices] = useState<Service[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!tenantId) {
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchServices = async () => {
-      try {
-        const data = await apiClient.get<Service[]>(
-          `/api/tenants/${tenantId}/services`,
-        );
-        setServices(data);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to load services',
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void fetchServices();
-  }, [tenantId]);
-
-  const handleDeactivate = async (serviceId: string) => {
-    if (!tenantId) return;
-    try {
-      await apiClient.patch(`/api/tenants/${tenantId}/services/${serviceId}`, {
-        isActive: false,
-      });
-      setServices((prev) =>
-        prev.map((s) =>
-          s.id === serviceId ? { ...s, isActive: false } : s,
-        ),
-      );
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to deactivate service',
-      );
-    }
+  const { data: services = [], isLoading, error: queryError } = useServices() as {
+    data: Service[] | undefined;
+    isLoading: boolean;
+    error: Error | null;
   };
+  const deactivateMutation = useDeactivateService();
+
+  const handleDeactivate = (serviceId: string) => {
+    deactivateMutation.mutate(serviceId);
+  };
+
+  const error = queryError?.message ?? deactivateMutation.error?.message ?? null;
 
   const formatPrice = (amount: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {

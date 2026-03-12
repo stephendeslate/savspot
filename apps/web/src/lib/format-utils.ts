@@ -100,8 +100,12 @@ export function getInvoiceStatusColor(status: string): string {
 /**
  * Formats a monetary amount with the given currency code.
  */
-export function formatAmount(amount: string, currency: string): string {
-  return new Intl.NumberFormat('en-US', {
+export function formatAmount(
+  amount: string,
+  currency: string,
+  locale: string = 'en-US',
+): string {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
   }).format(Number(amount));

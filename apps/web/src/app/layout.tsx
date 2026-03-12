@@ -2,10 +2,14 @@ import type { Metadata } from 'next';
 import dynamic from 'next/dynamic';
 import { GeistSans } from 'geist/font/sans';
 import { Inter } from 'next/font/google';
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages } from 'next-intl/server';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from 'sonner';
 import { QueryProvider } from '@/providers/query-provider';
 import { AuthProvider } from '@/providers/auth-provider';
+import { PostHogProvider } from '@/providers/posthog-provider';
+import { PostHogPageView } from '@/components/analytics/posthog-pageview';
 import './globals.css';
 
 // Development-only: loads @axe-core/react to report a11y violations in browser console
@@ -27,11 +31,13 @@ export const metadata: Metadata = {
   description: 'Multi-tenant booking platform for service businesses',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const messages = await getMessages();
+
   return (
     <html
       lang="en"
@@ -40,9 +46,14 @@ export default function RootLayout({
     >
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <QueryProvider>
-            <AuthProvider>{children}</AuthProvider>
-          </QueryProvider>
+          <PostHogProvider>
+            <PostHogPageView />
+            <NextIntlClientProvider messages={messages}>
+              <QueryProvider>
+                <AuthProvider>{children}</AuthProvider>
+              </QueryProvider>
+            </NextIntlClientProvider>
+          </PostHogProvider>
           <Toaster position="top-right" richColors closeButton />
           <AxeCoreDev />
         </ThemeProvider>

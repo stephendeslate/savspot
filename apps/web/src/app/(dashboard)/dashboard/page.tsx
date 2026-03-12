@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import {
   AlertCircle,
   Briefcase,
@@ -27,129 +28,81 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { FadeIn } from '@/components/ui/motion';
 import { useAuth } from '@/hooks/use-auth';
 import { useTenant } from '@/hooks/use-tenant';
+import {
+  useServices,
+  useAvailabilityRules,
+  useStripeStatus,
+  useCalendarConnections,
+  usePaymentStats,
+} from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
 
-interface DashboardStats {
-  totalServices: number;
-  activeServices: number;
-  availabilityRules: number;
-  upcomingBookings: number;
-  todayBookings: number;
-  newClientsThisWeek: number;
-  revenueThisMonth: number;
-  revenueCurrency: string;
-  pendingActions: number;
-  hasStripe: boolean;
-  hasCalendar: boolean;
-}
-
-interface Service {
+interface DashboardBooking {
   id: string;
-  isActive: boolean;
-}
-
-interface AvailabilityRule {
-  id: string;
+  status: string;
+  startTime: string;
+  clientId: string;
 }
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { tenantId } = useTenant();
-  const [stats, setStats] = useState<DashboardStats>({
-    totalServices: 0,
-    activeServices: 0,
-    availabilityRules: 0,
-    upcomingBookings: 0,
-    todayBookings: 0,
-    newClientsThisWeek: 0,
-    revenueThisMonth: 0,
-    revenueCurrency: 'USD',
-    pendingActions: 0,
-    hasStripe: false,
-    hasCalendar: false,
+
+  const { data: services = [], isLoading: servicesLoading } = useServices();
+  const { data: availabilityRules = [], isLoading: rulesLoading } = useAvailabilityRules();
+  const { data: stripeStatus } = useStripeStatus();
+  const { data: calendarConns = [] } = useCalendarConnections();
+  const { data: paymentStats } = usePaymentStats();
+
+  const { data: bookings = [] } = useQuery({
+    queryKey: ['dashboard-bookings', tenantId],
+    queryFn: () =>
+      apiClient.get<DashboardBooking[]>(
+        `/api/tenants/${tenantId}/bookings`,
+      ),
+    enabled: !!tenantId,
   });
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (!tenantId) {
-      setIsLoading(false);
-      return;
-    }
+  const isLoading = servicesLoading || rulesLoading;
 
-    const fetchStats = async () => {
-      try {
-        // Fetch services, availability rules, and connection status in parallel
-        const [services, availabilityRules, stripeStatus, calendarConns, bookings, paymentStats] = await Promise.all([
-          apiClient
-            .get<Service[]>(`/api/tenants/${tenantId}/services`)
-            .catch(() => [] as Service[]),
-          apiClient
-            .get<AvailabilityRule[]>(
-              `/api/tenants/${tenantId}/availability-rules`,
-            )
-            .catch(() => [] as AvailabilityRule[]),
-          apiClient
-            .get<{ connected: boolean }>(`/api/tenants/${tenantId}/payments/connect/status`)
-            .catch(() => ({ connected: false })),
-          apiClient
-            .get<{ id: string }[]>(`/api/tenants/${tenantId}/calendar/connections`)
-            .catch(() => [] as { id: string }[]),
-          apiClient
-            .get<{ id: string; status: string; startTime: string; clientId: string }[]>(
-              `/api/tenants/${tenantId}/bookings`,
-            )
-            .catch(() => [] as { id: string; status: string; startTime: string; clientId: string }[]),
-          apiClient
-            .get<{ totalRevenue: number; currency: string }>(`/api/tenants/${tenantId}/payments/stats`)
-            .catch(() => ({ totalRevenue: 0, currency: 'USD' })),
-        ]);
+  const stats = useMemo(() => {
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-        const now = new Date();
-        const todayStr = now.toISOString().slice(0, 10);
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const todayBookings = bookings.filter(
+      (b) => b.startTime?.slice(0, 10) === todayStr && b.status !== 'CANCELLED',
+    ).length;
 
-        const todayBookings = bookings.filter(
-          (b) => b.startTime?.slice(0, 10) === todayStr && b.status !== 'CANCELLED',
-        ).length;
+    const upcomingBookings = bookings.filter(
+      (b) => new Date(b.startTime) > now && (b.status === 'CONFIRMED' || b.status === 'PENDING'),
+    ).length;
 
-        const upcomingBookings = bookings.filter(
-          (b) => new Date(b.startTime) > now && (b.status === 'CONFIRMED' || b.status === 'PENDING'),
-        ).length;
+    const pendingActions = bookings.filter((b) => b.status === 'PENDING').length;
 
-        const pendingActions = bookings.filter((b) => b.status === 'PENDING').length;
+    const recentClientIds = new Set(
+      bookings
+        .filter((b) => new Date(b.startTime) >= weekAgo)
+        .map((b) => b.clientId),
+    );
+    const newClientsThisWeek = recentClientIds.size;
 
-        // Approximate new clients this week (unique clientIds on recent bookings)
-        const recentClientIds = new Set(
-          bookings
-            .filter((b) => new Date(b.startTime) >= weekAgo)
-            .map((b) => b.clientId),
-        );
-        const newClientsThisWeek = recentClientIds.size;
-
-        setStats({
-          totalServices: services.length,
-          activeServices: services.filter((s) => s.isActive).length,
-          availabilityRules: availabilityRules.length,
-          upcomingBookings,
-          todayBookings,
-          newClientsThisWeek,
-          revenueThisMonth: paymentStats.totalRevenue ?? 0,
-          revenueCurrency: paymentStats.currency ?? 'USD',
-          pendingActions,
-          hasStripe: stripeStatus.connected,
-          hasCalendar: calendarConns.length > 0,
-        });
-      } catch {
-        // Fallback to zero stats
-      } finally {
-        setIsLoading(false);
-      }
+    return {
+      totalServices: services.length,
+      activeServices: services.filter((s: { id: string; isActive: boolean }) => s.isActive).length,
+      availabilityRules: availabilityRules.length,
+      upcomingBookings,
+      todayBookings,
+      newClientsThisWeek,
+      revenueThisMonth: paymentStats?.totalRevenue ?? 0,
+      revenueCurrency: paymentStats?.currency ?? 'USD',
+      pendingActions,
+      hasStripe: stripeStatus?.connected ?? false,
+      hasCalendar: calendarConns.length > 0,
     };
-
-    void fetchStats();
-  }, [tenantId]);
+  }, [services, availabilityRules, stripeStatus, calendarConns, bookings, paymentStats]);
 
   // No tenant: show onboarding CTA
   if (!tenantId && !isLoading) {

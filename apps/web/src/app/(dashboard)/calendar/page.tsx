@@ -1,19 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Calendar as BigCalendar,
-  dateFnsLocalizer,
-  type View,
-  type Event,
-  type SlotInfo,
-} from 'react-big-calendar';
-import withDragAndDrop, {
-  type EventInteractionArgs,
-} from 'react-big-calendar/lib/addons/dragAndDrop';
-import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { format, parse, startOfWeek, getDay, isSameDay } from 'date-fns';
+import dynamic from 'next/dynamic';
+import type { View, Event, SlotInfo } from 'react-big-calendar';
+import type { EventInteractionArgs } from 'react-big-calendar/lib/addons/dragAndDrop';
+import { format, isSameDay } from 'date-fns';
 import {
   startOfMonth,
   endOfMonth,
@@ -21,8 +12,9 @@ import {
   endOfDay,
   addDays,
   subDays,
+  startOfWeek,
 } from 'date-fns';
-import { enUS } from 'date-fns/locale/en-US';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,17 +33,15 @@ import { WalkInDialog } from '@/components/bookings/walk-in-dialog';
 import { BookingPopover } from '@/components/calendar/booking-popover';
 import { getStatusStyle, getClientDisplayName } from './calendar-helpers';
 
-// ---------- Localizer ----------
+// ---------- Dynamic import for react-big-calendar ----------
 
-const locales = { 'en-US': enUS };
-
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  locales,
-});
+const DnDCalendar = dynamic(
+  () => import('@/components/calendar/dynamic-calendar'),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-[600px] w-full" />,
+  },
+);
 
 // ---------- Types ----------
 
@@ -99,10 +89,6 @@ interface CalendarEvent extends Event {
   status?: string;
   isBlocked?: boolean;
 }
-
-// ---------- DnD Calendar ----------
-
-const DnDCalendar = withDragAndDrop<CalendarEvent>(BigCalendar as never);
 
 // Statuses that can be dragged to reschedule
 const DRAGGABLE_STATUSES = new Set(['CONFIRMED', 'PENDING']);
@@ -231,14 +217,12 @@ function AgendaListView({
 
 export default function CalendarPage() {
   const { tenantId } = useTenant();
+  const queryClient = useQueryClient();
   const isMobile = useIsMobile();
 
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>(
     isMobile ? 'list' : 'calendar',
   );
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState<View>(isMobile ? 'agenda' : 'week');
 
@@ -304,51 +288,33 @@ export default function CalendarPage() {
     return { start, end };
   }, [currentDate, currentView, viewMode]);
 
-  const fetchEvents = useCallback(
-    async (startDate: Date, endDate: Date) => {
-      if (!tenantId) return;
-
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const params = new URLSearchParams();
-        params.set('startDate', startDate.toISOString());
-        params.set('endDate', endDate.toISOString());
-        params.set('limit', '500');
-
-        const res = await apiClient.getRaw<BookingsResponse>(
-          `/api/tenants/${tenantId}/bookings?${params.toString()}`,
-        );
-
-        const bookingEvents: CalendarEvent[] = res.data.map((booking) => ({
-          id: booking.id,
-          title: `${booking.service.name} - ${getClientDisplayName(booking)}`,
-          start: new Date(booking.startTime),
-          end: new Date(booking.endTime),
-          resource: booking,
-          status: booking.status,
-        }));
-
-        setEvents(bookingEvents);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to load calendar events',
-        );
-      } finally {
-        setIsLoading(false);
-      }
+  const { data: calendarData, isLoading, error: queryError } = useQuery({
+    queryKey: ['calendar-events', tenantId, dateRange.start.toISOString(), dateRange.end.toISOString()],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.set('startDate', dateRange.start.toISOString());
+      params.set('endDate', dateRange.end.toISOString());
+      params.set('limit', '500');
+      const res = await apiClient.getRaw<BookingsResponse>(
+        `/api/tenants/${tenantId}/bookings?${params.toString()}`,
+      );
+      return res.data.map((booking) => ({
+        id: booking.id,
+        title: `${booking.service.name} - ${getClientDisplayName(booking)}`,
+        start: new Date(booking.startTime),
+        end: new Date(booking.endTime),
+        resource: booking,
+        status: booking.status,
+      }));
     },
-    [tenantId],
-  );
+    enabled: !!tenantId,
+    staleTime: 60_000,
+  });
 
-  useEffect(() => {
-    if (!tenantId) {
-      setIsLoading(false);
-      return;
-    }
-    void fetchEvents(dateRange.start, dateRange.end);
-  }, [tenantId, dateRange.start, dateRange.end, fetchEvents]);
+  const events: CalendarEvent[] = calendarData ?? [];
+  const error = queryError
+    ? (queryError instanceof Error ? queryError.message : 'Failed to load calendar events')
+    : null;
 
   const handleNavigate = useCallback((date: Date) => {
     setCurrentDate(date);
@@ -370,8 +336,8 @@ export default function CalendarPage() {
   );
 
   const handlePopoverStatusChange = useCallback(() => {
-    void fetchEvents(dateRange.start, dateRange.end);
-  }, [fetchEvents, dateRange.start, dateRange.end]);
+    void queryClient.invalidateQueries({ queryKey: ['calendar-events', tenantId] });
+  }, [queryClient, tenantId]);
 
   const handleSelectSlot = useCallback((_info: SlotInfo) => {
     void _info;
@@ -379,8 +345,8 @@ export default function CalendarPage() {
   }, []);
 
   const handleWalkInSuccess = useCallback(() => {
-    void fetchEvents(dateRange.start, dateRange.end);
-  }, [fetchEvents, dateRange.start, dateRange.end]);
+    void queryClient.invalidateQueries({ queryKey: ['calendar-events', tenantId] });
+  }, [queryClient, tenantId]);
 
   const handleEventDrop = useCallback(
     ({ event, start, end }: EventInteractionArgs<CalendarEvent>) => {
@@ -432,7 +398,7 @@ export default function CalendarPage() {
       );
 
       setRescheduleConfirm(null);
-      void fetchEvents(dateRange.start, dateRange.end);
+      void queryClient.invalidateQueries({ queryKey: ['calendar-events', tenantId] });
     } catch (err) {
       setRescheduleError(
         err instanceof Error ? err.message : 'Failed to reschedule booking',
@@ -440,7 +406,7 @@ export default function CalendarPage() {
     } finally {
       setIsRescheduling(false);
     }
-  }, [rescheduleConfirm, tenantId, fetchEvents, dateRange.start, dateRange.end]);
+  }, [rescheduleConfirm, tenantId, queryClient]);
 
   const draggableAccessor = useCallback(
     (event: CalendarEvent) => {
@@ -707,8 +673,8 @@ export default function CalendarPage() {
             }
           `}</style>
           <div style={{ minHeight: 600 }}>
+            {/* eslint-disable @typescript-eslint/no-explicit-any -- dynamic import loses generic type info */}
             <DnDCalendar
-              localizer={localizer}
               events={events}
               startAccessor="start"
               endAccessor="end"
@@ -718,14 +684,14 @@ export default function CalendarPage() {
               date={currentDate}
               onNavigate={handleNavigate}
               onView={handleViewChange}
-              onSelectEvent={handleSelectEvent}
+              onSelectEvent={handleSelectEvent as any}
               onSelectSlot={handleSelectSlot}
-              onEventDrop={handleEventDrop}
-              onEventResize={handleEventResize}
-              draggableAccessor={draggableAccessor}
+              onEventDrop={handleEventDrop as any}
+              onEventResize={handleEventResize as any}
+              draggableAccessor={draggableAccessor as any}
               resizable
               selectable
-              eventPropGetter={eventStyleGetter}
+              eventPropGetter={eventStyleGetter as any}
               style={{ height: 650 }}
               step={15}
               timeslots={4}
@@ -734,6 +700,7 @@ export default function CalendarPage() {
               popup
               showMultiDayTimes
             />
+            {/* eslint-enable @typescript-eslint/no-explicit-any */}
           </div>
         </CardContent>
       </Card>

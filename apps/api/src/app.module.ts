@@ -65,6 +65,7 @@ import { CustomDomainsModule } from './custom-domains/custom-domains.module';
 import { PartnersModule } from './partners/partners.module';
 import { RecommendationsModule } from './recommendations/recommendations.module';
 import { MultiLocationModule } from './multi-location/multi-location.module';
+import { PosthogModule } from './posthog/posthog.module';
 import { CustomThrottlerGuard } from './common/guards/throttle.guard';
 import { CsrfGuard } from './common/guards/csrf.guard';
 import { TenantStatusGuard } from './common/guards/tenant-status.guard';
@@ -77,10 +78,13 @@ import {
   resendConfig,
   r2Config,
   stripeConfig,
+  smsConfig,
   twilioConfig,
+  plivoConfig,
   googleCalendarConfig,
   microsoftCalendarConfig,
   vapidConfig,
+  posthogConfig,
 } from './config/configuration';
 
 @Module({
@@ -88,7 +92,7 @@ import {
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
-      load: [appConfig, jwtConfig, googleConfig, resendConfig, r2Config, stripeConfig, twilioConfig, googleCalendarConfig, microsoftCalendarConfig, vapidConfig],
+      load: [appConfig, jwtConfig, googleConfig, resendConfig, r2Config, stripeConfig, smsConfig, twilioConfig, plivoConfig, googleCalendarConfig, microsoftCalendarConfig, vapidConfig, posthogConfig],
     }),
     SentryModule.forRoot(),
     LoggerModule.forRoot({
@@ -167,6 +171,7 @@ import {
     PartnersModule,
     RecommendationsModule,
     MultiLocationModule,
+    PosthogModule,
   ],
   controllers: [AppController],
   providers: [
