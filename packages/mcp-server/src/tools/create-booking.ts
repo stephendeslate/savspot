@@ -1,11 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { SavSpotApiClient } from '../api-client.js';
-
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-const TIME_REGEX = /^\d{2}:\d{2}$/;
+import { UUID_REGEX, DATE_REGEX, TIME_REGEX, EMAIL_REGEX } from '../validation.js';
 
 export function registerCreateBooking(
   server: McpServer,
@@ -20,9 +16,7 @@ export function registerCreateBooking(
       time_slot: z.string().describe('Start time in HH:MM format (24-hour)'),
       client_name: z.string().describe('Full name of the client'),
       client_email: z.string().describe('Email address of the client'),
-      client_phone: z.string().optional().describe('Phone number of the client (optional)'),
       guest_count: z.number().optional().describe('Number of guests (optional, default: 1)'),
-      notes: z.string().optional().describe('Additional notes for the booking (optional)'),
       client_consent: z
         .boolean()
         .describe('Client has confirmed they want to proceed with the booking (must be true)'),
@@ -91,15 +85,8 @@ export function registerCreateBooking(
           date: params.date,
           timeSlot: params.time_slot,
           guestCount: params.guest_count,
+          clientConsent: params.client_consent,
         });
-
-        const updateData: Record<string, unknown> = {};
-        if (params.client_phone) updateData['clientPhone'] = params.client_phone;
-        if (params.notes) updateData['notes'] = params.notes;
-
-        if (Object.keys(updateData).length > 0) {
-          await apiClient.updateBookingSession(session.id, updateData);
-        }
 
         const booking = await apiClient.completeBookingSession(session.id);
 

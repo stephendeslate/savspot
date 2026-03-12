@@ -22,6 +22,9 @@ import {
   MessageSquare,
   BarChart3,
   UserPlus,
+  Bot,
+  Phone,
+  Workflow,
 } from 'lucide-react';
 
 const BUSINESS_TYPES = [
@@ -98,6 +101,21 @@ const CORE_FEATURES = [
     description: 'Risk indicators help you spot likely no-shows. Slot demand analysis shows your busiest times so you can plan staffing.',
   },
   {
+    icon: Bot,
+    title: 'AI agent bookings',
+    description: 'Your business is discoverable by ChatGPT, Claude, Google AI, and other AI assistants. Clients can book you through any AI agent — automatically.',
+  },
+  {
+    icon: Phone,
+    title: 'AI voice receptionist',
+    description: 'Never miss a call. An AI receptionist handles after-hours calls, checks availability, and books appointments by voice.',
+  },
+  {
+    icon: Workflow,
+    title: 'Workflow automation',
+    description: 'Automate follow-ups, reminders, and multi-step workflows. Set triggers and let SavSpot handle the rest.',
+  },
+  {
     icon: FileText,
     title: 'Invoices & receipts',
     description: 'Professional PDF invoices generated for every booking. Track payment status, issue refunds, and keep your records clean.',
@@ -127,6 +145,8 @@ const PRICING_FEATURES = {
     'Invoice generation',
     'Booking page + QR code',
     'Cancellation policy enforcement',
+    'AI agent discoverability (MCP)',
+    'AI voice receptionist',
     'Data export (GDPR-compliant)',
   ],
   premium: [
@@ -137,7 +157,8 @@ const PRICING_FEATURES = {
     'Embeddable booking widget',
     'Intake forms & questionnaires',
     'Digital contracts & signatures',
-    'Workflow automation',
+    'Advanced workflow automation',
+    'Accounting integrations',
     'Priority support',
   ],
   enterprise: [
@@ -184,7 +205,7 @@ export default function Home() {
             that pays for itself.
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl">
-            Free scheduling, payments, CRM, and Google Calendar sync for any service business.
+            Scheduling, payments, CRM, Google Calendar sync, and AI-powered tools for any service business.
             Live in under 5 minutes. No monthly fees — we only earn when you do.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -336,7 +357,7 @@ export default function Home() {
                     <span className="text-sm text-muted-foreground">/month</span>
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    1% processing fee on payments. That&apos;s it.
+                    1% on payments + a one-time referral fee only when we bring you a new client.
                   </p>
                 </div>
                 <ul className="mt-6 flex-1 space-y-2.5">
@@ -446,9 +467,9 @@ export default function Home() {
               </div>
               <div className="text-center">
                 <Star className="mx-auto h-6 w-6 text-primary" />
-                <p className="mt-3 text-sm font-medium">Always improving</p>
+                <p className="mt-3 text-sm font-medium">AI-powered</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  New features shipping regularly — SMS to clients, workflows, and more coming soon.
+                  AI voice receptionist, agent-bookable via MCP, and smart insights built in.
                 </p>
               </div>
             </div>

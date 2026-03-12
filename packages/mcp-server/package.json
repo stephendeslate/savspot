@@ -5,6 +5,9 @@
   "private": true,
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "savspot-mcp": "dist/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
