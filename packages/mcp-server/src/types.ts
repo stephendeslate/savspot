@@ -2,82 +2,109 @@ export interface Business {
   id: string;
   name: string;
   slug: string;
-  category: string;
   description: string | null;
-  address: string | null;
-  city: string | null;
-  state: string | null;
-  country: string | null;
-  postalCode: string | null;
-  lat: number | null;
-  lng: number | null;
-  phone: string | null;
-  email: string | null;
-  website: string | null;
+  category: string;
+  categoryLabel: string | null;
+  address: {
+    street: unknown;
+    city: unknown;
+    state: unknown;
+    postalCode: unknown;
+    country: unknown;
+  } | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  logoUrl: string | null;
+  coverPhotoUrl: string | null;
   timezone: string;
   currency: string;
-  logoUrl: string | null;
-  coverUrl: string | null;
-  rating: number | null;
-  reviewCount: number;
+  bookingPageUrl: string;
+}
+
+export interface BusinessDetail extends Business {
+  servicesCount: number;
 }
 
 export interface Service {
   id: string;
-  businessId: string;
   name: string;
   description: string | null;
-  duration: number;
-  price: string;
+  durationMinutes: number;
+  price: number;
   currency: string;
-  category: string | null;
-  requiresDeposit: boolean;
-  depositAmount: string | null;
-  maxGuests: number;
-  isActive: boolean;
+  pricingModel: string;
+  guestConfig: unknown;
+  category: { id: string; name: string } | null;
+  addOns: ServiceAddon[];
+}
+
+export interface ServiceAddon {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+}
+
+export interface AvailabilityResponse {
+  date: string;
+  service_id: string;
+  staff_id: string | null;
+  guest_count: number;
+  slots: TimeSlot[];
 }
 
 export interface TimeSlot {
-  startTime: string;
-  endTime: string;
-  staffId: string | null;
-  staffName: string | null;
-  available: boolean;
+  start_time: string;
+  end_time: string;
 }
 
 export interface BookingSession {
   id: string;
-  serviceId: string;
   status: string;
-  expiresAt: string;
-  steps: string[];
-  currentStep: string;
-  data: Record<string, unknown>;
+  current_step: string;
+  resolved_steps: unknown;
+  data?: Record<string, unknown>;
+  service: { id: string; name: string } | null;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface BookingSessionComplete {
+  booking_id: string;
+  status: string;
+  start_time: string;
+  end_time: string;
 }
 
 export interface Booking {
   id: string;
-  businessId: string;
-  serviceId: string;
-  serviceName: string;
-  clientName: string;
-  clientEmail: string;
   status: string;
+  serviceName: string | null;
   startTime: string;
   endTime: string;
-  totalAmount: string;
+  totalAmount: number;
   currency: string;
-  staffName: string | null;
-  notes: string | null;
-  confirmationCode: string;
+  guestCount: number | null;
 }
 
 export interface CancellationResult {
-  bookingId: string;
+  id: string;
   status: string;
-  refundAmount: string | null;
-  refundStatus: string | null;
-  message: string;
+  cancelled_at: string | null;
+}
+
+export interface PaginationInfo {
+  next_cursor: string | null;
+  has_more: boolean;
+}
+
+export interface ApiListResponse<T> {
+  data: T[];
+  pagination: PaginationInfo;
+}
+
+export interface ApiDataResponse<T> {
+  data: T;
 }
 
 export interface ApiErrorResponse {

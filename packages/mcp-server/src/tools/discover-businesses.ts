@@ -13,7 +13,7 @@ export function registerDiscoverBusinesses(
       category: z
         .string()
         .optional()
-        .describe('Business category (e.g., "hair_salon", "spa", "photography")'),
+        .describe('Business category (e.g., "VENUE", "SALON", "STUDIO", "FITNESS", "PROFESSIONAL", "OTHER")'),
       lat: z.number().optional().describe('Latitude for location-based search'),
       lng: z.number().optional().describe('Longitude for location-based search'),
       radius_km: z
@@ -25,7 +25,7 @@ export function registerDiscoverBusinesses(
     },
     async (params) => {
       try {
-        const businesses = await apiClient.listBusinesses({
+        const response = await apiClient.listBusinesses({
           category: params.category,
           lat: params.lat,
           lng: params.lng,
@@ -37,7 +37,11 @@ export function registerDiscoverBusinesses(
           content: [
             {
               type: 'text' as const,
-              text: JSON.stringify(businesses, null, 2),
+              text: JSON.stringify(
+                { businesses: response.data, pagination: response.pagination },
+                null,
+                2,
+              ),
             },
           ],
         };

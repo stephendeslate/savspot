@@ -1,11 +1,15 @@
 import { config } from './config.js';
 import type {
   Business,
+  BusinessDetail,
   Service,
-  TimeSlot,
+  AvailabilityResponse,
   BookingSession,
+  BookingSessionComplete,
   Booking,
   CancellationResult,
+  ApiListResponse,
+  ApiDataResponse,
   ApiErrorResponse,
 } from './types.js';
 
@@ -99,28 +103,37 @@ export class SavSpotApiClient {
     lng?: number;
     radiusKm?: number;
     query?: string;
-  }): Promise<Business[]> {
+    cursor?: string;
+    limit?: number;
+  }): Promise<ApiListResponse<Business>> {
     const searchParams = new URLSearchParams();
     if (params?.category) searchParams.set('category', params.category);
     if (params?.lat !== undefined) searchParams.set('lat', String(params.lat));
     if (params?.lng !== undefined) searchParams.set('lng', String(params.lng));
-    if (params?.radiusKm !== undefined) searchParams.set('radiusKm', String(params.radiusKm));
+    if (params?.radiusKm !== undefined) searchParams.set('radius_km', String(params.radiusKm));
     if (params?.query) searchParams.set('query', params.query);
+    if (params?.cursor) searchParams.set('cursor', params.cursor);
+    if (params?.limit !== undefined) searchParams.set('limit', String(params.limit));
 
     const qs = searchParams.toString();
-    return this.request<Business[]>(`/businesses${qs ? `?${qs}` : ''}`);
+    return this.request<ApiListResponse<Business>>(`/businesses${qs ? `?${qs}` : ''}`);
   }
 
-  async getBusiness(id: string): Promise<Business> {
-    return this.request<Business>(`/businesses/${id}`);
+  async getBusiness(id: string): Promise<BusinessDetail> {
+    const response = await this.request<ApiDataResponse<BusinessDetail>>(`/businesses/${id}`);
+    return response.data;
   }
 
   async listServices(businessId: string): Promise<Service[]> {
-    return this.request<Service[]>(`/businesses/${businessId}/services`);
+    const response = await this.request<ApiDataResponse<Service[]>>(
+      `/businesses/${businessId}/services`,
+    );
+    return response.data;
   }
 
   async getService(id: string): Promise<Service> {
-    return this.request<Service>(`/services/${id}`);
+    const response = await this.request<ApiDataResponse<Service>>(`/services/${id}`);
+    return response.data;
   }
 
   async checkAvailability(params: {
@@ -128,15 +141,17 @@ export class SavSpotApiClient {
     date: string;
     staffId?: string;
     guestCount?: number;
-  }): Promise<TimeSlot[]> {
+  }): Promise<AvailabilityResponse> {
     const searchParams = new URLSearchParams();
+    searchParams.set('service_id', params.serviceId);
     searchParams.set('date', params.date);
-    if (params.staffId) searchParams.set('staffId', params.staffId);
-    if (params.guestCount !== undefined) searchParams.set('guestCount', String(params.guestCount));
+    if (params.staffId) searchParams.set('staff_id', params.staffId);
+    if (params.guestCount !== undefined) searchParams.set('guest_count', String(params.guestCount));
 
-    return this.request<TimeSlot[]>(
-      `/services/${params.serviceId}/availability?${searchParams.toString()}`,
+    const response = await this.request<ApiDataResponse<AvailabilityResponse>>(
+      `/availability?${searchParams.toString()}`,
     );
+    return response.data;
   }
 
   async createBookingSession(params: {
@@ -146,41 +161,63 @@ export class SavSpotApiClient {
     date: string;
     timeSlot: string;
     guestCount?: number;
+    clientConsent?: boolean;
   }): Promise<BookingSession> {
-    return this.request<BookingSession>('/booking-sessions', {
+    const response = await this.request<ApiDataResponse<BookingSession>>('/booking-sessions', {
       method: 'POST',
-      body: JSON.stringify(params),
+      body: JSON.stringify({
+        service_id: params.serviceId,
+        client_email: params.clientEmail,
+        client_name: params.clientName,
+        date: params.date,
+        time_slot: params.timeSlot,
+        guest_count: params.guestCount,
+        client_consent: params.clientConsent,
+      }),
     });
+    return response.data;
   }
 
   async getBookingSession(id: string): Promise<BookingSession> {
-    return this.request<BookingSession>(`/booking-sessions/${id}`);
+    const response = await this.request<ApiDataResponse<BookingSession>>(
+      `/booking-sessions/${id}`,
+    );
+    return response.data;
   }
 
   async updateBookingSession(
     id: string,
     data: Record<string, unknown>,
   ): Promise<BookingSession> {
-    return this.request<BookingSession>(`/booking-sessions/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
+    const response = await this.request<ApiDataResponse<BookingSession>>(
+      `/booking-sessions/${id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ fields: data }),
+      },
+    );
+    return response.data;
   }
 
-  async completeBookingSession(id: string): Promise<Booking> {
-    return this.request<Booking>(`/booking-sessions/${id}/complete`, {
-      method: 'POST',
-    });
+  async completeBookingSession(id: string): Promise<BookingSessionComplete> {
+    const response = await this.request<ApiDataResponse<BookingSessionComplete>>(
+      `/booking-sessions/${id}/complete`,
+      {
+        method: 'POST',
+      },
+    );
+    return response.data;
   }
 
   async getBooking(id: string): Promise<Booking> {
-    return this.request<Booking>(`/bookings/${id}`);
+    const response = await this.request<ApiDataResponse<Booking>>(`/bookings/${id}`);
+    return response.data;
   }
 
-  async cancelBooking(id: string, reason?: string): Promise<CancellationResult> {
-    return this.request<CancellationResult>(`/bookings/${id}/cancel`, {
-      method: 'POST',
-      body: JSON.stringify({ reason }),
+  async cancelBooking(id: string): Promise<CancellationResult> {
+    const response = await this.request<ApiDataResponse<CancellationResult>>(`/bookings/${id}`, {
+      method: 'DELETE',
     });
+    return response.data;
   }
 }
