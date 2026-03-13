@@ -8,3 +8,9 @@ node_modules
 dist
 coverage
 .next
+specs
+*.test.ts
+*.spec.ts
+.vitest*
+playwright-report
+apps/web

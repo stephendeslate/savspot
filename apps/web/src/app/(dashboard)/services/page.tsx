@@ -182,6 +182,7 @@ export default function ServicesPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          aria-label="Edit service"
                           onClick={() =>
                             router.push(`/services/${service.id}`)
                           }

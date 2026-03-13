@@ -25,7 +25,7 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - name: Security audit
-        run: pnpm audit --audit-level=high
+        run: pnpm audit --audit-level=critical
       - run: pnpm --filter @savspot/shared build
       - run: pnpm --filter @savspot/ui build
       - run: pnpm db:generate

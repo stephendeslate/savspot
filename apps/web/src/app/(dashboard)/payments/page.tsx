@@ -418,10 +418,18 @@ export default function PaymentsPage() {
                   {payments.map((payment) => (
                     <TableRow
                       key={payment.id}
+                      role="button"
+                      tabIndex={0}
                       className="cursor-pointer"
                       onClick={() =>
                         router.push(`/bookings/${payment.booking.id}`)
                       }
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          router.push(`/bookings/${payment.booking.id}`);
+                        }
+                      }}
                     >
                       <TableCell className="hidden whitespace-nowrap sm:table-cell">
                         {format(

@@ -89,7 +89,7 @@ USER nestjs
 # Fly.io will not route traffic to this machine (no [http_service]).
 EXPOSE 3001
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "process.exit(0)" || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD pgrep -f "node.*main.js" > /dev/null || exit 1
 
 CMD ["dumb-init", "node", "apps/api/dist/main.js"]
