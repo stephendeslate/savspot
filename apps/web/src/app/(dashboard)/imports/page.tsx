@@ -117,7 +117,9 @@ export default function ImportsPage() {
   const imports = importsRes?.data ?? [];
   const total = importsRes?.meta?.total ?? 0;
   const error = queryError
-    ? (queryError instanceof Error ? queryError.message : 'Failed to load imports')
+    ? (process.env.NODE_ENV === 'development' && queryError instanceof Error
+        ? queryError.message
+        : 'Failed to load imports')
     : null;
   const totalPages = Math.ceil(total / PAGE_LIMIT);
 

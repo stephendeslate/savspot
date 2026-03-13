@@ -302,7 +302,9 @@ export default function CalendarPage() {
 
   const events: CalendarEvent[] = calendarData ?? [];
   const error = queryError
-    ? (queryError instanceof Error ? queryError.message : 'Failed to load calendar events')
+    ? (process.env.NODE_ENV === 'development' && queryError instanceof Error
+        ? queryError.message
+        : 'Failed to load calendar data')
     : null;
 
   const handleNavigate = useCallback((date: Date) => {
@@ -390,7 +392,9 @@ export default function CalendarPage() {
       void queryClient.invalidateQueries({ queryKey: ['calendar-events', tenantId] });
     } catch (err) {
       setRescheduleError(
-        err instanceof Error ? err.message : 'Failed to reschedule booking',
+        process.env.NODE_ENV === 'development' && err instanceof Error
+          ? err.message
+          : 'Failed to reschedule booking',
       );
     } finally {
       setIsRescheduling(false);
