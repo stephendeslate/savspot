@@ -25,4 +25,6 @@ export const queryKeys = {
     ['message-threads', tenantId, search] as const,
   messageThread: (tenantId: string, threadId: string) =>
     ['message-thread', tenantId, threadId] as const,
+  dashboardBookings: (tenantId: string) =>
+    ['dashboard-bookings', tenantId] as const,
 };

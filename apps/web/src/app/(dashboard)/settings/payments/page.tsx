@@ -90,6 +90,10 @@ export default function PaymentsSettingsPage() {
         `/api/tenants/${tenantId}/payments/connect/onboarding`,
         { returnUrl },
       );
+      const url = new URL(data.url);
+      if (!['connect.stripe.com', 'dashboard.stripe.com'].includes(url.hostname)) {
+        throw new Error('Invalid redirect URL');
+      }
       window.location.href = data.url;
     } catch (err) {
       setError(
@@ -175,7 +179,7 @@ export default function PaymentsSettingsPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}

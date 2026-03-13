@@ -3,8 +3,8 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateRefundDto {
   @ApiPropertyOptional({
-    example: 5000,
-    description: 'Refund amount in minor units (cents). Omit for full refund.',
+    example: 50.00,
+    description: 'Refund amount in major units (dollars). Omit for full refund.',
   })
   @IsNumber()
   @Min(1)

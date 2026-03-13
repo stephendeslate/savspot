@@ -16,7 +16,7 @@ const STRIPE_PI_ID = 'pi_abc123';
 const CONNECTED_ACCOUNT = 'acct_001';
 
 function makePrisma() {
-  return {
+  const p = {
     payment: {
       create: vi.fn(),
       findFirst: vi.fn(),
@@ -28,8 +28,13 @@ function makePrisma() {
     paymentStateHistory: { create: vi.fn() },
     booking: { findFirst: vi.fn(), update: vi.fn() },
     bookingStateHistory: { create: vi.fn() },
-    $transaction: vi.fn(async (ops: unknown[]) => Promise.all(ops)),
+    $transaction: vi.fn(),
   };
+  p.$transaction.mockImplementation(async (opsOrFn: unknown[] | ((tx: unknown) => unknown)) => {
+    if (typeof opsOrFn === 'function') return opsOrFn(p);
+    return Promise.all(opsOrFn);
+  });
+  return p;
 }
 
 function makeConfig() {
