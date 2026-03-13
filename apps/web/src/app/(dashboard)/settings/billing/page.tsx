@@ -15,45 +15,46 @@ import { useTenant } from '@/hooks/use-tenant';
 
 // ---------- Types ----------
 
+interface PlanFeatures {
+  maxStaff: number;
+  maxBookingsPerMonth: number;
+  smsAllocation: number;
+  embedModes: readonly string[];
+  clientManagement: string;
+  contracts: string;
+  analytics: string;
+  teamManagement: boolean;
+  multiLocation: boolean;
+  customTemplates: boolean;
+  perStaffOveragePrice?: number;
+}
+
 interface Plan {
-  id: string;
-  name: string;
   tier: string;
+  name: string;
   monthlyPrice: number;
-  yearlyPrice: number;
-  features: string[];
-  limits: Record<string, number>;
+  annualMonthlyPrice: number;
+  features: PlanFeatures;
 }
 
 interface Subscription {
-  id: string;
-  planId: string;
-  planName: string;
   tier: string;
-  status: string;
-  currentPeriodEnd: string;
-  cancelAtPeriodEnd: boolean;
-}
-
-interface Entitlement {
-  feature: string;
-  allowed: boolean;
-  limit: number | null;
-  used: number | null;
+  status: string | null;
+  providerId: string | null;
+  currentPeriodEnd: string | null;
+  gracePeriodEnd: string | null;
 }
 
 // ---------- Helpers ----------
 
-const TIER_ORDER = ['FREE', 'STARTER', 'PROFESSIONAL', 'ENTERPRISE'];
+const TIER_ORDER = ['FREE', 'PREMIUM', 'ENTERPRISE'];
 
 function getTierBadge(tier: string) {
   switch (tier) {
     case 'FREE':
       return <Badge className="bg-gray-100 text-gray-800">Free</Badge>;
-    case 'STARTER':
-      return <Badge className="bg-blue-100 text-blue-800">Starter</Badge>;
-    case 'PROFESSIONAL':
-      return <Badge className="bg-purple-100 text-purple-800">Professional</Badge>;
+    case 'PREMIUM':
+      return <Badge className="bg-blue-100 text-blue-800">Premium</Badge>;
     case 'ENTERPRISE':
       return <Badge className="bg-amber-100 text-amber-800">Enterprise</Badge>;
     default:
@@ -61,18 +62,18 @@ function getTierBadge(tier: string) {
   }
 }
 
-function getStatusBadge(status: string) {
+function getStatusBadge(status: string | null) {
   switch (status) {
-    case 'active':
+    case 'ACTIVE':
       return <Badge className="bg-green-100 text-green-800">Active</Badge>;
-    case 'trialing':
+    case 'TRIALING':
       return <Badge className="bg-blue-100 text-blue-800">Trial</Badge>;
-    case 'past_due':
+    case 'PAST_DUE':
       return <Badge className="bg-red-100 text-red-800">Past Due</Badge>;
-    case 'canceled':
+    case 'CANCELED':
       return <Badge className="bg-gray-100 text-gray-800">Canceled</Badge>;
     default:
-      return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
+      return status ? <Badge className="bg-gray-100 text-gray-800">{status}</Badge> : null;
   }
 }
 
@@ -84,10 +85,30 @@ function formatDate(dateStr: string): string {
   });
 }
 
-function getUsagePercentage(used: number | null, limit: number | null): number {
-  if (limit === null || used === null) return 0;
-  if (limit === 0) return 100;
-  return Math.min(Math.round((used / limit) * 100), 100);
+function formatEntitlements(features: PlanFeatures): { label: string; value: string }[] {
+  return [
+    { label: 'Staff Members', value: String(features.maxStaff) },
+    { label: 'Bookings / Month', value: features.maxBookingsPerMonth === Infinity || features.maxBookingsPerMonth > 999999 ? 'Unlimited' : String(features.maxBookingsPerMonth) },
+    { label: 'SMS Allocation', value: features.smsAllocation === 0 ? 'Not included' : String(features.smsAllocation) },
+    { label: 'Client Management', value: features.clientManagement === 'full' ? 'Full' : 'Basic' },
+    { label: 'Analytics', value: features.analytics.charAt(0).toUpperCase() + features.analytics.slice(1) },
+    { label: 'Team Management', value: features.teamManagement ? 'Yes' : 'No' },
+    { label: 'Multi-Location', value: features.multiLocation ? 'Yes' : 'No' },
+    { label: 'Custom Templates', value: features.customTemplates ? 'Yes' : 'No' },
+  ];
+}
+
+function featuresToStrings(features: PlanFeatures): string[] {
+  const items: string[] = [];
+  items.push(`Up to ${features.maxStaff} staff member${features.maxStaff > 1 ? 's' : ''}`);
+  items.push(features.maxBookingsPerMonth === Infinity || features.maxBookingsPerMonth > 999999 ? 'Unlimited bookings' : `${features.maxBookingsPerMonth} bookings/month`);
+  if (features.smsAllocation > 0) items.push(`${features.smsAllocation} SMS/month`);
+  if (features.analytics !== 'basic') items.push(`${features.analytics.charAt(0).toUpperCase() + features.analytics.slice(1)} analytics`);
+  if (features.teamManagement) items.push('Team management');
+  if (features.multiLocation) items.push('Multi-location support');
+  if (features.customTemplates) items.push('Custom templates');
+  if (features.clientManagement === 'full') items.push('Full client management');
+  return items;
 }
 
 // ---------- Component ----------
@@ -98,7 +119,7 @@ export default function BillingSettingsPage() {
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [entitlements, setEntitlements] = useState<Entitlement[]>([]);
+  const [entitlements, setEntitlements] = useState<PlanFeatures | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -110,24 +131,40 @@ export default function BillingSettingsPage() {
     if (!tenantId) return;
 
     try {
-      const [plansData, subData, entData] = await Promise.all([
+      const results = await Promise.allSettled([
         apiClient.get<Plan[]>('/api/subscriptions/plans'),
         apiClient.get<Subscription>(
           `/api/subscriptions/${tenantId}/current`,
         ),
-        apiClient.get<Entitlement[]>(
+        apiClient.get<PlanFeatures>(
           `/api/subscriptions/${tenantId}/entitlements`,
         ),
       ]);
 
-      setPlans(
-        (Array.isArray(plansData) ? plansData : []).sort(
-          (a, b) =>
-            TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier),
-        ),
-      );
-      setSubscription(subData);
-      setEntitlements(Array.isArray(entData) ? entData : []);
+      const [plansResult, subResult, entResult] = results;
+
+      if (plansResult.status === 'fulfilled') {
+        setPlans(
+          (Array.isArray(plansResult.value) ? plansResult.value : []).sort(
+            (a, b) =>
+              TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier),
+          ),
+        );
+      }
+
+      if (subResult.status === 'fulfilled') {
+        setSubscription(subResult.value);
+      }
+
+      if (entResult.status === 'fulfilled' && entResult.value && typeof entResult.value === 'object') {
+        setEntitlements(entResult.value);
+      }
+
+      // Only show error if plans failed (the essential data)
+      if (plansResult.status === 'rejected') {
+        const reason = plansResult.reason;
+        setError(reason instanceof Error ? reason.message : 'Failed to load billing data');
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to load billing data',
@@ -145,14 +182,14 @@ export default function BillingSettingsPage() {
     void fetchData();
   }, [tenantId, fetchData]);
 
-  const handleCheckout = async (planId: string) => {
+  const handleCheckout = async (tier: string) => {
     if (!tenantId) return;
-    setCheckoutLoading(planId);
+    setCheckoutLoading(tier);
 
     try {
       const result = await apiClient.post<{ url: string }>(
         `/api/subscriptions/${tenantId}/checkout`,
-        { planId, interval: billingInterval },
+        { tier, isAnnual: billingInterval === 'yearly' },
       );
       if (result.url) {
         window.location.href = result.url;
@@ -267,89 +304,58 @@ export default function BillingSettingsPage() {
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
                   <span className="text-lg font-semibold">
-                    {subscription.planName}
+                    {subscription.tier.charAt(0) + subscription.tier.slice(1).toLowerCase()}
                   </span>
                   {getTierBadge(subscription.tier)}
                   {getStatusBadge(subscription.status)}
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {subscription.cancelAtPeriodEnd
-                    ? `Cancels on ${formatDate(subscription.currentPeriodEnd)}`
-                    : `Renews on ${formatDate(subscription.currentPeriodEnd)}`}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={handlePortal}
-                disabled={portalLoading}
-              >
-                {portalLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Opening...
-                  </>
-                ) : (
-                  <>
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Manage Billing
-                  </>
+                {subscription.currentPeriodEnd && (
+                  <p className="text-sm text-muted-foreground">
+                    Renews on {formatDate(subscription.currentPeriodEnd)}
+                  </p>
                 )}
-              </Button>
+              </div>
+              {subscription.providerId && (
+                <Button
+                  variant="outline"
+                  onClick={handlePortal}
+                  disabled={portalLoading}
+                >
+                  {portalLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Opening...
+                    </>
+                  ) : (
+                    <>
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Manage Billing
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
       )}
 
       {/* Entitlements / Usage */}
-      {entitlements.length > 0 && (
+      {entitlements && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Usage</CardTitle>
+            <CardTitle className="text-base">Plan Limits</CardTitle>
             <CardDescription>
-              Feature limits and current usage
+              Features and limits on your current plan
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {entitlements.map((ent) => {
-                const pct = getUsagePercentage(ent.used, ent.limit);
-                return (
-                  <div key={ent.feature} className="space-y-1">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium capitalize">
-                        {ent.feature.replace(/_/g, ' ').toLowerCase()}
-                      </span>
-                      {ent.limit !== null ? (
-                        <span className="text-muted-foreground">
-                          {ent.used ?? 0} / {ent.limit}
-                        </span>
-                      ) : ent.allowed ? (
-                        <Badge className="bg-green-100 text-green-800">
-                          Unlimited
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-gray-100 text-gray-800">
-                          Not available
-                        </Badge>
-                      )}
-                    </div>
-                    {ent.limit !== null && (
-                      <div className="h-2 w-full rounded-full bg-muted">
-                        <div
-                          className={`h-2 rounded-full transition-all ${
-                            pct >= 90
-                              ? 'bg-red-500'
-                              : pct >= 70
-                                ? 'bg-amber-500'
-                                : 'bg-green-500'
-                          }`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+            <div className="space-y-3">
+              {formatEntitlements(entitlements).map((item) => (
+                <div key={item.label} className="flex items-center justify-between text-sm">
+                  <span className="font-medium">{item.label}</span>
+                  <span className="text-muted-foreground">{item.value}</span>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -393,14 +399,14 @@ export default function BillingSettingsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {plans.map((plan) => {
                 const isCurrentPlan =
-                  subscription?.planId === plan.id;
+                  subscription?.tier === plan.tier;
                 const price =
                   billingInterval === 'monthly'
                     ? plan.monthlyPrice
-                    : plan.yearlyPrice;
+                    : plan.annualMonthlyPrice;
                 const currentTierIndex = subscription
                   ? TIER_ORDER.indexOf(subscription.tier)
                   : -1;
@@ -409,7 +415,7 @@ export default function BillingSettingsPage() {
 
                 return (
                   <div
-                    key={plan.id}
+                    key={plan.tier}
                     className={`rounded-lg border p-4 ${
                       isCurrentPlan
                         ? 'border-primary bg-primary/5'
@@ -426,11 +432,11 @@ export default function BillingSettingsPage() {
                           ${price.toFixed(2)}
                         </span>
                         <span className="text-sm text-muted-foreground">
-                          /{billingInterval === 'monthly' ? 'mo' : 'yr'}
+                          /mo{billingInterval === 'yearly' ? ' (billed yearly)' : ''}
                         </span>
                       </div>
                       <ul className="space-y-2">
-                        {plan.features.map((feature) => (
+                        {featuresToStrings(plan.features).map((feature) => (
                           <li
                             key={feature}
                             className="flex items-start gap-2 text-sm"
@@ -451,10 +457,10 @@ export default function BillingSettingsPage() {
                       ) : isUpgrade ? (
                         <Button
                           className="w-full"
-                          onClick={() => handleCheckout(plan.id)}
-                          disabled={checkoutLoading === plan.id}
+                          onClick={() => handleCheckout(plan.tier)}
+                          disabled={checkoutLoading === plan.tier}
                         >
-                          {checkoutLoading === plan.id ? (
+                          {checkoutLoading === plan.tier ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               Redirecting...
