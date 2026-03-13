@@ -7,6 +7,8 @@ import { CommunicationsService, CreateAndSendParams } from '../communications/co
 import { SmsService } from '../sms/sms.service';
 import { InvoicesService } from '../invoices/invoices.service';
 import { BrowserPushService } from '../browser-push/browser-push.service';
+import { ExpoPushService } from '../device-push-tokens/expo-push.service';
+import { StageOrchestratorService } from './services/stage-orchestrator.service';
 import {
   BOOKING_CREATED,
   BOOKING_CONFIRMED,
@@ -49,6 +51,8 @@ export class WorkflowEngineService {
     private readonly configService: ConfigService,
     private readonly invoicesService: InvoicesService,
     private readonly browserPushService: BrowserPushService,
+    private readonly expoPushService: ExpoPushService,
+    private readonly stageOrchestratorService: StageOrchestratorService,
   ) {
     this.webUrl = this.configService.get<string>('WEB_URL', 'http://localhost:3000');
   }
@@ -134,6 +138,7 @@ export class WorkflowEngineService {
     }
 
     await this.executeWorkflows('BOOKING_RESCHEDULED', payload);
+    await this.executeStageWorkflows('BOOKING_RESCHEDULED', payload);
   }
 
   /**
@@ -305,6 +310,7 @@ export class WorkflowEngineService {
     this.generateInvoice(payload.tenantId, payload.bookingId);
 
     await this.executeWorkflows('BOOKING_CONFIRMED', payload);
+    await this.executeStageWorkflows('BOOKING_CONFIRMED', payload);
   }
 
   /**
@@ -318,6 +324,7 @@ export class WorkflowEngineService {
     );
 
     await this.executeWorkflows('BOOKING_COMPLETED', payload);
+    await this.executeStageWorkflows('BOOKING_COMPLETED', payload);
   }
 
   /**
@@ -334,9 +341,59 @@ export class WorkflowEngineService {
 
     // Walk-ins get the same post-appointment workflows as completed bookings
     await this.executeWorkflows('BOOKING_COMPLETED', payload);
+    await this.executeStageWorkflows('BOOKING_COMPLETED', payload);
   }
 
   // ---- Workflow Execution Engine ----
+
+  /**
+   * Finds WorkflowTemplate records matching the trigger event and runs their stage automations.
+   */
+  private async executeStageWorkflows(
+    triggerEvent: string,
+    payload: BookingEventPayload,
+  ): Promise<void> {
+    try {
+      const templates = await this.prisma.workflowTemplate.findMany({
+        where: {
+          tenantId: payload.tenantId,
+          triggerEvent: triggerEvent as WorkflowTriggerEvent,
+          isActive: true,
+        },
+        include: {
+          stages: { orderBy: { order: 'asc' } },
+        },
+      });
+
+      if (templates.length === 0) return;
+
+      this.logger.log(
+        `Found ${templates.length} workflow template(s) for trigger=${triggerEvent} tenant=${payload.tenantId}`,
+      );
+
+      for (const template of templates) {
+        if (template.stages.length === 0) continue;
+
+        try {
+          await this.stageOrchestratorService.runWorkflow(
+            payload.tenantId,
+            template.id,
+            payload.bookingId,
+            triggerEvent,
+            payload as unknown as Record<string, unknown>,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Stage workflow template ${template.id} failed: ${error}`,
+          );
+        }
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to query workflow templates for trigger=${triggerEvent}: ${error}`,
+      );
+    }
+  }
 
   /**
    * Queries workflow_automations for matching trigger_event + tenant_id,
@@ -669,11 +726,35 @@ export class WorkflowEngineService {
       );
 
       this.logger.log(
-        `Push sent to ${sentCount} subscription(s) for automation=${automation.id}`,
+        `Browser push sent to ${sentCount} subscription(s) for automation=${automation.id}`,
       );
     } catch (error) {
       this.logger.error(
-        `Failed to send push for automation ${automation.id}: ${error}`,
+        `Failed to send browser push for automation ${automation.id}: ${error}`,
+      );
+    }
+
+    // Mobile push via Expo
+    try {
+      const mobileSentCount = await this.expoPushService.sendToUser(
+        userId,
+        payload.tenantId,
+        {
+          title,
+          body,
+          data: {
+            bookingId: payload.bookingId,
+            serviceId: payload.serviceId,
+            automationId: automation.id,
+          },
+        },
+      );
+      this.logger.log(
+        `Expo push sent to ${mobileSentCount} device(s) for automation=${automation.id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send Expo push for automation ${automation.id}: ${error}`,
       );
     }
   }

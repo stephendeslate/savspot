@@ -2,13 +2,13 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  NotImplementedException,
   Logger,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
+import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { QuickBooksProvider } from './providers/quickbooks.provider';
 import { XeroProvider } from './providers/xero.provider';
@@ -270,9 +270,28 @@ export class AccountingService {
       throw new NotFoundException('Accounting connection not found');
     }
 
-    throw new NotImplementedException(
-      'Account refresh requires provider integration. Connect to QuickBooks or Xero to sync accounts.',
+    const provider = this.getProvider(connection.provider);
+    const tokens = this.getTokensFromConnection(connection);
+    const accounts = await provider.getAccounts(tokens);
+
+    const existing = (connection.categoryMappings as Record<string, unknown>) ?? {};
+
+    await this.prisma.accountingConnection.update({
+      where: { id: connectionId },
+      data: {
+        categoryMappings: {
+          ...existing,
+          accounts: accounts as unknown as Prisma.InputJsonValue,
+          accountsRefreshedAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    this.logger.log(
+      `Refreshed ${accounts.length} accounts for connection ${connectionId}`,
     );
+
+    return accounts;
   }
 
   async getConnectionStatus(tenantId: string, connectionId: string) {

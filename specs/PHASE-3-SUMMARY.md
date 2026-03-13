@@ -29,14 +29,16 @@ Phase 3 added ~80 features across 10 work streams, delivering 60+ new API endpoi
 
 - **Device push token management** — register (upsert), update, remove with ownership enforcement
 - **DevicePushToken model** with IOS/ANDROID enum, failure tracking, active status
-- **Workflow engine integration** — SEND_PUSH action wired to push notification delivery
+- **Expo Push Service** — sends mobile push notifications via Expo SDK to iOS/Android devices
+- **Workflow engine integration** — SEND_PUSH action delivers to both browser (Web Push) and mobile (Expo) targets
 - Backend fully supports mobile app; React Native app itself is a separate frontend effort
 
 ### Stream C: Workflow Automation Builder
 
 - **Workflow CRUD** — full lifecycle management of workflow templates
 - **Execution service** with bulk retry for failed executions
-- **Workflow engine** supporting actions: SEND_EMAIL, SEND_SMS, SEND_PUSH, WEBHOOK, WAIT, CONDITION
+- **Workflow engine** supporting actions: SEND_EMAIL, SEND_SMS, SEND_PUSH, SEND_NOTIFICATION, WEBHOOK
+- **Stage automations** — multi-stage orchestrator executing EMAIL, TASK, QUOTE, CONTRACT, QUESTIONNAIRE, REMINDER, NOTIFICATION with delayed scheduling via BullMQ
 - **Webhooks system** — tenant-configured outgoing webhooks with delivery tracking
 - **Webhook dispatcher** with BullMQ queue (`QUEUE_WEBHOOKS`) for reliable async delivery
 - **Workflow DTOs** for type-safe template creation and updates
@@ -71,8 +73,9 @@ Phase 3 added ~80 features across 10 work streams, delivering 60+ new API endpoi
 
 - **VoiceModule** with controller, service, telephony service, and AI service
 - **Twilio Voice integration** — answer/status webhook endpoints
-- **AI-powered call handling** — intent recognition, booking creation, FAQ responses
+- **Keyword-based intent matching** — intent recognition, booking creation, FAQ responses (LLM integration deferred to Phase 4)
 - **BullMQ processor** (`QUEUE_VOICE_CALLS`) for async call processing
+- **Post-call actions** — booking confirmation emails and staff notifications after voice-originated bookings
 - **Call recording and transcription** support
 - Feature-flagged behind `FEATURE_VOICE`
 
