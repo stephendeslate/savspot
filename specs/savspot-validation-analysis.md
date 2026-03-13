@@ -137,8 +137,8 @@ The BRD §1 and PVD §7 revenue projections are internally consistent and refres
 |---|---|---|
 | Payment processing (1% of GMV) | ~$20K | $2M GMV × 1% |
 | Platform referral commission | $5-10K | Phase 3+ channels, minimal Year 1 |
-| Premium subscriptions | $12-24K | 50-100 subscribers × $20/mo × 12 months |
-| **Base case total** | **$37-54K** | |
+| Pro subscriptions | $6-12K | 50-100 subscribers × $10/mo × 12 months |
+| **Base case total** | **$31-42K** | |
 | **Stretch case** | **$100K** | Requires above-average conversion |
 
 The documents explicitly call the $100K figure a "stretch goal" and acknowledge that the base case of ~$40K is the realistic target. This level of self-awareness is notable — many SaaS pitch documents inflate projections.

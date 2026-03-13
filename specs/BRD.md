@@ -13,9 +13,9 @@
 |--------|-------|------|------|
 | **Payment Processing** | Platform fee on all Savspot Pay transactions (in addition to the payment provider's standard processing fee borne by the connected account) | 1.0% | Every payment |
 | **Platform Referral Commission** | One-time fee on bookings from platform-sourced clients (AI agents, directory, referrals) | 15-20% of first booking (default 20%, capped at $500 default) | Only first booking from a new platform-sourced client |
-| **Premium Features** | Flat-tier bundles | $29/mo Premium, $79/mo Enterprise | Monthly subscription |
+| **Pro Subscription** | Flat-tier subscription | $10/mo ($8/mo annual) | Monthly subscription |
 
-### Premium Features
+### Pro Features (All Features Unlocked)
 - Advanced embeddable booking widget (inline/popup modes with branding customization; redirect mode is free)
 - Custom domain booking page (book.mybusiness.com) — Phase 4, demand-driven
 - Advanced analytics & reporting dashboards
@@ -37,7 +37,7 @@
 - AI-agent compatible (no per-seat conflict)
 - Scales with value delivered
 
-> **Revenue sensitivity:** At 1% processing on $2M GMV, payment processing yields ~$20K/year. Platform referral commissions (Phase 3+) and premium subscriptions (Phase 2+) are incremental. The model achieves positive unit economics at modest scale (~$3K/month revenue against bootstrap infrastructure costs) rather than requiring aggressive premium conversion. Year 1 base case revenue target: $40K (see PVD §7). The $100K stretch target requires premium conversion rates above industry norms (>10%) or GMV exceeding $2M.
+> **Revenue sensitivity:** At 1% processing on $2M GMV, payment processing yields ~$20K/year. Platform referral commissions (Phase 3+) and Pro subscriptions (Phase 2+) are incremental. The model achieves positive unit economics at modest scale (~$3K/month revenue against bootstrap infrastructure costs) rather than requiring aggressive Pro conversion. Year 1 base case revenue target: $40K (see PVD §7). The $100K stretch target requires Pro conversion rates above industry norms (>10%) or GMV exceeding $2M.
 
 ---
 
@@ -46,10 +46,9 @@
 | Tier | Price | Features |
 |------|-------|----------|
 | **Free** | $0 | Booking page, CRM, client portal, two-way calendar sync (including INBOUND blocking per FR-CAL-10), basic metrics, basic embed widget (redirect mode), invisible AI operations (smart reminders, no-show risk indicators, rebooking optimization, slot demand analysis -- Phase 2) |
-| **Premium** | $29/mo | Embeddable widget, advanced analytics, advanced multi-stage workflow automation, accounting integrations, headless API access, custom email templates (Phase 2) |
-| **Enterprise** | $79/mo | Multi-location, dedicated support, custom integrations |
+| **Pro** | $10/mo ($8/mo annual) | All features unlocked: embeddable widget (inline/popup), advanced analytics, advanced multi-stage workflow automation, multi-location, accounting integrations, headless API access, custom email templates, team/staff management, dedicated support |
 
-> **Phase 1 note:** Subscription tier management is manually administered via database for Phase 1. The `tenants.subscription_tier` field and a `subscription_provider_id` placeholder exist in the schema, but subscription billing integration (automated upgrades, downgrades, billing cycles, feature entitlement checks) is deferred to Phase 2. Premium features that ship in Phase 2+ will require subscription infrastructure at that time.
+> **Phase 1 note:** Subscription tier management is manually administered via database for Phase 1. The `tenants.subscription_tier` field and a `subscription_provider_id` placeholder exist in the schema, but subscription billing integration (automated upgrades, downgrades, billing cycles, feature entitlement checks) is deferred to Phase 2. Pro features that ship in Phase 2+ will require subscription infrastructure at that time.
 >
 > **Phase 2 subscription infrastructure:** FR-PAY-17 through FR-PAY-20 (PRD §3.4) implement subscription billing via Stripe Billing (leveraging the existing Stripe ecosystem from Connect). Feature entitlement is enforced via NestJS middleware checking `tenants.subscription_tier` and active feature subscriptions against a feature-tier mapping. Subscription revenue is separate from booking payment processing — Savspot is the merchant of record for subscriptions (direct Stripe account), while businesses are merchants of record for booking payments (Stripe Connect Express accounts).
 
@@ -237,7 +236,7 @@ Functional requirements: FR-ONB-1 through FR-ONB-12 in [PRD.md](PRD.md).
 
 ### Business
 - **Bootstrap funding:** Revenue must sustain operations; minimize infrastructure costs
-- **Free tier economics:** Revenue from payment processing + premium features; early unit economics negative
+- **Free tier economics:** Revenue from payment processing (1% on all transactions) + Pro subscriptions; early unit economics negative
 - **Single operator:** Product must be self-service enough to minimize support burden; AI-powered support triage (Open Claw + Qwen3/Claude Code) provides automated L1 resolution to sustain quality without a dedicated support team
 - **Signal-first acquisition:** Rather than scaling user acquisition during active development, Phase 1 is followed by a deliberate soft launch: personally onboard up to 10 businesses (structured cohort across 1–2 verticals) to gather real signal on retention, booking completion, and organic sharing before investing in broader distribution. Phase 2–3 development priorities are informed by this early signal. Distribution is the founder's least developed professional dimension (technical execution is thoroughly proven — LifePlace, published patent US20250140075A1, UCSD CS degree); the GTM strategy is designed to force structured repetition through each design partner installation (discovery, demo, objection handling, activation monitoring, referral ask). See PVD §8a and savspot-gtm-distribution-strategy.md.
 - **Design partner engagement:** Slot 1 in the soft launch cohort is a confirmed barber design partner (Marcus) who will run SavSpot alongside Booksy for 90 days. This parallel-run engagement produces structured competitive signal — feature gap analysis, walk-in workflow viability, INBOUND calendar blocking reliability, and a migration decision at week 8–12 — that is qualitatively different from standard beta testing. Each design partner installation also functions as a compressed sales cycle (discovery, demo, objection handling, activation monitoring, referral ask, closing) — the engagement is simultaneously product validation and founder distribution skill development (see savspot-gtm-distribution-strategy.md §5 and §14). Architectural features that enable this engagement (walk-in booking FR-BFW-18, two-way calendar sync FR-CAL-10 through FR-CAL-15, data import pipeline FR-IMP-1 through FR-IMP-5, provider SMS FR-COM-2a) are classified as Must/Should Phase 1 requirements, not Phase 2+, specifically because the design partner engagement begins at Phase 1 launch.
@@ -335,7 +334,7 @@ Functional requirements: FR-SUP-1 through FR-SUP-4 in [PRD.md](PRD.md).
 | **Tenant** | A business registered on Savspot with its own data, configuration, and booking experience |
 | **Booking Flow** | Multi-step wizard guiding a client through making a reservation |
 | **Booking Page** | Business's branded landing page (savspot.co/{slug}) with "Book Now" CTA |
-| **Embeddable Widget** | Premium JS snippet adding booking flow to business's own website |
+| **Embeddable Widget** | Pro-tier JS snippet adding booking flow to business's own website |
 | **Platform Directory** | Future feature for cross-business browsing and discovery |
 | **Referral Commission** | Fee on bookings from platform-sourced clients (AI agents, directory, referral links) |
 | **MCP** | Model Context Protocol -- Anthropic's open standard for AI agent tool integration |

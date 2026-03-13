@@ -32,7 +32,7 @@ import { SubscriptionsService } from './subscriptions.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { StripeProvider } from '../payments/providers/stripe.provider';
 
-type SubscriptionTierType = 'FREE' | 'PREMIUM' | 'ENTERPRISE';
+type SubscriptionTierType = 'FREE' | 'PRO';
 
 @ApiTags('Subscriptions')
 @Controller('subscriptions')

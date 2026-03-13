@@ -13,7 +13,7 @@
 Phase 2 added ~130 features across 8 workstreams, delivering 80 new API endpoints, 15 new NestJS modules, and a client-side embed widget SDK.
 
 ### WS1: Subscription Billing Infrastructure
-- **3-tier pricing model** (Free / Premium $29 / Enterprise $79) with Stripe Checkout integration
+- **2-tier pricing model** (Free / Pro $10) with Stripe Checkout integration
 - **Stripe Customer Portal** for self-service subscription management
 - **Feature entitlement guard** (`@RequiresFeature`) that gates endpoints by subscription tier
 - **Entitlement constants** defining per-tier limits (bookings, team members, storage, etc.)

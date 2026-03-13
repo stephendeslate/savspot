@@ -21,7 +21,7 @@ export function UpgradeBanner({ requiredTier, feature }: UpgradeBannerProps) {
         </h3>
         <p className="mt-1 max-w-sm text-sm text-muted-foreground">
           Upgrade your subscription to access {feature.toLowerCase()} and other
-          premium features.
+          Pro features.
         </p>
         <Link href="/settings/billing">
           <Button className="mt-4" size="sm">

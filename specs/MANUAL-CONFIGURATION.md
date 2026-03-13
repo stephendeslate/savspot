@@ -225,8 +225,7 @@ fly secrets set REDIS_URL="rediss://default:xxx@xxx.upstash.io:6379" --app savsp
 
 ### Stripe Billing (Subscriptions)
 1. Create Products in [Dashboard > Products](https://dashboard.stripe.com/test/products):
-   - **SavSpot Premium** — $29/month
-   - **SavSpot Enterprise** — $79/month
+   - **SavSpot Pro** — $10/month (annual: $8/month, billed at $96/year)
 2. Note the Price IDs for use in the subscriptions module
 
 | Variable | Required | Default |

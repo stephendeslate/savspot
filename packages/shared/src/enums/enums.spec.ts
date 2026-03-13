@@ -159,8 +159,8 @@ describe('Tenant Enums', () => {
   testZodEnum('PaymentProviderType', PaymentProviderType);
   testZodEnum('SubscriptionTier', SubscriptionTier);
 
-  it('SubscriptionTier should have FREE as an option', () => {
-    expect(SubscriptionTier.options).toContain('FREE');
+  it('SubscriptionTier should have FREE and PRO', () => {
+    expect(SubscriptionTier.options).toEqual(['FREE', 'PRO']);
   });
 
   testZodEnum('TenantStatus', TenantStatus);

@@ -228,11 +228,11 @@ The directory UI passes `source=DIRECTORY` during booking session creation. The 
 ## 4. Feature B: Custom Domain Booking Pages
 
 **Trigger:** >20 businesses requesting via support/feedback
-**Spec refs:** PRD FR-ONB-9, FR-BP-8, BRD §1 (Premium feature)
+**Spec refs:** PRD FR-ONB-9, FR-BP-8, BRD §1 (Pro feature)
 
 ### 4.1 Overview
 
-Premium-tier businesses can serve their booking page at a custom domain (e.g., `book.mybusiness.com`) instead of `savspot.co/{slug}`. Same booking flow, different hostname.
+Pro-tier businesses can serve their booking page at a custom domain (e.g., `book.mybusiness.com`) instead of `savspot.co/{slug}`. Same booking flow, different hostname.
 
 ### 4.2 Data Model Changes
 
@@ -320,7 +320,7 @@ export async function middleware(request: NextRequest) {
 
 ### 4.5 API Endpoints
 
-All gated behind `@RequireTier('PREMIUM')`.
+All gated behind `@RequireTier('PRO')`.
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -371,7 +371,7 @@ The approach depends on deployment architecture. Both support automatic Let's En
 
 - **Misconfigured DNS:** Domain falls back to `savspot.co/{slug}`. Custom domain settings page shows a warning.
 - **Expired SSL:** BullMQ job triggers renewal 30 days before expiry. If renewal fails, status → `SSL_FAILED`, domain serves a redirect to `savspot.co/{slug}`.
-- **Subscription downgrade:** If tenant downgrades from Premium, custom domain enters `SUSPENDED` status. Requests to the domain redirect to `savspot.co/{slug}`. Domain is reactivated on re-upgrade without re-verification (if DNS is still valid).
+- **Subscription downgrade:** If tenant downgrades from Pro, custom domain enters `SUSPENDED` status. Requests to the domain redirect to `savspot.co/{slug}`. Domain is reactivated on re-upgrade without re-verification (if DNS is still valid).
 - **Duplicate domain:** `domain` column has `@unique` constraint. Attempting to add an already-claimed domain returns 409.
 
 ### 4.10 Test Plan
@@ -397,11 +397,11 @@ The approach depends on deployment architecture. Both support automatic Let's En
 ## 5. Feature C: Multi-Location Management
 
 **Trigger:** >10 businesses operating 2+ physical venues
-**Spec refs:** PRD §2 Phase 4, BRD §2 (Enterprise feature), SRS-2 §4 (`venues` table)
+**Spec refs:** PRD §2 Phase 4, BRD §2 (Pro feature), SRS-2 §4 (`venues` table)
 
 ### 5.1 Overview
 
-Enterprise-tier businesses can manage multiple physical locations under a single tenant. Each location has its own staff, availability rules, services, and settings while sharing a unified client base and analytics.
+Pro-tier businesses can manage multiple physical locations under a single tenant. Each location has its own staff, availability rules, services, and settings while sharing a unified client base and analytics.
 
 ### 5.2 Data Model Changes
 
@@ -447,7 +447,7 @@ model VenueStaff {
 
 ### 5.3 API Endpoints
 
-All gated behind `@RequireTier('ENTERPRISE')`.
+All gated behind `@RequireTier('PRO')`.
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -770,14 +770,14 @@ enum RiskLevel {
 | `churn-risk-compute` | QUEUE_AI_OPERATIONS | Daily (5:00 AM UTC) | Compute churn risk scores for all active clients |
 | `recommendation-cleanup` | QUEUE_AI_OPERATIONS | Weekly | Remove expired recommendations, archive old scores |
 
-### 7.7 Premium Gating
+### 7.7 Pro Gating
 
 | Feature | Tier |
 |---------|------|
 | Client-facing recommendations | Free (improves booking rate for all) |
-| Business-facing upsell insights | Premium |
-| Churn risk scoring + at-risk client list | Premium |
-| Recommendation analytics (CTR, conversion) | Premium |
+| Business-facing upsell insights | Pro |
+| Churn risk scoring + at-risk client list | Pro |
+| Recommendation analytics (CTR, conversion) | Pro |
 
 ### 7.8 Test Plan
 

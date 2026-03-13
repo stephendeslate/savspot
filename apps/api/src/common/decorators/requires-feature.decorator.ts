@@ -1,7 +1,7 @@
 import { SetMetadata } from '@nestjs/common';
 import type { FeatureKey } from '../../subscriptions/entitlements';
 
-export type SubscriptionTierType = 'FREE' | 'PREMIUM' | 'ENTERPRISE';
+export type SubscriptionTierType = 'FREE' | 'PRO';
 
 export const REQUIRES_TIER_KEY = 'requiresTier';
 export const REQUIRES_FEATURE_KEY = 'requiresFeature';

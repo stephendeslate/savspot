@@ -621,7 +621,7 @@ Default `base_delay = 30 min`, `max_retries = 5`. After max retries, payment is 
 | 5 | `generateInvoicePdf` | invoices | On invoice create | Render branded PDF; upload to R2 storage |
 | 6 | `syncToAccounting` | accounting | Every 30 min | Sync invoices/payments to QuickBooks/Xero **(Phase 3)** |
 | 7 | `refreshAccountingTokens` | accounting | Hourly | Refresh expiring accounting OAuth tokens **(Phase 3)** |
-| 8 | `analyticsAggregation` | analytics | Daily 1:00 AM | Aggregate booking session data into `booking_flow_analytics` daily rows (step_metrics, conversion_rate, bounce_rate, avg_completion_time_sec, total_revenue). Per-tenant, per-flow. **(Phase 3 -- Premium Analytics; see SRS-4 §39)** |
+| 8 | `analyticsAggregation` | analytics | Daily 1:00 AM | Aggregate booking session data into `booking_flow_analytics` daily rows (step_metrics, conversion_rate, bounce_rate, avg_completion_time_sec, total_revenue). Per-tenant, per-flow. **(Phase 3 -- Pro Analytics; see SRS-4 §39)** |
 
 ---
 

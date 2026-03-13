@@ -207,7 +207,7 @@ These are concrete `workflow_automations` rows. **In Phases 1-2, preset automati
 
 **Advanced stage execution:** Ordered stages execute by `order`. Each performs its `automation_type` (EMAIL, TASK, QUOTE, CONTRACT, QUESTIONNAIRE, REMINDER, NOTIFICATION) at `trigger_time` (ON_CREATION, AFTER_X_DAYS, X_DAYS_BEFORE_BOOKING), then waits for `progression_condition` (QUOTE_ACCEPTED, PAYMENT_RECEIVED, CONTRACT_SIGNED, TASKS_COMPLETED). Concurrent advancement serialized via row lock.
 
-> **Free vs. Premium boundary:** Simple trigger-action automations (`workflow_automations` table -- flat event-to-action pairs created by presets or configured by the business) are free for all tenants. Advanced multi-stage workflows (`workflow_templates` + `workflow_stages` -- multi-step processes with progression conditions and stage ordering) require a premium subscription (`tenants.subscription_tier` = PREMIUM or ENTERPRISE). See BRD §1-2 for revenue model.
+> **Free vs. Pro boundary:** Simple trigger-action automations (`workflow_automations` table -- flat event-to-action pairs created by presets or configured by the business) are free for all tenants. Advanced multi-stage workflows (`workflow_templates` + `workflow_stages` -- multi-step processes with progression conditions and stage ordering) require a Pro subscription (`tenants.subscription_tier` = PRO). See BRD §1-2 for revenue model.
 
 ## 21. Trigger Events
 20 event types that start workflows or advance stages:
@@ -431,7 +431,7 @@ TipTap-based. Used for contract templates, email templates, service descriptions
 Output: HTML. DOMPurify sanitization on save and render.
 
 ## 37. Widget Implementation
-Premium JS snippet from CDN (Cloudflare R2). Modes: popup, inline iframe, redirect. Iframe sandbox + PostMessage bridge. **50 KB gzipped** max. Async loading. `WIDGET` source attribution. Service pre-selection via URL params. Guest checkout.
+Pro-tier JS snippet from CDN (Cloudflare R2). Modes: popup, inline iframe, redirect. Iframe sandbox + PostMessage bridge. **50 KB gzipped** max. Async loading. `WIDGET` source attribution. Service pre-selection via URL params. Guest checkout.
 
 ## 38. Mobile Offline Support (Phase 3)
 
@@ -440,7 +440,7 @@ Premium JS snippet from CDN (Cloudflare R2). Modes: popup, inline iframe, redire
 React Native + Expo. **MMKV** (key-value) + **TanStack Query** persistence. Offline: view cached bookings/businesses. Zustand (client state) + TanStack Query (server). Biometric via `expo-local-authentication`. Secure tokens: Keychain (iOS) / Keystore (Android).
 
 ## 39. Analytics
-**Free:** Today's bookings, revenue, new clients, pending actions. **Premium:** Trends (daily/weekly/monthly, YoY), revenue (gross/net/by service/avg), clients (new vs returning, LTV, source), conversion funnel, source attribution (DIRECT, DIRECTORY, API, WIDGET, REFERRAL). Daily aggregation into `booking_flow_analytics`. (See SRS-1.)
+**Free:** Today's bookings, revenue, new clients, pending actions. **Pro:** Trends (daily/weekly/monthly, YoY), revenue (gross/net/by service/avg), clients (new vs returning, LTV, source), conversion funnel, source attribution (DIRECT, DIRECTORY, API, WIDGET, REFERRAL). Daily aggregation into `booking_flow_analytics`. (See SRS-1.)
 
 ## 40. Background Jobs -- Communications & Notifications
 

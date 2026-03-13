@@ -127,7 +127,7 @@ External messaging leads with outcomes, not technology:
 2. **Booking Flow Wizard** -- dynamic multi-step per service; steps included or excluded based on what the business has configured (guest tracking, contracts, questionnaires are present only when their data exists)
 3. **Client Portal** -- manage bookings, payments, contracts
 4. **Admin CRM** -- progressive disclosure UI; basic settings visible by default, advanced options collapsed until needed
-5. **Booking Page & Widget** -- shareable link (free) + JS embed (premium)
+5. **Booking Page & Widget** -- shareable link (free) + JS embed (Pro)
 6. **AI Agent Gateway** -- MCP server + REST API
 7. **Mobile Experience** -- React Native + Expo (iOS/Android), shipping in Phase 3. Phase 1 relies on mobile-responsive web (FR-BP-5) for client booking.
 
@@ -147,8 +147,8 @@ External messaging leads with outcomes, not technology:
 > **Revenue model arithmetic (base vs. stretch):**
 > - Payment processing: $2M GMV × 1% = $20K
 > - Platform referral commission: Platform-sourced channels (API, directory, referrals) are not available until Phase 3-4. Year 1 referral revenue is minimal. Estimate: $5-10K.
-> - Premium subscriptions: At industry-standard 5-10% freemium conversion and $20/mo average, 1,000 businesses yield 50-100 premium subscribers × $20 × 12 = $12-24K.
-> - **Base case: $37-54K.** Stretch case ($100K) requires either above-average premium conversion or accelerated GMV growth beyond $2M.
+> - Pro subscriptions: At industry-standard 5-10% freemium conversion at $10/mo, 1,000 businesses yield 50-100 Pro subscribers × $10 × 12 = $6-12K.
+> - **Base case: $31-42K.** Stretch case ($100K) requires either above-average Pro conversion or accelerated GMV growth well beyond $2M.
 >
 > The $100K target is a stretch goal. The base case target is $40K, which achieves positive unit economics when combined with the bootstrap cost structure (BRD §8). Revenue targets will be revised quarterly based on actual conversion rates.
 
@@ -258,9 +258,9 @@ Paid marketing, content strategy, and partnership development are deferred until
 
 **Soft Launch (~1 week, immediately post Phase 1):** Personally onboard 5–10 businesses across 1–2 verticals. Observe real usage, booking completion, payment flow, and organic sharing. Gather signal to inform Phase 2 priorities. See §8a for full strategy.
 
-**Phase 2 -- Communications, Growth & Invisible Intelligence (Months 2.5-4):** Email/SMS with template sandbox, contracts with multi-party signatures, notifications with type registry, advanced booking steps (questionnaires, add-ons), reviews, check-in/check-out management, booking flow builder, iCal feed export (FR-CAL-16), embeddable widget (premium). **Invisible AI operations:** smart reminder timing, no-show risk indicators, rebooking interval detection, slot demand analysis, smart morning summaries, cross-tenant benchmarking pipeline (data collection). See [AI-STRATEGY.md](AI-STRATEGY.md) §8 for definitive Phase 2 AI scope.
+**Phase 2 -- Communications, Growth & Invisible Intelligence (Months 2.5-4):** Email/SMS with template sandbox, contracts with multi-party signatures, notifications with type registry, advanced booking steps (questionnaires, add-ons), reviews, check-in/check-out management, booking flow builder, iCal feed export (FR-CAL-16), embeddable widget (Pro). **Invisible AI operations:** smart reminder timing, no-show risk indicators, rebooking interval detection, slot demand analysis, smart morning summaries, cross-tenant benchmarking pipeline (data collection). See [AI-STRATEGY.md](AI-STRATEGY.md) §8 for definitive Phase 2 AI scope.
 
-**Phase 3 -- AI Distribution & Automation (Months 4-6):** Mobile app (React Native + Expo -- client booking, push notifications, biometric auth), MCP server + public REST API (headless booking engine) for AI agent discoverability and booking, AI Voice Receptionist (premium), cross-tenant benchmarking UI, natural language business Q&A, workflow automation with triggers and overrides, alternative payment providers (Adyen, PayPal Commerce Platform) via PaymentProvider abstraction, advanced analytics (premium), QuickBooks/Xero integration (premium), i18n, multi-currency. See [AI-STRATEGY.md](AI-STRATEGY.md) §4 for feature taxonomy.
+**Phase 3 -- AI Distribution & Automation (Months 4-6):** Mobile app (React Native + Expo -- client booking, push notifications, biometric auth), MCP server + public REST API (headless booking engine) for AI agent discoverability and booking, AI Voice Receptionist (Pro), cross-tenant benchmarking UI, natural language business Q&A, workflow automation with triggers and overrides, alternative payment providers (Adyen, PayPal Commerce Platform) via PaymentProvider abstraction, advanced analytics (Pro), QuickBooks/Xero integration (Pro), i18n, multi-currency. See [AI-STRATEGY.md](AI-STRATEGY.md) §4 for feature taxonomy.
 
 **Phase 4 -- Scale (Demand-driven, post-launch):** AI recommendations, platform directory, custom domains, multi-location, regional payment providers, partner program, geographic expansion. Phase 4 features ship on demand based on user base metrics, not on a fixed calendar:
 

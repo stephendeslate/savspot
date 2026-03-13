@@ -11,19 +11,7 @@ export const TIER_FEATURES = {
     multiLocation: false,
     customTemplates: false,
   },
-  PREMIUM: {
-    maxStaff: 5,
-    maxBookingsPerMonth: Infinity,
-    smsAllocation: 100,
-    embedModes: ['redirect', 'popup', 'inline'] as const,
-    clientManagement: 'full' as const,
-    contracts: 'full' as const,
-    analytics: 'standard' as const,
-    teamManagement: true,
-    multiLocation: false,
-    customTemplates: true,
-  },
-  ENTERPRISE: {
+  PRO: {
     maxStaff: 15,
     maxBookingsPerMonth: Infinity,
     smsAllocation: 500,
@@ -34,7 +22,6 @@ export const TIER_FEATURES = {
     teamManagement: true,
     multiLocation: true,
     customTemplates: true,
-    perStaffOveragePrice: 5,
   },
 } as const;
 

@@ -21,8 +21,8 @@
 |-------|----------|-----------------|
 | **Phase 1** | ~~Months 1-2.5~~ **COMPLETE** (March 2026) | Multi-tenant platform, business-type preset onboarding (zero-config to live booking page), dynamic booking flow (steps determined by service config), PaymentProvider abstraction interface with Stripe Connect as Phase 1 implementation, offline payment as first-class path, admin CRM with progressive disclosure, client portal, booking page, basic embed widget (redirect mode), two-way calendar sync (FR-CAL-10 moved to Phase 1), basic transactional email (confirmation, receipt, reminders, follow-ups), platform admin CLI scripts. **920 tests passing, live at savspot.co.** |
 | **Soft Launch** | ~1 week post Phase 1 | Personally onboard 5–10 businesses across 1–2 verticals; observe real usage, booking completion, payment flow, and organic sharing behavior; gather signal to inform Phase 2 priorities (see PVD §8a) |
-| **Phase 2** | Months 2.5-4 | Subscription billing infrastructure, advanced email/SMS templates, contracts, check-in/check-out, booking flow builder, notifications, questionnaires, add-ons, reviews, iCal feed export (FR-CAL-16), advanced widget (premium), invisible AI operations (FR-AI-1 through FR-AI-6 -- see §3.15 and [AI-STRATEGY.md](AI-STRATEGY.md)) |
-| **Phase 3** | Months 4-6 | Mobile app (React Native + Expo -- client booking experience, push notifications, biometric auth), MCP server (FR-AI-8), public API, AI Voice Receptionist (FR-AI-7, premium), cross-tenant benchmarking UI, natural language business Q&A, workflow automation, advanced analytics (premium), accounting (premium), i18n, multi-currency, alternative payment providers (Adyen, PayPal Commerce Platform) via PaymentProvider abstraction |
+| **Phase 2** | Months 2.5-4 | Subscription billing infrastructure, advanced email/SMS templates, contracts, check-in/check-out, booking flow builder, notifications, questionnaires, add-ons, reviews, iCal feed export (FR-CAL-16), advanced widget (Pro), invisible AI operations (FR-AI-1 through FR-AI-6 -- see §3.15 and [AI-STRATEGY.md](AI-STRATEGY.md)) |
+| **Phase 3** | Months 4-6 | Mobile app (React Native + Expo -- client booking experience, push notifications, biometric auth), MCP server (FR-AI-8), public API, AI Voice Receptionist (FR-AI-7, Pro), cross-tenant benchmarking UI, natural language business Q&A, workflow automation, advanced analytics (Pro), accounting (Pro), i18n, multi-currency, alternative payment providers (Adyen, PayPal Commerce Platform) via PaymentProvider abstraction |
 | **Phase 4** | Demand-driven (post-launch) | AI recommendations, directory, custom domains, multi-location, partner program, regional payment providers — shipped when user base metrics justify each feature |
 
 ---
@@ -111,8 +111,8 @@
 | FR-PAY-14 | Offline payment first-class path: booking confirms without online payment, invoice with 'Pay Later' status, business marks paid manually. Critical for markets where online payment providers are unavailable. | Must | 1 |
 | FR-PAY-15 | Alternative payment providers (Adyen, PayPal Commerce Platform) via PaymentProvider abstraction | Should | 3 |
 | FR-PAY-16 | Regional payment providers (GCash/Maya for Philippines, Razorpay for India, Mollie for EU) via PaymentProvider abstraction | Could | 4 |
-| FR-PAY-17 | Subscription billing via Stripe Billing: flat-tier plan creation (Free/$29 Premium/$79 Enterprise), upgrade/downgrade with proration, automated recurring invoicing, payment method management | Must | 2 |
-| FR-PAY-18 | Feature entitlement middleware: verify `tenants.subscription_tier` and active feature subscriptions before serving premium-gated requests. Returns HTTP 403 with upgrade prompt for unauthorized access. | Must | 2 |
+| FR-PAY-17 | Subscription billing via Stripe Billing: 2-tier plan creation (Free/$10 Pro), upgrade/downgrade with proration, automated recurring invoicing, payment method management. Annual billing at $8/mo ($96/yr). | Must | 2 |
+| FR-PAY-18 | Feature entitlement middleware: verify `tenants.subscription_tier` and active feature subscriptions before serving Pro-gated requests. Returns HTTP 403 with upgrade prompt for unauthorized access. | Must | 2 |
 | FR-PAY-19 | Subscription lifecycle webhook handling: payment failures with grace period (3 days), involuntary churn (downgrade to free after grace), reactivation | Must | 2 |
 | FR-PAY-20 | Self-service subscription management in Admin CRM: plan selection, feature marketplace, billing history, payment method update, cancellation with feedback | Must | 2 |
 
@@ -128,7 +128,7 @@
 | FR-ACCT-6 | Map Savspot categories to chart-of-accounts | Could | 3 |
 | FR-ACCT-7 | Sync status dashboard in Admin CRM | Could | 3 |
 | FR-ACCT-8 | Manual re-sync for individual/bulk invoices | Could | 3 |
-| FR-ACCT-9 | Accounting gated behind premium subscription | Could | 3 |
+| FR-ACCT-9 | Accounting gated behind Pro subscription | Could | 3 |
 
 ### 3.6 Communications
 
@@ -261,7 +261,7 @@
 | FR-AI-4 | Slot demand analysis: weekly background job analyzing historical booking patterns to identify consistently empty vs. high-demand time slots per tenant. Surface as actionable dashboard card on admin dashboard (FR-CRM-1): "Tuesday 3-5pm has been empty for 6 weeks" or "Saturday 10am fills within 2 hours of opening -- consider extending morning hours." Cards are dismissible. Rendered only when analysis produces actionable signals (not noise). | Should | 2 |
 | FR-AI-5 | Cross-tenant benchmarking pipeline: aggregate anonymized booking metrics (no-show rate, slot utilization, rebooking rate, average booking value) across tenants by business category. Data collection begins in Phase 2 (background job, daily refresh). User-facing benchmark comparisons activate in Phase 3 when 50+ tenants exist in a business category (activation gate — ensures statistical significance). Within active categories, a privacy floor of 4 tenants per filter applies (no benchmark shown for any filter combination with fewer than 4 tenants — prevents de-anonymization). See BRD BR-RULE-9. Tenant opt-out available in settings. Requires Terms of Service clause authorizing de-identified data aggregation. Legal precedent: Zendesk Benchmark, Gusto compensation benchmarking. See [AI-STRATEGY.md](AI-STRATEGY.md) §5.3 for privacy requirements. | Should | 2 |
 | FR-AI-6 | Smart morning summary: upgrade existing morning summary (FR-COM-10) with contextual intelligence. In addition to the day's booking list, include: high no-show-risk appointments flagged, first-time clients noted, schedule gaps identified, yesterday's no-shows highlighted for follow-up. Same delivery channel (SMS or email) and BullMQ job as FR-COM-10 -- this is an enhancement, not a new feature. | Should | 2 |
-| FR-AI-7 | AI Voice Receptionist: voice agent powered by local AI (Ollama in development, cloud inference in production) that answers business phone line after hours, checks real-time availability via existing availability resolver, and books appointments via existing booking session flow. Premium feature gated behind subscription (FR-PAY-18). Validated by industry data: 34% of appointment requests come after hours; Zenoti reports $3-4K/month revenue lift per location from AI receptionist. Phase 3 to allow prototype validation and subscription billing infrastructure (Phase 2) to be in place. | Should | 3 |
+| FR-AI-7 | AI Voice Receptionist: voice agent powered by local AI (Ollama in development, cloud inference in production) that answers business phone line after hours, checks real-time availability via existing availability resolver, and books appointments via existing booking session flow. Pro feature gated behind subscription (FR-PAY-18). Validated by industry data: 34% of appointment requests come after hours; Zenoti reports $3-4K/month revenue lift per location from AI receptionist. Phase 3 to allow prototype validation and subscription billing infrastructure (Phase 2) to be in place. | Should | 3 |
 | FR-AI-8 | MCP server: expose booking, availability, and service data via Model Context Protocol for AI agent discoverability and booking. AI agents can discover businesses by category/location, check real-time availability, and complete bookings programmatically following the same business rules as human users (BR-RULE-6). Fresha reports 50% MoM growth in AI-referred bookings (Feb 2026) -- this is a distribution strategy, not a feature. API-first architecture from Phase 1 means implementation requires building the public interface, not re-architecting. | Must | 3 |
 
 ---
@@ -279,7 +279,7 @@
 | FR-BP-5 | Mobile-responsive design | Must | 1 |
 | FR-BP-6 | Shareable link with Open Graph meta tags and SEO fundamentals: canonical URLs (`savspot.co/{slug}`), dynamic `<title>` and `<meta description>` from business name and description, `robots: index, follow` for published booking pages | Must | 1 |
 | FR-BP-7 | QR code generation for booking URL | Should | 1 |
-| FR-BP-8 | Custom domain support (premium) | Could | 4 |
+| FR-BP-8 | Custom domain support (Pro) | Could | 4 |
 | FR-BP-9 | JSON-LD structured data (schema.org `LocalBusiness` + `Service`) on booking pages; auto-generated `sitemap.xml` for all published booking pages | Should | 1 |
 
 ### 4.2 Embeddable Widget (FR-EMB-*)
@@ -298,7 +298,7 @@
 | FR-EMB-10 | Pre-select service via URL params | Could | 2 |
 | FR-EMB-11 | Real-time availability in date/time picker | Should | 2 |
 | FR-EMB-12 | Guest checkout (no Savspot account needed) | Should | 2 |
-| FR-EMB-13 | Inline and popup embed modes (FR-EMB-2, FR-EMB-3) with branding customization (FR-EMB-5) gated behind premium subscription. Redirect mode (FR-EMB-4) is free for all tiers. | Should | 2 |
+| FR-EMB-13 | Inline and popup embed modes (FR-EMB-2, FR-EMB-3) with branding customization (FR-EMB-5) gated behind Pro subscription. Redirect mode (FR-EMB-4) is free for all tiers. | Should | 2 |
 
 ### 4.3 Client Portal (FR-CP-*)
 
@@ -334,7 +334,7 @@
 | FR-CRM-9 | Booking flow configuration: visual step editor showing which steps are active based on service config. Steps for unconfigured features show as "Configure [feature] to add this step" with a setup link. | Must | 1 |
 | FR-CRM-10 | Business settings: profile, branding, hours, timezone, currency. Progressive disclosure -- basic settings grouped first, advanced settings in collapsible sections. | Must | 1 |
 | FR-CRM-11 | Team management: invite, roles, permissions. **Phase 1 scope:** invite members, assign ADMIN or STAFF role. Granular per-member permission overrides (`permissions` JSONB) deferred to Phase 2. | Should | 1 |
-| FR-CRM-12 | Advanced analytics dashboard (premium) | Should | 3 |
+| FR-CRM-12 | Advanced analytics dashboard (Pro) | Should | 3 |
 | FR-CRM-13 | Notification center: in-app notifications | Must | 2 |
 | FR-CRM-14 | Notes system: internal notes on bookings and clients | Should | 2 |
 | FR-CRM-15 | Contract management | Could | 2 |
@@ -342,9 +342,9 @@
 | FR-CRM-17 | Discount/promo code management | Should | 1 |
 | FR-CRM-18 | Data import for clients: Phase 1 delivers an admin CLI script (pnpm admin:import-clients) that accepts a CSV file and a source platform identifier (BOOKSY, FRESHA, SQUARE, VAGARO, CSV_GENERIC). Pre-built column mappings for known platforms auto-map common schemas (Booksy: First Name, Last Name, Email, Phone, Notes). Deduplication by email (primary) or phone (secondary) — on match, merge empty fields and preserve existing data. Validation preview before commit. Source platform tracking via `import_jobs` table (SRS-2 §13a). Phase 2 delivers a self-service import wizard in Admin CRM (FR-IMP-2): file upload → column mapping screen (pre-filled for known platforms, manual override for CSV_GENERIC) → preview → confirm → background processing via BullMQ. This is a genuine competitive differentiator — all major competitors (GlossGenius, Glamiris, Goldie, Fluum, Bookedin) require emailing files to support for manual import. | Should | 1 |
 | FR-CRM-19 | Booking page branding configuration | Must | 1 |
-| FR-CRM-20 | Embed code generator (premium) | Should | 2 |
+| FR-CRM-20 | Embed code generator (Pro) | Should | 2 |
 | FR-CRM-21 | Calendar integration settings | Must | 1 |
-| FR-CRM-22 | Accounting integration settings (premium) | Could | 3 |
+| FR-CRM-22 | Accounting integration settings (Pro) | Could | 3 |
 | FR-CRM-23 | Check-in/check-out management: staff-initiated check-in and check-out for confirmed bookings with staff attribution, no-show marking, and excess-hour fee calculation on checkout. See SRS-3 §3 for state machine. | Should | 2 |
 | FR-CRM-24 | Review management: view submitted reviews, reply to reviews (sets `response` and `responded_at`), toggle `is_published` visibility. Data model supports this via SRS-2 §12 `reviews` table. | Should | 2 |
 | FR-CRM-25 | Referral link management: generate, name, activate/deactivate, and track usage of referral links (`savspot.co/{slug}?ref={code}`). Bookings via referral links are tagged `source = REFERRAL` for commission eligibility (see BRD §BR-RULE-2). Data model: SRS-2 `referral_links` table. | Should | 3 |
@@ -377,7 +377,7 @@
 
 **Free Tier:** Today's bookings count/revenue, new clients this week, pending action items, monthly payment summary (total collected, total outstanding, total refunded for current and previous month).
 
-**Premium Tier:**
+**Pro Tier:**
 
 | Category | Data Points |
 |----------|-------------|

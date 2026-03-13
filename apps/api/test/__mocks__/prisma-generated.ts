@@ -143,8 +143,7 @@ export enum ConsentPurpose {
 
 export enum SubscriptionTier {
   FREE = 'FREE',
-  PREMIUM = 'PREMIUM',
-  ENTERPRISE = 'ENTERPRISE',
+  PRO = 'PRO',
 }
 
 export enum SubscriptionStatus {

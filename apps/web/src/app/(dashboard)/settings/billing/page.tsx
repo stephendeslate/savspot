@@ -47,16 +47,14 @@ interface Subscription {
 
 // ---------- Helpers ----------
 
-const TIER_ORDER = ['FREE', 'PREMIUM', 'ENTERPRISE'];
+const TIER_ORDER = ['FREE', 'PRO'];
 
 function getTierBadge(tier: string) {
   switch (tier) {
     case 'FREE':
       return <Badge className="bg-gray-100 text-gray-800">Free</Badge>;
-    case 'PREMIUM':
-      return <Badge className="bg-blue-100 text-blue-800">Premium</Badge>;
-    case 'ENTERPRISE':
-      return <Badge className="bg-amber-100 text-amber-800">Enterprise</Badge>;
+    case 'PRO':
+      return <Badge className="bg-blue-100 text-blue-800">Pro</Badge>;
     default:
       return <Badge className="bg-gray-100 text-gray-800">{tier}</Badge>;
   }
@@ -399,7 +397,7 @@ export default function BillingSettingsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               {plans.map((plan) => {
                 const isCurrentPlan =
                   subscription?.tier === plan.tier;

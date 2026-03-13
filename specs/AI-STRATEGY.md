@@ -128,7 +128,7 @@ Features that make Savspot businesses discoverable and bookable by AI agents. Th
 | **MCP server** | Expose booking, availability, and service data via Model Context Protocol. AI agents can discover businesses, check real-time availability, and complete bookings programmatically. | 3 | Distribution |
 | **Public REST API** | Headless booking engine for custom integrations and AI agent access. | 3 | Distribution |
 | **Semantic service descriptions** | Structured, machine-readable service metadata (schema.org + custom vocabulary) enabling AI agents to understand what a business offers without human interpretation. | 3 | Discovery |
-| **AI Voice Receptionist** | Ollama-powered voice agent that answers business phone line after hours, checks real-time availability, and books appointments. Premium feature. | 3 | Revenue + operational |
+| **AI Voice Receptionist** | Ollama-powered voice agent that answers business phone line after hours, checks real-time availability, and books appointments. Pro feature. | 3 | Revenue + operational |
 
 **MCP server timing rationale:** Fresha's 50% MoM growth in AI-referred bookings validates that AI search is becoming a real booking channel. MCP infrastructure is mature (97M+ monthly SDK downloads). Booking-specific agent usage is early but growing. Phase 3 (months 4-6) positions Savspot to be discoverable when agent-mediated booking reaches meaningful scale (estimated 2027-2028 based on current growth curves). The API-first architecture from Phase 1 means MCP server implementation requires building the public interface, not re-architecting.
 

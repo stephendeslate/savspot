@@ -58,7 +58,7 @@ Tenant is root aggregate; all business data scoped via `tenant_id` + RLS. Bookin
 | payment_provider | ENUM | DEFAULT 'STRIPE' | STRIPE, ADYEN, PAYPAL, OFFLINE; selects PaymentProvider implementation at runtime via NestJS DI |
 | payment_provider_account_id | VARCHAR | | Provider-specific connected account ID (e.g., Stripe Connect Express acct_xxx) |
 | payment_provider_onboarded | BOOLEAN | DEFAULT false | |
-| subscription_tier | ENUM | DEFAULT 'FREE' | FREE, PREMIUM, ENTERPRISE |
+| subscription_tier | ENUM | DEFAULT 'FREE' | FREE, PRO |
 | subscription_provider_id | VARCHAR | | Subscription billing provider ID (Phase 2 -- manually managed via database in Phase 1; see BRD §2) |
 | is_published | BOOLEAN | DEFAULT false | Transitions to `true` when tenant completes Phase A onboarding (first service created). Controls visibility in platform directory (Phase 4). Does NOT gate booking page access -- unpublished tenants can still share their booking URL directly. Transitions back to `false` only via admin action. |
 | search_vector | tsvector | | Auto-maintained by trigger (see §15); weighted: name='A', description='B' |
@@ -139,7 +139,7 @@ The `tenant_memberships.role` field determines the base permission set. The `per
 | | Manage API keys (create/rotate/delete) | Yes | No | No |
 | | Manage subscription & billing | Yes | No | No |
 | | Configure tax rates | Yes | Yes | No |
-| | Manage custom domain (Premium) | Yes | No | No |
+| | Manage custom domain (Pro) | Yes | No | No |
 | **Services** | View services list & details | Yes | Yes | Yes |
 | | Create / edit / archive services | Yes | Yes | No |
 | | Configure pricing (tiers, deposits, addons) | Yes | Yes | No |
@@ -175,11 +175,11 @@ The `tenant_memberships.role` field determines the base permission set. The `per
 | **Communications** | View message threads & notifications | Yes | Yes | Yes |
 | | Send messages to clients | Yes | Yes | Yes |
 | | Configure workflow automations (simple) | Yes | Yes | No |
-| | Configure workflow templates (advanced, Premium) | Yes | Yes | No |
+| | Configure workflow templates (advanced, Pro) | Yes | Yes | No |
 | **Calendar Sync** | View connected calendars | Yes | Yes | Yes |
 | | Connect / disconnect external calendars | Yes | Yes | No |
 | **Analytics** | View dashboard metrics (free) | Yes | Yes | No |
-| | View advanced reports / export (Premium) | Yes | Yes | No |
+| | View advanced reports / export (Pro) | Yes | Yes | No |
 | **Team** | View team members & pending invitations | Yes | Yes | No |
 | | Invite members (ADMIN or STAFF) | Yes | Yes | No |
 | | Remove team members | Yes | No | No |
@@ -625,7 +625,7 @@ id (PK), booking_id (FK), tenant_id (FK, RLS), reminder_type (BOOKING/PAYMENT/QU
 
 ## 10. Frontend Domain
 
-### `booking_flow_analytics` (Phase 3 -- Premium Analytics)
+### `booking_flow_analytics` (Phase 3 -- Pro Analytics)
 id (PK), tenant_id (FK, RLS), flow_id (FK), date (DATE), step_metrics (JSONB), total_sessions, completed_sessions, conversion_rate, total_revenue, bounce_rate, avg_completion_time_sec, created_at. **Unique:** (tenant_id, flow_id, date).
 
 > Supports FR-CRM-12 premium conversion analytics (flow completion rate, step drop-off, abandonment rate). Table is empty in Phase 1-2; data collection begins in Phase 3.
@@ -975,7 +975,7 @@ id (PK), tenant_id (FK->tenants, RLS), author_id (FK->users, NOT NULL), entity_t
 | Tier | Storage Limit | Enforcement |
 |------|--------------|-------------|
 | Free | 500 MB | `POST /api/uploads/presign` returns `413` when quota exceeded |
-| Premium | 5 GB | Same enforcement; quota displayed in admin settings |
+| Pro | 5 GB | Same enforcement; quota displayed in admin settings |
 
 > **Implementation:** The `POST /api/uploads/presign` endpoint validates `content_type` against allowed MIME types and `file_size` against the context-specific limit before generating the presigned URL. Total tenant storage is tracked via `SUM(file_size)` across `gallery_photos` and other upload tables. Quota enforcement is per-tenant, not per-user.
 

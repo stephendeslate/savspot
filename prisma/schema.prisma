@@ -43,8 +43,7 @@ enum PaymentProviderType {
 
 enum SubscriptionTier {
   FREE
-  PREMIUM
-  ENTERPRISE
+  PRO
 }
 
 enum TenantStatus {

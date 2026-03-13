@@ -96,7 +96,7 @@ Phase 3 added ~80 features across 10 work streams, delivering 60+ new API endpoi
 
 - **Analytics dashboard endpoints** surface Phase 2 benchmark data
 - **Privacy floors** enforced — minimum tenant count before exposing category data
-- **Tier-gated access** — benchmarking data requires Premium+ subscription
+- **Tier-gated access** — benchmarking data requires Pro subscription
 
 ---
 

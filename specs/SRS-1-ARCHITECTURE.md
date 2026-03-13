@@ -47,7 +47,7 @@ This document covers the technology stack, system architecture, multi-tenancy im
 | Auth | Custom NestJS + Passport.js | JWT, OAuth 2.0, API key authentication |
 | Google Calendar | Google Calendar API v3 | OAuth 2.0, one-way + two-way sync |
 | Outlook Calendar | Microsoft Graph API | OAuth 2.0, calendar sync |
-| Accounting (Phase 3) | QuickBooks Online / Xero | Premium accounting integration |
+| Accounting (Phase 3) | QuickBooks Online / Xero | Pro accounting integration |
 | Maps | Mapbox or Google Maps | Location services, address autocomplete |
 | DNS/CDN | Cloudflare | DNS management, CDN, DDoS protection |
 

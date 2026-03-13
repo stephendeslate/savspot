@@ -38,7 +38,7 @@ Phase 2 builds on the production-ready Phase 1 platform (87 Prisma models, 39 Ne
 **Scope:** ~130 requirements across 8 workstreams (mobile app deferred to Phase 3).
 
 **Key decisions made:**
-- 3-tier pricing (Free / Premium $29 / Enterprise $79) with AI free on all tiers
+- 2-tier pricing (Free / Pro $10) with AI free on all tiers
 - SMS migration from Twilio to Plivo (~$36K/year savings at scale)
 - Digital signatures built in-house with `signature_pad` (no third-party API)
 - Embed widget uses iframe + lightweight JS SDK (same as Calendly/Acuity)
@@ -48,43 +48,42 @@ Phase 2 builds on the production-ready Phase 1 platform (87 Prisma models, 39 Ne
 
 ## 2. Resolved Decisions
 
-### 2.1 Subscription Tiers — 3 Tiers + Strategic Add-ons
+### 2.1 Subscription Tiers — 2 Tiers (Free + Pro)
 
-Reduced from 4 planned tiers to 3. Industry data shows 3 tiers optimizes conversion and reduces decision paralysis. Hybrid flat-rate + per-staff pricing above threshold captures value without penalizing growth.
+Simplified to 2 tiers. A single Pro tier at $10/mo unlocks all features, maximizing conversion with zero decision paralysis. The 1% processing fee on all transactions provides baseline revenue from day one.
 
-**Note:** Tier names use the existing Prisma `SubscriptionTier` enum values: `FREE`, `PREMIUM`, `ENTERPRISE`. No enum migration is needed. Marketing names can differ (e.g., "Pro" on the pricing page maps to `PREMIUM` internally).
+**Note:** Tier names use the Prisma `SubscriptionTier` enum values: `FREE`, `PRO`. Enum migration from the previous `FREE`/`PREMIUM`/`ENTERPRISE` values is required.
 
-| | **Free** | **Premium** ($29/mo) | **Enterprise** ($79/mo) |
-|---|---|---|---|
-| **Target** | Solo practitioner testing | Solo/small team growing | Multi-staff, multi-location |
-| **Staff** | 1 | Up to 5 | Up to 15 (+$5/staff above) |
-| **Bookings** | 100/mo | Unlimited | Unlimited |
-| **Core booking + calendar** | Yes | Yes | Yes |
-| **Client management** | Basic | Full (history, notes, tags) | Full + custom fields |
-| **Email notifications** | Yes | Yes + customizable templates | Yes |
-| **SMS notifications** | No | 100/mo included | 500/mo included |
-| **AI Smart Reminders** | Yes | Yes | Yes |
-| **AI No-show Risk** | Yes | Yes | Yes |
-| **AI Rebooking Optimization** | Yes | Yes | Yes |
-| **Online payments** | Stripe (3.9%+30c) | Stripe (3.9%+30c) | Stripe (3.9%+30c) |
-| **Embeddable widget** | Redirect only | Branded popup/inline | Branded popup/inline |
-| **Analytics** | Basic | Standard | Advanced |
-| **Team management** | No | Basic roles | Full RBAC + granular permissions |
-| **Multi-location** | No | No | Yes |
-| **Contracts & quotes** | Basic (single-signer) | Full (multi-party) | Full (multi-party) |
-| **AI Voice Receptionist** | No | Add-on ($49/mo) | Add-on ($49/mo) |
-| **Priority support** | No | No | Yes |
+| | **Free** | **Pro** ($10/mo) |
+|---|---|---|
+| **Target** | Solo practitioner testing | Any business ready to grow |
+| **Staff** | 1 | Unlimited |
+| **Bookings** | 100/mo | Unlimited |
+| **Core booking + calendar** | Yes | Yes |
+| **Client management** | Basic | Full (history, notes, tags, custom fields) |
+| **Email notifications** | Yes | Yes + customizable templates |
+| **SMS notifications** | No | 500/mo included |
+| **AI Smart Reminders** | Yes | Yes |
+| **AI No-show Risk** | Yes | Yes |
+| **AI Rebooking Optimization** | Yes | Yes |
+| **Online payments** | Stripe (3.9%+30c) | Stripe (3.9%+30c) |
+| **Embeddable widget** | Redirect only | Branded popup/inline |
+| **Analytics** | Basic | Advanced |
+| **Team management** | No | Full RBAC + granular permissions |
+| **Multi-location** | No | Yes |
+| **Contracts & quotes** | Basic (single-signer) | Full (multi-party) |
+| **AI Voice Receptionist** | No | Add-on ($49/mo) |
+| **Priority support** | No | Yes |
 
-**BR-RULE-8 compliance (progressive complexity):** Contracts & quotes follow "data presence is configuration" — basic single-signer contracts are available on Free tier, activated by creating a contract template. Multi-party signing (6 signer roles) is the tier-gated enhancement for Premium/Enterprise. Team management similarly follows BR-RULE-8: adding staff activates team features; RBAC granularity is the tier-gated enhancement.
+**BR-RULE-8 compliance (progressive complexity):** Contracts & quotes follow "data presence is configuration" — basic single-signer contracts are available on Free tier, activated by creating a contract template. Multi-party signing (6 signer roles) is the Pro-gated enhancement. Team management similarly follows BR-RULE-8: adding staff activates team features; RBAC granularity is the Pro-gated enhancement.
 
-**Payment processing:** All tiers pay 3.9% + 30c per transaction (2.9% Stripe fee + 1.0% SavSpot platform fee per BRD BR-RULE-3). Platform fee is universal and not tier-differentiated.
+**Payment processing:** All tiers pay 3.9% + 30c per transaction (2.9% Stripe fee + 1.0% SavSpot platform fee per BRD BR-RULE-3). The 1% platform fee applies to all transactions on all tiers.
 
-**Annual billing:** 20% discount ($23/mo and $63/mo).
+**Annual billing:** 20% discount ($8/mo, billed annually at $96/yr).
 
-**BRD alignment notes:** The BRD now reflects flat-tier pricing (Free/$29 Premium/$79 Enterprise) per this plan. The following tier-specific limits are plan additions that supplement the BRD tier table:
-- Free tier: 100 bookings/month cap, 1 staff limit, "Basic" client management (history visible, notes/tags gated to Premium)
-- Premium: 5 staff limit, 100 SMS/month allocation
-- Enterprise: 15 staff limit (+$5/staff overage), 500 SMS/month allocation
+**BRD alignment notes:** The BRD now reflects 2-tier pricing (Free/$10 Pro) per this plan. The following tier-specific limits are plan additions that supplement the BRD tier table:
+- Free tier: 100 bookings/month cap, 1 staff limit, "Basic" client management (history visible, notes/tags gated to Pro)
+- Pro: Unlimited staff, 500 SMS/month allocation, all features unlocked
 - Annual billing: 20% discount (not in BRD or PRD)
 
 **Phase 3+ features NOT in Phase 2 tier table:**
@@ -94,8 +93,10 @@ Reduced from 4 planned tiers to 3. Industry data shows 3 tiers optimizes convers
 - Workflow automation CRUD (FR-CRM-16, Phase 3 — Phase 1-2 uses preset automations with `is_active` toggle only per SRS-2 §9)
 
 **Rationale:**
-- $29/mo competitive with Acuity ($16-49), Vagaro ($30), Booksy ($29.99)
-- $79/mo undercuts Mindbody ($99-700) significantly
+- $10/mo aggressively undercuts Acuity ($16-49), Vagaro ($30), Booksy ($29.99), and Mindbody ($99-700)
+- 2-tier simplicity eliminates decision paralysis and reduces support burden
+- All features at Pro means no upsell friction once a business converts
+- 1% processing fee on all transactions ensures revenue from day one regardless of subscription status
 - Invisible AI free on all tiers creates a competitive moat and data flywheel
 - AI Voice Receptionist as usage-priced add-on ($49/mo for 200 calls) has real compute costs justifying separate pricing
 
@@ -216,7 +217,7 @@ This is the revenue engine — gates all premium features in later workstreams.
 
 - Create `subscriptions` module (`apps/api/src/subscriptions/`)
 - Integrate Stripe Billing API: Products, Prices, Subscriptions
-- Map subscription tiers (`FREE`, `PREMIUM`, `ENTERPRISE`) to Stripe Products
+- Map subscription tiers (`FREE`, `PRO`) to Stripe Products
 - Handle plan creation, upgrade/downgrade with proration
 - Automated recurring invoicing via Stripe
 - Store `subscription_provider_id` on Tenant (column exists, currently manual)
@@ -226,7 +227,7 @@ This is the revenue engine — gates all premium features in later workstreams.
 ### 4.2 Feature Entitlement Middleware (FR-PAY-18)
 
 - Create `FeatureEntitlementGuard` in `common/guards/`
-- Decorator: `@RequiresFeature('embed_widget')` or `@RequiresTier('PREMIUM')`
+- Decorator: `@RequiresFeature('embed_widget')` or `@RequiresTier('PRO')`
 - Check `tenant.subscription_tier` + feature add-on subscriptions
 - Return 403 with clear error when feature not entitled
 - Cache entitlements in Redis with 5-minute TTL (invalidate immediately on subscription change webhook)
@@ -809,7 +810,7 @@ apps/web/src/app/embed/book/[slug]/
 ### 9.4 Widget Features
 
 - **Branding inheritance (FR-EMB-5):** Colors, logo from tenant config
-- **Premium gating (FR-EMB-13):** Redirect = FREE, popup/inline + branding = PREMIUM+
+- **Pro gating (FR-EMB-13):** Redirect = FREE, popup/inline + branding = PRO
 - **Embed code generator (FR-EMB-6, FR-CRM-20):** Admin CRM at `/settings/embed` — mode selection, customization, live preview, copy-to-clipboard
 - **Source tracking (FR-EMB-9):** `WIDGET` booking source for attribution analytics
 - **Pre-select service (FR-EMB-10):** Via URL params or SDK config
@@ -1338,7 +1339,7 @@ Every new service and controller must have unit tests. Target: 90%+ branch cover
 
 | Suite | Flows Covered |
 |---|---|
-| `subscription-flow.spec.ts` | Free → Premium upgrade, billing history, cancellation |
+| `subscription-flow.spec.ts` | Free → Pro upgrade, billing history, cancellation |
 | `booking-flow-advanced.spec.ts` | Booking with questionnaire + add-ons + contract signing |
 | `notification-preferences.spec.ts` | Set preferences, verify notification delivery respects them |
 | `embed-widget.spec.ts` | All three modes (button, popup, inline) on test host page |
