@@ -29,6 +29,7 @@ interface Client {
   notes: string | null;
   totalBookings: number;
   totalRevenue: string;
+  currency: string | null;
   lastVisit: string | null;
   createdAt: string;
 }
@@ -104,7 +105,9 @@ export default function ClientsPage() {
   const clients = useMemo(() => clientsRes?.data ?? [], [clientsRes?.data]);
   const total = clientsRes?.meta?.total ?? 0;
   const error = queryError
-    ? (queryError instanceof Error ? queryError.message : 'Failed to load clients')
+    ? (process.env.NODE_ENV === 'development' && queryError instanceof Error
+        ? queryError.message
+        : 'Failed to load clients')
     : null;
   const totalPages = Math.ceil(total / PAGE_LIMIT);
 
@@ -308,7 +311,7 @@ export default function ClientsPage() {
                     </div>
                     <div className="text-center">
                       <p className="text-lg font-semibold">
-                        {formatAmount(client.totalRevenue, 'USD')}
+                        {formatAmount(client.totalRevenue, client.currency ?? 'USD')}
                       </p>
                       <p className="text-xs text-muted-foreground">Revenue</p>
                     </div>

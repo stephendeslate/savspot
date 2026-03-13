@@ -17,7 +17,7 @@ export function useClients(params: Record<string, string> = {}) {
   const { tenantId } = useTenant();
   const searchParams = new URLSearchParams(params).toString();
   return useQuery({
-    queryKey: queryKeys.clients(tenantId!, params),
+    queryKey: queryKeys.clients(tenantId ?? '', params),
     queryFn: () =>
       apiClient.getRaw<PaginatedResponse<unknown>>(
         `/api/tenants/${tenantId}/clients${searchParams ? `?${searchParams}` : ''}`,

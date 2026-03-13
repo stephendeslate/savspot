@@ -187,20 +187,22 @@ export class AdyenWebhookController {
           });
           if (payment) {
             const previousStatus = payment.status;
-            await this.prisma.payment.update({
-              where: { id: payment.id },
-              data: { status: 'REFUNDED' },
-            });
-            await this.prisma.paymentStateHistory.create({
-              data: {
-                paymentId: payment.id,
-                tenantId: payment.tenantId,
-                fromState: previousStatus,
-                toState: 'REFUNDED',
-                triggeredBy: 'WEBHOOK',
-                reason: 'Adyen refund webhook confirmation',
-              },
-            });
+            await this.prisma.$transaction([
+              this.prisma.payment.update({
+                where: { id: payment.id },
+                data: { status: 'REFUNDED' },
+              }),
+              this.prisma.paymentStateHistory.create({
+                data: {
+                  paymentId: payment.id,
+                  tenantId: payment.tenantId,
+                  fromState: previousStatus,
+                  toState: 'REFUNDED',
+                  triggeredBy: 'WEBHOOK',
+                  reason: 'Adyen refund webhook confirmation',
+                },
+              }),
+            ]);
           }
         }
         break;

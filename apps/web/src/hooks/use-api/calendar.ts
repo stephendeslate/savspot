@@ -6,7 +6,7 @@ import { queryKeys } from './query-keys';
 export function useCalendarConnections() {
   const { tenantId } = useTenant();
   return useQuery({
-    queryKey: queryKeys.calendarConnections(tenantId!),
+    queryKey: queryKeys.calendarConnections(tenantId ?? ''),
     queryFn: () =>
       apiClient.get<{ id: string }[]>(
         `/api/tenants/${tenantId}/calendar/connections`,

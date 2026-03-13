@@ -6,7 +6,7 @@ import { queryKeys } from './query-keys';
 export function useAvailabilityRules() {
   const { tenantId } = useTenant();
   return useQuery({
-    queryKey: queryKeys.availabilityRules(tenantId!),
+    queryKey: queryKeys.availabilityRules(tenantId ?? ''),
     queryFn: () =>
       apiClient.get<{ id: string }[]>(
         `/api/tenants/${tenantId}/availability-rules`,

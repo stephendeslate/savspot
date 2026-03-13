@@ -16,7 +16,7 @@ interface Notification {
 export function useNotifications(limit = 10) {
   const { tenantId } = useTenant();
   return useQuery({
-    queryKey: queryKeys.notifications(tenantId!),
+    queryKey: queryKeys.notifications(tenantId ?? ''),
     queryFn: () =>
       apiClient.get<Notification[]>(
         `/api/tenants/${tenantId}/notifications?limit=${limit}`,
@@ -28,7 +28,7 @@ export function useNotifications(limit = 10) {
 export function useUnreadCount() {
   const { tenantId } = useTenant();
   return useQuery({
-    queryKey: queryKeys.unreadCount(tenantId!),
+    queryKey: queryKeys.unreadCount(tenantId ?? ''),
     queryFn: () =>
       apiClient.get<{ count: number }>(
         `/api/tenants/${tenantId}/notifications/unread-count`,

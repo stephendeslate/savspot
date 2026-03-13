@@ -418,20 +418,22 @@ describe('AccountingService', () => {
   describe('getTokensFromConnection', () => {
     it('maps QuickBooks connection to AccountingTokens with realmId', () => {
       const tokens = service.getTokensFromConnection({
-        accessToken: 'at',
-        refreshToken: 'rt',
+        accessToken: service.encryptToken('at'),
+        refreshToken: service.encryptToken('rt'),
         tokenExpiresAt: new Date('2026-06-01'),
         companyId: 'realm-1',
         provider: 'QUICKBOOKS',
       });
 
+      expect(tokens.accessToken).toBe('at');
+      expect(tokens.refreshToken).toBe('rt');
       expect(tokens.realmId).toBe('realm-1');
       expect(tokens.tenantId).toBeUndefined();
     });
 
     it('maps Xero connection to AccountingTokens with tenantId', () => {
       const tokens = service.getTokensFromConnection({
-        accessToken: 'at',
+        accessToken: service.encryptToken('at'),
         refreshToken: null,
         tokenExpiresAt: null,
         companyId: 'xero-tenant',

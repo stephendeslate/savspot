@@ -19,7 +19,7 @@ interface Service {
 export function useServices() {
   const { tenantId } = useTenant();
   return useQuery({
-    queryKey: queryKeys.services(tenantId!),
+    queryKey: queryKeys.services(tenantId ?? ''),
     queryFn: () =>
       apiClient.get<Service[]>(`/api/tenants/${tenantId}/services`),
     enabled: !!tenantId,

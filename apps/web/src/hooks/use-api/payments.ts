@@ -6,7 +6,7 @@ import { queryKeys } from './query-keys';
 export function useStripeStatus() {
   const { tenantId } = useTenant();
   return useQuery({
-    queryKey: queryKeys.stripeStatus(tenantId!),
+    queryKey: queryKeys.stripeStatus(tenantId ?? ''),
     queryFn: () =>
       apiClient.get<{ connected: boolean }>(
         `/api/tenants/${tenantId}/payments/connect/status`,
@@ -19,7 +19,7 @@ export function useStripeStatus() {
 export function usePaymentStats() {
   const { tenantId } = useTenant();
   return useQuery({
-    queryKey: queryKeys.paymentStats(tenantId!),
+    queryKey: queryKeys.paymentStats(tenantId ?? ''),
     queryFn: () =>
       apiClient.get<{ totalRevenue: number; currency: string }>(
         `/api/tenants/${tenantId}/payments/stats`,

@@ -315,42 +315,44 @@ export class PaymentsService {
 
     const previousStatus = payment.status;
 
-    // Update payment status
-    await this.prisma.payment.update({
-      where: { id: payment.id },
-      data: { status: 'SUCCEEDED' },
-    });
-
-    // Create state history
-    await this.prisma.paymentStateHistory.create({
-      data: {
-        paymentId: payment.id,
-        tenantId: payment.tenantId,
-        fromState: previousStatus,
-        toState: 'SUCCEEDED',
-        triggeredBy: 'WEBHOOK',
-        reason: 'Payment succeeded via Stripe webhook',
-      },
-    });
-
-    // Confirm the booking if it is PENDING
-    if (payment.booking.status === 'PENDING') {
-      await this.prisma.booking.update({
-        where: { id: payment.bookingId },
-        data: { status: 'CONFIRMED' },
-      });
-
-      await this.prisma.bookingStateHistory.create({
+    // Wrap all DB writes in a transaction for atomicity
+    const txOps: Prisma.PrismaPromise<unknown>[] = [
+      this.prisma.payment.update({
+        where: { id: payment.id },
+        data: { status: 'SUCCEEDED' },
+      }),
+      this.prisma.paymentStateHistory.create({
         data: {
-          bookingId: payment.bookingId,
+          paymentId: payment.id,
           tenantId: payment.tenantId,
-          fromState: 'PENDING',
-          toState: 'CONFIRMED',
+          fromState: previousStatus,
+          toState: 'SUCCEEDED',
           triggeredBy: 'WEBHOOK',
-          reason: 'Payment succeeded — booking auto-confirmed',
+          reason: 'Payment succeeded via Stripe webhook',
         },
-      });
+      }),
+    ];
+
+    if (payment.booking.status === 'PENDING') {
+      txOps.push(
+        this.prisma.booking.update({
+          where: { id: payment.bookingId },
+          data: { status: 'CONFIRMED' },
+        }),
+        this.prisma.bookingStateHistory.create({
+          data: {
+            bookingId: payment.bookingId,
+            tenantId: payment.tenantId,
+            fromState: 'PENDING',
+            toState: 'CONFIRMED',
+            triggeredBy: 'WEBHOOK',
+            reason: 'Payment succeeded — booking auto-confirmed',
+          },
+        }),
+      );
     }
+
+    await this.prisma.$transaction(txOps);
 
     // Load booking details for event payload
     const fullBooking = await this.prisma.booking.findFirst({
