@@ -3,17 +3,17 @@
 -- 2. Remove old enum values, add new PRO value
 
 -- Step 1: Update all PREMIUM and ENTERPRISE tenants to use a temporary text column
-ALTER TABLE "Tenant" ALTER COLUMN "subscription_tier" TYPE TEXT;
+ALTER TABLE "tenants" ALTER COLUMN "subscription_tier" TYPE TEXT;
 
 -- Step 2: Migrate data
-UPDATE "Tenant" SET "subscription_tier" = 'PRO' WHERE "subscription_tier" IN ('PREMIUM', 'ENTERPRISE');
+UPDATE "tenants" SET "subscription_tier" = 'PRO' WHERE "subscription_tier" IN ('PREMIUM', 'ENTERPRISE');
 
 -- Step 3: Drop old enum and create new one
 DROP TYPE "SubscriptionTier";
 CREATE TYPE "SubscriptionTier" AS ENUM ('FREE', 'PRO');
 
 -- Step 4: Convert column back to enum
-ALTER TABLE "Tenant" ALTER COLUMN "subscription_tier" TYPE "SubscriptionTier" USING "subscription_tier"::"SubscriptionTier";
+ALTER TABLE "tenants" ALTER COLUMN "subscription_tier" TYPE "SubscriptionTier" USING "subscription_tier"::"SubscriptionTier";
 
 -- Step 5: Re-apply default
-ALTER TABLE "Tenant" ALTER COLUMN "subscription_tier" SET DEFAULT 'FREE';
+ALTER TABLE "tenants" ALTER COLUMN "subscription_tier" SET DEFAULT 'FREE';
