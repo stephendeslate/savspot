@@ -8,6 +8,7 @@ import {
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { QuickBooksProvider } from './providers/quickbooks.provider';
 import { XeroProvider } from './providers/xero.provider';
@@ -27,6 +28,8 @@ export class AccountingService {
   private readonly logger = new Logger(AccountingService.name);
 
   private readonly providers: Record<string, AccountingProviderInterface>;
+  private readonly encryptionKey: Buffer;
+  private readonly stateHmacKey: Buffer;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -39,6 +42,22 @@ export class AccountingService {
       QUICKBOOKS: this.quickBooksProvider,
       XERO: this.xeroProvider,
     };
+
+    const encKey = this.configService.get<string>('ENCRYPTION_KEY');
+    if (!encKey) {
+      this.logger.warn(
+        'ENCRYPTION_KEY not set — accounting encryption will use a non-persistent key. Set this for production.',
+      );
+    }
+    this.encryptionKey = crypto
+      .createHash('sha256')
+      .update(encKey || crypto.randomBytes(32).toString('hex'))
+      .digest();
+    this.stateHmacKey = crypto
+      .createHash('sha256')
+      .update(this.encryptionKey)
+      .update('oauth-state')
+      .digest();
   }
 
   async getConnections(tenantId: string) {
@@ -58,7 +77,8 @@ export class AccountingService {
   async initiateOAuth(tenantId: string, provider: string) {
     const providerImpl = this.getProvider(provider);
     const redirectUri = this.getCallbackUrl(provider);
-    const authUrl = await providerImpl.getAuthUrl(tenantId, redirectUri);
+    const state = this.createSignedState({ tenantId, provider: provider.toUpperCase() });
+    const authUrl = await providerImpl.getAuthUrl(tenantId, redirectUri, state);
 
     return { authUrl };
   }
@@ -67,15 +87,7 @@ export class AccountingService {
     const providerImpl = this.getProvider(provider);
     const redirectUri = this.getCallbackUrl(provider);
 
-    let stateData: { tenantId: string; provider: string };
-    try {
-      stateData = JSON.parse(Buffer.from(state, 'base64url').toString()) as {
-        tenantId: string;
-        provider: string;
-      };
-    } catch {
-      throw new BadRequestException('Invalid state parameter');
-    }
+    const stateData = this.verifySignedState<{ tenantId: string; provider: string }>(state);
 
     if (stateData.provider !== provider.toUpperCase()) {
       throw new BadRequestException('Provider mismatch in state parameter');
@@ -94,8 +106,8 @@ export class AccountingService {
       await this.prisma.accountingConnection.update({
         where: { id: existingConnection.id },
         data: {
-          accessToken: tokens.accessToken,
-          refreshToken: tokens.refreshToken,
+          accessToken: this.encryptToken(tokens.accessToken),
+          refreshToken: this.encryptToken(tokens.refreshToken),
           tokenExpiresAt: tokens.expiresAt,
           companyId: tokens.realmId ?? tokens.tenantId ?? existingConnection.companyId,
           status: 'ACTIVE',
@@ -113,8 +125,8 @@ export class AccountingService {
       data: {
         tenantId: stateData.tenantId,
         provider: provider.toUpperCase() as 'QUICKBOOKS' | 'XERO',
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
+        accessToken: this.encryptToken(tokens.accessToken),
+        refreshToken: this.encryptToken(tokens.refreshToken),
         tokenExpiresAt: tokens.expiresAt,
         companyId: tokens.realmId ?? tokens.tenantId,
         status: 'ACTIVE',
@@ -350,12 +362,76 @@ export class AccountingService {
     };
   }
 
+  encryptToken(token: string): string {
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', this.encryptionKey, iv);
+    const encrypted = Buffer.concat([
+      cipher.update(token, 'utf8'),
+      cipher.final(),
+    ]);
+    const tag = cipher.getAuthTag();
+
+    return `${iv.toString('hex')}:${encrypted.toString('hex')}:${tag.toString('hex')}`;
+  }
+
+  decryptToken(encryptedToken: string): string {
+    const parts = encryptedToken.split(':');
+    if (parts.length !== 3) {
+      throw new Error('Invalid encrypted token format');
+    }
+
+    const [ivHex, encryptedHex, tagHex] = parts;
+    const iv = Buffer.from(ivHex!, 'hex');
+    const encrypted = Buffer.from(encryptedHex!, 'hex');
+    const tag = Buffer.from(tagHex!, 'hex');
+
+    const decipher = crypto.createDecipheriv(
+      'aes-256-gcm',
+      this.encryptionKey,
+      iv,
+    );
+    decipher.setAuthTag(tag);
+
+    const decrypted = Buffer.concat([
+      decipher.update(encrypted),
+      decipher.final(),
+    ]);
+
+    return decrypted.toString('utf8');
+  }
+
   getProvider(provider: string): AccountingProviderInterface {
     const impl = this.providers[provider.toUpperCase()];
     if (!impl) {
       throw new BadRequestException(`Unsupported accounting provider: ${provider}`);
     }
     return impl;
+  }
+
+  private createSignedState(data: Record<string, string>): string {
+    const nonce = crypto.randomBytes(16).toString('hex');
+    const payload = JSON.stringify({ ...data, nonce, ts: Date.now() });
+    const payloadB64 = Buffer.from(payload).toString('base64url');
+    const sig = crypto.createHmac('sha256', this.stateHmacKey).update(payloadB64).digest('base64url');
+    return `${payloadB64}.${sig}`;
+  }
+
+  private verifySignedState<T extends Record<string, string>>(state: string): T {
+    const [payloadB64, sig] = state.split('.');
+    if (!payloadB64 || !sig) throw new BadRequestException('Invalid state parameter');
+
+    const expectedSig = crypto.createHmac('sha256', this.stateHmacKey).update(payloadB64).digest('base64url');
+    const sigBuf = Buffer.from(sig, 'base64url');
+    const expectedBuf = Buffer.from(expectedSig, 'base64url');
+    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+      throw new BadRequestException('Invalid state signature');
+    }
+
+    const data = JSON.parse(Buffer.from(payloadB64, 'base64url').toString()) as T & { ts: number };
+    if (Date.now() - data.ts > 10 * 60 * 1000) {
+      throw new BadRequestException('State parameter expired');
+    }
+    return data as T;
   }
 
   private getCallbackUrl(provider: string): string {

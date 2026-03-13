@@ -16,6 +16,7 @@ import {
 import { Button, Badge, Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Skeleton } from '@savspot/ui';
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
+import { queryKeys } from '@/hooks/use-api';
 import { useDebounce } from '@/hooks/use-debounce';
 import { WalkInDialog } from '@/components/bookings/walk-in-dialog';
 import {
@@ -122,7 +123,7 @@ export default function BookingsPage() {
   }, [page, statusFilter, startDate, endDate, debouncedSearch]);
 
   const { data: bookingsRes, isLoading, error: queryError } = useQuery({
-    queryKey: ['bookings', tenantId, queryParams],
+    queryKey: queryKeys.bookings(tenantId!, queryParams),
     queryFn: () => {
       const searchParams = new URLSearchParams(queryParams).toString();
       return apiClient.getRaw<BookingsResponse>(
@@ -214,7 +215,7 @@ export default function BookingsPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -322,7 +323,19 @@ export default function BookingsPage() {
                 </TableHeader>
                 <TableBody>
                   {bookings.map((booking) => (
-                    <TableRow key={booking.id}>
+                    <TableRow
+                      key={booking.id}
+                      role="button"
+                      tabIndex={0}
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/bookings/${booking.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          router.push(`/bookings/${booking.id}`);
+                        }
+                      }}
+                    >
                       <TableCell>
                         {booking.client ? (
                           <div className="min-w-0">

@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main, develop]
@@ -21,6 +24,8 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      - name: Security audit
+        run: pnpm audit --audit-level=high
       - run: pnpm --filter @savspot/shared build
       - run: pnpm --filter @savspot/ui build
       - run: pnpm db:generate

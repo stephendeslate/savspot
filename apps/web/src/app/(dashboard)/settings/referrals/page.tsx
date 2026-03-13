@@ -15,6 +15,7 @@ import { apiClient } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
 import { useTenant } from '@/hooks/use-tenant';
 import { formatAmount } from '@/lib/format-utils';
+import { RequireRole } from '@/components/rbac/require-role';
 
 // ---------- Types ----------
 
@@ -257,6 +258,7 @@ export default function ReferralsSettingsPage() {
   // ---------- Render ----------
 
   return (
+    <RequireRole minimum="ADMIN">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -282,7 +284,7 @@ export default function ReferralsSettingsPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -446,7 +448,7 @@ export default function ReferralsSettingsPage() {
           </DialogHeader>
 
           {formError && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               {formError}
             </div>
           )}
@@ -585,5 +587,6 @@ export default function ReferralsSettingsPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </RequireRole>
   );
 }

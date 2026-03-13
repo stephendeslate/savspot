@@ -111,7 +111,9 @@ describe('WorkflowEngineService', () => {
     const configService = { get: (key: string, defaultValue: string) => defaultValue } as never;
     const invoicesService = { createForBooking: vi.fn().mockResolvedValue({}) } as never;
     const browserPushService = makeBrowserPushService();
-    service = new WorkflowEngineService(prisma as never, comms as never, smsService as never, configService, invoicesService, browserPushService as never);
+    const expoPushService = { sendToUser: vi.fn().mockResolvedValue(1) } as never;
+    const stageOrchestratorService = { runWorkflow: vi.fn().mockResolvedValue(undefined) } as never;
+    service = new WorkflowEngineService(prisma as never, comms as never, smsService as never, configService, invoicesService, browserPushService as never, expoPushService, stageOrchestratorService);
   });
 
   // -----------------------------------------------------------------------

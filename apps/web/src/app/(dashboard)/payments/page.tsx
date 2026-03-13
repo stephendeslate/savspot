@@ -276,7 +276,7 @@ export default function PaymentsPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -418,10 +418,18 @@ export default function PaymentsPage() {
                   {payments.map((payment) => (
                     <TableRow
                       key={payment.id}
+                      role="button"
+                      tabIndex={0}
                       className="cursor-pointer"
                       onClick={() =>
                         router.push(`/bookings/${payment.booking.id}`)
                       }
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          router.push(`/bookings/${payment.booking.id}`);
+                        }
+                      }}
                     >
                       <TableCell className="hidden whitespace-nowrap sm:table-cell">
                         {format(

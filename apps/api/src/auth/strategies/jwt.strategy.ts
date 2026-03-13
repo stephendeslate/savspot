@@ -19,8 +19,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(
-    payload: JwtPayload & { jti: string },
+    payload: JwtPayload & { jti: string; type?: string },
   ): Promise<JwtPayload & { jti: string }> {
+    if (payload.type === 'refresh') {
+      throw new UnauthorizedException('Refresh tokens cannot be used for authentication');
+    }
     const isBlacklisted = await this.tokenService.isBlacklisted(payload.jti);
     if (isBlacklisted) {
       throw new UnauthorizedException('Token has been revoked');

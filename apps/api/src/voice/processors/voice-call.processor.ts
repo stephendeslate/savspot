@@ -2,6 +2,8 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CommunicationsService } from '../../communications/communications.service';
+import { NotificationsService } from '../../notifications/notifications.service';
 import {
   QUEUE_VOICE_CALLS,
   JOB_PROCESS_TRANSCRIPT,
@@ -24,7 +26,11 @@ interface PostCallActionsPayload {
 export class VoiceCallDispatcher extends WorkerHost {
   private readonly logger = new Logger(VoiceCallDispatcher.name);
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly communicationsService: CommunicationsService,
+    private readonly notificationsService: NotificationsService,
+  ) {
     super();
   }
 
@@ -76,9 +82,85 @@ export class VoiceCallDispatcher extends WorkerHost {
     );
 
     if (bookingId) {
-      this.logger.log(
-        `Booking ${bookingId} was created during call ${callLogId} — confirmation would be sent here`,
-      );
+      try {
+        const booking = await this.prisma.booking.findFirst({
+          where: { id: bookingId, tenantId },
+          include: {
+            client: { select: { id: true, email: true, name: true } },
+            service: { select: { name: true } },
+          },
+        });
+
+        if (booking && booking.client) {
+          const tenant = await this.prisma.tenant.findUniqueOrThrow({
+            where: { id: tenantId },
+            select: {
+              name: true,
+              slug: true,
+              logoUrl: true,
+              brandColor: true,
+              timezone: true,
+            },
+          });
+
+          const dateTime = new Date(booking.startTime).toLocaleString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            timeZone: tenant.timezone || 'UTC',
+            timeZoneName: 'short',
+          });
+
+          await this.communicationsService.createAndSend({
+            tenantId,
+            recipientId: booking.client.id,
+            recipientEmail: booking.client.email,
+            recipientName: booking.client.name ?? 'Client',
+            channel: 'EMAIL',
+            templateKey: 'booking-confirmation',
+            templateData: {
+              clientName: booking.client.name ?? 'Client',
+              serviceName: booking.service.name,
+              dateTime,
+              businessName: tenant.name,
+              logoUrl: tenant.logoUrl,
+              brandColor: tenant.brandColor,
+            },
+            bookingId,
+          });
+
+          this.logger.log(
+            `Booking confirmation sent for booking=${bookingId} via voice call`,
+          );
+
+          // Notify tenant staff about new voice-originated booking
+          const members = await this.prisma.tenantMembership.findMany({
+            where: {
+              tenantId,
+              role: { in: ['OWNER', 'ADMIN'] },
+            },
+            select: { userId: true },
+          });
+
+          for (const member of members) {
+            await this.notificationsService.create({
+              tenantId,
+              userId: member.userId,
+              title: 'New booking from voice call',
+              body: `${booking.client.name ?? 'A client'} booked ${booking.service.name} via phone call`,
+              category: 'BOOKING',
+              metadata: { bookingId, callLogId },
+            });
+          }
+        }
+      } catch (error) {
+        this.logger.error(
+          `Failed to process post-call actions for booking ${bookingId}: ${error}`,
+        );
+      }
     }
 
     this.logger.log(`Post-call actions completed for callLog=${callLogId}`);

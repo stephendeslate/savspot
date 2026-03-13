@@ -7,6 +7,7 @@ import { Button, Badge, Card, CardContent, CardDescription, CardHeader, CardTitl
 import { ApiError, apiClient, isSubscriptionError, parseRequiredTier } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
 import { useTenant } from '@/hooks/use-tenant';
+import { RequireRole } from '@/components/rbac/require-role';
 import { UpgradeBanner } from '@/components/upgrade-banner';
 
 // ---------- Types ----------
@@ -242,6 +243,7 @@ export default function DomainsSettingsPage() {
   // ---------- Render ----------
 
   return (
+    <RequireRole minimum="ADMIN">
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -270,7 +272,7 @@ export default function DomainsSettingsPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -429,7 +431,7 @@ export default function DomainsSettingsPage() {
           </DialogHeader>
 
           {formError && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               {formError}
             </div>
           )}
@@ -508,5 +510,6 @@ export default function DomainsSettingsPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </RequireRole>
   );
 }

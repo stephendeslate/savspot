@@ -197,20 +197,22 @@ export class StripeWebhookController {
           });
           if (disputedPayment) {
             const previousStatus = disputedPayment.status;
-            await this.prisma.payment.update({
-              where: { id: disputedPayment.id },
-              data: { status: 'DISPUTED' },
-            });
-            await this.prisma.paymentStateHistory.create({
-              data: {
-                paymentId: disputedPayment.id,
-                tenantId: disputedPayment.tenantId,
-                fromState: previousStatus,
-                toState: 'DISPUTED',
-                triggeredBy: 'WEBHOOK',
-                reason: `Stripe dispute created (${obj['reason'] as string | undefined ?? 'no reason provided'})`,
-              },
-            });
+            await this.prisma.$transaction([
+              this.prisma.payment.update({
+                where: { id: disputedPayment.id },
+                data: { status: 'DISPUTED' },
+              }),
+              this.prisma.paymentStateHistory.create({
+                data: {
+                  paymentId: disputedPayment.id,
+                  tenantId: disputedPayment.tenantId,
+                  fromState: previousStatus,
+                  toState: 'DISPUTED',
+                  triggeredBy: 'WEBHOOK',
+                  reason: `Stripe dispute created (${obj['reason'] as string | undefined ?? 'no reason provided'})`,
+                },
+              }),
+            ]);
           } else {
             this.logger.warn(
               `Payment not found for disputed payment intent: ${disputePaymentIntentId}`,
@@ -235,20 +237,22 @@ export class StripeWebhookController {
           if (closedDisputePayment) {
             const previousStatus = closedDisputePayment.status;
             const newStatus = disputeStatus === 'won' ? 'SUCCEEDED' : 'REFUNDED';
-            await this.prisma.payment.update({
-              where: { id: closedDisputePayment.id },
-              data: { status: newStatus },
-            });
-            await this.prisma.paymentStateHistory.create({
-              data: {
-                paymentId: closedDisputePayment.id,
-                tenantId: closedDisputePayment.tenantId,
-                fromState: previousStatus,
-                toState: newStatus,
-                triggeredBy: 'WEBHOOK',
-                reason: `Stripe dispute closed with status: ${disputeStatus}`,
-              },
-            });
+            await this.prisma.$transaction([
+              this.prisma.payment.update({
+                where: { id: closedDisputePayment.id },
+                data: { status: newStatus },
+              }),
+              this.prisma.paymentStateHistory.create({
+                data: {
+                  paymentId: closedDisputePayment.id,
+                  tenantId: closedDisputePayment.tenantId,
+                  fromState: previousStatus,
+                  toState: newStatus,
+                  triggeredBy: 'WEBHOOK',
+                  reason: `Stripe dispute closed with status: ${disputeStatus}`,
+                },
+              }),
+            ]);
           } else {
             this.logger.warn(
               `Payment not found for closed dispute payment intent: ${closedDisputePaymentIntentId}`,

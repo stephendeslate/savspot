@@ -1,7 +1,6 @@
 import {
   Controller,
   Post,
-  Body,
   HttpCode,
   HttpStatus,
   Logger,
@@ -16,9 +15,9 @@ export class GcashWebhookController {
 
   @Post()
   @Public()
-  @HttpCode(HttpStatus.OK)
-  handleWebhook(@Body() body: Record<string, unknown>) {
-    this.logger.log(`[STUB] Received GCash webhook: ${JSON.stringify(body)}`);
-    return { received: true };
+  @HttpCode(HttpStatus.NOT_IMPLEMENTED)
+  handleWebhook() {
+    this.logger.warn('[STUB] GCash webhook not yet implemented');
+    return { error: 'GCash webhooks are not yet implemented' };
   }
 }

@@ -12,6 +12,7 @@ import { Button, Badge, Card, CardContent, CardDescription, CardHeader, CardTitl
 import { apiClient } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
 import { useTenant } from '@/hooks/use-tenant';
+import { RequireRole } from '@/components/rbac/require-role';
 
 // ---------- Types ----------
 
@@ -192,6 +193,10 @@ export default function BillingSettingsPage() {
         { tier, isAnnual: billingInterval === 'yearly' },
       );
       if (result.url) {
+        const checkoutUrl = new URL(result.url);
+        if (!['checkout.stripe.com'].includes(checkoutUrl.hostname)) {
+          throw new Error('Invalid checkout URL');
+        }
         window.location.href = result.url;
       }
     } catch (err) {
@@ -212,6 +217,10 @@ export default function BillingSettingsPage() {
         `/api/subscriptions/${tenantId}/portal`,
       );
       if (result.url) {
+        const portalUrl = new URL(result.url);
+        if (!['billing.stripe.com'].includes(portalUrl.hostname)) {
+          throw new Error('Invalid portal URL');
+        }
         window.location.href = result.url;
       }
     } catch (err) {
@@ -264,6 +273,7 @@ export default function BillingSettingsPage() {
   // ---------- Render ----------
 
   return (
+    <RequireRole minimum="ADMIN">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -285,7 +295,7 @@ export default function BillingSettingsPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -488,5 +498,6 @@ export default function BillingSettingsPage() {
         </Card>
       )}
     </div>
+    </RequireRole>
   );
 }

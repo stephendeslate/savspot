@@ -30,11 +30,10 @@ export class QuickBooksProvider implements AccountingProviderInterface {
     return `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
   }
 
-  async getAuthUrl(tenantId: string, redirectUri: string): Promise<string> {
+  async getAuthUrl(_tenantId: string, redirectUri: string, state: string): Promise<string> {
     this.assertFeatureEnabled();
 
     const clientId = process.env['QUICKBOOKS_CLIENT_ID'] ?? '';
-    const state = Buffer.from(JSON.stringify({ tenantId, provider: 'QUICKBOOKS' })).toString('base64url');
 
     const params = new URLSearchParams({
       client_id: clientId,

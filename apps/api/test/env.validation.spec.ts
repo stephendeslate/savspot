@@ -80,7 +80,17 @@ describe('envSchema', () => {
     });
 
     it('should accept production', () => {
-      const result = envSchema.parse({ NODE_ENV: 'production' });
+      const result = envSchema.parse({
+        NODE_ENV: 'production',
+        JWT_PRIVATE_KEY_BASE64: 'test-private-key',
+        JWT_PUBLIC_KEY_BASE64: 'test-public-key',
+        ENCRYPTION_KEY: 'test-encryption-key',
+        MFA_ENCRYPTION_KEY: 'test-mfa-key',
+        WEBHOOK_ENCRYPTION_KEY: 'test-webhook-key',
+        STRIPE_SECRET_KEY: 'sk_test_123',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test_123',
+        RESEND_API_KEY: 're_test_123',
+      });
       expect(result.NODE_ENV).toBe('production');
     });
 
@@ -92,6 +102,78 @@ describe('envSchema', () => {
     it('should reject an invalid environment name', () => {
       const result = envSchema.safeParse({ NODE_ENV: 'staging' });
       expect(result.success).toBe(false);
+    });
+  });
+
+  describe('production required keys', () => {
+    const prodBase = {
+      NODE_ENV: 'production',
+      JWT_PRIVATE_KEY_BASE64: 'test-private-key',
+      JWT_PUBLIC_KEY_BASE64: 'test-public-key',
+      ENCRYPTION_KEY: 'test-encryption-key',
+      MFA_ENCRYPTION_KEY: 'test-mfa-key',
+      WEBHOOK_ENCRYPTION_KEY: 'test-webhook-key',
+      STRIPE_SECRET_KEY: 'sk_test_123',
+      STRIPE_WEBHOOK_SECRET: 'whsec_test_123',
+      RESEND_API_KEY: 're_test_123',
+    };
+
+    it('should reject production without MFA_ENCRYPTION_KEY', () => {
+      const { MFA_ENCRYPTION_KEY: _, ...env } = prodBase;
+      const result = envSchema.safeParse(env);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject production without WEBHOOK_ENCRYPTION_KEY', () => {
+      const { WEBHOOK_ENCRYPTION_KEY: _, ...env } = prodBase;
+      const result = envSchema.safeParse(env);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject production without ENCRYPTION_KEY', () => {
+      const { ENCRYPTION_KEY: _, ...env } = prodBase;
+      const result = envSchema.safeParse(env);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject production without JWT_PRIVATE_KEY_BASE64', () => {
+      const { JWT_PRIVATE_KEY_BASE64: _, ...env } = prodBase;
+      const result = envSchema.safeParse(env);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject production without JWT_PUBLIC_KEY_BASE64', () => {
+      const { JWT_PUBLIC_KEY_BASE64: _, ...env } = prodBase;
+      const result = envSchema.safeParse(env);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject production without STRIPE_SECRET_KEY', () => {
+      const { STRIPE_SECRET_KEY: _, ...env } = prodBase;
+      const result = envSchema.safeParse(env);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject production without STRIPE_WEBHOOK_SECRET', () => {
+      const { STRIPE_WEBHOOK_SECRET: _, ...env } = prodBase;
+      const result = envSchema.safeParse(env);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject production without RESEND_API_KEY', () => {
+      const { RESEND_API_KEY: _, ...env } = prodBase;
+      const result = envSchema.safeParse(env);
+      expect(result.success).toBe(false);
+    });
+
+    it('should not require these keys in development', () => {
+      const result = envSchema.safeParse({ NODE_ENV: 'development' });
+      expect(result.success).toBe(true);
+    });
+
+    it('should not require these keys in test', () => {
+      const result = envSchema.safeParse({ NODE_ENV: 'test' });
+      expect(result.success).toBe(true);
     });
   });
 
@@ -116,6 +198,14 @@ describe('validateEnv', () => {
       PORT: '3001',
       NODE_ENV: 'production',
       WEB_URL: 'https://app.savspot.co',
+      JWT_PRIVATE_KEY_BASE64: 'test-private-key',
+      JWT_PUBLIC_KEY_BASE64: 'test-public-key',
+      ENCRYPTION_KEY: 'test-encryption-key',
+      MFA_ENCRYPTION_KEY: 'test-mfa-key',
+      WEBHOOK_ENCRYPTION_KEY: 'test-webhook-key',
+      STRIPE_SECRET_KEY: 'sk_test_123',
+      STRIPE_WEBHOOK_SECRET: 'whsec_test_123',
+      RESEND_API_KEY: 're_test_123',
     });
     expect(config.PORT).toBe(3001);
     expect(config.NODE_ENV).toBe('production');

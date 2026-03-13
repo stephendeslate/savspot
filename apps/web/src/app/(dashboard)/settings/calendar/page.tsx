@@ -16,6 +16,7 @@ import { Button, Badge, Card, CardContent, CardDescription, CardHeader, CardTitl
 import { apiClient } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
 import { useTenant } from '@/hooks/use-tenant';
+import { RequireRole } from '@/components/rbac/require-role';
 
 // ---------- Types ----------
 
@@ -113,6 +114,11 @@ export default function CalendarSettingsPage() {
       const data = await apiClient.post<{ authUrl: string }>(
         `/api/tenants/${tenantId}/calendar/connect`,
       );
+      const url = new URL(data.authUrl);
+      const allowedHosts = ['accounts.google.com', 'login.microsoftonline.com', 'login.live.com'];
+      if (!allowedHosts.some(host => url.hostname === host || url.hostname.endsWith('.' + host))) {
+        throw new Error('Invalid redirect URL');
+      }
       window.location.href = data.authUrl;
     } catch (err) {
       setError(
@@ -242,6 +248,7 @@ export default function CalendarSettingsPage() {
   // ---------- Render ----------
 
   return (
+    <RequireRole minimum="ADMIN">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
@@ -261,7 +268,7 @@ export default function CalendarSettingsPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -390,7 +397,7 @@ export default function CalendarSettingsPage() {
 
                 {connection.status === 'ERROR' && connection.errorMessage && (
                   <div className="space-y-3">
-                    <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3">
+                    <div role="alert" className="flex items-start gap-2 rounded-md bg-destructive/10 p-3">
                       <AlertCircle className="mt-0.5 h-4 w-4 text-destructive" />
                       <p className="text-sm text-destructive">
                         {connection.errorMessage}
@@ -614,5 +621,6 @@ export default function CalendarSettingsPage() {
         </>
       )}
     </div>
+    </RequireRole>
   );
 }

@@ -37,7 +37,7 @@ function makeConfig() {
         'microsoftCalendar.clientId': CLIENT_ID,
         'microsoftCalendar.clientSecret': CLIENT_SECRET,
         'microsoftCalendar.redirectUri': REDIRECT_URI,
-        'jwt.privateKeyBase64': undefined,
+        'jwt.privateKeyBase64': Buffer.from('test-key-for-unit-tests').toString('base64'),
       };
       return map[key] ?? fallback;
     }),
@@ -98,17 +98,19 @@ describe('OutlookCalendarService', () => {
       expect(url).toContain('offline_access');
     });
 
-    it('should encode tenantId and userId in state as base64url', () => {
+    it('should encode tenantId and userId in signed state', () => {
       const url = service.getAuthUrl(TENANT_ID, USER_ID);
 
       const urlObj = new URL(url);
       const state = urlObj.searchParams.get('state')!;
-      const decoded = JSON.parse(
+      const outer = JSON.parse(
         Buffer.from(state, 'base64url').toString('utf8'),
       );
+      const payload = JSON.parse(outer.payload);
 
-      expect(decoded.tenantId).toBe(TENANT_ID);
-      expect(decoded.userId).toBe(USER_ID);
+      expect(payload.tenantId).toBe(TENANT_ID);
+      expect(payload.userId).toBe(USER_ID);
+      expect(outer.signature).toBeDefined();
     });
 
     it('should include prompt=consent to force refresh token', () => {
@@ -123,9 +125,11 @@ describe('OutlookCalendarService', () => {
   // -------------------------------------------------------------------------
 
   describe('handleCallback', () => {
-    const validState = Buffer.from(
-      JSON.stringify({ tenantId: TENANT_ID, userId: USER_ID }),
-    ).toString('base64url');
+    /** Extract a valid signed state from getAuthUrl */
+    function getValidState(): string {
+      const url = service.getAuthUrl(TENANT_ID, USER_ID);
+      return new URL(url).searchParams.get('state')!;
+    }
 
     it('should throw BadRequestException for invalid state', async () => {
       await expect(
@@ -141,7 +145,7 @@ describe('OutlookCalendarService', () => {
       });
 
       await expect(
-        service.handleCallback('bad-code', validState),
+        service.handleCallback('bad-code', getValidState()),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -159,7 +163,7 @@ describe('OutlookCalendarService', () => {
       });
 
       await expect(
-        service.handleCallback('code', validState),
+        service.handleCallback('code', getValidState()),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -192,7 +196,7 @@ describe('OutlookCalendarService', () => {
         makeConnection({ id: 'new-conn' }),
       );
 
-      const result = await service.handleCallback('auth-code', validState);
+      const result = await service.handleCallback('auth-code', getValidState());
 
       expect(result.tenantId).toBe(TENANT_ID);
       expect(result.connectionId).toBe('new-conn');
@@ -236,7 +240,7 @@ describe('OutlookCalendarService', () => {
         makeConnection(),
       );
 
-      const result = await service.handleCallback('auth-code', validState);
+      const result = await service.handleCallback('auth-code', getValidState());
 
       expect(result.connectionId).toBe(CONNECTION_ID);
       expect(prisma.calendarConnection.update).toHaveBeenCalledWith(
@@ -275,7 +279,7 @@ describe('OutlookCalendarService', () => {
       );
 
       // Should not throw - calendar list failure is non-fatal
-      const result = await service.handleCallback('auth-code', validState);
+      const result = await service.handleCallback('auth-code', getValidState());
       expect(result.connectionId).toBe('new-conn');
     });
   });

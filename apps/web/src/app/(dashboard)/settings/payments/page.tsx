@@ -14,6 +14,7 @@ import { Button, Badge, Card, CardContent, CardHeader, CardTitle, Separator, Ske
 import { apiClient } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
 import { useTenant } from '@/hooks/use-tenant';
+import { RequireRole } from '@/components/rbac/require-role';
 
 // ---------- Types ----------
 
@@ -90,6 +91,10 @@ export default function PaymentsSettingsPage() {
         `/api/tenants/${tenantId}/payments/connect/onboarding`,
         { returnUrl },
       );
+      const onboardingUrl = new URL(data.url);
+      if (!['connect.stripe.com'].includes(onboardingUrl.hostname)) {
+        throw new Error('Invalid onboarding URL');
+      }
       window.location.href = data.url;
     } catch (err) {
       setError(
@@ -110,6 +115,10 @@ export default function PaymentsSettingsPage() {
       const data = await apiClient.post<{ url: string }>(
         `/api/tenants/${tenantId}/payments/connect/dashboard`,
       );
+      const dashboardUrl = new URL(data.url);
+      if (!['dashboard.stripe.com', 'connect.stripe.com'].includes(dashboardUrl.hostname)) {
+        throw new Error('Invalid dashboard URL');
+      }
       window.open(data.url, '_blank');
     } catch (err) {
       setError(
@@ -156,6 +165,7 @@ export default function PaymentsSettingsPage() {
   // ---------- Render ----------
 
   return (
+    <RequireRole minimum="ADMIN">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
@@ -175,7 +185,7 @@ export default function PaymentsSettingsPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -419,6 +429,7 @@ export default function PaymentsSettingsPage() {
         </Card>
       )}
     </div>
+    </RequireRole>
   );
 }
 

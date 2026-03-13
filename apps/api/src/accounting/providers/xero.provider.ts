@@ -71,11 +71,10 @@ export class XeroProvider implements AccountingProviderInterface {
     };
   }
 
-  async getAuthUrl(tenantId: string, redirectUri: string): Promise<string> {
+  async getAuthUrl(_tenantId: string, redirectUri: string, state: string): Promise<string> {
     this.assertFeatureEnabled();
 
     const clientId = process.env['XERO_CLIENT_ID'] ?? '';
-    const state = Buffer.from(JSON.stringify({ tenantId, provider: 'XERO' })).toString('base64url');
 
     const params = new URLSearchParams({
       client_id: clientId,

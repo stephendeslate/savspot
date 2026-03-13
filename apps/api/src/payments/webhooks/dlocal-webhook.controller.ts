@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Public } from '../../common/decorators/public.decorator';
@@ -17,8 +18,12 @@ export class DlocalWebhookController {
   @Post()
   @Public()
   @HttpCode(HttpStatus.OK)
-  handleWebhook(@Body() body: Record<string, unknown>) {
-    this.logger.log(`[STUB] Received dLocal webhook: ${JSON.stringify(body)}`);
+  handleWebhook(@Body() _body: Record<string, unknown>) {
+    if (process.env['FEATURE_PAYMENT_DLOCAL'] !== 'true') {
+      throw new NotFoundException();
+    }
+
+    this.logger.log('[STUB] Received dLocal webhook');
     return { received: true };
   }
 }

@@ -55,7 +55,7 @@ export class StripeProvider implements PaymentProviderInterface {
    */
   private handleStripeError(error: unknown): never {
     if (error instanceof Stripe.errors.StripeAuthenticationError) {
-      throw new BadRequestException('Stripe authentication failed — check your API key');
+      throw new InternalServerErrorException('Stripe authentication failed — check your API key');
     }
     if (error instanceof Stripe.errors.StripeInvalidRequestError) {
       throw new BadRequestException(`Stripe: ${error.message}`);

@@ -173,7 +173,7 @@ export default function InsightsPage() {
     }
     const message = formatError(err);
     return (
-      <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+      <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
         Failed to load {label}: {message}
       </div>
     );

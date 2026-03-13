@@ -1,7 +1,6 @@
 'use client';
 
-import { type ReactNode } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { type ReactNode, useState, useEffect, useRef } from 'react';
 
 interface FadeInProps {
   children: ReactNode;
@@ -10,15 +9,27 @@ interface FadeInProps {
 }
 
 export function FadeIn({ children, delay = 0, className }: FadeInProps) {
+  const [visible, setVisible] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    timerRef.current = setTimeout(() => setVisible(true), delay * 1000);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [delay]);
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay }}
+    <div
       className={className}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(8px)',
+        transition: 'opacity 0.25s ease, transform 0.25s ease',
+      }}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -27,14 +38,21 @@ interface PageTransitionProps {
 }
 
 export function PageTransition({ children }: PageTransitionProps) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
+  }, []);
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
+    <div
+      style={{
+        opacity: visible ? 1 : 0,
+        transition: 'opacity 0.2s ease',
+      }}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -49,19 +67,30 @@ export function StepTransition({
   direction,
   stepKey,
 }: StepTransitionProps) {
+  const [state, setState] = useState<'enter' | 'visible'>('enter');
+  const prevKeyRef = useRef(stepKey);
+
+  useEffect(() => {
+    if (prevKeyRef.current !== stepKey) {
+      setState('enter');
+      prevKeyRef.current = stepKey;
+    }
+    const frame = requestAnimationFrame(() => setState('visible'));
+    return () => cancelAnimationFrame(frame);
+  }, [stepKey]);
+
+  const offsetX = direction === 'forward' ? 40 : -40;
+
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div
-        key={stepKey}
-        initial={{ opacity: 0, x: direction === 'forward' ? 40 : -40 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: direction === 'forward' ? -40 : 40 }}
-        transition={{ duration: 0.25 }}
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
+    <div
+      key={stepKey}
+      style={{
+        opacity: state === 'visible' ? 1 : 0,
+        transform: state === 'visible' ? 'translateX(0)' : `translateX(${offsetX}px)`,
+        transition: 'opacity 0.25s ease, transform 0.25s ease',
+      }}
+    >
+      {children}
+    </div>
   );
 }
-
-export { motion, AnimatePresence };

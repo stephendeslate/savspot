@@ -16,6 +16,7 @@ import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
 import { useDebounce } from '@/hooks/use-debounce';
 import { formatAmount } from '@/lib/format-utils';
+import { queryKeys } from '@/hooks/use-api';
 
 // ---------- Types ----------
 
@@ -84,7 +85,7 @@ export default function ClientsPage() {
   }, [page, debouncedSearch, sortBy, tagFilter]);
 
   const { data: clientsRes, isLoading, error: queryError } = useQuery({
-    queryKey: ['clients', tenantId, queryParams],
+    queryKey: queryKeys.clients(tenantId!, queryParams),
     queryFn: () => {
       const searchParams = new URLSearchParams(queryParams).toString();
       return apiClient.getRaw<ClientsResponse>(
@@ -166,7 +167,7 @@ export default function ClientsPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -264,7 +265,15 @@ export default function ClientsPage() {
               <Card
                 key={client.id}
                 className="cursor-pointer transition-colors hover:bg-accent/50"
+                role="button"
+                tabIndex={0}
                 onClick={() => router.push(`/clients/${client.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    router.push(`/clients/${client.id}`);
+                  }
+                }}
               >
                 <CardContent className="pt-6">
                   {/* Client identity */}

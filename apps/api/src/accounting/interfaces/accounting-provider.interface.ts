@@ -55,7 +55,7 @@ export interface AccountingAccount {
 }
 
 export interface AccountingProviderInterface {
-  getAuthUrl(tenantId: string, redirectUri: string): Promise<string>;
+  getAuthUrl(tenantId: string, redirectUri: string, state: string): Promise<string>;
   exchangeCode(code: string, redirectUri: string): Promise<AccountingTokens>;
   refreshToken(refreshToken: string): Promise<AccountingTokens>;
   syncInvoice(tokens: AccountingTokens, invoice: InvoiceData): Promise<SyncResult>;

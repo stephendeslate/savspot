@@ -4,8 +4,10 @@ import { Job } from 'bullmq';
 import {
   QUEUE_WEBHOOKS,
   JOB_DISPATCH_WEBHOOK,
+  JOB_EXECUTE_STAGE,
 } from '../bullmq/queue.constants';
 import { WebhookDispatchHandler } from './processors/webhook-dispatch.processor';
+import { StageExecutionHandler } from './processors/stage-execution.handler';
 
 @Processor(QUEUE_WEBHOOKS)
 export class WebhooksDispatcher extends WorkerHost {
@@ -13,6 +15,7 @@ export class WebhooksDispatcher extends WorkerHost {
 
   constructor(
     private readonly dispatchHandler: WebhookDispatchHandler,
+    private readonly stageExecutionHandler: StageExecutionHandler,
   ) {
     super();
   }
@@ -21,6 +24,8 @@ export class WebhooksDispatcher extends WorkerHost {
     switch (job.name) {
       case JOB_DISPATCH_WEBHOOK:
         return this.dispatchHandler.handle(job);
+      case JOB_EXECUTE_STAGE:
+        return this.stageExecutionHandler.handle(job);
       default:
         this.logger.warn(`Unknown webhooks job name: ${job.name}`);
     }

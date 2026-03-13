@@ -54,17 +54,22 @@ export interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  activeTenantId: string | null;
+  setActiveTenant: (tenantId: string) => void;
   login: (input: LoginInput) => Promise<void>;
   register: (input: RegisterInput) => Promise<void>;
   logout: () => Promise<void>;
   loadUser: () => Promise<void>;
 }
 
+const ACTIVE_TENANT_KEY = 'savspot_active_tenant';
+
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTenantId, setActiveTenantId] = useState<string | null>(null);
 
   const loadUser = useCallback(async () => {
     try {
@@ -94,6 +99,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void loadUser();
   }, [loadUser]);
 
+  useEffect(() => {
+    if (!user) {
+      setActiveTenantId(null);
+      return;
+    }
+    const stored = localStorage.getItem(ACTIVE_TENANT_KEY);
+    const match = stored
+      ? user.memberships.find((m: Membership) => m.tenantId === stored)
+      : undefined;
+    setActiveTenantId(match?.tenantId ?? user.memberships[0]?.tenantId ?? null);
+  }, [user]);
+
+  const setActiveTenant = useCallback((tenantId: string) => {
+    if (!user?.memberships.some((m) => m.tenantId === tenantId)) return;
+    localStorage.setItem(ACTIVE_TENANT_KEY, tenantId);
+    setActiveTenantId(tenantId);
+  }, [user]);
+
   const login = useCallback(
     async (input: LoginInput) => {
       await apiClient.post(API_ROUTES.LOGIN, input);
@@ -116,6 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore logout errors
     } finally {
+      localStorage.removeItem(ACTIVE_TENANT_KEY);
       setUser(null);
     }
   }, []);
@@ -125,12 +149,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isLoading,
       isAuthenticated: !!user,
+      activeTenantId,
+      setActiveTenant,
       login,
       register,
       logout,
       loadUser,
     }),
-    [user, isLoading, login, register, logout, loadUser],
+    [user, isLoading, activeTenantId, setActiveTenant, login, register, logout, loadUser],
   );
 
   return (

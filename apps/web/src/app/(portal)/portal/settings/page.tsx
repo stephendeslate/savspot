@@ -121,7 +121,7 @@ export default function PortalSettingsPage() {
           )}
 
           {exportError && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               {exportError}
             </div>
           )}
@@ -184,7 +184,7 @@ export default function PortalSettingsPage() {
             </div>
 
             {deleteError && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                 {deleteError}
               </div>
             )}

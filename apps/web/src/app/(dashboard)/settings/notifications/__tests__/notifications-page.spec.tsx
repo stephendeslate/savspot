@@ -20,6 +20,10 @@ vi.mock('@/lib/api-client', () => ({
   },
 }));
 
+vi.mock('@/hooks/use-role', () => ({
+  useHasRole: vi.fn(() => true),
+}));
+
 import { apiClient } from '@/lib/api-client';
 
 const mockGet = apiClient.get as ReturnType<typeof vi.fn>;

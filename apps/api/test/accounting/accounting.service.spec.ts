@@ -34,7 +34,12 @@ function makePrisma() {
 
 function makeConfigService() {
   return {
-    get: vi.fn((_key: string, def: unknown) => def),
+    get: vi.fn((key: string, def: unknown) => {
+      const map: Record<string, unknown> = {
+        ENCRYPTION_KEY: 'test-encryption-key-for-accounting',
+      };
+      return map[key] ?? def;
+    }),
   };
 }
 
@@ -149,9 +154,8 @@ describe('AccountingService', () => {
   // ---------- handleCallback ----------
 
   describe('handleCallback', () => {
-    const validState = Buffer.from(
-      JSON.stringify({ tenantId: TENANT_ID, provider: 'QUICKBOOKS' }),
-    ).toString('base64url');
+    const validState = (): string =>
+      service['createSignedState']({ tenantId: TENANT_ID, provider: 'QUICKBOOKS' });
 
     it('creates a new connection when none exists', async () => {
       quickBooksProvider.exchangeCode.mockResolvedValue({
@@ -165,7 +169,7 @@ describe('AccountingService', () => {
         id: CONNECTION_ID,
       });
 
-      const result = await service.handleCallback('QUICKBOOKS', 'auth-code', validState);
+      const result = await service.handleCallback('QUICKBOOKS', 'auth-code', validState());
 
       expect(result.connectionId).toBe(CONNECTION_ID);
       expect(prisma.accountingConnection.create).toHaveBeenCalled();
@@ -183,7 +187,7 @@ describe('AccountingService', () => {
       );
       prisma.accountingConnection.update.mockResolvedValue(makeConnection());
 
-      const result = await service.handleCallback('QUICKBOOKS', 'auth-code', validState);
+      const result = await service.handleCallback('QUICKBOOKS', 'auth-code', validState());
 
       expect(result.connectionId).toBe(CONNECTION_ID);
       expect(prisma.accountingConnection.update).toHaveBeenCalled();
@@ -196,9 +200,7 @@ describe('AccountingService', () => {
     });
 
     it('throws BadRequestException for provider mismatch in state', async () => {
-      const mismatchState = Buffer.from(
-        JSON.stringify({ tenantId: TENANT_ID, provider: 'XERO' }),
-      ).toString('base64url');
+      const mismatchState = service['createSignedState']({ tenantId: TENANT_ID, provider: 'XERO' });
 
       quickBooksProvider.exchangeCode.mockResolvedValue({
         accessToken: 'at',

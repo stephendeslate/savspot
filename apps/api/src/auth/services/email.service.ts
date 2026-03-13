@@ -32,11 +32,17 @@ export class EmailService {
       this.resend = null;
     }
 
-    // Derive HMAC secret from JWT private key or fallback
+    // Derive HMAC secret from JWT private key
     const jwtKey = this.configService.get<string>('JWT_PRIVATE_KEY_BASE64');
-    this.hmacSecret = jwtKey
-      ? crypto.createHash('sha256').update(jwtKey).digest('hex')
-      : 'dev-hmac-secret-change-me';
+    if (!jwtKey) {
+      this.logger.warn(
+        'JWT_PRIVATE_KEY_BASE64 not set — using non-persistent HMAC key. Set this for production.',
+      );
+    }
+    this.hmacSecret = crypto
+      .createHash('sha256')
+      .update(jwtKey || crypto.randomBytes(32).toString('hex'))
+      .digest('hex');
   }
 
   generateVerificationToken(userId: string): string {
@@ -62,7 +68,9 @@ export class EmailService {
       .update(encoded as string)
       .digest('base64url');
 
-    if (signature !== expectedSig) return null;
+    const sigBuf = Buffer.from(signature as string);
+    const expectedBuf = Buffer.from(expectedSig);
+    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) return null;
 
     try {
       const payload = JSON.parse(

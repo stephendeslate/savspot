@@ -191,7 +191,7 @@ export default function PortalBookingDetailPage() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Bookings
         </Button>
-        <div className="rounded-md bg-destructive/10 p-6 text-center">
+        <div role="alert" className="rounded-md bg-destructive/10 p-6 text-center">
           <p className="text-sm text-destructive">
             {error ?? 'Booking not found'}
           </p>
@@ -538,7 +538,7 @@ export default function PortalBookingDetailPage() {
             </div>
 
             {cancelError && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                 {cancelError}
               </div>
             )}
