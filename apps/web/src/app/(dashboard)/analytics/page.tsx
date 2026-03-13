@@ -51,12 +51,38 @@ const PERIOD_OPTIONS = [
   { value: '12m', label: 'Last 12 months' },
 ];
 
-const PERIOD_TO_API: Record<string, string> = {
-  '7d': 'daily',
-  '30d': 'daily',
-  '90d': 'weekly',
-  '12m': 'monthly',
+const PERIOD_TO_GROUP_BY: Record<string, string> = {
+  '7d': 'day',
+  '30d': 'day',
+  '90d': 'week',
+  '12m': 'month',
 };
+
+function getDateRange(period: string): { from: string; to: string } {
+  const now = new Date();
+  const to = now.toISOString();
+  let from: Date;
+
+  switch (period) {
+    case '7d':
+      from = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      break;
+    case '30d':
+      from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      break;
+    case '90d':
+      from = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      break;
+    case '12m':
+      from = new Date(now);
+      from.setFullYear(from.getFullYear() - 1);
+      break;
+    default:
+      from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  }
+
+  return { from: from.toISOString(), to };
+}
 
 // ---------- Component ----------
 
@@ -83,17 +109,19 @@ export default function AnalyticsPage() {
     setRevenueUpgrade(null);
     setStaffUpgrade(null);
 
-    const apiPeriod = PERIOD_TO_API[period] ?? 'monthly';
+    const { from, to } = getDateRange(period);
+    const groupBy = PERIOD_TO_GROUP_BY[period] ?? 'day';
+    const qs = `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&groupBy=${groupBy}`;
 
     const results = await Promise.allSettled([
       apiClient.get<AnalyticsOverview>(
-        `/api/tenants/${tenantId}/analytics/overview`,
+        `/api/tenants/${tenantId}/analytics/overview?${qs}`,
       ),
       apiClient.get<RevenueData[]>(
-        `/api/tenants/${tenantId}/analytics/revenue?period=${apiPeriod}`,
+        `/api/tenants/${tenantId}/analytics/revenue?${qs}`,
       ),
       apiClient.get<StaffPerformance[]>(
-        `/api/tenants/${tenantId}/analytics/staff-performance`,
+        `/api/tenants/${tenantId}/analytics/staff-performance?${qs}`,
       ),
     ]);
 
