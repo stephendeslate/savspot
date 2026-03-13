@@ -584,7 +584,9 @@ export class CommunicationsService {
       .update(encoded as string)
       .digest('base64url');
 
-    if (signature !== expectedSig) return null;
+    const sigBuf = Buffer.from(signature as string);
+    const expectedBuf = Buffer.from(expectedSig);
+    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) return null;
 
     try {
       const payload = JSON.parse(
