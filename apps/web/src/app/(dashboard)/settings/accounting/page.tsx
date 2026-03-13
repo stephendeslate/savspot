@@ -198,7 +198,7 @@ export default function AccountingSettingsPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -235,7 +235,7 @@ export default function AccountingSettingsPage() {
                     </div>
 
                     {connection.errorMessage && (
-                      <div className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">
+                      <div role="alert" className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">
                         {connection.errorMessage}
                       </div>
                     )}

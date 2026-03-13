@@ -282,7 +282,7 @@ export default function CommunicationsSettingsPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -373,7 +373,7 @@ export default function CommunicationsSettingsPage() {
             </CardHeader>
             <CardContent>
               {composeError && (
-                <div className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                <div role="alert" className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                   {composeError}
                 </div>
               )}
