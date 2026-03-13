@@ -27,6 +27,7 @@ function makePrisma() {
     paymentStateHistory: { create: vi.fn() },
     booking: { findFirst: vi.fn(), update: vi.fn() },
     bookingStateHistory: { create: vi.fn() },
+    $transaction: vi.fn((promises: unknown[]) => Promise.all(promises)),
   };
 }
 
