@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import {
   Controller,
   Post,
@@ -58,9 +59,7 @@ export class AdyenWebhookController {
       throw new BadRequestException('Adyen payment provider is not enabled');
     }
 
-    // TODO: Replace with real HMAC signature verification
-    // Use Adyen HMAC key from config to compute expected signature
-    this.verifyHmacSignature(hmacSignature);
+    this.verifyHmacSignature(hmacSignature, JSON.stringify(body));
 
     for (const item of body.notificationItems) {
       const notification = item.NotificationRequestItem;
@@ -115,17 +114,27 @@ export class AdyenWebhookController {
     return '[accepted]';
   }
 
-  private verifyHmacSignature(signature: string | undefined): void {
-    // TODO: Implement real HMAC signature verification
-    // 1. Retrieve HMAC key from config: this.configService.get('adyen.hmacKey')
-    // 2. Compute HMAC-SHA256 of the notification payload
-    // 3. Compare with provided signature
-    if (!signature) {
+  private verifyHmacSignature(
+    signature: string | undefined,
+    payload: string,
+  ): void {
+    const hmacKey = process.env['ADYEN_HMAC_KEY'];
+    if (!hmacKey) {
       this.logger.warn(
-        '[STUB] No HMAC signature provided — skipping verification',
+        'No ADYEN_HMAC_KEY configured — skipping HMAC verification',
       );
-    } else {
-      this.logger.log('[STUB] HMAC signature verification passed (stub)');
+      return;
+    }
+    if (!signature) {
+      throw new BadRequestException('Missing HMAC signature header');
+    }
+    const keyBuffer = Buffer.from(hmacKey, 'hex');
+    const computed = crypto
+      .createHmac('sha256', keyBuffer)
+      .update(payload)
+      .digest('base64');
+    if (computed !== signature) {
+      throw new BadRequestException('Invalid HMAC signature');
     }
   }
 
@@ -156,9 +165,11 @@ export class AdyenWebhookController {
         this.logger.log(
           `Adyen CAPTURE for ${notification.pspReference} — success: ${isSuccess}`,
         );
-        // TODO: Handle capture confirmation
-        // For auto-capture flows, AUTHORISATION already confirms payment.
-        // For manual capture, update payment status here.
+        if (isSuccess) {
+          await this.paymentsService.handlePaymentSuccess(
+            notification.pspReference,
+          );
+        }
         break;
       }
 
@@ -166,8 +177,28 @@ export class AdyenWebhookController {
         this.logger.log(
           `Adyen REFUND for ${notification.pspReference} — success: ${isSuccess}`,
         );
-        // TODO: Handle refund confirmation
-        // Update payment status to REFUNDED / PARTIALLY_REFUNDED
+        if (isSuccess) {
+          const payment = await this.prisma.payment.findFirst({
+            where: { providerTransactionId: notification.pspReference },
+          });
+          if (payment) {
+            const previousStatus = payment.status;
+            await this.prisma.payment.update({
+              where: { id: payment.id },
+              data: { status: 'REFUNDED' },
+            });
+            await this.prisma.paymentStateHistory.create({
+              data: {
+                paymentId: payment.id,
+                tenantId: payment.tenantId,
+                fromState: previousStatus,
+                toState: 'REFUNDED',
+                triggeredBy: 'WEBHOOK',
+                reason: 'Adyen refund webhook confirmation',
+              },
+            });
+          }
+        }
         break;
       }
 
@@ -175,8 +206,14 @@ export class AdyenWebhookController {
         this.logger.log(
           `Adyen ACCOUNT_HOLDER_VERIFICATION for merchant ${notification.merchantAccountCode}`,
         );
-        // TODO: Handle Adyen for Platforms account holder verification
-        // Update tenant's paymentProviderOnboarded status
+        if (notification.merchantAccountCode) {
+          await this.prisma.tenant.updateMany({
+            where: {
+              paymentProviderAccountId: notification.merchantAccountCode,
+            },
+            data: { paymentProviderOnboarded: true },
+          });
+        }
         break;
       }
 

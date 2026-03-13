@@ -65,14 +65,16 @@ export class PaypalWebhookController {
       throw new BadRequestException('PayPal payment provider is not enabled');
     }
 
-    // TODO: Replace with real PayPal webhook signature verification
-    this.verifyWebhookSignature({
-      transmissionId,
-      transmissionSig,
-      certUrl,
-      transmissionTime,
-      authAlgo,
-    });
+    await this.verifyWebhookSignature(
+      {
+        transmissionId,
+        transmissionSig,
+        certUrl,
+        transmissionTime,
+        authAlgo,
+      },
+      body,
+    );
 
     const existingLog = await this.prisma.paymentWebhookLog.findUnique({
       where: { eventId: body.id },
@@ -123,25 +125,90 @@ export class PaypalWebhookController {
     return { received: true };
   }
 
-  private verifyWebhookSignature(headers: {
-    transmissionId: string | undefined;
-    transmissionSig: string | undefined;
-    certUrl: string | undefined;
-    transmissionTime: string | undefined;
-    authAlgo: string | undefined;
-  }): void {
-    // TODO: Implement real PayPal webhook signature verification
-    // 1. Retrieve webhook ID from config: this.configService.get('paypal.webhookId')
-    // 2. POST /v1/notifications/verify-webhook-signature with:
-    //    - transmission_id, transmission_sig, cert_url, transmission_time, auth_algo
-    //    - webhook_id, webhook_event (body)
-    // 3. Check verification_status === 'SUCCESS'
-    if (!headers.transmissionId || !headers.transmissionSig) {
+  private async verifyWebhookSignature(
+    headers: {
+      transmissionId: string | undefined;
+      transmissionSig: string | undefined;
+      certUrl: string | undefined;
+      transmissionTime: string | undefined;
+      authAlgo: string | undefined;
+    },
+    webhookBody: PaypalWebhookBody,
+  ): Promise<void> {
+    const clientId = process.env['PAYPAL_CLIENT_ID'];
+    const clientSecret = process.env['PAYPAL_CLIENT_SECRET'];
+    const webhookId = process.env['PAYPAL_WEBHOOK_ID'];
+
+    if (!clientId || !clientSecret || !webhookId) {
       this.logger.warn(
-        '[STUB] Missing PayPal signature headers — skipping verification',
+        'PayPal credentials not configured — skipping webhook verification',
       );
-    } else {
-      this.logger.log('[STUB] PayPal webhook signature verification passed (stub)');
+      return;
+    }
+
+    if (!headers.transmissionId || !headers.transmissionSig) {
+      throw new BadRequestException('Missing PayPal signature headers');
+    }
+
+    const baseUrl =
+      process.env['PAYPAL_API_URL'] || 'https://api-m.paypal.com';
+
+    const tokenResponse = await fetch(`${baseUrl}/v1/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'grant_type=client_credentials',
+    });
+
+    if (!tokenResponse.ok) {
+      this.logger.error(
+        `PayPal OAuth token request failed: ${tokenResponse.status}`,
+      );
+      throw new BadRequestException('PayPal webhook verification failed');
+    }
+
+    const tokenData = (await tokenResponse.json()) as {
+      access_token: string;
+    };
+
+    const verifyResponse = await fetch(
+      `${baseUrl}/v1/notifications/verify-webhook-signature`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${tokenData.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          auth_algo: headers.authAlgo,
+          cert_url: headers.certUrl,
+          transmission_id: headers.transmissionId,
+          transmission_sig: headers.transmissionSig,
+          transmission_time: headers.transmissionTime,
+          webhook_id: webhookId,
+          webhook_event: webhookBody,
+        }),
+      },
+    );
+
+    if (!verifyResponse.ok) {
+      this.logger.error(
+        `PayPal verify-webhook-signature request failed: ${verifyResponse.status}`,
+      );
+      throw new BadRequestException('PayPal webhook verification failed');
+    }
+
+    const verifyData = (await verifyResponse.json()) as {
+      verification_status: string;
+    };
+
+    if (verifyData.verification_status !== 'SUCCESS') {
+      this.logger.warn(
+        `PayPal webhook signature verification failed: ${verifyData.verification_status}`,
+      );
+      throw new BadRequestException('Invalid PayPal webhook signature');
     }
   }
 
@@ -161,8 +228,26 @@ export class PaypalWebhookController {
         this.logger.log(
           `PayPal PAYMENT.CAPTURE.REFUNDED for capture ${captureId}`,
         );
-        // TODO: Handle refund confirmation
-        // Extract refund details from event.resource and update payment status
+        const payment = await this.prisma.payment.findFirst({
+          where: { providerTransactionId: captureId },
+        });
+        if (payment) {
+          const previousStatus = payment.status;
+          await this.prisma.payment.update({
+            where: { id: payment.id },
+            data: { status: 'REFUNDED' },
+          });
+          await this.prisma.paymentStateHistory.create({
+            data: {
+              paymentId: payment.id,
+              tenantId: payment.tenantId,
+              fromState: previousStatus,
+              toState: 'REFUNDED',
+              triggeredBy: 'WEBHOOK',
+              reason: 'PayPal refund webhook confirmation',
+            },
+          });
+        }
         break;
       }
 
@@ -171,9 +256,12 @@ export class PaypalWebhookController {
         this.logger.log(
           `PayPal MERCHANT.ONBOARDING.COMPLETED for merchant ${merchantId}`,
         );
-        // TODO: Handle merchant onboarding completion
-        // Update tenant's paymentProviderOnboarded to true
-        // where paymentProviderAccountId === merchantId
+        if (merchantId) {
+          await this.prisma.tenant.updateMany({
+            where: { paymentProviderAccountId: merchantId },
+            data: { paymentProviderOnboarded: true },
+          });
+        }
         break;
       }
 
