@@ -3,6 +3,7 @@ import { Job } from 'bullmq';
 import { createHmac } from 'node:crypto';
 import { Prisma } from '../../../../../prisma/generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
+import { WebhookService } from '../services/webhook.service';
 
 const RETRY_DELAYS_MS = [
   60_000,       // 1 minute
@@ -18,7 +19,10 @@ const CIRCUIT_BREAKER_THRESHOLD = 10;
 export class WebhookDispatchHandler {
   private readonly logger = new Logger(WebhookDispatchHandler.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly webhookService: WebhookService,
+  ) {}
 
   async handle(job: Job<{ deliveryId: string }>): Promise<void> {
     const { deliveryId } = job.data;
@@ -46,8 +50,11 @@ export class WebhookDispatchHandler {
 
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const payloadString = JSON.stringify(delivery.payload);
-    const signature = this.sign(
+    const decryptedSecret = this.webhookService.decryptSecret(
       delivery.endpoint.secret,
+    );
+    const signature = this.sign(
+      decryptedSecret,
       timestamp,
       payloadString,
     );

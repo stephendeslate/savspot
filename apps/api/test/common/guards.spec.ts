@@ -195,11 +195,13 @@ describe('TenantStatusGuard', () => {
   let guard: TenantStatusGuard;
   let reflector: ReturnType<typeof makeReflector>;
   let prisma: ReturnType<typeof makePrisma>;
+  let redis: ReturnType<typeof makeRedis>;
 
   beforeEach(() => {
     reflector = makeReflector();
     prisma = makePrisma();
-    guard = new TenantStatusGuard(reflector as never, prisma as never);
+    redis = makeRedis();
+    guard = new TenantStatusGuard(reflector as never, prisma as never, redis as never);
   });
 
   it('should allow access for public routes', async () => {

@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { Separator } from '@savspot/ui';
 import { ROUTES } from '@/lib/constants';
 import { useAuth } from '@/hooks/use-auth';
+import { TenantSwitcher } from '@/components/layout/tenant-switcher';
 
 const navigation = [
   { name: 'Dashboard', href: ROUTES.DASHBOARD, icon: LayoutDashboard },
@@ -74,6 +75,9 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
           SavSpot
         </Link>
       </div>
+
+      {/* Tenant Switcher */}
+      <TenantSwitcher />
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4">

@@ -29,6 +29,12 @@ function makePrisma() {
   };
 }
 
+function makeConfigService() {
+  return {
+    get: vi.fn().mockReturnValue(undefined),
+  };
+}
+
 function makeQueue() {
   return {
     add: vi.fn(),
@@ -76,12 +82,14 @@ function makeDelivery(overrides: Record<string, unknown> = {}) {
 describe('WebhookService', () => {
   let service: WebhookService;
   let prisma: ReturnType<typeof makePrisma>;
+  let configService: ReturnType<typeof makeConfigService>;
   let queue: ReturnType<typeof makeQueue>;
 
   beforeEach(() => {
     prisma = makePrisma();
+    configService = makeConfigService();
     queue = makeQueue();
-    service = new WebhookService(prisma as never, queue as never);
+    service = new WebhookService(prisma as never, configService as never, queue as never);
   });
 
   // -----------------------------------------------------------------------
@@ -154,11 +162,12 @@ describe('WebhookService', () => {
           tenantId: TENANT_ID,
           url: 'https://example.com/webhook',
           events: ['BOOKING_CONFIRMED'],
-          secret: expect.stringMatching(/^whsec_[a-f0-9]{64}$/),
+          secret: expect.stringMatching(/^[a-f0-9]+:[a-f0-9]+:[a-f0-9]+$/),
         }),
       });
-      // The returned object should include the secret
+      // The returned object should include the plaintext secret
       expect(result.secret).toBeDefined();
+      expect(result.secret).toMatch(/^whsec_/);
     });
 
     it('should use default maxAttempts=5 when not provided', async () => {
@@ -460,7 +469,7 @@ describe('WebhookService', () => {
 
       const updateData = prisma.webhookEndpoint.update.mock.calls[0]![0].data;
       expect(updateData.previousSecret).toBe(oldSecret);
-      expect(updateData.secret).toMatch(/^whsec_/);
+      expect(updateData.secret).toMatch(/^[a-f0-9]+:[a-f0-9]+:[a-f0-9]+$/);
       expect(updateData.secretRotatedAt).toBeInstanceOf(Date);
     });
 

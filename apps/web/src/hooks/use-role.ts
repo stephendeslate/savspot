@@ -14,11 +14,13 @@ const ROLE_HIERARCHY: Record<string, number> = {
 };
 
 /**
- * Returns the current user's tenant role from their first membership.
+ * Returns the current user's tenant role from the active membership.
  */
 export function useRole(): string | null {
-  const { user } = useAuth();
-  return user?.memberships?.[0]?.role ?? null;
+  const { user, activeTenantId } = useAuth();
+  const membership = user?.memberships?.find((m) => m.tenantId === activeTenantId)
+    ?? user?.memberships?.[0];
+  return membership?.role ?? null;
 }
 
 /**
