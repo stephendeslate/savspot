@@ -198,7 +198,110 @@ export class OutlookCalendarService {
 
   async renewWebhookSubscription(connectionId: string): Promise<void> {
     this.logger.log(`Renewing webhook subscription for Outlook connection ${connectionId}`);
-    // TODO: Implement Microsoft Graph subscription renewal
+
+    const connection = await this.prisma.calendarConnection.findUnique({
+      where: { id: connectionId },
+    });
+
+    if (!connection) {
+      this.logger.warn(`Calendar connection ${connectionId} not found`);
+      return;
+    }
+
+    if (!connection.webhookChannelId) {
+      this.logger.warn(`No webhook subscription ID for connection ${connectionId}`);
+      return;
+    }
+
+    let accessToken = this.decryptToken(connection.accessToken);
+
+    const isExpired =
+      connection.tokenExpiresAt && connection.tokenExpiresAt <= new Date();
+
+    if (isExpired) {
+      if (!connection.refreshToken) {
+        this.logger.error(
+          `Token expired and no refresh token for connection ${connectionId}`,
+        );
+        await this.prisma.calendarConnection.update({
+          where: { id: connectionId },
+          data: { status: 'ERROR', errorMessage: 'Token expired, no refresh token available' },
+        });
+        return;
+      }
+
+      const refreshed = await this.refreshAccessToken(
+        this.decryptToken(connection.refreshToken),
+      );
+
+      accessToken = refreshed.access_token;
+
+      const tokenExpiresAt = new Date(
+        Date.now() + refreshed.expires_in * 1000,
+      );
+
+      await this.prisma.calendarConnection.update({
+        where: { id: connectionId },
+        data: {
+          accessToken: this.encryptToken(refreshed.access_token),
+          refreshToken: refreshed.refresh_token
+            ? this.encryptToken(refreshed.refresh_token)
+            : connection.refreshToken,
+          tokenExpiresAt,
+        },
+      });
+    }
+
+    const newExpiry = new Date(
+      Date.now() + 3 * 24 * 60 * 60 * 1000,
+    );
+
+    const response = await fetch(
+      `https://graph.microsoft.com/v1.0/subscriptions/${connection.webhookChannelId}`,
+      {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          expirationDateTime: newExpiry.toISOString(),
+        }),
+      },
+    );
+
+    if (response.status === 404) {
+      this.logger.warn(
+        `Subscription ${connection.webhookChannelId} no longer exists, clearing webhook data`,
+      );
+      await this.prisma.calendarConnection.update({
+        where: { id: connectionId },
+        data: {
+          webhookChannelId: null,
+          webhookExpiresAt: null,
+        },
+      });
+      return;
+    }
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      this.logger.error(
+        `Failed to renew subscription ${connection.webhookChannelId}: ${response.status} ${errorBody}`,
+      );
+      throw new Error(
+        `Microsoft Graph subscription renewal failed: ${response.status}`,
+      );
+    }
+
+    await this.prisma.calendarConnection.update({
+      where: { id: connectionId },
+      data: { webhookExpiresAt: newExpiry },
+    });
+
+    this.logger.log(
+      `Renewed webhook subscription ${connection.webhookChannelId} until ${newExpiry.toISOString()}`,
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -292,5 +395,73 @@ export class OutlookCalendarService {
     const tag = cipher.getAuthTag();
 
     return `${iv.toString('hex')}:${encrypted.toString('hex')}:${tag.toString('hex')}`;
+  }
+
+  /**
+   * Decrypt a token string from AES-256-GCM format.
+   */
+  private decryptToken(encryptedToken: string): string {
+    const parts = encryptedToken.split(':');
+    if (parts.length !== 3) {
+      throw new Error('Invalid encrypted token format');
+    }
+
+    const [ivHex, encryptedHex, tagHex] = parts;
+    const iv = Buffer.from(ivHex!, 'hex');
+    const encrypted = Buffer.from(encryptedHex!, 'hex');
+    const tag = Buffer.from(tagHex!, 'hex');
+
+    const decipher = crypto.createDecipheriv(
+      'aes-256-gcm',
+      this.encryptionKey,
+      iv,
+    );
+    decipher.setAuthTag(tag);
+
+    const decrypted = Buffer.concat([
+      decipher.update(encrypted),
+      decipher.final(),
+    ]);
+
+    return decrypted.toString('utf8');
+  }
+
+  /**
+   * Refresh an expired access token using a refresh token.
+   */
+  private async refreshAccessToken(
+    refreshToken: string,
+  ): Promise<MicrosoftTokenResponse> {
+    const body = new URLSearchParams({
+      client_id: this.clientId,
+      client_secret: this.clientSecret,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token',
+      scope: this.SCOPES.join(' '),
+    });
+
+    const response = await fetch(this.TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      this.logger.error(
+        `Failed to refresh Microsoft token: ${response.status} ${errorBody}`,
+      );
+      throw new Error(
+        `Microsoft token refresh failed: ${response.status}`,
+      );
+    }
+
+    const data = (await response.json()) as MicrosoftTokenResponse;
+
+    if (!data.access_token) {
+      throw new Error('No access token returned from Microsoft token refresh');
+    }
+
+    return data;
   }
 }
