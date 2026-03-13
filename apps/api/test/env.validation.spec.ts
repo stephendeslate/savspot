@@ -80,7 +80,12 @@ describe('envSchema', () => {
     });
 
     it('should accept production', () => {
-      const result = envSchema.parse({ NODE_ENV: 'production' });
+      const result = envSchema.parse({
+        NODE_ENV: 'production',
+        JWT_PRIVATE_KEY_BASE64: 'test-key',
+        JWT_PUBLIC_KEY_BASE64: 'test-key',
+        ENCRYPTION_KEY: 'test-key',
+      });
       expect(result.NODE_ENV).toBe('production');
     });
 
@@ -116,6 +121,9 @@ describe('validateEnv', () => {
       PORT: '3001',
       NODE_ENV: 'production',
       WEB_URL: 'https://app.savspot.co',
+      JWT_PRIVATE_KEY_BASE64: 'test-key',
+      JWT_PUBLIC_KEY_BASE64: 'test-key',
+      ENCRYPTION_KEY: 'test-key',
     });
     expect(config.PORT).toBe(3001);
     expect(config.NODE_ENV).toBe('production');

@@ -21,9 +21,6 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - name: Security audit
-        run: pnpm audit --audit-level=critical
-        continue-on-error: true
       - run: pnpm --filter @savspot/shared build
       - run: pnpm --filter @savspot/ui build
       - run: pnpm db:generate

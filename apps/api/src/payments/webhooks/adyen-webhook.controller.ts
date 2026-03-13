@@ -1,4 +1,5 @@
 import * as crypto from 'crypto';
+import { timingSafeEqual } from 'crypto';
 import {
   Controller,
   Post,
@@ -129,11 +130,14 @@ export class AdyenWebhookController {
       throw new BadRequestException('Missing HMAC signature header');
     }
     const keyBuffer = Buffer.from(hmacKey, 'hex');
-    const computed = crypto
-      .createHmac('sha256', keyBuffer)
-      .update(payload)
-      .digest('base64');
-    if (computed !== signature) {
+    const computedBuffer = Buffer.from(
+      crypto.createHmac('sha256', keyBuffer).update(payload).digest('base64'),
+    );
+    const signatureBuffer = Buffer.from(signature);
+    if (
+      computedBuffer.length !== signatureBuffer.length ||
+      !timingSafeEqual(computedBuffer, signatureBuffer)
+    ) {
       throw new BadRequestException('Invalid HMAC signature');
     }
   }

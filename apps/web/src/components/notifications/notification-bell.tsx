@@ -100,7 +100,7 @@ export function NotificationBell() {
     if (!notification.isRead) {
       handleMarkAsRead(notification.id);
     }
-    if (notification.actionUrl) {
+    if (notification.actionUrl?.startsWith('/') && !notification.actionUrl.startsWith('//')) {
       setIsOpen(false);
       router.push(notification.actionUrl);
     }
@@ -119,6 +119,8 @@ export function NotificationBell() {
         onClick={() => setIsOpen((prev) => !prev)}
         className="relative rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
         aria-label="Notifications"
+        aria-expanded={isOpen}
+        aria-haspopup="true"
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
@@ -130,7 +132,11 @@ export function NotificationBell() {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border bg-card shadow-lg sm:w-96">
+        <div
+          role="dialog"
+          aria-label="Notifications"
+          className="absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border bg-card shadow-lg sm:w-96"
+        >
           {/* Dropdown Header */}
           <div className="flex items-center justify-between border-b px-4 py-3">
             <h3 className="text-sm font-semibold">Notifications</h3>
@@ -213,9 +219,16 @@ export function NotificationBell() {
           {/* Dropdown Footer */}
           {notifications.length > 0 && (
             <div className="border-t px-4 py-2 text-center">
-              <span className="text-xs text-muted-foreground">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  router.push('/notifications');
+                }}
+                className="text-xs text-muted-foreground hover:underline"
+              >
                 View all
-              </span>
+              </button>
             </div>
           )}
         </div>

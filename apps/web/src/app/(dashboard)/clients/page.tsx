@@ -15,6 +15,7 @@ import { Button, Badge, Card, CardContent, Input, Label, Select, SelectContent, 
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useUrlState } from '@/hooks/use-url-state';
 import { formatAmount } from '@/lib/format-utils';
 
 // ---------- Types ----------
@@ -59,18 +60,24 @@ export default function ClientsPage() {
   const router = useRouter();
   const { tenantId } = useTenant();
 
-  // Filter state (UI state)
-  const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState('lastVisit');
-  const [tagFilter, setTagFilter] = useState('');
-  const [page, setPage] = useState(1);
+  const [urlState, setUrlState] = useUrlState({
+    search: '',
+    sortBy: 'lastVisit',
+    tags: '',
+    page: '1',
+  });
 
-  const debouncedSearch = useDebounce(search, 300);
+  const sortBy = urlState.sortBy;
+  const tagFilter = urlState.tags;
+  const page = Number(urlState.page) || 1;
 
-  // Reset page when filters change
+  const [searchInput, setSearchInput] = useState(urlState.search);
+  const debouncedSearch = useDebounce(searchInput, 300);
+
   useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, sortBy, tagFilter]);
+    setUrlState({ search: debouncedSearch, page: '1' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   const queryParams = useMemo(() => {
     const params: Record<string, string> = {
@@ -109,13 +116,9 @@ export default function ClientsPage() {
     return Array.from(tags).sort();
   }, [clients]);
 
-  const handlePreviousPage = () => {
-    setPage((p) => p - 1);
-  };
+  const handlePreviousPage = () => setUrlState({ page: String(page - 1) });
 
-  const handleNextPage = () => {
-    setPage((p) => p + 1);
-  };
+  const handleNextPage = () => setUrlState({ page: String(page + 1) });
 
   // ---------- Loading ----------
 
@@ -183,8 +186,8 @@ export default function ClientsPage() {
             <Input
               id="client-search"
               placeholder="Search by name, email, or phone..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="pl-10"
             />
           </div>
@@ -198,7 +201,7 @@ export default function ClientsPage() {
             </Label>
             <Select
               value={tagFilter || 'all'}
-              onValueChange={(v) => setTagFilter(v === 'all' ? '' : v)}
+              onValueChange={(v) => setUrlState({ tags: v === 'all' ? '' : v, page: '1' })}
             >
               <SelectTrigger id="client-tag-filter" className="w-full">
                 <SelectValue placeholder="All Tags" />
@@ -222,7 +225,7 @@ export default function ClientsPage() {
           </Label>
           <div className="flex items-center gap-2">
             <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-            <Select value={sortBy} onValueChange={setSortBy}>
+            <Select value={sortBy} onValueChange={(v) => setUrlState({ sortBy: v, page: '1' })}>
               <SelectTrigger id="client-sort" className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -263,8 +266,16 @@ export default function ClientsPage() {
             {clients.map((client) => (
               <Card
                 key={client.id}
+                role="button"
+                tabIndex={0}
                 className="cursor-pointer transition-colors hover:bg-accent/50"
                 onClick={() => router.push(`/clients/${client.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    router.push(`/clients/${client.id}`);
+                  }
+                }}
               >
                 <CardContent className="pt-6">
                   {/* Client identity */}
@@ -367,7 +378,7 @@ export default function ClientsPage() {
                           variant={pageNum === page ? 'default' : 'outline'}
                           size="sm"
                           className="h-8 w-8 p-0"
-                          onClick={() => setPage(pageNum)}
+                          onClick={() => setUrlState({ page: String(pageNum) })}
                         >
                           {pageNum}
                         </Button>

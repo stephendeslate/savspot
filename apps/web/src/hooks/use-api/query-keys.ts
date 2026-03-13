@@ -14,5 +14,7 @@ export const queryKeys = {
   stripeStatus: (tenantId: string) => ['stripe-status', tenantId] as const,
   calendarConnections: (tenantId: string) =>
     ['calendar-connections', tenantId] as const,
+  payments: (tenantId: string, params?: Record<string, string>) =>
+    ['payments', tenantId, params] as const,
   paymentStats: (tenantId: string) => ['payment-stats', tenantId] as const,
 };

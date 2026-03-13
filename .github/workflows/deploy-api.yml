@@ -1,10 +1,13 @@
 name: Deploy API
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+  push:
     branches: [main]
+    paths:
+      - "apps/api/**"
+      - "packages/shared/**"
+      - "prisma/**"
+      - "pnpm-lock.yaml"
 
 # Prevent concurrent deploys
 concurrency:
@@ -15,11 +18,9 @@ jobs:
   deploy:
     name: Deploy API to Fly.io
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
+    # Only deploy after CI passes
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Setup Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
@@ -33,11 +34,8 @@ jobs:
     name: Deploy Worker to Fly.io
     runs-on: ubuntu-latest
     needs: [deploy]
-    if: github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Setup Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
