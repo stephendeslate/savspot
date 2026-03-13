@@ -333,7 +333,7 @@ export function BookingWizard({
       {/* Error banner */}
       {error && (
         <FadeIn>
-          <div className="mb-4 flex items-start justify-between gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <div role="alert" className="mb-4 flex items-start justify-between gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             <span>{error}</span>
             <button
               type="button"

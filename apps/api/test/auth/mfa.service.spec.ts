@@ -201,7 +201,7 @@ describe('MfaService', () => {
       expect(result.accessToken).toBe('access-token');
       expect(result.refreshToken).toBe('refresh-token');
       // Remaining codes should be the hashes of code1234 and code9012 (index 1 removed)
-      const updateCall = prisma.user.update.mock.calls[0][0];
+      const updateCall = prisma.user.update.mock.calls[0]![0] as { data: { mfaRecoveryCodes: string[] } };
       expect(updateCall.data.mfaRecoveryCodes).toHaveLength(2);
       expect(updateCall.data.mfaRecoveryCodes[0]).toBe(hashedCodes[0]);
       expect(updateCall.data.mfaRecoveryCodes[1]).toBe(hashedCodes[2]);

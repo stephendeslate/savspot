@@ -14,6 +14,7 @@ describe('useTenant', () => {
   it('returns tenantId from user when user is loaded', () => {
     mockedUseAuth.mockReturnValue({
       user: { id: 'u1', tenantId: 'tenant-123', email: 'test@test.com' },
+      isLoading: false,
     });
 
     const { result } = renderHook(() => useTenant());
@@ -25,6 +26,7 @@ describe('useTenant', () => {
   it('returns null tenantId when user has no tenantId', () => {
     mockedUseAuth.mockReturnValue({
       user: { id: 'u1', tenantId: null, email: 'test@test.com' },
+      isLoading: false,
     });
 
     const { result } = renderHook(() => useTenant());
@@ -34,7 +36,7 @@ describe('useTenant', () => {
   });
 
   it('returns null tenantId and isLoading true when user is null', () => {
-    mockedUseAuth.mockReturnValue({ user: null });
+    mockedUseAuth.mockReturnValue({ user: null, isLoading: true });
 
     const { result } = renderHook(() => useTenant());
 
@@ -45,6 +47,7 @@ describe('useTenant', () => {
   it('returns isLoading false when user object exists', () => {
     mockedUseAuth.mockReturnValue({
       user: { id: 'u1', tenantId: 'tenant-1' },
+      isLoading: false,
     });
 
     const { result } = renderHook(() => useTenant());
