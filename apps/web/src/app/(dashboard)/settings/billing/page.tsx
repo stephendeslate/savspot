@@ -12,6 +12,7 @@ import { Button, Badge, Card, CardContent, CardDescription, CardHeader, CardTitl
 import { apiClient } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
 import { useTenant } from '@/hooks/use-tenant';
+import { RequireRole } from '@/components/auth/require-role';
 
 // ---------- Types ----------
 
@@ -264,6 +265,7 @@ export default function BillingSettingsPage() {
   // ---------- Render ----------
 
   return (
+    <RequireRole minimum="ADMIN">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -488,5 +490,6 @@ export default function BillingSettingsPage() {
         </Card>
       )}
     </div>
+    </RequireRole>
   );
 }

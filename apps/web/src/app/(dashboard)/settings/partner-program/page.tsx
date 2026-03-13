@@ -16,6 +16,7 @@ import {
 import { Button, Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Skeleton, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@savspot/ui';
 import { apiClient } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
+import { RequireRole } from '@/components/auth/require-role';
 
 // ---------- Types ----------
 
@@ -78,6 +79,14 @@ function getStatusBadge(status: string) {
 // ---------- Component ----------
 
 export default function PartnerProgramPage() {
+  return (
+    <RequireRole minimum="OWNER">
+      <PartnerProgramContent />
+    </RequireRole>
+  );
+}
+
+function PartnerProgramContent() {
   const router = useRouter();
 
   const [profile, setProfile] = useState<PartnerProfile | null>(null);

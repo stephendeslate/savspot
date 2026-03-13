@@ -13,6 +13,7 @@ import {
 import { Button, Card, CardContent, CardHeader, CardTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Skeleton } from '@savspot/ui';
 import { ApiError, apiClient, isSubscriptionError, parseRequiredTier } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
+import { RequireRole } from '@/components/auth/require-role';
 import { formatAmount } from '@/lib/format-utils';
 import { UpgradeBanner } from '@/components/upgrade-banner';
 
@@ -256,6 +257,7 @@ export default function AnalyticsPage() {
   // ---------- Render ----------
 
   return (
+    <RequireRole minimum="ADMIN">
     <div className="min-w-0 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -430,5 +432,6 @@ export default function AnalyticsPage() {
         </CardContent>
       </Card>
     </div>
+    </RequireRole>
   );
 }
