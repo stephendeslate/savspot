@@ -50,6 +50,7 @@ export class AuthController {
 
   private setAuthCookies(res: Response, tokens: { accessToken: string; refreshToken: string }) {
     const isProduction = process.env['NODE_ENV'] === 'production';
+    const cookieDomain = isProduction ? '.savspot.co' : undefined;
 
     res.cookie('savspot_access', tokens.accessToken, {
       httpOnly: true,
@@ -57,6 +58,7 @@ export class AuthController {
       sameSite: 'lax',
       path: '/',
       maxAge: 900 * 1000,
+      domain: cookieDomain,
     });
 
     res.cookie('savspot_refresh', tokens.refreshToken, {
@@ -65,6 +67,7 @@ export class AuthController {
       sameSite: 'lax',
       path: '/api/auth/refresh',
       maxAge: 604800 * 1000,
+      domain: cookieDomain,
     });
 
     res.cookie('savspot_session', 'true', {
@@ -73,14 +76,16 @@ export class AuthController {
       sameSite: 'lax',
       path: '/',
       maxAge: 604800 * 1000,
+      domain: cookieDomain,
     });
   }
 
   private clearAuthCookies(res: Response) {
     const isProduction = process.env['NODE_ENV'] === 'production';
-    res.clearCookie('savspot_access', { path: '/', secure: isProduction, sameSite: 'lax' });
-    res.clearCookie('savspot_refresh', { path: '/api/auth/refresh', secure: isProduction, sameSite: 'lax' });
-    res.clearCookie('savspot_session', { path: '/', secure: isProduction, sameSite: 'lax' });
+    const cookieDomain = isProduction ? '.savspot.co' : undefined;
+    res.clearCookie('savspot_access', { path: '/', secure: isProduction, sameSite: 'lax', domain: cookieDomain });
+    res.clearCookie('savspot_refresh', { path: '/api/auth/refresh', secure: isProduction, sameSite: 'lax', domain: cookieDomain });
+    res.clearCookie('savspot_session', { path: '/', secure: isProduction, sameSite: 'lax', domain: cookieDomain });
   }
 
   @Public()
