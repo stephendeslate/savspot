@@ -108,12 +108,12 @@ describe('formatAmount', () => {
 });
 
 describe('formatStatus', () => {
-  it('replaces underscores with spaces', () => {
-    expect(formatStatus('UPPER_SNAKE_CASE')).toBe('UPPER SNAKE CASE');
+  it('converts UPPER_SNAKE_CASE to Title Case', () => {
+    expect(formatStatus('UPPER_SNAKE_CASE')).toBe('Upper Snake Case');
   });
 
   it('handles single word status', () => {
-    expect(formatStatus('PENDING')).toBe('PENDING');
+    expect(formatStatus('PENDING')).toBe('Pending');
   });
 
   it('handles status with multiple underscores', () => {
@@ -136,6 +136,6 @@ describe('formatPaymentType', () => {
   });
 
   it('falls back to formatStatus for unknown types', () => {
-    expect(formatPaymentType('SOME_OTHER')).toBe('SOME OTHER');
+    expect(formatPaymentType('SOME_OTHER')).toBe('Some Other');
   });
 });

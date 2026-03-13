@@ -246,7 +246,7 @@ export class PaymentsService {
         bookingId,
         amount: chargeAmount,
         platformFee: platformFeeDollars,
-        processingFee: 0,
+        processingFee: platformFeeDollars,
         referralCommission: referralCommissionDollars,
         currency: booking.currency,
         type: paymentType,
@@ -315,42 +315,43 @@ export class PaymentsService {
 
     const previousStatus = payment.status;
 
-    // Update payment status
-    await this.prisma.payment.update({
-      where: { id: payment.id },
-      data: { status: 'SUCCEEDED' },
-    });
-
-    // Create state history
-    await this.prisma.paymentStateHistory.create({
-      data: {
-        paymentId: payment.id,
-        tenantId: payment.tenantId,
-        fromState: previousStatus,
-        toState: 'SUCCEEDED',
-        triggeredBy: 'WEBHOOK',
-        reason: 'Payment succeeded via Stripe webhook',
-      },
-    });
-
-    // Confirm the booking if it is PENDING
-    if (payment.booking.status === 'PENDING') {
-      await this.prisma.booking.update({
-        where: { id: payment.bookingId },
-        data: { status: 'CONFIRMED' },
-      });
-
-      await this.prisma.bookingStateHistory.create({
+    const ops: Prisma.PrismaPromise<unknown>[] = [
+      this.prisma.payment.update({
+        where: { id: payment.id },
+        data: { status: 'SUCCEEDED' },
+      }),
+      this.prisma.paymentStateHistory.create({
         data: {
-          bookingId: payment.bookingId,
+          paymentId: payment.id,
           tenantId: payment.tenantId,
-          fromState: 'PENDING',
-          toState: 'CONFIRMED',
+          fromState: previousStatus,
+          toState: 'SUCCEEDED',
           triggeredBy: 'WEBHOOK',
-          reason: 'Payment succeeded — booking auto-confirmed',
+          reason: 'Payment succeeded via Stripe webhook',
         },
-      });
+      }),
+    ];
+
+    if (payment.booking?.status === 'PENDING') {
+      ops.push(
+        this.prisma.booking.update({
+          where: { id: payment.bookingId },
+          data: { status: 'CONFIRMED' },
+        }),
+        this.prisma.bookingStateHistory.create({
+          data: {
+            bookingId: payment.bookingId,
+            tenantId: payment.tenantId,
+            fromState: 'PENDING',
+            toState: 'CONFIRMED',
+            triggeredBy: 'SYSTEM',
+            reason: 'Auto-confirmed after successful payment',
+          },
+        }),
+      );
     }
+
+    await this.prisma.$transaction(ops);
 
     // Load booking details for event payload
     const fullBooking = await this.prisma.booking.findFirst({
@@ -618,7 +619,7 @@ export class PaymentsService {
           _sum: { amount: true },
         }),
         this.prisma.payment.aggregate({
-          where: { tenantId, status: 'REFUNDED' },
+          where: { tenantId, status: { in: ['REFUNDED', 'PARTIALLY_REFUNDED'] } },
           _sum: { amount: true },
         }),
       ]);
@@ -639,16 +640,35 @@ export class PaymentsService {
     filters: {
       bookingId?: string;
       status?: string;
+      startDate?: string;
+      endDate?: string;
+      search?: string;
       page?: number;
       limit?: number;
     } = {},
   ) {
-    const { bookingId, status, page = 1, limit = 20 } = filters;
+    const { bookingId, status, startDate, endDate, search, page = 1, limit = 20 } = filters;
     const skip = (page - 1) * limit;
 
     const where: Prisma.PaymentWhereInput = { tenantId };
     if (bookingId) where.bookingId = bookingId;
     if (status) where.status = status as Prisma.PaymentWhereInput['status'];
+    if (startDate || endDate) {
+      const dateFilter: { gte?: Date; lte?: Date } = {};
+      if (startDate) dateFilter.gte = new Date(startDate);
+      if (endDate) dateFilter.lte = new Date(endDate);
+      where.createdAt = dateFilter;
+    }
+    if (search) {
+      where.booking = {
+        client: {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { email: { contains: search, mode: 'insensitive' } },
+          ],
+        },
+      };
+    }
 
     const [payments, total] = await Promise.all([
       this.prisma.payment.findMany({

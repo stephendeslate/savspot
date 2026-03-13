@@ -62,7 +62,7 @@ export class TokenService {
 
   generateAccessToken(payload: JwtPayload): SignedToken {
     const jti = uuidv4();
-    const token = jwt.sign({ ...payload, jti }, this.privateKey, {
+    const token = jwt.sign({ ...payload, jti, type: 'access' }, this.privateKey, {
       algorithm: 'RS256',
       expiresIn: this.accessExpiry as unknown as number,
     } as jwt.SignOptions);

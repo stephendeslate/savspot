@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -13,8 +13,6 @@ import {
 import { Button, Badge, Card, CardContent, CardHeader, CardTitle, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Skeleton, Tabs, TabsList, TabsTrigger, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Progress, ScrollArea } from '@savspot/ui';
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
-import { useUrlState } from '@/hooks/use-url-state';
-import { queryKeys } from '@/hooks/use-api';
 import { formatStatus } from '@/lib/format-utils';
 
 // ---------- Types ----------
@@ -78,17 +76,14 @@ function getImportStatusColor(status: string): string {
 export default function ImportsPage() {
   const { tenantId } = useTenant();
 
-  // URL state
-  const [urlState, setUrlState] = useUrlState({
-    status: 'ALL',
-    page: '1',
-  });
-
-  const statusFilter = urlState.status;
-  const page = Number(urlState.page) || 1;
-
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [page, setPage] = useState(1);
   const [selectedJob, setSelectedJob] = useState<ImportJob | null>(null);
   const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
 
   const queryParams = useMemo(() => {
     const params: Record<string, string> = {
@@ -100,7 +95,7 @@ export default function ImportsPage() {
   }, [page, statusFilter]);
 
   const { data: importsRes, isLoading, error: queryError } = useQuery({
-    queryKey: queryKeys.imports(tenantId ?? '', queryParams),
+    queryKey: ['imports', tenantId, queryParams],
     queryFn: () => {
       const searchParams = new URLSearchParams(queryParams).toString();
       return apiClient.getRaw<ImportsResponse>(
@@ -111,7 +106,7 @@ export default function ImportsPage() {
   });
 
   const { data: errorReport } = useQuery({
-    queryKey: queryKeys.importErrors(tenantId ?? '', selectedJob?.id ?? ''),
+    queryKey: ['import-errors', tenantId, selectedJob?.id],
     queryFn: () =>
       apiClient.get<ImportErrorReport>(
         `/api/tenants/${tenantId}/imports/${selectedJob!.id}/errors`,
@@ -122,18 +117,16 @@ export default function ImportsPage() {
   const imports = importsRes?.data ?? [];
   const total = importsRes?.meta?.total ?? 0;
   const error = queryError
-    ? (process.env.NODE_ENV === 'development' && queryError instanceof Error
-        ? queryError.message
-        : 'Failed to load imports')
+    ? (queryError instanceof Error ? queryError.message : 'Failed to load imports')
     : null;
   const totalPages = Math.ceil(total / PAGE_LIMIT);
 
   const handlePreviousPage = () => {
-    setUrlState({ page: String(page - 1) });
+    setPage((p) => p - 1);
   };
 
   const handleNextPage = () => {
-    setUrlState({ page: String(page + 1) });
+    setPage((p) => p + 1);
   };
 
   const handleViewErrors = useCallback((job: ImportJob) => {
@@ -186,13 +179,13 @@ export default function ImportsPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
       {/* Status Tabs */}
-      <Tabs value={statusFilter} onValueChange={(v) => setUrlState({ status: v, page: '1' })}>
+      <Tabs value={statusFilter} onValueChange={setStatusFilter}>
         <TabsList>
           {STATUS_TABS.map((tab) => (
             <TabsTrigger key={tab} value={tab}>
@@ -242,16 +235,8 @@ export default function ImportsPage() {
                   {imports.map((job) => (
                     <TableRow
                       key={job.id}
-                      role="button"
-                      tabIndex={0}
                       className="cursor-pointer"
                       onClick={() => handleRowClick(job)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleRowClick(job);
-                        }
-                      }}
                     >
                       <TableCell>
                         <div className="font-medium">
@@ -285,7 +270,6 @@ export default function ImportsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            aria-label="View errors"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleViewErrors(job);

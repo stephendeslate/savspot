@@ -16,9 +16,8 @@ import {
 import { Button, Badge, Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Skeleton } from '@savspot/ui';
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
-import { useDebounce } from '@/hooks/use-debounce';
-import { useUrlState } from '@/hooks/use-url-state';
 import { queryKeys } from '@/hooks/use-api';
+import { useDebounce } from '@/hooks/use-debounce';
 import { WalkInDialog } from '@/components/bookings/walk-in-dialog';
 import {
   getStatusColor,
@@ -93,31 +92,23 @@ export default function BookingsPage() {
   const { tenantId } = useTenant();
   const queryClient = useQueryClient();
 
-  // URL state
-  const [urlState, setUrlState] = useUrlState({
-    status: '',
-    startDate: '',
-    endDate: '',
-    search: '',
-    page: '1',
-  });
-
-  const statusFilter = urlState.status;
-  const startDate = urlState.startDate;
-  const endDate = urlState.endDate;
-  const page = Number(urlState.page) || 1;
-
-  const [searchInput, setSearchInput] = useState(urlState.search);
+  // Filter state (UI state)
+  const [statusFilter, setStatusFilter] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
 
   // Walk-in dialog
   const [walkInOpen, setWalkInOpen] = useState(false);
 
-  const debouncedSearch = useDebounce(searchInput, 300);
+  const debouncedSearch = useDebounce(search, 300);
+
+  // Reset page when filters change
   useEffect(() => {
-    setUrlState({ search: debouncedSearch, page: '1' });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch]);
+    setPage(1);
+  }, [debouncedSearch, statusFilter]);
 
   const queryParams = useMemo(() => {
     const params: Record<string, string> = {
@@ -132,7 +123,7 @@ export default function BookingsPage() {
   }, [page, statusFilter, startDate, endDate, debouncedSearch]);
 
   const { data: bookingsRes, isLoading, error: queryError } = useQuery({
-    queryKey: queryKeys.bookings(tenantId ?? '', queryParams),
+    queryKey: queryKeys.bookings(tenantId!, queryParams),
     queryFn: () => {
       const searchParams = new URLSearchParams(queryParams).toString();
       return apiClient.getRaw<BookingsResponse>(
@@ -146,22 +137,20 @@ export default function BookingsPage() {
   const total = bookingsRes?.meta?.total ?? 0;
   const currentPage = bookingsRes?.meta?.page ?? 1;
   const error = queryError
-    ? (process.env.NODE_ENV === 'development' && queryError instanceof Error
-        ? queryError.message
-        : 'Failed to load bookings')
+    ? (queryError instanceof Error ? queryError.message : 'Failed to load bookings')
     : null;
   const totalPages = Math.ceil(total / PAGE_LIMIT);
 
   const handleApplyFilters = () => {
-    setUrlState({ page: '1' });
+    setPage(1);
   };
 
   const handlePreviousPage = () => {
-    setUrlState({ page: String(page - 1) });
+    setPage((p) => p - 1);
   };
 
   const handleNextPage = () => {
-    setUrlState({ page: String(page + 1) });
+    setPage((p) => p + 1);
   };
 
   const handleWalkInSuccess = () => {
@@ -226,7 +215,7 @@ export default function BookingsPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -239,7 +228,7 @@ export default function BookingsPage() {
               <Label htmlFor="filter-status">Status</Label>
               <Select
                 value={statusFilter || 'all'}
-                onValueChange={(v) => setUrlState({ status: v === 'all' ? '' : v, page: '1' })}
+                onValueChange={(v) => setStatusFilter(v === 'all' ? '' : v)}
               >
                 <SelectTrigger id="filter-status" className="w-full">
                   <SelectValue placeholder="All Statuses" />
@@ -259,7 +248,7 @@ export default function BookingsPage() {
                 id="filter-start-date"
                 type="date"
                 value={startDate}
-                onChange={(e) => setUrlState({ startDate: e.target.value, page: '1' })}
+                onChange={(e) => setStartDate(e.target.value)}
               />
             </div>
             <div className="flex-1 space-y-2">
@@ -268,7 +257,7 @@ export default function BookingsPage() {
                 id="filter-end-date"
                 type="date"
                 value={endDate}
-                onChange={(e) => setUrlState({ endDate: e.target.value, page: '1' })}
+                onChange={(e) => setEndDate(e.target.value)}
               />
             </div>
             <div className="flex-1 space-y-2">
@@ -279,8 +268,8 @@ export default function BookingsPage() {
                   id="filter-search"
                   type="text"
                   placeholder="Client name or email..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
                   className="pl-9"
                 />
               </div>
@@ -334,7 +323,19 @@ export default function BookingsPage() {
                 </TableHeader>
                 <TableBody>
                   {bookings.map((booking) => (
-                    <TableRow key={booking.id}>
+                    <TableRow
+                      key={booking.id}
+                      role="button"
+                      tabIndex={0}
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/bookings/${booking.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          router.push(`/bookings/${booking.id}`);
+                        }
+                      }}
+                    >
                       <TableCell>
                         {booking.client ? (
                           <div className="min-w-0">
@@ -392,7 +393,6 @@ export default function BookingsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          aria-label="View booking"
                           onClick={() =>
                             router.push(`/bookings/${booking.id}`)
                           }

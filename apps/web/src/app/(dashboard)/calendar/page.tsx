@@ -279,7 +279,7 @@ export default function CalendarPage() {
   }, [currentDate, currentView, viewMode]);
 
   const { data: calendarData, isLoading, error: queryError } = useQuery({
-    queryKey: queryKeys.calendarEvents(tenantId ?? '', dateRange.start.toISOString(), dateRange.end.toISOString()),
+    queryKey: queryKeys.calendarEvents(tenantId!, dateRange.start.toISOString(), dateRange.end.toISOString()),
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set('startDate', dateRange.start.toISOString());
@@ -303,9 +303,7 @@ export default function CalendarPage() {
 
   const events: CalendarEvent[] = calendarData ?? [];
   const error = queryError
-    ? (process.env.NODE_ENV === 'development' && queryError instanceof Error
-        ? queryError.message
-        : 'Failed to load calendar data')
+    ? (queryError instanceof Error ? queryError.message : 'Failed to load calendar events')
     : null;
 
   const handleNavigate = useCallback((date: Date) => {
@@ -393,9 +391,7 @@ export default function CalendarPage() {
       void queryClient.invalidateQueries({ queryKey: ['calendar-events', tenantId] });
     } catch (err) {
       setRescheduleError(
-        process.env.NODE_ENV === 'development' && err instanceof Error
-          ? err.message
-          : 'Failed to reschedule booking',
+        err instanceof Error ? err.message : 'Failed to reschedule booking',
       );
     } finally {
       setIsRescheduling(false);
@@ -490,7 +486,7 @@ export default function CalendarPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
