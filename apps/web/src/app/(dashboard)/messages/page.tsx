@@ -384,6 +384,7 @@ export default function MessagesPage() {
                   />
                   <Button
                     size="sm"
+                    aria-label="Send message"
                     onClick={handleSendMessage}
                     disabled={!newMessage.trim() || sendMessageMutation.isPending}
                   >
