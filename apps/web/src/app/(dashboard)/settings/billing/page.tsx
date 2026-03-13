@@ -93,6 +93,7 @@ function formatEntitlements(features: PlanFeatures): { label: string; value: str
     { label: 'Team Management', value: features.teamManagement ? 'Yes' : 'No' },
     { label: 'Multi-Location', value: features.multiLocation ? 'Yes' : 'No' },
     { label: 'Custom Templates', value: features.customTemplates ? 'Yes' : 'No' },
+    { label: 'Processing Fee', value: '1% on all transactions' },
   ];
 }
 
@@ -106,6 +107,7 @@ function featuresToStrings(features: PlanFeatures): string[] {
   if (features.multiLocation) items.push('Multi-location support');
   if (features.customTemplates) items.push('Custom templates');
   if (features.clientManagement === 'full') items.push('Full client management');
+  items.push('1% processing fee on transactions');
   return items;
 }
 

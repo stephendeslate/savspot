@@ -437,6 +437,10 @@ export default function Home() {
                 </Link>
               </div>
             </div>
+            <p className="mx-auto mt-6 max-w-lg text-center text-xs text-muted-foreground">
+              A 1% processing fee applies to all transactions on both plans.
+              This is how we keep SavSpot affordable — no hidden charges.
+            </p>
           </div>
         </section>
 
