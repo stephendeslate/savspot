@@ -83,4 +83,77 @@ test.describe('Mobile Responsive', () => {
     // Either the agenda view container or the active Agenda button should exist
     await expect(agendaView.or(agendaButton).first()).toBeVisible({ timeout: 10_000 });
   });
+
+  test('services page renders correctly on mobile', async ({ page }) => {
+    await page.goto('/services');
+    await page.waitForLoadState('networkidle');
+
+    // Services heading should be visible
+    await expect(
+      page.getByRole('heading', { name: /services/i, level: 2 }),
+    ).toBeVisible();
+
+    // Service names should be visible on mobile
+    await expect(
+      page.getByText('Haircut').first(),
+    ).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('settings page renders grid on mobile', async ({ page }) => {
+    await page.goto('/settings');
+    await page.waitForLoadState('networkidle');
+
+    // Settings heading should be visible
+    await expect(
+      page.getByRole('heading', { name: 'Settings', level: 2 }),
+    ).toBeVisible();
+
+    // Settings cards should stack on mobile (still visible)
+    await expect(
+      page.getByRole('heading', { name: 'Business Profile' }),
+    ).toBeVisible();
+  });
+
+  test('clients page renders on mobile', async ({ page }) => {
+    await page.goto('/clients');
+    await page.waitForLoadState('networkidle');
+
+    await expect(
+      page.getByRole('heading', { name: /clients/i, level: 2 }),
+    ).toBeVisible();
+  });
+
+  test('portal renders correctly on mobile', async ({ page }) => {
+    await page.goto('/portal');
+    await page.waitForLoadState('networkidle');
+
+    // Portal should show its heading on mobile
+    await expect(
+      page.getByRole('heading', { name: /welcome back|dashboard/i }),
+    ).toBeVisible();
+
+    // Mobile toggle menu should be available
+    const menuButton = page.getByRole('button', { name: /toggle menu/i });
+    await expect(menuButton).toBeVisible();
+  });
+
+  test('bookings page filters collapse on mobile', async ({ page }) => {
+    await page.goto('/bookings');
+    await page.waitForLoadState('networkidle');
+
+    await expect(
+      page.getByRole('heading', { name: 'Bookings', level: 2 }),
+    ).toBeVisible();
+
+    // On mobile, filters should be behind a toggle
+    const filtersToggle = page.getByRole('button', { name: /filters/i });
+    if (await filtersToggle.isVisible()) {
+      // Click to expand
+      await filtersToggle.click();
+      await page.waitForTimeout(300);
+
+      // Filters should now be visible
+      await expect(page.getByLabel(/status/i)).toBeVisible();
+    }
+  });
 });

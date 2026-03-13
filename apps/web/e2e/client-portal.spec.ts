@@ -74,4 +74,87 @@ test.describe('Client Portal', () => {
       page.getByRole('heading', { level: 1, name: /my profile/i }),
     ).toBeVisible();
   });
+
+  test('portal payments page loads', async ({ page }) => {
+    await page.goto('/portal/payments');
+    await page.waitForLoadState('networkidle');
+
+    // Should show payments heading
+    await expect(
+      page.getByRole('heading', { name: /payment/i }),
+    ).toBeVisible();
+  });
+
+  test('portal settings page loads', async ({ page }) => {
+    await page.goto('/portal/settings');
+    await page.waitForLoadState('networkidle');
+
+    // Should show settings heading
+    await expect(
+      page.getByRole('heading', { name: /settings/i }),
+    ).toBeVisible();
+  });
+
+  test('portal dashboard shows stats cards', async ({ page }) => {
+    await page.goto('/portal');
+    await page.waitForLoadState('networkidle');
+
+    await expect(
+      page.getByRole('heading', { name: /welcome back|dashboard/i }),
+    ).toBeVisible();
+
+    // Should show stat cards (total bookings, upcoming)
+    await expect(
+      page.getByText(/booking|upcoming|total/i).first(),
+    ).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('portal bookings page has status filter', async ({ page }) => {
+    await page.goto('/portal/bookings');
+    await page.waitForLoadState('networkidle');
+
+    await expect(
+      page.getByRole('heading', { level: 1, name: /my bookings/i }),
+    ).toBeVisible();
+
+    // Status filter dropdown should exist
+    const statusFilter = page.getByLabel(/status/i)
+      .or(page.getByRole('combobox'))
+      .or(page.getByText(/all bookings|upcoming|completed|cancelled/i).first());
+
+    await expect(statusFilter.first()).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('portal profile page has editable form', async ({ page }) => {
+    await page.goto('/portal/profile');
+    await page.waitForLoadState('networkidle');
+
+    await expect(
+      page.getByRole('heading', { level: 1, name: /my profile/i }),
+    ).toBeVisible();
+
+    // Profile page should have form fields
+    const nameField = page.getByLabel(/name/i).first();
+    await expect(nameField).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('portal navigation links work correctly', async ({ page }) => {
+    await page.goto('/portal');
+    await page.waitForLoadState('networkidle');
+
+    // Open mobile menu if needed
+    const menuButton = page.getByRole('button', { name: /toggle menu/i });
+    if (await menuButton.isVisible()) {
+      await menuButton.click();
+      await page.waitForTimeout(300);
+    }
+
+    // Click Bookings link
+    await page.getByRole('link', { name: 'Bookings' }).click();
+    await page.waitForURL('**/portal/bookings');
+
+    await expect(
+      page.getByRole('heading', { level: 1, name: /my bookings/i }),
+    ).toBeVisible();
+  });
 });
