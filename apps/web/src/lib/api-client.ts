@@ -1,13 +1,48 @@
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] || 'http://localhost:3001';
 
 class ApiError extends Error {
+  public readonly data: Record<string, unknown> | null;
+
   constructor(
     public status: number,
     message: string,
+    data?: Record<string, unknown> | null,
   ) {
     super(message);
     this.name = 'ApiError';
+    this.data = data ?? null;
   }
+}
+
+async function apiErrorFromResponse(res: Response): Promise<ApiError> {
+  const text = await res.text();
+  let data: Record<string, unknown> | null = null;
+  let message = text;
+  try {
+    data = JSON.parse(text) as Record<string, unknown>;
+    if (typeof data?.['message'] === 'string') {
+      message = data['message'];
+    }
+  } catch {
+    // not JSON, use raw text
+  }
+  return new ApiError(res.status, message, data);
+}
+
+/** Check if an error is a 403 subscription tier error */
+export function isSubscriptionError(error: unknown): error is ApiError {
+  return (
+    error instanceof ApiError &&
+    error.status === 403 &&
+    typeof error.message === 'string' &&
+    error.message.includes('subscription')
+  );
+}
+
+/** Parse required tier from a subscription error message */
+export function parseRequiredTier(error: ApiError): string | null {
+  const match = error.message.match(/requires a (\w+) subscription/);
+  return match?.[1] ?? null;
 }
 
 class ApiClient {
@@ -39,14 +74,14 @@ class ApiClient {
               headers,
               credentials: 'include',
             });
-            if (!retry.ok) throw new ApiError(retry.status, await retry.text());
+            if (!retry.ok) throw await apiErrorFromResponse(retry);
             const json = (await retry.json()) as { data?: T };
             return json.data !== undefined ? json.data : (json as T);
           }
         }
 
         if (!res.ok) {
-          const error = new ApiError(res.status, await res.text());
+          const error = await apiErrorFromResponse(res);
           if (isRetryable && res.status >= 500 && attempt < maxRetries) {
             lastError = error;
             await this.delay(Math.pow(2, attempt) * 1000);
@@ -116,12 +151,12 @@ class ApiClient {
           headers,
           credentials: 'include',
         });
-        if (!retry.ok) throw new ApiError(retry.status, await retry.text());
+        if (!retry.ok) throw await apiErrorFromResponse(retry);
         return (await retry.json()) as T;
       }
     }
 
-    if (!res.ok) throw new ApiError(res.status, await res.text());
+    if (!res.ok) throw await apiErrorFromResponse(res);
     return (await res.json()) as T;
   }
 

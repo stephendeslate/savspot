@@ -4,9 +4,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, Globe, Loader2, Plus, Trash2 } from 'lucide-react';
 import { Button, Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Skeleton, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@savspot/ui';
-import { apiClient } from '@/lib/api-client';
+import { ApiError, apiClient, isSubscriptionError, parseRequiredTier } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
 import { useTenant } from '@/hooks/use-tenant';
+import { UpgradeBanner } from '@/components/upgrade-banner';
 
 // ---------- Types ----------
 
@@ -79,9 +80,13 @@ export default function DomainsSettingsPage() {
       );
       setDomains(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to load custom domains',
-      );
+      if (isSubscriptionError(err)) {
+        setError(`__upgrade:${parseRequiredTier(err as ApiError) ?? 'Premium'}`);
+      } else {
+        setError(
+          err instanceof Error ? err.message : 'Failed to load custom domains',
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -114,9 +119,13 @@ export default function DomainsSettingsPage() {
       await fetchDomains();
       setTimeout(() => setSuccess(null), 4000);
     } catch (err) {
-      setFormError(
-        err instanceof Error ? err.message : 'Failed to add domain',
-      );
+      if (isSubscriptionError(err)) {
+        setFormError('Custom domains require a Premium subscription or higher.');
+      } else {
+        setFormError(
+          err instanceof Error ? err.message : 'Failed to add domain',
+        );
+      }
     } finally {
       setSaving(false);
     }
@@ -133,9 +142,13 @@ export default function DomainsSettingsPage() {
       await fetchDomains();
       setTimeout(() => setSuccess(null), 4000);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to verify domain',
-      );
+      if (isSubscriptionError(err)) {
+        setError('Custom domains require a Premium subscription or higher.');
+      } else {
+        setError(
+          err instanceof Error ? err.message : 'Failed to verify domain',
+        );
+      }
     } finally {
       setVerifyingId(null);
     }
@@ -154,9 +167,13 @@ export default function DomainsSettingsPage() {
       await fetchDomains();
       setTimeout(() => setSuccess(null), 4000);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to remove domain',
-      );
+      if (isSubscriptionError(err)) {
+        setError('Custom domains require a Premium subscription or higher.');
+      } else {
+        setError(
+          err instanceof Error ? err.message : 'Failed to remove domain',
+        );
+      }
     } finally {
       setRemoving(false);
     }
@@ -194,6 +211,30 @@ export default function DomainsSettingsPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           Please complete onboarding to set up your business.
         </p>
+      </div>
+    );
+  }
+
+  if (error?.startsWith('__upgrade:')) {
+    const tier = error.replace('__upgrade:', '');
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push(ROUTES.SETTINGS)}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h2 className="text-lg font-semibold">Custom Domains</h2>
+            <p className="text-sm text-muted-foreground">
+              Use your own domain for your booking page
+            </p>
+          </div>
+        </div>
+        <UpgradeBanner requiredTier={tier} feature="Custom Domains" />
       </div>
     );
   }

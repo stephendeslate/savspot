@@ -11,9 +11,10 @@ import {
   Download,
 } from 'lucide-react';
 import { Button, Card, CardContent, CardHeader, CardTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Skeleton } from '@savspot/ui';
-import { apiClient } from '@/lib/api-client';
+import { ApiError, apiClient, isSubscriptionError, parseRequiredTier } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
 import { formatAmount } from '@/lib/format-utils';
+import { UpgradeBanner } from '@/components/upgrade-banner';
 
 // ---------- Types ----------
 
@@ -68,6 +69,8 @@ export default function AnalyticsPage() {
   const [staffData, setStaffData] = useState<StaffPerformance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [revenueUpgrade, setRevenueUpgrade] = useState<string | null>(null);
+  const [staffUpgrade, setStaffUpgrade] = useState<string | null>(null);
 
   // Filter state
   const [period, setPeriod] = useState<string>('30d');
@@ -77,6 +80,8 @@ export default function AnalyticsPage() {
 
     setIsLoading(true);
     setError(null);
+    setRevenueUpgrade(null);
+    setStaffUpgrade(null);
 
     const apiPeriod = PERIOD_TO_API[period] ?? 'monthly';
 
@@ -102,10 +107,14 @@ export default function AnalyticsPage() {
 
     if (revenueResult.status === 'fulfilled') {
       setRevenueData(revenueResult.value);
+    } else if (isSubscriptionError(revenueResult.reason)) {
+      setRevenueUpgrade(parseRequiredTier(revenueResult.reason as ApiError) ?? 'Premium');
     }
 
     if (staffResult.status === 'fulfilled') {
       setStaffData(staffResult.value);
+    } else if (isSubscriptionError(staffResult.reason)) {
+      setStaffUpgrade(parseRequiredTier(staffResult.reason as ApiError) ?? 'Enterprise');
     }
 
     setIsLoading(false);
@@ -301,7 +310,9 @@ export default function AnalyticsPage() {
           <CardTitle className="text-base">Revenue Trends</CardTitle>
         </CardHeader>
         <CardContent>
-          {revenueData.length === 0 ? (
+          {revenueUpgrade ? (
+            <UpgradeBanner requiredTier={revenueUpgrade} feature="Revenue Trends" />
+          ) : revenueData.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <DollarSign className="mb-4 h-12 w-12 text-muted-foreground/50" />
               <h3 className="text-lg font-medium">No revenue data yet</h3>
@@ -340,7 +351,9 @@ export default function AnalyticsPage() {
           <CardTitle className="text-base">Staff Performance</CardTitle>
         </CardHeader>
         <CardContent>
-          {staffData.length === 0 ? (
+          {staffUpgrade ? (
+            <UpgradeBanner requiredTier={staffUpgrade} feature="Staff Performance" />
+          ) : staffData.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Users className="mb-4 h-12 w-12 text-muted-foreground/50" />
               <h3 className="text-lg font-medium">No staff data yet</h3>

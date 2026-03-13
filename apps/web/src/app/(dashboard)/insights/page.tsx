@@ -12,8 +12,9 @@ import {
   BarChart3,
 } from 'lucide-react';
 import { Button, Badge, Card, CardContent, CardHeader, CardTitle, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Skeleton, Progress, Tabs, TabsList, TabsTrigger, TabsContent } from '@savspot/ui';
-import { apiClient } from '@/lib/api-client';
+import { apiClient, isSubscriptionError, parseRequiredTier } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
+import { UpgradeBanner } from '@/components/upgrade-banner';
 
 // ---------- Types ----------
 
@@ -165,8 +166,12 @@ export default function InsightsPage() {
   // ---------- Section renderers ----------
 
   const renderSectionError = (err: Error | null, label: string) => {
+    if (!err) return null;
+    if (isSubscriptionError(err)) {
+      const tier = parseRequiredTier(err) ?? 'Premium';
+      return <UpgradeBanner requiredTier={tier} feature={label} />;
+    }
     const message = formatError(err);
-    if (!message) return null;
     return (
       <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
         Failed to load {label}: {message}
