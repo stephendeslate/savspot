@@ -6,6 +6,7 @@ import { ArrowLeft, Bell, CalendarCheck, CreditCard, CalendarSync, AlertCircle, 
 import { apiClient } from '@/lib/api-client';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Separator } from '@savspot/ui';
 import { ROUTES } from '@/lib/constants';
+import { RequireRole } from '@/components/rbac/require-role';
 
 // ---------- Types ----------
 
@@ -120,6 +121,7 @@ export default function NotificationPreferencesPage() {
   };
 
   return (
+    <RequireRole minimum="ADMIN">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
@@ -233,6 +235,7 @@ export default function NotificationPreferencesPage() {
         </Button>
       </div>
     </div>
+    </RequireRole>
   );
 }
 

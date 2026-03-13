@@ -6,6 +6,9 @@ on:
     types: [completed]
     branches: [main]
 
+permissions:
+  contents: read
+
 # Prevent concurrent deploys
 concurrency:
   group: deploy-api
@@ -22,7 +25,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Setup Fly CLI
-        uses: superfly/flyctl-actions/setup-flyctl@master
+        uses: superfly/flyctl-actions/setup-flyctl@1.5
 
       - name: Deploy API
         run: flyctl deploy --config apps/api/fly.toml --dockerfile apps/api/Dockerfile --remote-only
@@ -33,13 +36,14 @@ jobs:
     name: Deploy Worker to Fly.io
     runs-on: ubuntu-latest
     needs: [deploy]
+    if: github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Setup Fly CLI
-        uses: superfly/flyctl-actions/setup-flyctl@master
+        uses: superfly/flyctl-actions/setup-flyctl@1.5
 
       - name: Deploy Worker
         run: flyctl deploy --config apps/api/fly.worker.toml --dockerfile apps/api/Dockerfile.worker --remote-only

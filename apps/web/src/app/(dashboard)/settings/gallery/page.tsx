@@ -17,6 +17,7 @@ import { Button, Badge, Card, CardContent, Input, Label, Skeleton, Dialog, Dialo
 import { apiClient } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
 import { useTenant } from '@/hooks/use-tenant';
+import { RequireRole } from '@/components/rbac/require-role';
 
 // ---------- Types ----------
 
@@ -228,6 +229,7 @@ export default function GalleryPage() {
   }
 
   return (
+    <RequireRole minimum="ADMIN">
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -502,5 +504,6 @@ export default function GalleryPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </RequireRole>
   );
 }

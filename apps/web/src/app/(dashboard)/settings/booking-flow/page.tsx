@@ -15,6 +15,7 @@ import {
 import { Button, Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Skeleton } from '@savspot/ui';
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
+import { RequireRole } from '@/components/rbac/require-role';
 
 // ---------- Types ----------
 
@@ -105,6 +106,7 @@ export default function BookingFlowPage() {
   }
 
   return (
+    <RequireRole minimum="ADMIN">
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button
@@ -260,5 +262,6 @@ export default function BookingFlowPage() {
         </>
       )}
     </div>
+    </RequireRole>
   );
 }

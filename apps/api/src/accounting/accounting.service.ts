@@ -104,8 +104,8 @@ export class AccountingService {
       await this.prisma.accountingConnection.update({
         where: { id: existingConnection.id },
         data: {
-          accessToken: tokens.accessToken,
-          refreshToken: tokens.refreshToken,
+          accessToken: this.encryptToken(tokens.accessToken),
+          refreshToken: this.encryptToken(tokens.refreshToken),
           tokenExpiresAt: tokens.expiresAt,
           companyId: tokens.realmId ?? tokens.tenantId ?? existingConnection.companyId,
           status: 'ACTIVE',
@@ -123,8 +123,8 @@ export class AccountingService {
       data: {
         tenantId: stateData.tenantId,
         provider: provider.toUpperCase() as 'QUICKBOOKS' | 'XERO',
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
+        accessToken: this.encryptToken(tokens.accessToken),
+        refreshToken: this.encryptToken(tokens.refreshToken),
         tokenExpiresAt: tokens.expiresAt,
         companyId: tokens.realmId ?? tokens.tenantId,
         status: 'ACTIVE',

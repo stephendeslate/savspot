@@ -73,9 +73,10 @@ export class CommunicationsService {
 
     // Derive HMAC secret from JWT private key (same approach as auth EmailService)
     const jwtKey = this.configService.get<string>('JWT_PRIVATE_KEY_BASE64');
-    this.hmacSecret = jwtKey
-      ? crypto.createHash('sha256').update(jwtKey).digest('hex')
-      : 'dev-hmac-secret-change-me';
+    if (!jwtKey) {
+      throw new Error('JWT_PRIVATE_KEY_BASE64 environment variable is required');
+    }
+    this.hmacSecret = crypto.createHash('sha256').update(jwtKey).digest('hex');
   }
 
   /**

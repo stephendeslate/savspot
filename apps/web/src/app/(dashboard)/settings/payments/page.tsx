@@ -91,6 +91,10 @@ export default function PaymentsSettingsPage() {
         `/api/tenants/${tenantId}/payments/connect/onboarding`,
         { returnUrl },
       );
+      const onboardingUrl = new URL(data.url);
+      if (!['connect.stripe.com'].includes(onboardingUrl.hostname)) {
+        throw new Error('Invalid onboarding URL');
+      }
       window.location.href = data.url;
     } catch (err) {
       setError(
@@ -111,6 +115,10 @@ export default function PaymentsSettingsPage() {
       const data = await apiClient.post<{ url: string }>(
         `/api/tenants/${tenantId}/payments/connect/dashboard`,
       );
+      const dashboardUrl = new URL(data.url);
+      if (!['dashboard.stripe.com', 'connect.stripe.com'].includes(dashboardUrl.hostname)) {
+        throw new Error('Invalid dashboard URL');
+      }
       window.open(data.url, '_blank');
     } catch (err) {
       setError(

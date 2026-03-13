@@ -32,11 +32,12 @@ export class EmailService {
       this.resend = null;
     }
 
-    // Derive HMAC secret from JWT private key or fallback
+    // Derive HMAC secret from JWT private key
     const jwtKey = this.configService.get<string>('JWT_PRIVATE_KEY_BASE64');
-    this.hmacSecret = jwtKey
-      ? crypto.createHash('sha256').update(jwtKey).digest('hex')
-      : 'dev-hmac-secret-change-me';
+    if (!jwtKey) {
+      throw new Error('JWT_PRIVATE_KEY_BASE64 environment variable is required');
+    }
+    this.hmacSecret = crypto.createHash('sha256').update(jwtKey).digest('hex');
   }
 
   generateVerificationToken(userId: string): string {

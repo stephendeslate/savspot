@@ -17,8 +17,11 @@ function makePrisma() {
 }
 
 function makeConfig() {
+  const map: Record<string, string> = {
+    JWT_PRIVATE_KEY_BASE64: Buffer.from('test-key-for-unit-tests').toString('base64'),
+  };
   return {
-    get: vi.fn((_key: string, fallback?: unknown) => fallback ?? ''),
+    get: vi.fn((key: string, fallback?: unknown) => map[key] ?? fallback ?? ''),
   };
 }
 

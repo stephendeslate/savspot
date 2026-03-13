@@ -347,27 +347,25 @@ describe('PaymentsService', () => {
 
   describe('processRefund', () => {
     it('should throw NotFoundException when payment not found', async () => {
-      prisma.payment.findFirst.mockResolvedValue(null);
+      prisma.$queryRaw.mockResolvedValue([]);
       await expect(service.processRefund(TENANT_ID, 'bad-id')).rejects.toThrow(NotFoundException);
     });
 
     it('should throw BadRequestException for non-SUCCEEDED payment', async () => {
-      prisma.payment.findFirst.mockResolvedValue({ id: PAYMENT_ID, status: 'PENDING' });
+      prisma.$queryRaw.mockResolvedValue([{ id: PAYMENT_ID, status: 'PENDING', provider_transaction_id: null, amount: 5000 }]);
       await expect(service.processRefund(TENANT_ID, PAYMENT_ID)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when no provider transaction ID', async () => {
-      prisma.payment.findFirst.mockResolvedValue({
-        id: PAYMENT_ID, status: 'SUCCEEDED', providerTransactionId: null,
-      });
+      prisma.$queryRaw.mockResolvedValue([{ id: PAYMENT_ID, status: 'SUCCEEDED', provider_transaction_id: null, amount: 5000 }]);
       await expect(service.processRefund(TENANT_ID, PAYMENT_ID)).rejects.toThrow(BadRequestException);
     });
 
     it('should set REFUNDED for full refund', async () => {
-      prisma.payment.findFirst.mockResolvedValue({
-        id: PAYMENT_ID, tenantId: TENANT_ID, status: 'SUCCEEDED',
-        providerTransactionId: STRIPE_PI_ID, amount: decimal(5000),
-      });
+      prisma.$queryRaw.mockResolvedValue([{
+        id: PAYMENT_ID, status: 'SUCCEEDED',
+        provider_transaction_id: STRIPE_PI_ID, amount: 5000,
+      }]);
       stripe.createRefund.mockResolvedValue({ id: 're_1', amount: 5000, status: 'succeeded' });
       prisma.payment.update.mockResolvedValue({});
       prisma.paymentStateHistory.create.mockResolvedValue({});
@@ -380,10 +378,10 @@ describe('PaymentsService', () => {
     });
 
     it('should set PARTIALLY_REFUNDED for partial refund', async () => {
-      prisma.payment.findFirst.mockResolvedValue({
-        id: PAYMENT_ID, tenantId: TENANT_ID, status: 'SUCCEEDED',
-        providerTransactionId: STRIPE_PI_ID, amount: decimal(5000),
-      });
+      prisma.$queryRaw.mockResolvedValue([{
+        id: PAYMENT_ID, status: 'SUCCEEDED',
+        provider_transaction_id: STRIPE_PI_ID, amount: 5000,
+      }]);
       stripe.createRefund.mockResolvedValue({ id: 're_2', amount: 2000, status: 'succeeded' });
       prisma.payment.update.mockResolvedValue({});
       prisma.paymentStateHistory.create.mockResolvedValue({});

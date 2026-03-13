@@ -16,7 +16,7 @@ import { Button, Badge, Card, CardContent, CardDescription, CardHeader, CardTitl
 import { apiClient } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
 import { useTenant } from '@/hooks/use-tenant';
-import { RequireRole } from '@/components/auth/require-role';
+import { RequireRole } from '@/components/rbac/require-role';
 
 // ---------- Types ----------
 
