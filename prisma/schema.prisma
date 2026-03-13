@@ -998,7 +998,7 @@ model Booking {
   status                 BookingStatus
   startTime              DateTime            @map("start_time")
   endTime                DateTime            @map("end_time")
-  totalAmount            Decimal             @map("total_amount")
+  totalAmount            Decimal             @map("total_amount") @db.Decimal(12, 2)
   currency               String
   guestCount             Int?                @map("guest_count")
   guestDetails           Json?               @map("guest_details")
@@ -1017,8 +1017,8 @@ model Booking {
   cancellationReason     CancellationReason? @map("cancellation_reason")
   cancelledAt            DateTime?           @map("cancelled_at")
   noShowRiskScore        Decimal?            @map("no_show_risk_score") @db.Decimal(3, 2)
-  excessHours            Decimal             @default(0) @map("excess_hours")
-  excessHourFee          Decimal             @default(0) @map("excess_hour_fee")
+  excessHours            Decimal             @default(0) @map("excess_hours") @db.Decimal(8, 2)
+  excessHourFee          Decimal             @default(0) @map("excess_hour_fee") @db.Decimal(8, 2)
   createdAt              DateTime            @default(now()) @map("created_at")
   updatedAt              DateTime            @updatedAt @map("updated_at")
 
@@ -1173,10 +1173,10 @@ model Payment {
   bookingId             String        @map("booking_id")
   invoiceId             String?       @map("invoice_id")
   providerTransactionId String?       @map("provider_transaction_id")
-  amount                Decimal
-  platformFee           Decimal?      @map("platform_fee")
-  processingFee         Decimal?      @map("processing_fee")
-  referralCommission    Decimal?      @map("referral_commission")
+  amount                Decimal       @db.Decimal(12, 2)
+  platformFee           Decimal?      @map("platform_fee") @db.Decimal(12, 2)
+  processingFee         Decimal?      @map("processing_fee") @db.Decimal(12, 2)
+  referralCommission    Decimal?      @map("referral_commission") @db.Decimal(12, 2)
   currency              String
   status                PaymentStatus
   type                  PaymentType
@@ -1198,6 +1198,7 @@ model Payment {
   @@index([tenantId])
   @@index([bookingId, status])
   @@index([invoiceId])
+  @@index([providerTransactionId])
   @@index([tenantId, createdAt])
   @@map("payments")
 }
@@ -1229,7 +1230,7 @@ model PaymentDispute {
   providerDisputeId String?       @map("provider_dispute_id")
   reason            DisputeReason
   status            DisputeStatus
-  amount            Decimal
+  amount            Decimal       @db.Decimal(12, 2)
   evidenceDueBy     DateTime?     @map("evidence_due_by")
   resolvedAt        DateTime?     @map("resolved_at")
   createdAt         DateTime      @default(now()) @map("created_at")
@@ -1283,11 +1284,11 @@ model Invoice {
   tenantId       String        @map("tenant_id")
   bookingId      String        @map("booking_id")
   invoiceNumber  String        @map("invoice_number")
-  subtotal       Decimal
-  taxAmount      Decimal       @default(0) @map("tax_amount")
-  discountAmount Decimal       @default(0) @map("discount_amount")
-  total          Decimal
-  amountPaid     Decimal       @default(0) @map("amount_paid")
+  subtotal       Decimal       @db.Decimal(12, 2)
+  taxAmount      Decimal       @default(0) @map("tax_amount") @db.Decimal(12, 2)
+  discountAmount Decimal       @default(0) @map("discount_amount") @db.Decimal(12, 2)
+  total          Decimal       @db.Decimal(12, 2)
+  amountPaid     Decimal       @default(0) @map("amount_paid") @db.Decimal(12, 2)
   currency       String
   status         InvoiceStatus
   dueDate        DateTime?     @map("due_date")
@@ -1312,11 +1313,11 @@ model InvoiceLineItem {
   invoiceId      String  @map("invoice_id")
   description    String
   quantity       Int     @default(1)
-  unitPrice      Decimal @map("unit_price")
+  unitPrice      Decimal @map("unit_price") @db.Decimal(12, 2)
   taxRateId      String? @map("tax_rate_id")
-  taxAmount      Decimal @default(0) @map("tax_amount")
-  discountAmount Decimal @default(0) @map("discount_amount")
-  total          Decimal
+  taxAmount      Decimal @default(0) @map("tax_amount") @db.Decimal(12, 2)
+  discountAmount Decimal @default(0) @map("discount_amount") @db.Decimal(12, 2)
+  total          Decimal @db.Decimal(12, 2)
   sortOrder      Int     @default(0) @map("sort_order")
 
   // Relations
@@ -1337,7 +1338,7 @@ model Service {
   name            String
   description     String?
   durationMinutes Int          @default(60) @map("duration_minutes")
-  basePrice       Decimal      @default(0) @map("base_price")
+  basePrice       Decimal      @default(0) @map("base_price") @db.Decimal(12, 2)
   currency        String
   pricingModel    PricingModel @default(FIXED) @map("pricing_model")
   isActive        Boolean      @default(true) @map("is_active")
@@ -1345,8 +1346,8 @@ model Service {
 
   // Optional complexity fields (null = feature inactive)
   pricingUnit           PricingUnit?             @map("pricing_unit")
-  baseHours             Decimal?                 @map("base_hours")
-  excessHourPrice       Decimal?                 @map("excess_hour_price")
+  baseHours             Decimal?                 @map("base_hours") @db.Decimal(8, 2)
+  excessHourPrice       Decimal?                 @map("excess_hour_price") @db.Decimal(12, 2)
   tierConfig            Json?                    @map("tier_config")
   guestConfig           Json?                    @map("guest_config")
   depositConfig         Json?                    @map("deposit_config")
@@ -1467,7 +1468,7 @@ model ServiceAddon {
   serviceId   String   @map("service_id")
   name        String
   description String?
-  price       Decimal
+  price       Decimal  @db.Decimal(12, 2)
   isRequired  Boolean  @default(false) @map("is_required")
   isActive    Boolean  @default(true) @map("is_active")
   sortOrder   Int      @default(0) @map("sort_order")
@@ -1489,13 +1490,13 @@ model Discount {
   name           String
   code           String
   type           DiscountType
-  value          Decimal
+  value          Decimal             @db.Decimal(12, 2)
   application    DiscountApplication
   validFrom      DateTime?           @map("valid_from")
   validUntil     DateTime?           @map("valid_until")
   usageLimit     Int?                @map("usage_limit")
   usageCount     Int                 @default(0) @map("usage_count")
-  minOrderAmount Decimal?            @map("min_order_amount")
+  minOrderAmount Decimal?            @map("min_order_amount") @db.Decimal(12, 2)
   productScope   Json?               @map("product_scope")
   isActive       Boolean             @default(true) @map("is_active")
   createdAt      DateTime            @default(now()) @map("created_at")
@@ -1511,7 +1512,7 @@ model TaxRate {
   id          String  @id @default(uuid())
   tenantId    String  @map("tenant_id")
   name        String
-  rate        Decimal
+  rate        Decimal @db.Decimal(7, 5)
   region      String?
   isInclusive Boolean @default(false) @map("is_inclusive")
   isDefault   Boolean @default(false) @map("is_default")
@@ -1784,7 +1785,7 @@ model ContractSignature {
   deviceFingerprint       Json?          @map("device_fingerprint")
   legalDisclosureAccepted Boolean        @default(false) @map("legal_disclosure_accepted")
   electronicConsentAt     DateTime?      @map("electronic_consent_at")
-  signatureConfidence     Decimal?       @map("signature_confidence")
+  signatureConfidence     Decimal?       @map("signature_confidence") @db.Decimal(5, 2)
   order                   Int            @default(0)
   createdAt               DateTime       @default(now()) @map("created_at")
 
@@ -1803,7 +1804,7 @@ model ContractAmendment {
   requestedBy     String          @map("requested_by")
   status          AmendmentStatus
   sectionsChanged Json?           @map("sections_changed")
-  valueChange     Decimal?        @map("value_change")
+  valueChange     Decimal?        @map("value_change") @db.Decimal(12, 2)
   reason          String?
   reviewedBy      String?         @map("reviewed_by")
   reviewedAt      DateTime?       @map("reviewed_at")
@@ -1826,9 +1827,9 @@ model Quote {
   bookingId         String      @map("booking_id")
   version           Int         @default(1)
   status            QuoteStatus
-  subtotal          Decimal
-  taxTotal          Decimal     @default(0) @map("tax_total")
-  total             Decimal
+  subtotal          Decimal     @db.Decimal(12, 2)
+  taxTotal          Decimal     @default(0) @map("tax_total") @db.Decimal(12, 2)
+  total             Decimal     @db.Decimal(12, 2)
   currency          String
   validUntil        DateTime?   @map("valid_until")
   notes             String?
@@ -1857,11 +1858,11 @@ model QuoteLineItem {
   productId   String?  @map("product_id")
   description String
   quantity    Int      @default(1)
-  unitPrice   Decimal  @map("unit_price")
-  taxRate     Decimal  @default(0) @map("tax_rate")
-  total       Decimal
-  excessHours Decimal? @map("excess_hours")
-  excessRate  Decimal? @map("excess_rate")
+  unitPrice   Decimal  @map("unit_price") @db.Decimal(12, 2)
+  taxRate     Decimal  @default(0) @map("tax_rate") @db.Decimal(7, 5)
+  total       Decimal  @db.Decimal(12, 2)
+  excessHours Decimal? @map("excess_hours") @db.Decimal(8, 2)
+  excessRate  Decimal? @map("excess_rate") @db.Decimal(12, 2)
   sortOrder   Int      @default(0) @map("sort_order")
   createdAt   DateTime @default(now()) @map("created_at")
 
@@ -1878,7 +1879,7 @@ model QuoteOption {
   quoteId     String   @map("quote_id")
   name        String
   description String?
-  total       Decimal
+  total       Decimal  @db.Decimal(12, 2)
   isSelected  Boolean  @default(false) @map("is_selected")
   sortOrder   Int      @default(0) @map("sort_order")
   createdAt   DateTime @default(now()) @map("created_at")
@@ -1897,9 +1898,9 @@ model QuoteOptionItem {
   productId   String? @map("product_id")
   description String
   quantity    Int     @default(1)
-  unitPrice   Decimal @map("unit_price")
-  taxRate     Decimal @default(0) @map("tax_rate")
-  total       Decimal
+  unitPrice   Decimal @map("unit_price") @db.Decimal(12, 2)
+  taxRate     Decimal @default(0) @map("tax_rate") @db.Decimal(7, 5)
+  total       Decimal @db.Decimal(12, 2)
 
   // Relations
   option  QuoteOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
@@ -2181,7 +2182,7 @@ model ClientProfile {
   preferences              Json?
   tags                     Json?
   internalRating           Int?     @map("internal_rating")
-  optimalReminderLeadHours Decimal? @map("optimal_reminder_lead_hours")
+  optimalReminderLeadHours Decimal? @map("optimal_reminder_lead_hours") @db.Decimal(5, 2)
   rebookingIntervalDays    Int?     @map("rebooking_interval_days")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
@@ -2246,9 +2247,9 @@ model BookingFlowAnalytics {
   stepMetrics          Json     @map("step_metrics")
   totalSessions        Int      @default(0) @map("total_sessions")
   completedSessions    Int      @default(0) @map("completed_sessions")
-  conversionRate       Decimal  @default(0) @map("conversion_rate")
-  totalRevenue         Decimal  @default(0) @map("total_revenue")
-  bounceRate           Decimal  @default(0) @map("bounce_rate")
+  conversionRate       Decimal  @default(0) @map("conversion_rate") @db.Decimal(5, 2)
+  totalRevenue         Decimal  @default(0) @map("total_revenue") @db.Decimal(12, 2)
+  bounceRate           Decimal  @default(0) @map("bounce_rate") @db.Decimal(5, 2)
   avgCompletionTimeSec Int      @default(0) @map("avg_completion_time_sec")
   createdAt            DateTime @default(now()) @map("created_at")
 
@@ -2679,7 +2680,7 @@ model SlotDemandInsight {
   insightType    SlotInsightType @map("insight_type")
   dayOfWeek      Int             @map("day_of_week")
   timeSlot       DateTime        @map("time_slot") @db.Time
-  metricValue    Decimal         @map("metric_value")
+  metricValue    Decimal         @map("metric_value") @db.Decimal(5, 4)
   recommendation String
   isDismissed    Boolean         @default(false) @map("is_dismissed")
   dismissedBy    String?         @map("dismissed_by")
@@ -2703,9 +2704,9 @@ model CategoryBenchmark {
   id               String           @id @default(uuid())
   businessCategory BusinessCategory @map("business_category")
   metricKey        String           @map("metric_key")
-  p25              Decimal
-  p50              Decimal
-  p75              Decimal
+  p25              Decimal          @db.Decimal(10, 4)
+  p50              Decimal          @db.Decimal(10, 4)
+  p75              Decimal          @db.Decimal(10, 4)
   sampleSize       Int              @map("sample_size")
   computedAt       DateTime         @default(now()) @map("computed_at")
 

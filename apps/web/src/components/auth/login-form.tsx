@@ -33,7 +33,8 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const { login, loadUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
-  const from = searchParams.get('from') || ROUTES.DASHBOARD;
+  const rawFrom = searchParams.get('from') || ROUTES.DASHBOARD;
+  const from = rawFrom.startsWith('/') && !rawFrom.startsWith('//') ? rawFrom : ROUTES.DASHBOARD;
 
   useEffect(() => {
     const oauth = searchParams.get('oauth');
