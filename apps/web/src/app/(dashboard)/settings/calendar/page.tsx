@@ -113,6 +113,11 @@ export default function CalendarSettingsPage() {
       const data = await apiClient.post<{ authUrl: string }>(
         `/api/tenants/${tenantId}/calendar/connect`,
       );
+      const url = new URL(data.authUrl);
+      const allowedHosts = ['accounts.google.com', 'login.microsoftonline.com', 'login.live.com'];
+      if (!allowedHosts.some(host => url.hostname === host || url.hostname.endsWith('.' + host))) {
+        throw new Error('Invalid redirect URL');
+      }
       window.location.href = data.authUrl;
     } catch (err) {
       setError(
@@ -261,7 +266,7 @@ export default function CalendarSettingsPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}

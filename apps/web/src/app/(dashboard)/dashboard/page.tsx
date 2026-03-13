@@ -21,6 +21,7 @@ import { FadeIn } from '@/components/ui/motion';
 import { useAuth } from '@/hooks/use-auth';
 import { useTenant } from '@/hooks/use-tenant';
 import {
+  queryKeys,
   useServices,
   useAvailabilityRules,
   useStripeStatus,
@@ -49,7 +50,7 @@ export default function DashboardPage() {
   const { data: paymentStats } = usePaymentStats();
 
   const { data: bookings = [] } = useQuery({
-    queryKey: ['dashboard-bookings', tenantId],
+    queryKey: queryKeys.dashboardBookings(tenantId!),
     queryFn: () =>
       apiClient.get<DashboardBooking[]>(
         `/api/tenants/${tenantId}/bookings`,
