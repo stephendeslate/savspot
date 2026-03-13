@@ -2,6 +2,7 @@ import {
   IsOptional,
   IsInt,
   Min,
+  Max,
   IsBoolean,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
@@ -22,6 +23,7 @@ export class ListNotificationsDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(100)
   @IsOptional()
   limit?: number = 20;
 

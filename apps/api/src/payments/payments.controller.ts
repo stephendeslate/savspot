@@ -127,7 +127,7 @@ export class PaymentsController {
       bookingId,
       status,
       page: page ? parseInt(page, 10) : 1,
-      limit: limit ? parseInt(limit, 10) : 20,
+      limit: limit ? Math.min(parseInt(limit, 10) || 20, 100) : 20,
     });
   }
 

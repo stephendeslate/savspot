@@ -3,6 +3,7 @@ import {
   IsEnum,
   IsInt,
   Min,
+  Max,
   IsDateString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -58,6 +59,7 @@ export class ListInvoicesDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(100)
   @IsOptional()
   limit?: number = 20;
 }
