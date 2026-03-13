@@ -19,7 +19,7 @@
     "expo-local-authentication": "~15.0.0",
     "expo-notifications": "~0.29.0",
     "expo-linking": "~7.0.0",
-    "expo-constants": "~17.0.0",
+    "expo-constants": "~55.0.7",
     "expo-device": "~7.0.0",
     "expo-splash-screen": "~0.29.0",
     "react": "18.3.1",
