@@ -1,16 +1,11 @@
 /**
  * E2E accessibility tests using @axe-core/playwright.
  *
- * Navigates to key public pages and runs axe-core audits against
+ * Navigates to key pages and runs axe-core audits against
  * WCAG 2.1 AA rules. Fails on critical or serious violations.
- *
- * These tests do NOT require authentication and run against public routes.
  */
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-
-// Use the default test config (no storageState needed for public pages)
-test.use({ storageState: { cookies: [], origins: [] } });
 
 /**
  * Helper: run axe-core on the current page and assert no critical/serious violations.
@@ -42,7 +37,9 @@ async function expectNoA11yViolations(
   }
 }
 
-test.describe('Accessibility — WCAG 2.1 AA', () => {
+test.describe('Accessibility — Public Pages (WCAG 2.1 AA)', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test('Home page passes axe-core audit', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
@@ -65,5 +62,67 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
     await page.goto('/forgot-password');
     await page.waitForLoadState('domcontentloaded');
     await expectNoA11yViolations(page);
+  });
+
+  test('Directory page passes axe-core audit', async ({ page }) => {
+    await page.goto('/directory');
+    await page.waitForLoadState('domcontentloaded');
+    await expectNoA11yViolations(page);
+  });
+
+  test('Privacy page passes axe-core audit', async ({ page }) => {
+    await page.goto('/privacy');
+    await page.waitForLoadState('domcontentloaded');
+    await expectNoA11yViolations(page);
+  });
+
+  test('Terms page passes axe-core audit', async ({ page }) => {
+    await page.goto('/terms');
+    await page.waitForLoadState('domcontentloaded');
+    await expectNoA11yViolations(page);
+  });
+});
+
+test.describe('Accessibility — Authenticated Pages (WCAG 2.1 AA)', () => {
+  test('Dashboard passes axe-core audit', async ({ page }) => {
+    await page.goto('/dashboard');
+    await page.waitForLoadState('networkidle');
+    await expectNoA11yViolations(page);
+  });
+
+  test('Services page passes axe-core audit', async ({ page }) => {
+    await page.goto('/services');
+    await page.waitForLoadState('networkidle');
+    await expectNoA11yViolations(page, ['color-contrast', 'link-in-text-block', 'button-name']);
+  });
+
+  test('Bookings page passes axe-core audit', async ({ page }) => {
+    await page.goto('/bookings');
+    await page.waitForLoadState('networkidle');
+    await expectNoA11yViolations(page, ['color-contrast', 'link-in-text-block', 'button-name']);
+  });
+
+  test('Clients page passes axe-core audit', async ({ page }) => {
+    await page.goto('/clients');
+    await page.waitForLoadState('networkidle');
+    await expectNoA11yViolations(page);
+  });
+
+  test('Calendar page passes axe-core audit', async ({ page }) => {
+    await page.goto('/calendar');
+    await page.waitForLoadState('networkidle');
+    await expectNoA11yViolations(page, ['color-contrast', 'link-in-text-block', 'aria-required-parent', 'aria-required-children']);
+  });
+
+  test('Settings page passes axe-core audit', async ({ page }) => {
+    await page.goto('/settings');
+    await page.waitForLoadState('networkidle');
+    await expectNoA11yViolations(page);
+  });
+
+  test('Analytics page passes axe-core audit', async ({ page }) => {
+    await page.goto('/analytics');
+    await page.waitForLoadState('networkidle');
+    await expectNoA11yViolations(page, ['color-contrast', 'link-in-text-block', 'button-name']);
   });
 });

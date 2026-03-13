@@ -24,3 +24,52 @@ export const EXPECTED_SERVICES = [
   'Beard Trim',
   'Full Grooming Package',
 ] as const;
+
+/** Second tenant for cross-tenant tests. */
+export const TEST_TENANT_B = {
+  slug: 'peak-performance-gym',
+  name: 'Peak Performance Gym',
+} as const;
+
+/** Third tenant for cross-tenant tests. */
+export const TEST_TENANT_C = {
+  slug: 'lakeside-event-center',
+  name: 'Lakeside Event Center',
+} as const;
+
+/** Seeded client names for verification. */
+export const EXPECTED_CLIENTS = [
+  'Tony Stark',
+  'Diana Prince',
+  'Bruce Wayne',
+  'Natasha Romanoff',
+  'Peter Parker',
+] as const;
+
+/** All settings sections visible on /settings page. */
+export const EXPECTED_SETTINGS_SECTIONS = [
+  'Business Profile',
+  'Availability',
+  'Payments',
+  'Calendar',
+  'Notifications',
+  'Branding',
+  'Discounts',
+  'Tax Rates',
+  'Gallery',
+  'Team',
+  'Booking Flow',
+  'Embed Widget',
+  'Workflows',
+  'Communications',
+  'Venues',
+  'Referrals',
+  'Accounting',
+  'Custom Domains',
+  'Billing & Plans',
+  'Service Categories',
+  'API Keys',
+  'Notification Preferences',
+  'Voice & Telephony',
+  'Partner Program',
+] as const;
