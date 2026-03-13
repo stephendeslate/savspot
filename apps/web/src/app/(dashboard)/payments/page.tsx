@@ -146,7 +146,9 @@ export default function PaymentsPage() {
   const total = paymentsRes?.meta?.total ?? 0;
   const currentPage = paymentsRes?.meta?.page ?? 1;
   const error = queryError
-    ? (queryError instanceof Error ? queryError.message : 'Failed to load payments')
+    ? (process.env.NODE_ENV === 'development' && queryError instanceof Error
+      ? queryError.message
+      : 'Failed to load payments')
     : null;
   const totalPages = Math.ceil(total / PAGE_LIMIT);
 

@@ -136,7 +136,9 @@ export default function BookingsPage() {
   const total = bookingsRes?.meta?.total ?? 0;
   const currentPage = bookingsRes?.meta?.page ?? 1;
   const error = queryError
-    ? (queryError instanceof Error ? queryError.message : 'Failed to load bookings')
+    ? (process.env.NODE_ENV === 'development' && queryError instanceof Error
+        ? queryError.message
+        : 'Failed to load bookings')
     : null;
   const totalPages = Math.ceil(total / PAGE_LIMIT);
 
