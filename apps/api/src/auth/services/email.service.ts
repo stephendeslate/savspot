@@ -35,9 +35,14 @@ export class EmailService {
     // Derive HMAC secret from JWT private key
     const jwtKey = this.configService.get<string>('JWT_PRIVATE_KEY_BASE64');
     if (!jwtKey) {
-      throw new Error('JWT_PRIVATE_KEY_BASE64 environment variable is required');
+      this.logger.warn(
+        'JWT_PRIVATE_KEY_BASE64 not set — using non-persistent HMAC key. Set this for production.',
+      );
     }
-    this.hmacSecret = crypto.createHash('sha256').update(jwtKey).digest('hex');
+    this.hmacSecret = crypto
+      .createHash('sha256')
+      .update(jwtKey || crypto.randomBytes(32).toString('hex'))
+      .digest('hex');
   }
 
   generateVerificationToken(userId: string): string {

@@ -45,11 +45,13 @@ export class AccountingService {
 
     const encKey = this.configService.get<string>('ENCRYPTION_KEY');
     if (!encKey) {
-      throw new Error('ENCRYPTION_KEY environment variable is required for accounting encryption');
+      this.logger.warn(
+        'ENCRYPTION_KEY not set — accounting encryption will use a non-persistent key. Set this for production.',
+      );
     }
     this.encryptionKey = crypto
       .createHash('sha256')
-      .update(encKey)
+      .update(encKey || crypto.randomBytes(32).toString('hex'))
       .digest();
     this.stateHmacKey = crypto
       .createHash('sha256')

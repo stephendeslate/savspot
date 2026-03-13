@@ -66,12 +66,13 @@ export class GoogleCalendarService {
     // Derive AES-256 encryption key from JWT private key
     const jwtKey = this.configService.get<string>('jwt.privateKeyBase64');
     if (!jwtKey) {
-      throw new Error('jwt.privateKeyBase64 config is required for calendar encryption');
+      this.logger.warn(
+        'jwt.privateKeyBase64 not set — calendar encryption will use a non-persistent key. Set JWT_PRIVATE_KEY_BASE64 for production.',
+      );
     }
-    const keySource = jwtKey;
     this.encryptionKey = crypto
       .createHash('sha256')
-      .update(keySource)
+      .update(jwtKey || crypto.randomBytes(32).toString('hex'))
       .digest();
 
     this.stateHmacKey = crypto
