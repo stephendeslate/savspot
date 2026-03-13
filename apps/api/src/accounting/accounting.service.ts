@@ -2,13 +2,13 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  NotImplementedException,
   Logger,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
-import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { QuickBooksProvider } from './providers/quickbooks.provider';
 import { XeroProvider } from './providers/xero.provider';
@@ -29,6 +29,7 @@ export class AccountingService {
 
   private readonly providers: Record<string, AccountingProviderInterface>;
   private readonly encryptionKey: Buffer;
+  private readonly stateHmacKey: Buffer;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -43,10 +44,17 @@ export class AccountingService {
     };
 
     const encKey = this.configService.get<string>('ENCRYPTION_KEY');
-    const keySource = encKey || 'dev-accounting-encryption-key-change-in-prod';
+    if (!encKey) {
+      throw new Error('ENCRYPTION_KEY environment variable is required for accounting encryption');
+    }
     this.encryptionKey = crypto
       .createHash('sha256')
-      .update(keySource)
+      .update(encKey)
+      .digest();
+    this.stateHmacKey = crypto
+      .createHash('sha256')
+      .update(this.encryptionKey)
+      .update('oauth-state')
       .digest();
   }
 
@@ -67,7 +75,8 @@ export class AccountingService {
   async initiateOAuth(tenantId: string, provider: string) {
     const providerImpl = this.getProvider(provider);
     const redirectUri = this.getCallbackUrl(provider);
-    const authUrl = await providerImpl.getAuthUrl(tenantId, redirectUri);
+    const state = this.createSignedState({ tenantId, provider: provider.toUpperCase() });
+    const authUrl = await providerImpl.getAuthUrl(tenantId, redirectUri, state);
 
     return { authUrl };
   }
@@ -76,26 +85,13 @@ export class AccountingService {
     const providerImpl = this.getProvider(provider);
     const redirectUri = this.getCallbackUrl(provider);
 
-    let stateData: { tenantId: string; provider: string };
-    try {
-      stateData = JSON.parse(Buffer.from(state, 'base64url').toString()) as {
-        tenantId: string;
-        provider: string;
-      };
-    } catch {
-      throw new BadRequestException('Invalid state parameter');
-    }
+    const stateData = this.verifySignedState<{ tenantId: string; provider: string }>(state);
 
     if (stateData.provider !== provider.toUpperCase()) {
       throw new BadRequestException('Provider mismatch in state parameter');
     }
 
     const tokens = await providerImpl.exchangeCode(code, redirectUri);
-
-    const encryptedAccess = this.encryptToken(tokens.accessToken);
-    const encryptedRefresh = tokens.refreshToken
-      ? this.encryptToken(tokens.refreshToken)
-      : '';
 
     const existingConnection = await this.prisma.accountingConnection.findFirst({
       where: {
@@ -108,8 +104,8 @@ export class AccountingService {
       await this.prisma.accountingConnection.update({
         where: { id: existingConnection.id },
         data: {
-          accessToken: encryptedAccess,
-          refreshToken: encryptedRefresh,
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
           tokenExpiresAt: tokens.expiresAt,
           companyId: tokens.realmId ?? tokens.tenantId ?? existingConnection.companyId,
           status: 'ACTIVE',
@@ -127,8 +123,8 @@ export class AccountingService {
       data: {
         tenantId: stateData.tenantId,
         provider: provider.toUpperCase() as 'QUICKBOOKS' | 'XERO',
-        accessToken: encryptedAccess,
-        refreshToken: encryptedRefresh,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
         tokenExpiresAt: tokens.expiresAt,
         companyId: tokens.realmId ?? tokens.tenantId,
         status: 'ACTIVE',
@@ -270,28 +266,9 @@ export class AccountingService {
       throw new NotFoundException('Accounting connection not found');
     }
 
-    const provider = this.getProvider(connection.provider);
-    const tokens = this.getTokensFromConnection(connection);
-    const accounts = await provider.getAccounts(tokens);
-
-    const existing = (connection.categoryMappings as Record<string, unknown>) ?? {};
-
-    await this.prisma.accountingConnection.update({
-      where: { id: connectionId },
-      data: {
-        categoryMappings: {
-          ...existing,
-          accounts: accounts as unknown as Prisma.InputJsonValue,
-          accountsRefreshedAt: new Date().toISOString(),
-        },
-      },
-    });
-
-    this.logger.log(
-      `Refreshed ${accounts.length} accounts for connection ${connectionId}`,
+    throw new NotImplementedException(
+      'Account refresh requires provider integration. Connect to QuickBooks or Xero to sync accounts.',
     );
-
-    return accounts;
   }
 
   async getConnectionStatus(tenantId: string, connectionId: string) {
@@ -375,22 +352,12 @@ export class AccountingService {
     provider: string;
   }): AccountingTokens {
     return {
-      accessToken: this.decryptToken(connection.accessToken),
-      refreshToken: connection.refreshToken
-        ? this.decryptToken(connection.refreshToken)
-        : '',
+      accessToken: connection.accessToken,
+      refreshToken: connection.refreshToken ?? '',
       expiresAt: connection.tokenExpiresAt ?? new Date(0),
       realmId: connection.provider === 'QUICKBOOKS' ? (connection.companyId ?? undefined) : undefined,
       tenantId: connection.provider === 'XERO' ? (connection.companyId ?? undefined) : undefined,
     };
-  }
-
-  getProvider(provider: string): AccountingProviderInterface {
-    const impl = this.providers[provider.toUpperCase()];
-    if (!impl) {
-      throw new BadRequestException(`Unsupported accounting provider: ${provider}`);
-    }
-    return impl;
   }
 
   encryptToken(token: string): string {
@@ -429,6 +396,40 @@ export class AccountingService {
     ]);
 
     return decrypted.toString('utf8');
+  }
+
+  getProvider(provider: string): AccountingProviderInterface {
+    const impl = this.providers[provider.toUpperCase()];
+    if (!impl) {
+      throw new BadRequestException(`Unsupported accounting provider: ${provider}`);
+    }
+    return impl;
+  }
+
+  private createSignedState(data: Record<string, string>): string {
+    const nonce = crypto.randomBytes(16).toString('hex');
+    const payload = JSON.stringify({ ...data, nonce, ts: Date.now() });
+    const payloadB64 = Buffer.from(payload).toString('base64url');
+    const sig = crypto.createHmac('sha256', this.stateHmacKey).update(payloadB64).digest('base64url');
+    return `${payloadB64}.${sig}`;
+  }
+
+  private verifySignedState<T extends Record<string, string>>(state: string): T {
+    const [payloadB64, sig] = state.split('.');
+    if (!payloadB64 || !sig) throw new BadRequestException('Invalid state parameter');
+
+    const expectedSig = crypto.createHmac('sha256', this.stateHmacKey).update(payloadB64).digest('base64url');
+    const sigBuf = Buffer.from(sig, 'base64url');
+    const expectedBuf = Buffer.from(expectedSig, 'base64url');
+    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+      throw new BadRequestException('Invalid state signature');
+    }
+
+    const data = JSON.parse(Buffer.from(payloadB64, 'base64url').toString()) as T & { ts: number };
+    if (Date.now() - data.ts > 10 * 60 * 1000) {
+      throw new BadRequestException('State parameter expired');
+    }
+    return data as T;
   }
 
   private getCallbackUrl(provider: string): string {

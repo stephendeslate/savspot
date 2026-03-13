@@ -34,6 +34,7 @@ export class GoogleCalendarService {
   private readonly redirectUri: string;
   private readonly webhookUrl: string | undefined;
   private readonly encryptionKey: Buffer;
+  private readonly stateHmacKey: Buffer;
 
   private readonly SCOPES = [
     'https://www.googleapis.com/auth/calendar.events',
@@ -62,12 +63,21 @@ export class GoogleCalendarService {
       'googleCalendar.webhookUrl',
     );
 
-    // Derive AES-256 encryption key from JWT private key or fallback
+    // Derive AES-256 encryption key from JWT private key
     const jwtKey = this.configService.get<string>('jwt.privateKeyBase64');
-    const keySource = jwtKey || 'dev-calendar-encryption-key-change-in-prod';
+    if (!jwtKey) {
+      throw new Error('jwt.privateKeyBase64 config is required for calendar encryption');
+    }
+    const keySource = jwtKey;
     this.encryptionKey = crypto
       .createHash('sha256')
       .update(keySource)
+      .digest();
+
+    this.stateHmacKey = crypto
+      .createHash('sha256')
+      .update(this.encryptionKey)
+      .update('oauth-state')
       .digest();
   }
 
@@ -82,9 +92,7 @@ export class GoogleCalendarService {
   getAuthUrl(tenantId: string, userId: string): string {
     const oauth2Client = this.createOAuth2Client();
 
-    const state = Buffer.from(
-      JSON.stringify({ tenantId, userId }),
-    ).toString('base64url');
+    const state = this.createSignedState({ tenantId, userId });
 
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
@@ -104,17 +112,7 @@ export class GoogleCalendarService {
     code: string,
     state: string,
   ): Promise<{ tenantId: string; connectionId: string }> {
-    // Decode state
-    let stateData: { tenantId: string; userId: string };
-    try {
-      stateData = JSON.parse(
-        Buffer.from(state, 'base64url').toString('utf8'),
-      );
-    } catch {
-      throw new BadRequestException('Invalid state parameter');
-    }
-
-    const { tenantId, userId } = stateData;
+    const { tenantId, userId } = this.verifySignedState<{ tenantId: string; userId: string }>(state);
 
     // Exchange code for tokens
     const oauth2Client = this.createOAuth2Client();
@@ -1018,6 +1016,36 @@ export class GoogleCalendarService {
     }
 
     return { added, updated, deleted };
+  }
+
+  // ---------------------------------------------------------------------------
+  // OAuth State Signing
+  // ---------------------------------------------------------------------------
+
+  private createSignedState(data: Record<string, string>): string {
+    const nonce = crypto.randomBytes(16).toString('hex');
+    const payload = JSON.stringify({ ...data, nonce, ts: Date.now() });
+    const payloadB64 = Buffer.from(payload).toString('base64url');
+    const sig = crypto.createHmac('sha256', this.stateHmacKey).update(payloadB64).digest('base64url');
+    return `${payloadB64}.${sig}`;
+  }
+
+  private verifySignedState<T extends Record<string, string>>(state: string): T {
+    const [payloadB64, sig] = state.split('.');
+    if (!payloadB64 || !sig) throw new BadRequestException('Invalid state parameter');
+
+    const expectedSig = crypto.createHmac('sha256', this.stateHmacKey).update(payloadB64).digest('base64url');
+    const sigBuf = Buffer.from(sig, 'base64url');
+    const expectedBuf = Buffer.from(expectedSig, 'base64url');
+    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+      throw new BadRequestException('Invalid state signature');
+    }
+
+    const data = JSON.parse(Buffer.from(payloadB64, 'base64url').toString()) as T & { ts: number };
+    if (Date.now() - data.ts > 10 * 60 * 1000) {
+      throw new BadRequestException('State parameter expired');
+    }
+    return data as T;
   }
 
   // ---------------------------------------------------------------------------

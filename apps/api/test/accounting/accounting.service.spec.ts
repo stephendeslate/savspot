@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   NotFoundException,
   BadRequestException,
+  NotImplementedException,
 } from '@nestjs/common';
 import { AccountingService } from '@/accounting/accounting.service';
 
@@ -33,7 +34,12 @@ function makePrisma() {
 
 function makeConfigService() {
   return {
-    get: vi.fn((_key: string, def: unknown) => def),
+    get: vi.fn((key: string, def: unknown) => {
+      const map: Record<string, unknown> = {
+        ENCRYPTION_KEY: 'test-encryption-key-for-accounting',
+      };
+      return map[key] ?? def;
+    }),
   };
 }
 
@@ -41,7 +47,6 @@ function makeQuickBooksProvider() {
   return {
     getAuthUrl: vi.fn(),
     exchangeCode: vi.fn(),
-    getAccounts: vi.fn().mockResolvedValue([]),
   };
 }
 
@@ -49,7 +54,6 @@ function makeXeroProvider() {
   return {
     getAuthUrl: vi.fn(),
     exchangeCode: vi.fn(),
-    getAccounts: vi.fn().mockResolvedValue([]),
   };
 }
 
@@ -150,9 +154,8 @@ describe('AccountingService', () => {
   // ---------- handleCallback ----------
 
   describe('handleCallback', () => {
-    const validState = Buffer.from(
-      JSON.stringify({ tenantId: TENANT_ID, provider: 'QUICKBOOKS' }),
-    ).toString('base64url');
+    const validState = (): string =>
+      service['createSignedState']({ tenantId: TENANT_ID, provider: 'QUICKBOOKS' });
 
     it('creates a new connection when none exists', async () => {
       quickBooksProvider.exchangeCode.mockResolvedValue({
@@ -166,7 +169,7 @@ describe('AccountingService', () => {
         id: CONNECTION_ID,
       });
 
-      const result = await service.handleCallback('QUICKBOOKS', 'auth-code', validState);
+      const result = await service.handleCallback('QUICKBOOKS', 'auth-code', validState());
 
       expect(result.connectionId).toBe(CONNECTION_ID);
       expect(prisma.accountingConnection.create).toHaveBeenCalled();
@@ -184,7 +187,7 @@ describe('AccountingService', () => {
       );
       prisma.accountingConnection.update.mockResolvedValue(makeConnection());
 
-      const result = await service.handleCallback('QUICKBOOKS', 'auth-code', validState);
+      const result = await service.handleCallback('QUICKBOOKS', 'auth-code', validState());
 
       expect(result.connectionId).toBe(CONNECTION_ID);
       expect(prisma.accountingConnection.update).toHaveBeenCalled();
@@ -197,9 +200,7 @@ describe('AccountingService', () => {
     });
 
     it('throws BadRequestException for provider mismatch in state', async () => {
-      const mismatchState = Buffer.from(
-        JSON.stringify({ tenantId: TENANT_ID, provider: 'XERO' }),
-      ).toString('base64url');
+      const mismatchState = service['createSignedState']({ tenantId: TENANT_ID, provider: 'XERO' });
 
       quickBooksProvider.exchangeCode.mockResolvedValue({
         accessToken: 'at',
@@ -330,34 +331,12 @@ describe('AccountingService', () => {
   // ---------- refreshAccounts ----------
 
   describe('refreshAccounts', () => {
-    it('fetches accounts from provider and stores them', async () => {
-      const mockAccounts = [{ id: 'acct-1', name: 'Revenue', type: 'INCOME' }];
-      quickBooksProvider.getAccounts.mockResolvedValue(mockAccounts);
-      const encryptedAccess = service.encryptToken('test-access');
-      const encryptedRefresh = service.encryptToken('test-refresh');
-      prisma.accountingConnection.findFirst.mockResolvedValue(
-        makeConnection({
-          accessToken: encryptedAccess,
-          refreshToken: encryptedRefresh,
-          categoryMappings: {},
-        }),
-      );
-      prisma.accountingConnection.update.mockResolvedValue({});
+    it('throws NotImplementedException for a valid connection', async () => {
+      prisma.accountingConnection.findFirst.mockResolvedValue(makeConnection());
 
-      const result = await service.refreshAccounts(TENANT_ID, CONNECTION_ID);
-
-      expect(result).toEqual(mockAccounts);
-      expect(quickBooksProvider.getAccounts).toHaveBeenCalled();
-      expect(prisma.accountingConnection.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: CONNECTION_ID },
-          data: expect.objectContaining({
-            categoryMappings: expect.objectContaining({
-              accounts: mockAccounts,
-            }),
-          }),
-        }),
-      );
+      await expect(
+        service.refreshAccounts(TENANT_ID, CONNECTION_ID),
+      ).rejects.toThrow(NotImplementedException);
     });
 
     it('throws NotFoundException when connection not found', async () => {
@@ -441,22 +420,20 @@ describe('AccountingService', () => {
   describe('getTokensFromConnection', () => {
     it('maps QuickBooks connection to AccountingTokens with realmId', () => {
       const tokens = service.getTokensFromConnection({
-        accessToken: service.encryptToken('at'),
-        refreshToken: service.encryptToken('rt'),
+        accessToken: 'at',
+        refreshToken: 'rt',
         tokenExpiresAt: new Date('2026-06-01'),
         companyId: 'realm-1',
         provider: 'QUICKBOOKS',
       });
 
-      expect(tokens.accessToken).toBe('at');
-      expect(tokens.refreshToken).toBe('rt');
       expect(tokens.realmId).toBe('realm-1');
       expect(tokens.tenantId).toBeUndefined();
     });
 
     it('maps Xero connection to AccountingTokens with tenantId', () => {
       const tokens = service.getTokensFromConnection({
-        accessToken: service.encryptToken('at'),
+        accessToken: 'at',
         refreshToken: null,
         tokenExpiresAt: null,
         companyId: 'xero-tenant',

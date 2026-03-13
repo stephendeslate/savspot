@@ -76,10 +76,10 @@ const CAL_EVENT_ID = 'cal-event-001';
 
 /**
  * Encrypt a token the same way the service does (AES-256-GCM).
- * Uses the same key derivation: SHA-256 of the fallback key.
+ * Uses the same key derivation: SHA-256 of the JWT private key.
  */
 function encryptTestToken(token: string): string {
-  const keySource = 'dev-calendar-encryption-key-change-in-prod';
+  const keySource = 'dGVzdC1qd3Qta2V5LWZvci1jYWxlbmRhci1lbmNyeXB0aW9u';
   const encryptionKey = crypto.createHash('sha256').update(keySource).digest();
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv('aes-256-gcm', encryptionKey, iv);
@@ -116,7 +116,7 @@ function makeConfig() {
         'googleCalendar.clientSecret': 'google-client-secret',
         'googleCalendar.redirectUri': 'http://localhost:3001/api/auth/google-calendar/callback',
         'googleCalendar.webhookUrl': 'https://example.com/webhooks/google',
-        'jwt.privateKeyBase64': undefined,
+        'jwt.privateKeyBase64': 'dGVzdC1qd3Qta2V5LWZvci1jYWxlbmRhci1lbmNyeXB0aW9u',
       };
       return map[key] ?? fallback;
     }),
@@ -200,13 +200,18 @@ describe('GoogleCalendarService', () => {
       );
     });
 
-    it('should encode tenantId and userId in state parameter', () => {
+    it('should encode tenantId and userId in signed state parameter', () => {
       mockGenerateAuthUrl.mockImplementation((opts: { state: string }) => {
+        const [payloadB64, sig] = opts.state.split('.');
+        expect(payloadB64).toBeTruthy();
+        expect(sig).toBeTruthy();
         const decoded = JSON.parse(
-          Buffer.from(opts.state, 'base64url').toString('utf8'),
+          Buffer.from(payloadB64!, 'base64url').toString('utf8'),
         );
         expect(decoded.tenantId).toBe(TENANT_ID);
         expect(decoded.userId).toBe(USER_ID);
+        expect(decoded.nonce).toBeDefined();
+        expect(decoded.ts).toBeDefined();
         return 'https://auth-url';
       });
 
@@ -221,9 +226,8 @@ describe('GoogleCalendarService', () => {
   // -------------------------------------------------------------------------
 
   describe('handleCallback', () => {
-    const validState = Buffer.from(
-      JSON.stringify({ tenantId: TENANT_ID, userId: USER_ID }),
-    ).toString('base64url');
+    const validState = (): string =>
+      service['createSignedState']({ tenantId: TENANT_ID, userId: USER_ID });
 
     it('should throw BadRequestException for invalid state', async () => {
       await expect(
@@ -235,7 +239,7 @@ describe('GoogleCalendarService', () => {
       mockGetToken.mockRejectedValue(new Error('Invalid code'));
 
       await expect(
-        service.handleCallback('bad-code', validState),
+        service.handleCallback('bad-code', validState()),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -245,7 +249,7 @@ describe('GoogleCalendarService', () => {
       });
 
       await expect(
-        service.handleCallback('code', validState),
+        service.handleCallback('code', validState()),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -269,7 +273,7 @@ describe('GoogleCalendarService', () => {
         makeConnection({ id: 'new-conn' }),
       );
 
-      const result = await service.handleCallback('auth-code', validState);
+      const result = await service.handleCallback('auth-code', validState());
 
       expect(result.tenantId).toBe(TENANT_ID);
       expect(result.connectionId).toBe('new-conn');
@@ -295,7 +299,7 @@ describe('GoogleCalendarService', () => {
       prisma.calendarConnection.findFirst.mockResolvedValue(makeConnection());
       prisma.calendarConnection.update.mockResolvedValue(makeConnection());
 
-      const result = await service.handleCallback('auth-code', validState);
+      const result = await service.handleCallback('auth-code', validState());
 
       expect(result.connectionId).toBe(CONNECTION_ID);
       expect(prisma.calendarConnection.update).toHaveBeenCalledWith(
@@ -317,7 +321,7 @@ describe('GoogleCalendarService', () => {
       );
 
       // Should not throw
-      const result = await service.handleCallback('code', validState);
+      const result = await service.handleCallback('code', validState());
       expect(result.connectionId).toBe('new-conn');
     });
   });
