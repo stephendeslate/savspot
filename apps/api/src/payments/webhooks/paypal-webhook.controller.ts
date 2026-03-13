@@ -140,10 +140,7 @@ export class PaypalWebhookController {
     const webhookId = process.env['PAYPAL_WEBHOOK_ID'];
 
     if (!clientId || !clientSecret || !webhookId) {
-      this.logger.warn(
-        'PayPal credentials not configured — skipping webhook verification',
-      );
-      return;
+      throw new BadRequestException('Webhook signature verification unavailable');
     }
 
     if (!headers.transmissionId || !headers.transmissionSig) {
@@ -233,20 +230,22 @@ export class PaypalWebhookController {
         });
         if (payment) {
           const previousStatus = payment.status;
-          await this.prisma.payment.update({
-            where: { id: payment.id },
-            data: { status: 'REFUNDED' },
-          });
-          await this.prisma.paymentStateHistory.create({
-            data: {
-              paymentId: payment.id,
-              tenantId: payment.tenantId,
-              fromState: previousStatus,
-              toState: 'REFUNDED',
-              triggeredBy: 'WEBHOOK',
-              reason: 'PayPal refund webhook confirmation',
-            },
-          });
+          await this.prisma.$transaction([
+            this.prisma.payment.update({
+              where: { id: payment.id },
+              data: { status: 'REFUNDED' },
+            }),
+            this.prisma.paymentStateHistory.create({
+              data: {
+                paymentId: payment.id,
+                tenantId: payment.tenantId,
+                fromState: previousStatus,
+                toState: 'REFUNDED',
+                triggeredBy: 'WEBHOOK',
+                reason: 'PayPal refund webhook confirmation',
+              },
+            }),
+          ]);
         }
         break;
       }

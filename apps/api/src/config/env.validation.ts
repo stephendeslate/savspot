@@ -229,6 +229,9 @@ export const envSchema = z.object({
       { key: 'ENCRYPTION_KEY', label: 'ENCRYPTION_KEY' },
       { key: 'MFA_ENCRYPTION_KEY', label: 'MFA_ENCRYPTION_KEY' },
       { key: 'WEBHOOK_ENCRYPTION_KEY', label: 'WEBHOOK_ENCRYPTION_KEY' },
+      { key: 'STRIPE_SECRET_KEY', label: 'STRIPE_SECRET_KEY' },
+      { key: 'STRIPE_WEBHOOK_SECRET', label: 'STRIPE_WEBHOOK_SECRET' },
+      { key: 'RESEND_API_KEY', label: 'RESEND_API_KEY' },
     ];
 
     for (const { key, label } of required) {

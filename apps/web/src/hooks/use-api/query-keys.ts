@@ -17,4 +17,8 @@ export const queryKeys = {
   payments: (tenantId: string, params?: Record<string, string>) =>
     ['payments', tenantId, params] as const,
   paymentStats: (tenantId: string) => ['payment-stats', tenantId] as const,
+  imports: (tenantId: string, params?: Record<string, string>) =>
+    ['imports', tenantId, params] as const,
+  importErrors: (tenantId: string, importId: string) =>
+    ['import-errors', tenantId, importId] as const,
 };

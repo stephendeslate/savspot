@@ -1,5 +1,4 @@
 import * as crypto from 'crypto';
-import { timingSafeEqual } from 'crypto';
 import {
   Controller,
   Post,
@@ -121,23 +120,17 @@ export class AdyenWebhookController {
   ): void {
     const hmacKey = process.env['ADYEN_HMAC_KEY'];
     if (!hmacKey) {
-      this.logger.warn(
-        'No ADYEN_HMAC_KEY configured — skipping HMAC verification',
-      );
-      return;
+      throw new BadRequestException('Webhook signature verification unavailable');
     }
     if (!signature) {
       throw new BadRequestException('Missing HMAC signature header');
     }
     const keyBuffer = Buffer.from(hmacKey, 'hex');
-    const computedBuffer = Buffer.from(
-      crypto.createHmac('sha256', keyBuffer).update(payload).digest('base64'),
-    );
-    const signatureBuffer = Buffer.from(signature);
-    if (
-      computedBuffer.length !== signatureBuffer.length ||
-      !timingSafeEqual(computedBuffer, signatureBuffer)
-    ) {
+    const computed = crypto
+      .createHmac('sha256', keyBuffer)
+      .update(payload)
+      .digest('base64');
+    if (computed !== signature) {
       throw new BadRequestException('Invalid HMAC signature');
     }
   }
@@ -187,22 +180,20 @@ export class AdyenWebhookController {
           });
           if (payment) {
             const previousStatus = payment.status;
-            await this.prisma.$transaction([
-              this.prisma.payment.update({
-                where: { id: payment.id },
-                data: { status: 'REFUNDED' },
-              }),
-              this.prisma.paymentStateHistory.create({
-                data: {
-                  paymentId: payment.id,
-                  tenantId: payment.tenantId,
-                  fromState: previousStatus,
-                  toState: 'REFUNDED',
-                  triggeredBy: 'WEBHOOK',
-                  reason: 'Adyen refund webhook confirmation',
-                },
-              }),
-            ]);
+            await this.prisma.payment.update({
+              where: { id: payment.id },
+              data: { status: 'REFUNDED' },
+            });
+            await this.prisma.paymentStateHistory.create({
+              data: {
+                paymentId: payment.id,
+                tenantId: payment.tenantId,
+                fromState: previousStatus,
+                toState: 'REFUNDED',
+                triggeredBy: 'WEBHOOK',
+                reason: 'Adyen refund webhook confirmation',
+              },
+            });
           }
         }
         break;
