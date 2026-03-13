@@ -164,6 +164,7 @@ const PRICING_FEATURES = {
   free: [
     'Unlimited bookings',
     'Online & offline payments',
+    '1% processing fee on transactions',
     'Google Calendar sync',
     'Client CRM',
     'Email notifications & reminders',
@@ -178,7 +179,7 @@ const PRICING_FEATURES = {
     'Data export (GDPR-compliant)',
   ],
   pro: [
-    'Everything in Free',
+    'Everything in Free (incl. 1% processing fee)',
     'Custom email templates',
     'SMS to clients',
     'Advanced analytics dashboard',
