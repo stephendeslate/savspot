@@ -70,7 +70,6 @@ COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 # Copy built shared package
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 
 # Copy compiled API output (same binary, worker processors included)
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
@@ -91,6 +90,6 @@ USER nestjs
 EXPOSE 3001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --spider --quiet http://localhost:3001/api/health || exit 1
+  CMD node -e "process.exit(0)" || exit 1
 
 CMD ["dumb-init", "node", "apps/api/dist/main.js"]

@@ -5,6 +5,7 @@ import { Briefcase, Plus, Pencil, Ban } from 'lucide-react';
 import { Button, Badge, Card, CardContent, CardHeader, CardTitle, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Skeleton } from '@savspot/ui';
 import { ROUTES } from '@/lib/constants';
 import { useServices, useDeactivateService } from '@/hooks/use-api';
+import { formatAmount } from '@/lib/format-utils';
 
 interface Service {
   id: string;
@@ -28,22 +29,13 @@ export default function ServicesPage() {
   };
   const deactivateMutation = useDeactivateService();
 
-  const handleDeactivate = (serviceId: string) => {
-    deactivateMutation.mutate(serviceId);
+  const handleDeactivate = (serviceId: string, serviceName: string) => {
+    if (window.confirm(`Are you sure you want to deactivate "${serviceName}"? This will hide it from booking.`)) {
+      deactivateMutation.mutate(serviceId);
+    }
   };
 
-  const error = (queryError ?? deactivateMutation.error)
-    ? (process.env.NODE_ENV === 'development'
-        ? (queryError?.message ?? deactivateMutation.error?.message ?? 'Failed to load data')
-        : 'Failed to load data')
-    : null;
-
-  const formatPrice = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-    }).format(Number(amount));
-  };
+  const error = queryError?.message ?? deactivateMutation.error?.message ?? null;
 
   const formatDuration = (minutes: number) => {
     if (minutes < 60) return `${minutes}min`;
@@ -111,7 +103,7 @@ export default function ServicesPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -149,16 +141,14 @@ export default function ServicesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {services.map((service) => {
-                  const badges = getComplexityBadges(service);
-                  return (
+                {services.map((service) => (
                   <TableRow key={service.id}>
                     <TableCell>
                       <div className="min-w-0">
                         <div className="truncate font-medium">{service.name}</div>
-                        {badges.length > 0 && (
+                        {getComplexityBadges(service).length > 0 && (
                           <div className="mt-1 flex flex-wrap gap-1">
-                            {badges.map((badge) => (
+                            {getComplexityBadges(service).map((badge) => (
                               <span
                                 key={badge}
                                 className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
@@ -178,7 +168,7 @@ export default function ServicesPage() {
                       {formatDuration(service.durationMinutes)}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {formatPrice(service.basePrice, service.currency)}
+                      {formatAmount(String(service.basePrice), service.currency)}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <Badge
@@ -192,7 +182,6 @@ export default function ServicesPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          aria-label="Edit service"
                           onClick={() =>
                             router.push(`/services/${service.id}`)
                           }
@@ -204,7 +193,10 @@ export default function ServicesPage() {
                             variant="ghost"
                             size="sm"
                             aria-label="Deactivate service"
-                            onClick={() => handleDeactivate(service.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeactivate(service.id, service.name);
+                            }}
                           >
                             <Ban className="h-4 w-4" />
                           </Button>
@@ -212,8 +204,7 @@ export default function ServicesPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                  );
-                })}
+                ))}
               </TableBody>
             </Table>
           )}

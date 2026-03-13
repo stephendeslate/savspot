@@ -21,4 +21,8 @@ export const queryKeys = {
     ['imports', tenantId, params] as const,
   importErrors: (tenantId: string, importId: string) =>
     ['import-errors', tenantId, importId] as const,
+  messageThreads: (tenantId: string, search?: string) =>
+    ['message-threads', tenantId, search] as const,
+  messageThread: (tenantId: string, threadId: string) =>
+    ['message-thread', tenantId, threadId] as const,
 };

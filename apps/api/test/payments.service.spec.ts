@@ -23,11 +23,12 @@ function makePrisma() {
       findMany: vi.fn(),
       update: vi.fn(),
       count: vi.fn(),
+      aggregate: vi.fn(),
     },
     paymentStateHistory: { create: vi.fn() },
     booking: { findFirst: vi.fn(), update: vi.fn() },
     bookingStateHistory: { create: vi.fn() },
-    $transaction: vi.fn(),
+    $transaction: vi.fn(async (ops: unknown[]) => Promise.all(ops)),
   };
 }
 
@@ -69,13 +70,6 @@ describe('PaymentsService', () => {
 
   beforeEach(() => {
     prisma = makePrisma();
-    // Support both interactive and batch transactions
-    prisma.$transaction.mockImplementation((arg: unknown) => {
-      if (typeof arg === 'function') {
-        return (arg as (tx: unknown) => Promise<unknown>)(prisma);
-      }
-      return Promise.all(arg as unknown[]);
-    });
     const config = makeConfig();
     stripe = makeStripe();
 

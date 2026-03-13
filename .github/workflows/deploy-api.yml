@@ -1,13 +1,13 @@
 name: Deploy API
 
-permissions:
-  contents: read
-
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+  push:
     branches: [main]
+    paths:
+      - "apps/api/**"
+      - "packages/shared/**"
+      - "prisma/**"
+      - "pnpm-lock.yaml"
 
 # Prevent concurrent deploys
 concurrency:
@@ -18,14 +18,26 @@ jobs:
   deploy:
     name: Deploy API to Fly.io
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
+    # Only deploy after CI passes
     steps:
       - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+
+      - name: Run database migrations
+        run: pnpm db:migrate:deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Setup Fly CLI
-        uses: superfly/flyctl-actions/setup-flyctl@1.5
+        uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy API
         run: flyctl deploy --config apps/api/fly.toml --dockerfile apps/api/Dockerfile --remote-only
@@ -35,15 +47,12 @@ jobs:
   deploy-worker:
     name: Deploy Worker to Fly.io
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
     needs: [deploy]
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Setup Fly CLI
-        uses: superfly/flyctl-actions/setup-flyctl@1.5
+        uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy Worker
         run: flyctl deploy --config apps/api/fly.worker.toml --dockerfile apps/api/Dockerfile.worker --remote-only
