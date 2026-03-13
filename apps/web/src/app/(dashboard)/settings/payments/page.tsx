@@ -247,6 +247,11 @@ export default function PaymentsSettingsPage() {
                 You will be redirected to Stripe to complete the
                 onboarding process. This usually takes a few minutes.
               </p>
+
+              <p className="text-xs text-muted-foreground">
+                A 1% processing fee applies to all transactions processed
+                through SavSpot, in addition to standard Stripe fees.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -387,6 +392,13 @@ export default function PaymentsSettingsPage() {
               </div>
 
               <Separator />
+
+              <div className="rounded-md bg-muted p-3">
+                <p className="text-xs text-muted-foreground">
+                  A 1% processing fee applies to all transactions processed
+                  through SavSpot, in addition to standard Stripe fees.
+                </p>
+              </div>
 
               <div className="rounded-md bg-muted p-3">
                 <p className="text-xs text-muted-foreground">
