@@ -382,7 +382,7 @@ export default function Home() {
                     <span className="text-sm text-muted-foreground">/month</span>
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Free forever. No credit card required.
+                    Free forever. No credit card required. 1% fee on transactions.
                   </p>
                 </div>
                 <ul className="mt-6 flex-1 space-y-2.5">
