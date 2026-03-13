@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   NotFoundException,
   BadRequestException,
-  NotImplementedException,
 } from '@nestjs/common';
 import { AccountingService } from '@/accounting/accounting.service';
 
@@ -42,6 +41,7 @@ function makeQuickBooksProvider() {
   return {
     getAuthUrl: vi.fn(),
     exchangeCode: vi.fn(),
+    getAccounts: vi.fn().mockResolvedValue([]),
   };
 }
 
@@ -49,6 +49,7 @@ function makeXeroProvider() {
   return {
     getAuthUrl: vi.fn(),
     exchangeCode: vi.fn(),
+    getAccounts: vi.fn().mockResolvedValue([]),
   };
 }
 
@@ -329,12 +330,34 @@ describe('AccountingService', () => {
   // ---------- refreshAccounts ----------
 
   describe('refreshAccounts', () => {
-    it('throws NotImplementedException for a valid connection', async () => {
-      prisma.accountingConnection.findFirst.mockResolvedValue(makeConnection());
+    it('fetches accounts from provider and stores them', async () => {
+      const mockAccounts = [{ id: 'acct-1', name: 'Revenue', type: 'INCOME' }];
+      quickBooksProvider.getAccounts.mockResolvedValue(mockAccounts);
+      const encryptedAccess = service.encryptToken('test-access');
+      const encryptedRefresh = service.encryptToken('test-refresh');
+      prisma.accountingConnection.findFirst.mockResolvedValue(
+        makeConnection({
+          accessToken: encryptedAccess,
+          refreshToken: encryptedRefresh,
+          categoryMappings: {},
+        }),
+      );
+      prisma.accountingConnection.update.mockResolvedValue({});
 
-      await expect(
-        service.refreshAccounts(TENANT_ID, CONNECTION_ID),
-      ).rejects.toThrow(NotImplementedException);
+      const result = await service.refreshAccounts(TENANT_ID, CONNECTION_ID);
+
+      expect(result).toEqual(mockAccounts);
+      expect(quickBooksProvider.getAccounts).toHaveBeenCalled();
+      expect(prisma.accountingConnection.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: CONNECTION_ID },
+          data: expect.objectContaining({
+            categoryMappings: expect.objectContaining({
+              accounts: mockAccounts,
+            }),
+          }),
+        }),
+      );
     });
 
     it('throws NotFoundException when connection not found', async () => {

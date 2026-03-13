@@ -1,7 +1,6 @@
 import {
   Injectable,
   NotFoundException,
-  NotImplementedException,
   Logger,
 } from '@nestjs/common';
 import { Queue } from 'bullmq';
@@ -12,6 +11,14 @@ import { QUEUE_IMPORTS, JOB_PROCESS_IMPORT } from '../bullmq/queue.constants';
 import { CreateImportDto } from './dto/create-import.dto';
 import { ListImportsDto } from './dto/list-imports.dto';
 import { clampPageSize } from '../common/utils/pagination';
+import { parseCsv } from './parsers/csv-import-parser';
+import { parseJson } from './parsers/json-import-parser';
+import {
+  handleClientRow,
+  ImportRowResult,
+} from './handlers/client-import.handler';
+import { handleServiceRow } from './handlers/service-import.handler';
+import { handleAppointmentRow } from './handlers/appointment-import.handler';
 
 @Injectable()
 export class ImportsService {
@@ -136,15 +143,17 @@ export class ImportsService {
       `Processing import job ${importJobId} for tenant ${tenantId}`,
     );
 
+    let job: Awaited<ReturnType<typeof this.prisma.importJob.findFirst>>;
+
     try {
-      await this.prisma.$transaction(async (tx) => {
+      job = await this.prisma.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
 
-        const job = await tx.importJob.findFirst({
+        const found = await tx.importJob.findFirst({
           where: { id: importJobId, tenantId },
         });
 
-        if (!job) {
+        if (!found) {
           throw new Error(`Import job ${importJobId} not found`);
         }
 
@@ -153,32 +162,143 @@ export class ImportsService {
           data: { status: 'PROCESSING' },
         });
 
-        return job;
+        return found;
       });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.logger.error(
+        `Import job ${importJobId} failed to start: ${message}`,
+      );
+      throw err;
+    }
 
-      // Bulk import processing is not yet implemented
-      // Set job to FAILED so the caller knows
+    try {
+      if (!job) {
+        throw new Error('Import job not found after transaction');
+      }
+
+      if (!job.fileUrl) {
+        throw new Error('Import job has no file URL');
+      }
+
+      const response = await fetch(job.fileUrl);
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch import file: HTTP ${response.status}`,
+        );
+      }
+
+      const fileData = await response.text();
+      const columnMapping = job.columnMapping as Record<
+        string,
+        string
+      > | null;
+
+      let rows: Record<string, string>[];
+
+      if (job.sourcePlatform === 'JSON_GENERIC') {
+        rows = parseJson(fileData, columnMapping);
+      } else {
+        rows = await parseCsv(fileData, columnMapping);
+      }
+
+      type RowHandler = (
+        prisma: PrismaService,
+        tenantId: string,
+        row: Record<string, string>,
+      ) => Promise<ImportRowResult>;
+
+      let handler: RowHandler;
+      switch (job.importType) {
+        case 'CLIENTS':
+          handler = handleClientRow;
+          break;
+        case 'SERVICES':
+          handler = handleServiceRow;
+          break;
+        case 'APPOINTMENTS':
+          handler = handleAppointmentRow;
+          break;
+        default:
+          throw new Error(`Unsupported import type: ${job.importType}`);
+      }
+
+      const BATCH_SIZE = 50;
+      let imported = 0;
+      let skipped = 0;
+      let errors = 0;
+
+      for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+        const batch = rows.slice(i, i + BATCH_SIZE);
+
+        await this.prisma.$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+
+          for (let j = 0; j < batch.length; j++) {
+            const rowNumber = i + j + 1;
+            const row = batch[j]!;
+
+            try {
+              const result = await handler(this.prisma, tenantId, row);
+
+              await tx.importRecord.create({
+                data: {
+                  importJobId,
+                  rowNumber,
+                  rawData: row as unknown as Prisma.InputJsonValue,
+                  status: result.status,
+                  targetTable: result.targetTable,
+                  targetId: result.targetId ?? null,
+                  errorMessage: result.errorMessage ?? null,
+                },
+              });
+
+              if (result.status === 'IMPORTED') imported++;
+              else if (result.status === 'SKIPPED_DUPLICATE') skipped++;
+              else errors++;
+            } catch (rowErr) {
+              const rowMessage =
+                rowErr instanceof Error ? rowErr.message : 'Unknown error';
+              await tx.importRecord.create({
+                data: {
+                  importJobId,
+                  rowNumber,
+                  rawData: row as unknown as Prisma.InputJsonValue,
+                  status: 'ERROR',
+                  targetTable: 'Unknown',
+                  errorMessage: rowMessage,
+                },
+              });
+              errors++;
+            }
+          }
+        });
+      }
+
       await this.prisma.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
 
         await tx.importJob.update({
           where: { id: importJobId },
           data: {
-            status: 'FAILED',
+            status: 'COMPLETED',
             completedAt: new Date(),
-            errorLog: { error: 'Bulk import processing is not yet implemented' },
+            stats: {
+              totalRows: rows.length,
+              imported,
+              skipped,
+              errors,
+            },
           },
         });
       });
 
-      throw new NotImplementedException(
-        'Bulk import processing is not yet implemented',
+      this.logger.log(
+        `Import job ${importJobId} completed: ${imported} imported, ${skipped} skipped, ${errors} errors out of ${rows.length} rows`,
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      this.logger.error(
-        `Import job ${importJobId} failed: ${message}`,
-      );
+      this.logger.error(`Import job ${importJobId} failed: ${message}`);
 
       await this.prisma.importJob
         .update({

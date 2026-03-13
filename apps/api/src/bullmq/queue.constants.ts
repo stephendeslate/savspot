@@ -122,6 +122,7 @@ export const JOB_COMPUTE_BENCHMARKS = 'computeBenchmarks';
 
 // Webhook queue jobs (Phase 3)
 export const JOB_DISPATCH_WEBHOOK = 'dispatchWebhook';
+export const JOB_EXECUTE_STAGE = 'executeStage';
 
 // Accounting sync queue jobs (Phase 3)
 export const JOB_ACCOUNTING_SYNC_INVOICES = 'accountingSyncInvoices';
