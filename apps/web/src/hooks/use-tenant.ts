@@ -4,12 +4,12 @@ import { useAuth } from './use-auth';
 import { useMemo } from 'react';
 
 export function useTenant() {
-  const { user, isLoading: isAuthLoading } = useAuth();
+  const { activeTenantId, isLoading: isAuthLoading } = useAuth();
   return useMemo(
     () => ({
-      tenantId: user?.tenantId ?? null,
+      tenantId: activeTenantId,
       isLoading: isAuthLoading,
     }),
-    [user, isAuthLoading],
+    [activeTenantId, isAuthLoading],
   );
 }

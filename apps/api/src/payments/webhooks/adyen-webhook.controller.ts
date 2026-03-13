@@ -136,7 +136,12 @@ export class AdyenWebhookController {
       .createHmac('sha256', keyBuffer)
       .update(payload)
       .digest('base64');
-    if (computed !== signature) {
+    const computedBuf = Buffer.from(computed, 'base64');
+    const signatureBuf = Buffer.from(signature, 'base64');
+    if (
+      computedBuf.length !== signatureBuf.length ||
+      !crypto.timingSafeEqual(computedBuf, signatureBuf)
+    ) {
       throw new BadRequestException('Invalid HMAC signature');
     }
   }

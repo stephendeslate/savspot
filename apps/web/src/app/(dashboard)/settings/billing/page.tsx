@@ -193,6 +193,10 @@ export default function BillingSettingsPage() {
         { tier, isAnnual: billingInterval === 'yearly' },
       );
       if (result.url) {
+        const checkoutUrl = new URL(result.url);
+        if (!['checkout.stripe.com'].includes(checkoutUrl.hostname)) {
+          throw new Error('Invalid checkout URL');
+        }
         window.location.href = result.url;
       }
     } catch (err) {
@@ -213,6 +217,10 @@ export default function BillingSettingsPage() {
         `/api/subscriptions/${tenantId}/portal`,
       );
       if (result.url) {
+        const portalUrl = new URL(result.url);
+        if (!['billing.stripe.com'].includes(portalUrl.hostname)) {
+          throw new Error('Invalid portal URL');
+        }
         window.location.href = result.url;
       }
     } catch (err) {

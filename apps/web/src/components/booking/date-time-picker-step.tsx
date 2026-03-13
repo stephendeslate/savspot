@@ -295,7 +295,7 @@ export function DateTimePickerStep({
           )}
 
           {selectedDate && !loadingSlots && error && (
-            <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <div role="alert" className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {error}
               <button
                 type="button"

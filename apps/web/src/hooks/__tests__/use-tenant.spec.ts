@@ -11,9 +11,9 @@ import { useAuth } from '@/hooks/use-auth';
 const mockedUseAuth = useAuth as ReturnType<typeof vi.fn>;
 
 describe('useTenant', () => {
-  it('returns tenantId from user when user is loaded', () => {
+  it('returns activeTenantId when user is loaded', () => {
     mockedUseAuth.mockReturnValue({
-      user: { id: 'u1', tenantId: 'tenant-123', email: 'test@test.com' },
+      activeTenantId: 'tenant-123',
       isLoading: false,
     });
 
@@ -23,9 +23,9 @@ describe('useTenant', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it('returns null tenantId when user has no tenantId', () => {
+  it('returns null tenantId when activeTenantId is null', () => {
     mockedUseAuth.mockReturnValue({
-      user: { id: 'u1', tenantId: null, email: 'test@test.com' },
+      activeTenantId: null,
       isLoading: false,
     });
 
@@ -36,7 +36,7 @@ describe('useTenant', () => {
   });
 
   it('returns null tenantId and isLoading true when user is null', () => {
-    mockedUseAuth.mockReturnValue({ user: null, isLoading: true });
+    mockedUseAuth.mockReturnValue({ activeTenantId: null, isLoading: true });
 
     const { result } = renderHook(() => useTenant());
 
@@ -46,7 +46,7 @@ describe('useTenant', () => {
 
   it('returns isLoading false when user object exists', () => {
     mockedUseAuth.mockReturnValue({
-      user: { id: 'u1', tenantId: 'tenant-1' },
+      activeTenantId: 'tenant-1',
       isLoading: false,
     });
 
