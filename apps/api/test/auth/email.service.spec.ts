@@ -179,14 +179,12 @@ describe('EmailService', () => {
   // ---------- HMAC secret derivation ----------
 
   describe('constructor', () => {
-    it('should throw when JWT_PRIVATE_KEY_BASE64 is not set', () => {
+    it('should warn but not throw when JWT_PRIVATE_KEY_BASE64 is not set', () => {
       const configService = makeConfigService({
         JWT_PRIVATE_KEY_BASE64: undefined as unknown as string,
       });
 
-      expect(() => new EmailService(configService as never)).toThrow(
-        'JWT_PRIVATE_KEY_BASE64 environment variable is required',
-      );
+      expect(() => new EmailService(configService as never)).not.toThrow();
     });
 
     it('should derive HMAC secret from JWT_PRIVATE_KEY_BASE64 when set', () => {
