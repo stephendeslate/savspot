@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@source '../../../../packages/ui/src';
+
 @theme inline {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
