@@ -19,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { TenantRoles } from '../common/decorators/tenant-roles.decorator';
 import { TenantRolesGuard } from '../common/guards/tenant-roles.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
 import { WebhookService } from './services/webhook.service';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
@@ -57,10 +58,11 @@ export class WebhooksController {
   @ApiOperation({ summary: 'Update a webhook endpoint' })
   @ApiResponse({ status: 200, description: 'Webhook endpoint updated' })
   async update(
+    @CurrentUser('tenantId') tenantId: string,
     @Param('id', UuidValidationPipe) id: string,
     @Body() dto: UpdateWebhookDto,
   ) {
-    return this.webhookService.update(id, dto);
+    return this.webhookService.update(tenantId, id, dto);
   }
 
   @Delete('webhooks/:id')
@@ -69,9 +71,10 @@ export class WebhooksController {
   @ApiOperation({ summary: 'Delete a webhook endpoint and pending deliveries' })
   @ApiResponse({ status: 204, description: 'Webhook endpoint deleted' })
   async delete(
+    @CurrentUser('tenantId') tenantId: string,
     @Param('id', UuidValidationPipe) id: string,
   ) {
-    await this.webhookService.delete(id);
+    await this.webhookService.delete(tenantId, id);
   }
 
   @Post('webhooks/:id/test')
@@ -79,9 +82,10 @@ export class WebhooksController {
   @ApiOperation({ summary: 'Send a test webhook payload' })
   @ApiResponse({ status: 200, description: 'Test webhook queued' })
   async sendTest(
+    @CurrentUser('tenantId') tenantId: string,
     @Param('id', UuidValidationPipe) id: string,
   ) {
-    return this.webhookService.sendTest(id);
+    return this.webhookService.sendTest(tenantId, id);
   }
 
   @Post('webhooks/:id/rotate-secret')
@@ -89,9 +93,10 @@ export class WebhooksController {
   @ApiOperation({ summary: 'Rotate the webhook signing secret' })
   @ApiResponse({ status: 200, description: 'New secret generated' })
   async rotateSecret(
+    @CurrentUser('tenantId') tenantId: string,
     @Param('id', UuidValidationPipe) id: string,
   ) {
-    return this.webhookService.rotateSecret(id);
+    return this.webhookService.rotateSecret(tenantId, id);
   }
 
   @Get('webhooks/:id/deliveries')
@@ -99,12 +104,13 @@ export class WebhooksController {
   @ApiOperation({ summary: 'List delivery log for a webhook endpoint' })
   @ApiResponse({ status: 200, description: 'Paginated delivery log' })
   async listDeliveries(
+    @CurrentUser('tenantId') tenantId: string,
     @Param('id', UuidValidationPipe) id: string,
     @Query('status') status?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.webhookService.listDeliveries(id, {
+    return this.webhookService.listDeliveries(tenantId, id, {
       status,
       page: page ? parseInt(page, 10) : undefined,
       limit: limit ? Math.min(parseInt(limit, 10) || 20, 100) : undefined,

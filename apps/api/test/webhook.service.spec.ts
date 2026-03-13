@@ -29,6 +29,12 @@ function makePrisma() {
   };
 }
 
+function makeConfigService() {
+  return {
+    get: vi.fn().mockReturnValue(undefined),
+  };
+}
+
 function makeQueue() {
   return {
     add: vi.fn(),
@@ -76,12 +82,14 @@ function makeDelivery(overrides: Record<string, unknown> = {}) {
 describe('WebhookService', () => {
   let service: WebhookService;
   let prisma: ReturnType<typeof makePrisma>;
+  let configService: ReturnType<typeof makeConfigService>;
   let queue: ReturnType<typeof makeQueue>;
 
   beforeEach(() => {
     prisma = makePrisma();
+    configService = makeConfigService();
     queue = makeQueue();
-    service = new WebhookService(prisma as never, queue as never);
+    service = new WebhookService(prisma as never, configService as never, queue as never);
   });
 
   // -----------------------------------------------------------------------
@@ -154,11 +162,12 @@ describe('WebhookService', () => {
           tenantId: TENANT_ID,
           url: 'https://example.com/webhook',
           events: ['BOOKING_CONFIRMED'],
-          secret: expect.stringMatching(/^whsec_[a-f0-9]{64}$/),
+          secret: expect.stringMatching(/^[a-f0-9]+:[a-f0-9]+:[a-f0-9]+$/),
         }),
       });
-      // The returned object should include the secret
+      // The returned object should include the plaintext secret
       expect(result.secret).toBeDefined();
+      expect(result.secret).toMatch(/^whsec_/);
     });
 
     it('should use default maxAttempts=5 when not provided', async () => {
@@ -247,14 +256,14 @@ describe('WebhookService', () => {
     it('should throw NotFoundException when endpoint does not exist', async () => {
       prisma.webhookEndpoint.findUnique.mockResolvedValue(null);
 
-      await expect(service.update('nonexistent', { url: 'https://new.com/hook' }))
+      await expect(service.update(TENANT_ID, 'nonexistent', { url: 'https://new.com/hook' }))
         .rejects.toThrow(NotFoundException);
     });
 
     it('should throw NotFoundException with correct message', async () => {
       prisma.webhookEndpoint.findUnique.mockResolvedValue(null);
 
-      await expect(service.update('nonexistent', {}))
+      await expect(service.update(TENANT_ID, 'nonexistent', {}))
         .rejects.toThrow('Webhook endpoint not found');
     });
 
@@ -262,7 +271,7 @@ describe('WebhookService', () => {
       prisma.webhookEndpoint.findUnique.mockResolvedValue(makeEndpoint());
       prisma.webhookEndpoint.update.mockResolvedValue(makeEndpoint({ url: 'https://new.com/hook' }));
 
-      await service.update(ENDPOINT_ID, { url: 'https://new.com/hook' });
+      await service.update(TENANT_ID, ENDPOINT_ID, { url: 'https://new.com/hook' });
 
       const updateData = prisma.webhookEndpoint.update.mock.calls[0]![0].data;
       expect(updateData.url).toBe('https://new.com/hook');
@@ -275,7 +284,7 @@ describe('WebhookService', () => {
       prisma.webhookEndpoint.findUnique.mockResolvedValue(makeEndpoint());
       prisma.webhookEndpoint.update.mockResolvedValue(makeEndpoint());
 
-      await service.update(ENDPOINT_ID, { events: ['PAYMENT_RECEIVED'] });
+      await service.update(TENANT_ID, ENDPOINT_ID, { events: ['PAYMENT_RECEIVED'] });
 
       const updateData = prisma.webhookEndpoint.update.mock.calls[0]![0].data;
       expect(updateData.events).toEqual(['PAYMENT_RECEIVED']);
@@ -287,7 +296,7 @@ describe('WebhookService', () => {
       );
       prisma.webhookEndpoint.update.mockResolvedValue(makeEndpoint({ isActive: true }));
 
-      await service.update(ENDPOINT_ID, { isActive: true });
+      await service.update(TENANT_ID, ENDPOINT_ID, { isActive: true });
 
       const updateData = prisma.webhookEndpoint.update.mock.calls[0]![0].data;
       expect(updateData.isActive).toBe(true);
@@ -299,7 +308,7 @@ describe('WebhookService', () => {
       prisma.webhookEndpoint.findUnique.mockResolvedValue(makeEndpoint());
       prisma.webhookEndpoint.update.mockResolvedValue(makeEndpoint({ isActive: false }));
 
-      await service.update(ENDPOINT_ID, { isActive: false });
+      await service.update(TENANT_ID, ENDPOINT_ID, { isActive: false });
 
       const updateData = prisma.webhookEndpoint.update.mock.calls[0]![0].data;
       expect(updateData.isActive).toBe(false);
@@ -311,7 +320,7 @@ describe('WebhookService', () => {
       prisma.webhookEndpoint.findUnique.mockResolvedValue(makeEndpoint());
       prisma.webhookEndpoint.update.mockResolvedValue(makeEndpoint());
 
-      await service.update(ENDPOINT_ID, { description: 'Updated description' });
+      await service.update(TENANT_ID, ENDPOINT_ID, { description: 'Updated description' });
 
       const updateData = prisma.webhookEndpoint.update.mock.calls[0]![0].data;
       expect(updateData.description).toBe('Updated description');
@@ -321,7 +330,7 @@ describe('WebhookService', () => {
       prisma.webhookEndpoint.findUnique.mockResolvedValue(makeEndpoint());
       prisma.webhookEndpoint.update.mockResolvedValue(makeEndpoint());
 
-      await service.update(ENDPOINT_ID, { url: 'https://new.com/hook' });
+      await service.update(TENANT_ID, ENDPOINT_ID, { url: 'https://new.com/hook' });
 
       const args = prisma.webhookEndpoint.update.mock.calls[0]![0];
       expect(args.select).toEqual({
@@ -344,7 +353,7 @@ describe('WebhookService', () => {
       prisma.webhookEndpoint.findUnique.mockResolvedValue(makeEndpoint());
       prisma.webhookEndpoint.update.mockResolvedValue(makeEndpoint());
 
-      await service.update(ENDPOINT_ID, {});
+      await service.update(TENANT_ID, ENDPOINT_ID, {});
 
       const updateData = prisma.webhookEndpoint.update.mock.calls[0]![0].data;
       expect(updateData).toEqual({});
@@ -359,14 +368,14 @@ describe('WebhookService', () => {
     it('should throw NotFoundException when endpoint does not exist', async () => {
       prisma.webhookEndpoint.findUnique.mockResolvedValue(null);
 
-      await expect(service.delete('nonexistent'))
+      await expect(service.delete(TENANT_ID, 'nonexistent'))
         .rejects.toThrow(NotFoundException);
     });
 
     it('should throw NotFoundException with correct message', async () => {
       prisma.webhookEndpoint.findUnique.mockResolvedValue(null);
 
-      await expect(service.delete('nonexistent'))
+      await expect(service.delete(TENANT_ID, 'nonexistent'))
         .rejects.toThrow('Webhook endpoint not found');
     });
 
@@ -374,7 +383,7 @@ describe('WebhookService', () => {
       prisma.webhookEndpoint.findUnique.mockResolvedValue(makeEndpoint());
       prisma.$transaction.mockResolvedValue(undefined);
 
-      await service.delete(ENDPOINT_ID);
+      await service.delete(TENANT_ID, ENDPOINT_ID);
 
       expect(prisma.$transaction).toHaveBeenCalledWith([
         prisma.webhookDelivery.deleteMany({
@@ -393,7 +402,7 @@ describe('WebhookService', () => {
     it('should throw NotFoundException when endpoint does not exist', async () => {
       prisma.webhookEndpoint.findUnique.mockResolvedValue(null);
 
-      await expect(service.sendTest('nonexistent'))
+      await expect(service.sendTest(TENANT_ID, 'nonexistent'))
         .rejects.toThrow(NotFoundException);
     });
 
@@ -402,7 +411,7 @@ describe('WebhookService', () => {
       prisma.webhookDelivery.create.mockResolvedValue(makeDelivery({ id: 'del-1', event: 'test' }));
       queue.add.mockResolvedValue(undefined);
 
-      const result = await service.sendTest(ENDPOINT_ID);
+      const result = await service.sendTest(TENANT_ID, ENDPOINT_ID);
 
       expect(prisma.webhookDelivery.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
@@ -429,7 +438,7 @@ describe('WebhookService', () => {
       prisma.webhookDelivery.create.mockResolvedValue(makeDelivery());
       queue.add.mockResolvedValue(undefined);
 
-      await service.sendTest(ENDPOINT_ID);
+      await service.sendTest(TENANT_ID, ENDPOINT_ID);
 
       const payload = prisma.webhookDelivery.create.mock.calls[0]![0].data.payload;
       expect(payload.timestamp).toBeDefined();
@@ -444,7 +453,7 @@ describe('WebhookService', () => {
     it('should throw NotFoundException when endpoint does not exist', async () => {
       prisma.webhookEndpoint.findUnique.mockResolvedValue(null);
 
-      await expect(service.rotateSecret('nonexistent'))
+      await expect(service.rotateSecret(TENANT_ID, 'nonexistent'))
         .rejects.toThrow(NotFoundException);
     });
 
@@ -453,14 +462,14 @@ describe('WebhookService', () => {
       prisma.webhookEndpoint.findUnique.mockResolvedValue(makeEndpoint({ secret: oldSecret }));
       prisma.webhookEndpoint.update.mockResolvedValue(makeEndpoint());
 
-      const result = await service.rotateSecret(ENDPOINT_ID);
+      const result = await service.rotateSecret(TENANT_ID, ENDPOINT_ID);
 
       expect(result.secret).toMatch(/^whsec_[a-f0-9]{64}$/);
       expect(result.secret).not.toBe(oldSecret);
 
       const updateData = prisma.webhookEndpoint.update.mock.calls[0]![0].data;
       expect(updateData.previousSecret).toBe(oldSecret);
-      expect(updateData.secret).toMatch(/^whsec_/);
+      expect(updateData.secret).toMatch(/^[a-f0-9]+:[a-f0-9]+:[a-f0-9]+$/);
       expect(updateData.secretRotatedAt).toBeInstanceOf(Date);
     });
 
@@ -468,7 +477,7 @@ describe('WebhookService', () => {
       prisma.webhookEndpoint.findUnique.mockResolvedValue(makeEndpoint());
       prisma.webhookEndpoint.update.mockResolvedValue(makeEndpoint());
 
-      const result = await service.rotateSecret(ENDPOINT_ID);
+      const result = await service.rotateSecret(TENANT_ID, ENDPOINT_ID);
 
       expect(result).toHaveProperty('secret');
       expect(typeof result.secret).toBe('string');
@@ -480,12 +489,20 @@ describe('WebhookService', () => {
   // -----------------------------------------------------------------------
 
   describe('listDeliveries', () => {
+    it('should throw NotFoundException when endpoint does not exist or belongs to another tenant', async () => {
+      prisma.webhookEndpoint.findUnique.mockResolvedValue(null);
+
+      await expect(service.listDeliveries(TENANT_ID, 'nonexistent', {}))
+        .rejects.toThrow(NotFoundException);
+    });
+
     it('should return paginated deliveries with meta', async () => {
       const deliveries = [makeDelivery()];
+      prisma.webhookEndpoint.findUnique.mockResolvedValue(makeEndpoint());
       prisma.webhookDelivery.findMany.mockResolvedValue(deliveries);
       prisma.webhookDelivery.count.mockResolvedValue(1);
 
-      const result = await service.listDeliveries(ENDPOINT_ID, {});
+      const result = await service.listDeliveries(TENANT_ID, ENDPOINT_ID, {});
 
       expect(result.data).toEqual(deliveries);
       expect(result.meta).toEqual({
@@ -497,29 +514,32 @@ describe('WebhookService', () => {
     });
 
     it('should use default page=1 and limit=20 when not provided', async () => {
+      prisma.webhookEndpoint.findUnique.mockResolvedValue(makeEndpoint());
       prisma.webhookDelivery.findMany.mockResolvedValue([]);
       prisma.webhookDelivery.count.mockResolvedValue(0);
 
-      const result = await service.listDeliveries(ENDPOINT_ID, {});
+      const result = await service.listDeliveries(TENANT_ID, ENDPOINT_ID, {});
 
       expect(result.meta.page).toBe(1);
       expect(result.meta.limit).toBe(20);
     });
 
     it('should calculate totalPages correctly', async () => {
+      prisma.webhookEndpoint.findUnique.mockResolvedValue(makeEndpoint());
       prisma.webhookDelivery.findMany.mockResolvedValue([]);
       prisma.webhookDelivery.count.mockResolvedValue(45);
 
-      const result = await service.listDeliveries(ENDPOINT_ID, { page: 1, limit: 20 });
+      const result = await service.listDeliveries(TENANT_ID, ENDPOINT_ID, { page: 1, limit: 20 });
 
       expect(result.meta.totalPages).toBe(3); // Math.ceil(45/20)
     });
 
     it('should apply skip/take for pagination', async () => {
+      prisma.webhookEndpoint.findUnique.mockResolvedValue(makeEndpoint());
       prisma.webhookDelivery.findMany.mockResolvedValue([]);
       prisma.webhookDelivery.count.mockResolvedValue(0);
 
-      await service.listDeliveries(ENDPOINT_ID, { page: 3, limit: 10 });
+      await service.listDeliveries(TENANT_ID, ENDPOINT_ID, { page: 3, limit: 10 });
 
       const findManyArgs = prisma.webhookDelivery.findMany.mock.calls[0]![0];
       expect(findManyArgs.skip).toBe(20); // (3-1)*10
@@ -527,40 +547,44 @@ describe('WebhookService', () => {
     });
 
     it('should filter by status when provided', async () => {
+      prisma.webhookEndpoint.findUnique.mockResolvedValue(makeEndpoint());
       prisma.webhookDelivery.findMany.mockResolvedValue([]);
       prisma.webhookDelivery.count.mockResolvedValue(0);
 
-      await service.listDeliveries(ENDPOINT_ID, { status: 'FAILED' });
+      await service.listDeliveries(TENANT_ID, ENDPOINT_ID, { status: 'FAILED' });
 
       const findManyArgs = prisma.webhookDelivery.findMany.mock.calls[0]![0];
       expect(findManyArgs.where.status).toBe('FAILED');
     });
 
     it('should not add status filter when status is not provided', async () => {
+      prisma.webhookEndpoint.findUnique.mockResolvedValue(makeEndpoint());
       prisma.webhookDelivery.findMany.mockResolvedValue([]);
       prisma.webhookDelivery.count.mockResolvedValue(0);
 
-      await service.listDeliveries(ENDPOINT_ID, {});
+      await service.listDeliveries(TENANT_ID, ENDPOINT_ID, {});
 
       const findManyArgs = prisma.webhookDelivery.findMany.mock.calls[0]![0];
       expect(findManyArgs.where.status).toBeUndefined();
     });
 
     it('should order deliveries by createdAt desc', async () => {
+      prisma.webhookEndpoint.findUnique.mockResolvedValue(makeEndpoint());
       prisma.webhookDelivery.findMany.mockResolvedValue([]);
       prisma.webhookDelivery.count.mockResolvedValue(0);
 
-      await service.listDeliveries(ENDPOINT_ID, {});
+      await service.listDeliveries(TENANT_ID, ENDPOINT_ID, {});
 
       const findManyArgs = prisma.webhookDelivery.findMany.mock.calls[0]![0];
       expect(findManyArgs.orderBy).toEqual({ createdAt: 'desc' });
     });
 
     it('should return totalPages=0 when there are no deliveries', async () => {
+      prisma.webhookEndpoint.findUnique.mockResolvedValue(makeEndpoint());
       prisma.webhookDelivery.findMany.mockResolvedValue([]);
       prisma.webhookDelivery.count.mockResolvedValue(0);
 
-      const result = await service.listDeliveries(ENDPOINT_ID, {});
+      const result = await service.listDeliveries(TENANT_ID, ENDPOINT_ID, {});
 
       expect(result.meta.totalPages).toBe(0); // Math.ceil(0/20)
     });

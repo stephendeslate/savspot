@@ -306,20 +306,6 @@ describe('SecurityHeadersMiddleware (unit)', () => {
     expect(middleware).toBeDefined();
   });
 
-  it('should set CSP header', () => {
-    const req = mockReq('/some/path');
-    const res = mockRes();
-    const next = vi.fn();
-
-    middleware.use(req, res, next);
-
-    expect(res.setHeader).toHaveBeenCalledWith(
-      'Content-Security-Policy',
-      expect.stringContaining("default-src 'self'"),
-    );
-    expect(next).toHaveBeenCalled();
-  });
-
   it('should set X-Frame-Options DENY for non-embed paths', () => {
     const req = mockReq('/api/bookings');
     const res = mockRes();

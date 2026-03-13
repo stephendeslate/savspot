@@ -7,7 +7,10 @@ import {
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../../redis/redis.service';
 import { Request } from 'express';
+
+const TENANT_STATUS_TTL_SECONDS = 60;
 
 interface AuthenticatedUser {
   sub?: string;
@@ -20,6 +23,7 @@ export class TenantStatusGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly prismaService: PrismaService,
+    private readonly redisService: RedisService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -47,6 +51,16 @@ export class TenantStatusGuard implements CanActivate {
       return true;
     }
 
+    const cacheKey = `tenant:status:${tenantId}`;
+    const cachedStatus = await this.redisService.get(cacheKey);
+
+    if (cachedStatus !== null) {
+      if (cachedStatus !== 'ACTIVE') {
+        throw new ForbiddenException('Tenant account is suspended');
+      }
+      return true;
+    }
+
     const tenant = await this.prismaService.tenant.findUnique({
       where: { id: tenantId },
       select: { status: true },
@@ -55,6 +69,8 @@ export class TenantStatusGuard implements CanActivate {
     if (!tenant) {
       return true;
     }
+
+    await this.redisService.setex(cacheKey, TENANT_STATUS_TTL_SECONDS, tenant.status);
 
     if (tenant.status !== 'ACTIVE') {
       throw new ForbiddenException('Tenant account is suspended');

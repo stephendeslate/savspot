@@ -12,6 +12,7 @@ import {
 import { Button, Badge, Card, CardContent, Input, Label, Skeleton, ScrollArea, Textarea, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@savspot/ui';
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
+import { queryKeys } from '@/hooks/use-api';
 import { useDebounce } from '@/hooks/use-debounce';
 import { cn } from '@/lib/utils';
 
@@ -75,7 +76,7 @@ export default function MessagesPage() {
   const debouncedSearch = useDebounce(search, 300);
 
   const { data: threadsRes, isLoading: threadsLoading, error: threadsError } = useQuery({
-    queryKey: ['message-threads', tenantId, debouncedSearch],
+    queryKey: queryKeys.messageThreads(tenantId!, debouncedSearch),
     queryFn: () => {
       const params = new URLSearchParams();
       if (debouncedSearch) params.set('search', debouncedSearch);
@@ -93,7 +94,7 @@ export default function MessagesPage() {
     : null;
 
   const { data: selectedThread, isLoading: threadLoading } = useQuery({
-    queryKey: ['message-thread', tenantId, selectedThreadId],
+    queryKey: queryKeys.messageThread(tenantId!, selectedThreadId!),
     queryFn: () =>
       apiClient.get<ThreadDetailResponse>(
         `/api/tenants/${tenantId}/messages/threads/${selectedThreadId}`,
@@ -120,9 +121,9 @@ export default function MessagesPage() {
     onSuccess: () => {
       setNewMessage('');
       void queryClient.invalidateQueries({
-        queryKey: ['message-thread', tenantId, selectedThreadId],
+        queryKey: queryKeys.messageThread(tenantId!, selectedThreadId!),
       });
-      void queryClient.invalidateQueries({ queryKey: ['message-threads', tenantId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.messageThreads(tenantId!) });
     },
   });
 
@@ -229,7 +230,7 @@ export default function MessagesPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -383,6 +384,7 @@ export default function MessagesPage() {
                   />
                   <Button
                     size="sm"
+                    aria-label="Send message"
                     onClick={handleSendMessage}
                     disabled={!newMessage.trim() || sendMessageMutation.isPending}
                   >

@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { ConfigService } from '@nestjs/config';
 import { Prisma } from '../../../../../prisma/generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Public } from '../../common/decorators/public.decorator';
@@ -45,6 +46,7 @@ export class PaypalWebhookController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly paymentsService: PaymentsService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Post()
@@ -135,15 +137,12 @@ export class PaypalWebhookController {
     },
     webhookBody: PaypalWebhookBody,
   ): Promise<void> {
-    const clientId = process.env['PAYPAL_CLIENT_ID'];
-    const clientSecret = process.env['PAYPAL_CLIENT_SECRET'];
-    const webhookId = process.env['PAYPAL_WEBHOOK_ID'];
+    const clientId = this.configService.get<string>('PAYPAL_CLIENT_ID');
+    const clientSecret = this.configService.get<string>('PAYPAL_CLIENT_SECRET');
+    const webhookId = this.configService.get<string>('PAYPAL_WEBHOOK_ID');
 
     if (!clientId || !clientSecret || !webhookId) {
-      this.logger.warn(
-        'PayPal credentials not configured — skipping webhook verification',
-      );
-      return;
+      throw new BadRequestException('Webhook signature verification unavailable');
     }
 
     if (!headers.transmissionId || !headers.transmissionSig) {
@@ -151,7 +150,7 @@ export class PaypalWebhookController {
     }
 
     const baseUrl =
-      process.env['PAYPAL_API_URL'] || 'https://api-m.paypal.com';
+      this.configService.get<string>('PAYPAL_API_URL') || 'https://api-m.paypal.com';
 
     const tokenResponse = await fetch(`${baseUrl}/v1/oauth2/token`, {
       method: 'POST',
@@ -233,20 +232,22 @@ export class PaypalWebhookController {
         });
         if (payment) {
           const previousStatus = payment.status;
-          await this.prisma.payment.update({
-            where: { id: payment.id },
-            data: { status: 'REFUNDED' },
-          });
-          await this.prisma.paymentStateHistory.create({
-            data: {
-              paymentId: payment.id,
-              tenantId: payment.tenantId,
-              fromState: previousStatus,
-              toState: 'REFUNDED',
-              triggeredBy: 'WEBHOOK',
-              reason: 'PayPal refund webhook confirmation',
-            },
-          });
+          await this.prisma.$transaction([
+            this.prisma.payment.update({
+              where: { id: payment.id },
+              data: { status: 'REFUNDED' },
+            }),
+            this.prisma.paymentStateHistory.create({
+              data: {
+                paymentId: payment.id,
+                tenantId: payment.tenantId,
+                fromState: previousStatus,
+                toState: 'REFUNDED',
+                triggeredBy: 'WEBHOOK',
+                reason: 'PayPal refund webhook confirmation',
+              },
+            }),
+          ]);
         }
         break;
       }

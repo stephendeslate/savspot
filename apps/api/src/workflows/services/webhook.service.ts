@@ -3,9 +3,15 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { randomBytes, randomUUID } from 'node:crypto';
+import {
+  randomBytes,
+  randomUUID,
+  createCipheriv,
+  createDecipheriv,
+} from 'node:crypto';
 import { Prisma } from '../../../../../prisma/generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateWebhookDto } from '../dto/create-webhook.dto';
@@ -15,11 +21,23 @@ import { QUEUE_WEBHOOKS } from '../../bullmq/queue.constants';
 @Injectable()
 export class WebhookService {
   private readonly logger = new Logger(WebhookService.name);
+  private readonly encryptionKey: Buffer;
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
     @InjectQueue(QUEUE_WEBHOOKS) private readonly webhookQueue: Queue,
-  ) {}
+  ) {
+    const keyHex = this.configService.get<string>('WEBHOOK_ENCRYPTION_KEY');
+    if (keyHex) {
+      this.encryptionKey = Buffer.from(keyHex, 'hex');
+    } else {
+      this.logger.warn(
+        'WEBHOOK_ENCRYPTION_KEY not set — generating ephemeral key (development only)',
+      );
+      this.encryptionKey = randomBytes(32);
+    }
+  }
 
   async list(tenantId: string) {
     return this.prisma.webhookEndpoint.findMany({
@@ -44,12 +62,13 @@ export class WebhookService {
 
   async create(tenantId: string, dto: CreateWebhookDto) {
     const secret = this.generateSecret();
+    const encryptedSecret = this.encryptSecret(secret);
 
     const endpoint = await this.prisma.webhookEndpoint.create({
       data: {
         tenantId,
         url: dto.url,
-        secret,
+        secret: encryptedSecret,
         events: dto.events,
         description: dto.description ?? null,
         maxAttempts: dto.maxAttempts ?? 5,
@@ -65,9 +84,9 @@ export class WebhookService {
     };
   }
 
-  async update(id: string, dto: UpdateWebhookDto) {
+  async update(tenantId: string, id: string, dto: UpdateWebhookDto) {
     const existing = await this.prisma.webhookEndpoint.findUnique({
-      where: { id },
+      where: { id, tenantId },
     });
 
     if (!existing) {
@@ -87,7 +106,7 @@ export class WebhookService {
     if (dto.description !== undefined) data.description = dto.description;
 
     return this.prisma.webhookEndpoint.update({
-      where: { id },
+      where: { id, tenantId },
       data,
       select: {
         id: true,
@@ -106,9 +125,9 @@ export class WebhookService {
     });
   }
 
-  async delete(id: string) {
+  async delete(tenantId: string, id: string) {
     const existing = await this.prisma.webhookEndpoint.findUnique({
-      where: { id },
+      where: { id, tenantId },
     });
 
     if (!existing) {
@@ -125,9 +144,9 @@ export class WebhookService {
     this.logger.log(`Webhook endpoint ${id} deleted`);
   }
 
-  async sendTest(id: string) {
+  async sendTest(tenantId: string, id: string) {
     const endpoint = await this.prisma.webhookEndpoint.findUnique({
-      where: { id },
+      where: { id, tenantId },
     });
 
     if (!endpoint) {
@@ -161,9 +180,9 @@ export class WebhookService {
     return { deliveryId: delivery.id, status: 'queued' };
   }
 
-  async rotateSecret(id: string) {
+  async rotateSecret(tenantId: string, id: string) {
     const endpoint = await this.prisma.webhookEndpoint.findUnique({
-      where: { id },
+      where: { id, tenantId },
     });
 
     if (!endpoint) {
@@ -171,11 +190,12 @@ export class WebhookService {
     }
 
     const newSecret = this.generateSecret();
+    const encryptedNewSecret = this.encryptSecret(newSecret);
 
     await this.prisma.webhookEndpoint.update({
       where: { id },
       data: {
-        secret: newSecret,
+        secret: encryptedNewSecret,
         previousSecret: endpoint.secret,
         secretRotatedAt: new Date(),
       },
@@ -187,9 +207,18 @@ export class WebhookService {
   }
 
   async listDeliveries(
+    tenantId: string,
     endpointId: string,
     query: { status?: string; page?: number; limit?: number },
   ) {
+    const endpoint = await this.prisma.webhookEndpoint.findUnique({
+      where: { id: endpointId, tenantId },
+    });
+
+    if (!endpoint) {
+      throw new NotFoundException('Webhook endpoint not found');
+    }
+
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
@@ -267,6 +296,31 @@ export class WebhookService {
     this.logger.log(
       `Dispatched ${deliveries.length} webhook deliveries for event ${event} tenant ${tenantId}`,
     );
+  }
+
+  encryptSecret(secret: string): string {
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', this.encryptionKey, iv);
+    const encrypted = Buffer.concat([
+      cipher.update(secret, 'utf8'),
+      cipher.final(),
+    ]);
+    const authTag = cipher.getAuthTag();
+    return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted.toString('hex')}`;
+  }
+
+  decryptSecret(encrypted: string): string {
+    const parts = encrypted.split(':');
+    if (parts.length !== 3) {
+      throw new Error('Invalid encrypted secret format');
+    }
+    const [ivHex, authTagHex, dataHex] = parts as [string, string, string];
+    const iv = Buffer.from(ivHex, 'hex');
+    const authTag = Buffer.from(authTagHex, 'hex');
+    const data = Buffer.from(dataHex, 'hex');
+    const decipher = createDecipheriv('aes-256-gcm', this.encryptionKey, iv);
+    decipher.setAuthTag(authTag);
+    return decipher.update(data).toString('utf8') + decipher.final('utf8');
   }
 
   private generateSecret(): string {

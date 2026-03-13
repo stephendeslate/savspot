@@ -7,6 +7,7 @@ import {
   HttpCode,
   HttpException,
   HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
@@ -78,9 +79,7 @@ export class ResendWebhookController {
         throw new HttpException('Invalid webhook signature', HttpStatus.UNAUTHORIZED);
       }
     } else {
-      this.logger.warn(
-        'RESEND_WEBHOOK_SECRET not configured — skipping signature verification',
-      );
+      throw new UnauthorizedException('RESEND_WEBHOOK_SECRET is not configured');
     }
 
     try {

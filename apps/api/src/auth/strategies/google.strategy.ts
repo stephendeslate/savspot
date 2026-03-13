@@ -12,21 +12,23 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     private readonly authService: AuthService,
     configService: ConfigService,
   ) {
-    const clientID = configService.get<string>('GOOGLE_CLIENT_ID') || 'not-configured';
-    const clientSecret = configService.get<string>('GOOGLE_CLIENT_SECRET') || 'not-configured';
+    const clientID = configService.get<string>('GOOGLE_CLIENT_ID') || '';
+    const clientSecret = configService.get<string>('GOOGLE_CLIENT_SECRET') || '';
     const callbackURL = configService.get<string>(
       'GOOGLE_CALLBACK_URL',
       'http://localhost:3001/api/auth/google/callback',
     );
 
+    // passport-oauth2 throws if clientID is empty; use a placeholder so the
+    // strategy can still be instantiated (routes will be guarded separately).
     super({
-      clientID,
-      clientSecret,
+      clientID: clientID || 'not-configured',
+      clientSecret: clientSecret || 'not-configured',
       callbackURL,
       scope: ['email', 'profile'],
     });
 
-    if (clientID === 'not-configured') {
+    if (!clientID) {
       this.logger.warn('Google OAuth not configured — GOOGLE_CLIENT_ID missing');
     }
   }

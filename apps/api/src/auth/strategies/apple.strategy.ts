@@ -16,26 +16,26 @@ export class AppleOAuthStrategy extends PassportStrategy(AppleStrategy, 'apple')
     private readonly authService: AuthService,
     configService: ConfigService,
   ) {
-    const clientID = configService.get<string>('APPLE_CLIENT_ID') || 'not-configured';
-    const teamID = configService.get<string>('APPLE_TEAM_ID') || 'not-configured';
-    const keyID = configService.get<string>('APPLE_KEY_ID') || 'not-configured';
-    const privateKeyLocation = configService.get<string>('APPLE_PRIVATE_KEY_PATH', '');
+    const clientID = configService.get<string>('APPLE_CLIENT_ID') || '';
+    const teamID = configService.get<string>('APPLE_TEAM_ID') || '';
+    const keyID = configService.get<string>('APPLE_KEY_ID') || '';
+    const privateKeyLocation = configService.get<string>('APPLE_PRIVATE_KEY_PATH') || '';
     const callbackURL = configService.get<string>(
       'APPLE_CALLBACK_URL',
       'http://localhost:3001/api/auth/apple/callback',
     );
 
     super({
-      clientID,
-      teamID,
-      keyID,
+      clientID: clientID || 'not-configured',
+      teamID: teamID || 'not-configured',
+      keyID: keyID || 'not-configured',
       privateKeyLocation,
       callbackURL,
       scope: ['name', 'email'],
       passReqToCallback: true,
     });
 
-    if (clientID === 'not-configured') {
+    if (!clientID) {
       this.logger.warn('Apple Sign-In not configured — APPLE_CLIENT_ID missing');
     }
   }

@@ -11,6 +11,7 @@ import {
   createCipheriv,
   createDecipheriv,
 } from 'crypto';
+import * as bcrypt from 'bcryptjs';
 import { Prisma } from '../../../../../prisma/generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TokenService, JwtPayload } from '../services/token.service';
@@ -140,12 +141,15 @@ export class MfaService {
     }
 
     const recoveryCodes = this.generateRecoveryCodes();
+    const hashedCodes = await Promise.all(
+      recoveryCodes.map((code) => bcrypt.hash(code, 10)),
+    );
 
     await this.prisma.user.update({
       where: { id: userId },
       data: {
         mfaEnabled: true,
-        mfaRecoveryCodes: recoveryCodes,
+        mfaRecoveryCodes: hashedCodes,
       },
     });
 
@@ -236,22 +240,27 @@ export class MfaService {
       throw new UnauthorizedException('Invalid MFA challenge');
     }
 
-    const codes = user.mfaRecoveryCodes as string[] | null;
-    if (!codes || !Array.isArray(codes)) {
+    const hashedCodes = user.mfaRecoveryCodes as string[] | null;
+    if (!hashedCodes || !Array.isArray(hashedCodes)) {
       throw new UnauthorizedException('No recovery codes available');
     }
 
     const normalizedCode = code.toLowerCase().trim();
-    const codeIndex = codes.findIndex(
-      (c) => c.toLowerCase() === normalizedCode,
-    );
+    let matchIndex = -1;
+    for (let i = 0; i < hashedCodes.length; i++) {
+      const isMatch = await bcrypt.compare(normalizedCode, hashedCodes[i]!);
+      if (isMatch) {
+        matchIndex = i;
+        break;
+      }
+    }
 
-    if (codeIndex === -1) {
+    if (matchIndex === -1) {
       throw new UnauthorizedException('Invalid recovery code');
     }
 
-    const remainingCodes = [...codes];
-    remainingCodes.splice(codeIndex, 1);
+    const remainingCodes = [...hashedCodes];
+    remainingCodes.splice(matchIndex, 1);
 
     await this.prisma.user.update({
       where: { id: userId },

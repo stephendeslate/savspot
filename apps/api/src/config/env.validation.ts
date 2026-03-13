@@ -212,12 +212,38 @@ export const envSchema = z.object({
   // ---- MFA ----
   MFA_ENCRYPTION_KEY: z.string().optional(),
 
+  // ---- Webhook Encryption ----
+  WEBHOOK_ENCRYPTION_KEY: z.string().optional(),
+
   // ---- PostHog (Product Analytics) ----
   POSTHOG_API_KEY: z.string().optional(),
   POSTHOG_HOST: z.string().url().optional().default('https://us.i.posthog.com'),
 
   // ---- AI Triage ----
   AI_CONFIDENCE_THRESHOLD: z.coerce.number().min(0).max(1).default(0.85),
+}).superRefine((data, ctx) => {
+  if (data.NODE_ENV === 'production') {
+    const required: Array<{ key: keyof typeof data; label: string }> = [
+      { key: 'JWT_PRIVATE_KEY_BASE64', label: 'JWT_PRIVATE_KEY_BASE64' },
+      { key: 'JWT_PUBLIC_KEY_BASE64', label: 'JWT_PUBLIC_KEY_BASE64' },
+      { key: 'ENCRYPTION_KEY', label: 'ENCRYPTION_KEY' },
+      { key: 'MFA_ENCRYPTION_KEY', label: 'MFA_ENCRYPTION_KEY' },
+      { key: 'WEBHOOK_ENCRYPTION_KEY', label: 'WEBHOOK_ENCRYPTION_KEY' },
+      { key: 'STRIPE_SECRET_KEY', label: 'STRIPE_SECRET_KEY' },
+      { key: 'STRIPE_WEBHOOK_SECRET', label: 'STRIPE_WEBHOOK_SECRET' },
+      { key: 'RESEND_API_KEY', label: 'RESEND_API_KEY' },
+    ];
+
+    for (const { key, label } of required) {
+      if (!data[key]) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [label],
+          message: `${label} is required in production`,
+        });
+      }
+    }
+  }
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

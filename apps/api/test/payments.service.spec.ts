@@ -16,7 +16,7 @@ const STRIPE_PI_ID = 'pi_abc123';
 const CONNECTED_ACCOUNT = 'acct_001';
 
 function makePrisma() {
-  return {
+  const prisma = {
     payment: {
       create: vi.fn(),
       findFirst: vi.fn(),
@@ -27,7 +27,17 @@ function makePrisma() {
     paymentStateHistory: { create: vi.fn() },
     booking: { findFirst: vi.fn(), update: vi.fn() },
     bookingStateHistory: { create: vi.fn() },
+    $transaction: vi.fn(),
+    $queryRaw: vi.fn(),
   };
+  // Support both batch ($transaction([...ops])) and interactive ($transaction(async (tx) => ...)) APIs
+  prisma.$transaction.mockImplementation(async (input: unknown) => {
+    if (typeof input === 'function') {
+      return (input as (tx: typeof prisma) => Promise<unknown>)(prisma);
+    }
+    return Promise.all(input as Promise<unknown>[]);
+  });
+  return prisma;
 }
 
 function makeConfig() {
@@ -210,50 +220,89 @@ describe('PaymentsService', () => {
   // -----------------------------------------------------------------------
 
   describe('handlePaymentSuccess', () => {
+    function setupTransaction(queryRawResult: unknown[], txOverrides: Record<string, unknown> = {}) {
+      const txPayment = { findFirst: vi.fn(), update: vi.fn() };
+      const txPaymentStateHistory = { create: vi.fn() };
+      const txBooking = { update: vi.fn() };
+      const txBookingStateHistory = { create: vi.fn() };
+      const tx = {
+        $queryRaw: vi.fn().mockResolvedValue(queryRawResult),
+        payment: txPayment,
+        paymentStateHistory: txPaymentStateHistory,
+        booking: txBooking,
+        bookingStateHistory: txBookingStateHistory,
+        ...txOverrides,
+      };
+      prisma.$transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb(tx));
+      return tx;
+    }
+
     it('should return early when payment not found', async () => {
-      prisma.payment.findFirst.mockResolvedValue(null);
+      const tx = setupTransaction([]);
       await service.handlePaymentSuccess('pi_unknown');
-      expect(prisma.payment.update).not.toHaveBeenCalled();
+      expect(tx.payment.update).not.toHaveBeenCalled();
     });
 
     it('should skip if already SUCCEEDED (idempotency)', async () => {
-      prisma.payment.findFirst.mockResolvedValue({
-        id: PAYMENT_ID, status: 'SUCCEEDED', booking: { status: 'CONFIRMED' },
-      });
+      const tx = setupTransaction([
+        { id: PAYMENT_ID, status: 'SUCCEEDED', booking_id: BOOKING_ID },
+      ]);
       await service.handlePaymentSuccess(STRIPE_PI_ID);
-      expect(prisma.payment.update).not.toHaveBeenCalled();
+      expect(tx.payment.update).not.toHaveBeenCalled();
     });
 
     it('should update to SUCCEEDED and auto-confirm PENDING booking', async () => {
-      prisma.payment.findFirst.mockResolvedValue({
+      const tx = setupTransaction([
+        { id: PAYMENT_ID, status: 'PENDING', booking_id: BOOKING_ID },
+      ]);
+      tx.payment.findFirst.mockResolvedValue({
         id: PAYMENT_ID, tenantId: TENANT_ID, bookingId: BOOKING_ID,
-        status: 'PENDING', booking: { status: 'PENDING' },
+        status: 'PENDING', amount: decimal(50), currency: 'USD',
+        booking: { status: 'PENDING' },
       });
-      prisma.payment.update.mockResolvedValue({});
-      prisma.paymentStateHistory.create.mockResolvedValue({});
-      prisma.booking.update.mockResolvedValue({});
-      prisma.bookingStateHistory.create.mockResolvedValue({});
+      tx.payment.update.mockResolvedValue({});
+      tx.booking.update.mockResolvedValue({});
+
+      // Mock the post-transaction booking load for event emission
+      prisma.booking.findFirst.mockResolvedValue({
+        id: BOOKING_ID, tenantId: TENANT_ID, serviceId: 'svc-1',
+        clientId: 'client-1', startTime: new Date(), endTime: new Date(),
+        source: 'DIRECT',
+        client: { id: 'client-1', name: 'Test', email: 'test@test.com' },
+        service: { id: 'svc-1', name: 'Haircut' },
+      });
 
       await service.handlePaymentSuccess(STRIPE_PI_ID);
 
-      expect(prisma.payment.update).toHaveBeenCalledWith(
+      expect(tx.payment.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: { status: 'SUCCEEDED' } }),
       );
-      expect(prisma.booking.update).toHaveBeenCalledWith(
+      expect(tx.booking.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: { status: 'CONFIRMED' } }),
       );
     });
 
     it('should NOT auto-confirm when booking is not PENDING', async () => {
-      prisma.payment.findFirst.mockResolvedValue({
+      const tx = setupTransaction([
+        { id: PAYMENT_ID, status: 'PENDING', booking_id: BOOKING_ID },
+      ]);
+      tx.payment.findFirst.mockResolvedValue({
         id: PAYMENT_ID, tenantId: TENANT_ID, bookingId: BOOKING_ID,
-        status: 'PENDING', booking: { status: 'CONFIRMED' },
+        status: 'PENDING', amount: decimal(50), currency: 'USD',
+        booking: { status: 'CONFIRMED' },
       });
-      prisma.payment.update.mockResolvedValue({});
-      prisma.paymentStateHistory.create.mockResolvedValue({});
+      tx.payment.update.mockResolvedValue({});
+
+      prisma.booking.findFirst.mockResolvedValue({
+        id: BOOKING_ID, tenantId: TENANT_ID, serviceId: 'svc-1',
+        clientId: 'client-1', startTime: new Date(), endTime: new Date(),
+        source: 'DIRECT',
+        client: { id: 'client-1', name: 'Test', email: 'test@test.com' },
+        service: { id: 'svc-1', name: 'Haircut' },
+      });
 
       await service.handlePaymentSuccess(STRIPE_PI_ID);
-      expect(prisma.booking.update).not.toHaveBeenCalled();
+      expect(tx.booking.update).not.toHaveBeenCalled();
     });
   });
 
@@ -298,27 +347,25 @@ describe('PaymentsService', () => {
 
   describe('processRefund', () => {
     it('should throw NotFoundException when payment not found', async () => {
-      prisma.payment.findFirst.mockResolvedValue(null);
+      prisma.$queryRaw.mockResolvedValue([]);
       await expect(service.processRefund(TENANT_ID, 'bad-id')).rejects.toThrow(NotFoundException);
     });
 
     it('should throw BadRequestException for non-SUCCEEDED payment', async () => {
-      prisma.payment.findFirst.mockResolvedValue({ id: PAYMENT_ID, status: 'PENDING' });
+      prisma.$queryRaw.mockResolvedValue([{ id: PAYMENT_ID, status: 'PENDING', provider_transaction_id: null, amount: 5000 }]);
       await expect(service.processRefund(TENANT_ID, PAYMENT_ID)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when no provider transaction ID', async () => {
-      prisma.payment.findFirst.mockResolvedValue({
-        id: PAYMENT_ID, status: 'SUCCEEDED', providerTransactionId: null,
-      });
+      prisma.$queryRaw.mockResolvedValue([{ id: PAYMENT_ID, status: 'SUCCEEDED', provider_transaction_id: null, amount: 5000 }]);
       await expect(service.processRefund(TENANT_ID, PAYMENT_ID)).rejects.toThrow(BadRequestException);
     });
 
     it('should set REFUNDED for full refund', async () => {
-      prisma.payment.findFirst.mockResolvedValue({
-        id: PAYMENT_ID, tenantId: TENANT_ID, status: 'SUCCEEDED',
-        providerTransactionId: STRIPE_PI_ID, amount: decimal(5000),
-      });
+      prisma.$queryRaw.mockResolvedValue([{
+        id: PAYMENT_ID, status: 'SUCCEEDED',
+        provider_transaction_id: STRIPE_PI_ID, amount: 5000,
+      }]);
       stripe.createRefund.mockResolvedValue({ id: 're_1', amount: 5000, status: 'succeeded' });
       prisma.payment.update.mockResolvedValue({});
       prisma.paymentStateHistory.create.mockResolvedValue({});
@@ -331,10 +378,10 @@ describe('PaymentsService', () => {
     });
 
     it('should set PARTIALLY_REFUNDED for partial refund', async () => {
-      prisma.payment.findFirst.mockResolvedValue({
-        id: PAYMENT_ID, tenantId: TENANT_ID, status: 'SUCCEEDED',
-        providerTransactionId: STRIPE_PI_ID, amount: decimal(5000),
-      });
+      prisma.$queryRaw.mockResolvedValue([{
+        id: PAYMENT_ID, status: 'SUCCEEDED',
+        provider_transaction_id: STRIPE_PI_ID, amount: 5000,
+      }]);
       stripe.createRefund.mockResolvedValue({ id: 're_2', amount: 2000, status: 'succeeded' });
       prisma.payment.update.mockResolvedValue({});
       prisma.paymentStateHistory.create.mockResolvedValue({});

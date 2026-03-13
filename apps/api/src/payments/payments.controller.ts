@@ -22,6 +22,7 @@ import { PaymentsService } from './payments.service';
 import { StripeConnectService } from './stripe-connect.service';
 import { ConnectAccountDto } from './dto/connect-account.dto';
 import { CreateRefundDto } from './dto/create-refund.dto';
+import { ListPaymentsDto } from './dto/list-payments.dto';
 
 @ApiTags('Payments')
 @ApiBearerAuth()
@@ -118,16 +119,16 @@ export class PaymentsController {
   @ApiResponse({ status: 200, description: 'Paginated list of payments' })
   async findAll(
     @Param('tenantId', UuidValidationPipe) tenantId: string,
-    @Query('bookingId') bookingId?: string,
-    @Query('status') status?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query() dto: ListPaymentsDto,
   ) {
     return this.paymentsService.findAll(tenantId, {
-      bookingId,
-      status,
-      page: page ? parseInt(page, 10) : 1,
-      limit: limit ? Math.min(parseInt(limit, 10) || 20, 100) : 20,
+      bookingId: dto.bookingId,
+      status: dto.status,
+      startDate: dto.startDate,
+      endDate: dto.endDate,
+      search: dto.search,
+      page: dto.page,
+      limit: dto.limit,
     });
   }
 

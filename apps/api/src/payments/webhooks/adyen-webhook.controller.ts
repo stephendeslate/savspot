@@ -8,7 +8,9 @@ import {
   HttpStatus,
   Logger,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApiTags, ApiOperation, ApiResponse, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Prisma } from '../../../../../prisma/generated/prisma';
@@ -16,17 +18,20 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { Public } from '../../common/decorators/public.decorator';
 import { PaymentsService } from '../payments.service';
 
+interface AdyenNotificationRequestItem {
+  eventCode: string;
+  pspReference: string;
+  originalReference?: string;
+  merchantAccountCode: string;
+  merchantReference: string;
+  amount: { value: number; currency: string };
+  success: string;
+  reason?: string;
+  additionalData?: Record<string, string>;
+}
+
 interface AdyenNotificationItem {
-  NotificationRequestItem: {
-    eventCode: string;
-    pspReference: string;
-    merchantAccountCode: string;
-    merchantReference: string;
-    amount: { value: number; currency: string };
-    success: string;
-    reason?: string;
-    additionalData?: Record<string, string>;
-  };
+  NotificationRequestItem: AdyenNotificationRequestItem;
 }
 
 interface AdyenWebhookBody {
@@ -43,6 +48,7 @@ export class AdyenWebhookController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly paymentsService: PaymentsService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Post()
@@ -53,16 +59,16 @@ export class AdyenWebhookController {
   @ApiResponse({ status: 200, description: 'Webhook processed' })
   async handleWebhook(
     @Body() body: AdyenWebhookBody,
-    @Headers('hmac-signature') hmacSignature: string | undefined,
+    @Headers('hmac-signature') _hmacSignature: string | undefined,
   ) {
     if (process.env['FEATURE_PAYMENT_ADYEN'] !== 'true') {
       throw new BadRequestException('Adyen payment provider is not enabled');
     }
 
-    this.verifyHmacSignature(hmacSignature, JSON.stringify(body));
-
     for (const item of body.notificationItems) {
       const notification = item.NotificationRequestItem;
+
+      this.verifyHmacSignature(notification);
 
       const existingLog = await this.prisma.paymentWebhookLog.findUnique({
         where: { eventId: notification.pspReference },
@@ -115,31 +121,49 @@ export class AdyenWebhookController {
   }
 
   private verifyHmacSignature(
-    signature: string | undefined,
-    payload: string,
+    notificationItem: AdyenNotificationRequestItem,
   ): void {
-    const hmacKey = process.env['ADYEN_HMAC_KEY'];
+    const hmacKey = this.configService.get<string>('ADYEN_HMAC_KEY');
     if (!hmacKey) {
-      this.logger.warn(
-        'No ADYEN_HMAC_KEY configured — skipping HMAC verification',
-      );
-      return;
+      throw new UnauthorizedException('ADYEN_HMAC_KEY is not configured');
     }
+
+    const signature = notificationItem.additionalData?.['hmacSignature'];
     if (!signature) {
-      throw new BadRequestException('Missing HMAC signature header');
+      throw new BadRequestException('Missing HMAC signature in notification additionalData');
     }
+
+    // Adyen HMAC is computed over specific fields concatenated with ':'
+    const signingPayload = [
+      notificationItem.pspReference,
+      notificationItem.originalReference ?? '',
+      notificationItem.merchantAccountCode,
+      notificationItem.merchantReference,
+      String(notificationItem.amount.value),
+      notificationItem.amount.currency,
+      notificationItem.eventCode,
+      notificationItem.success,
+    ].join(':');
+
     const keyBuffer = Buffer.from(hmacKey, 'hex');
     const computed = crypto
       .createHmac('sha256', keyBuffer)
-      .update(payload)
+      .update(signingPayload, 'utf-8')
       .digest('base64');
-    if (computed !== signature) {
+
+    const computedBuffer = Buffer.from(computed);
+    const signatureBuffer = Buffer.from(signature);
+
+    if (
+      computedBuffer.length !== signatureBuffer.length ||
+      !crypto.timingSafeEqual(computedBuffer, signatureBuffer)
+    ) {
       throw new BadRequestException('Invalid HMAC signature');
     }
   }
 
   private async routeEvent(
-    notification: AdyenNotificationItem['NotificationRequestItem'],
+    notification: AdyenNotificationRequestItem,
   ): Promise<void> {
     const isSuccess = notification.success === 'true';
 

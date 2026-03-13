@@ -25,7 +25,7 @@ function makeConfigService(overrides: Record<string, string> = {}) {
     RESEND_API_KEY: 'test-api-key',
     RESEND_FROM_EMAIL: 'noreply@savspot.co',
     WEB_URL: 'https://app.savspot.co',
-    JWT_PRIVATE_KEY_BASE64: undefined,
+    JWT_PRIVATE_KEY_BASE64: Buffer.from('test-key-for-unit-tests').toString('base64'),
     ...overrides,
   };
 
@@ -179,13 +179,12 @@ describe('EmailService', () => {
   // ---------- HMAC secret derivation ----------
 
   describe('constructor', () => {
-    it('should use dev-hmac-secret when JWT_PRIVATE_KEY_BASE64 is not set', () => {
-      const configService = makeConfigService();
-      const service = new EmailService(configService as never);
+    it('should warn but not throw when JWT_PRIVATE_KEY_BASE64 is not set', () => {
+      const configService = makeConfigService({
+        JWT_PRIVATE_KEY_BASE64: undefined as unknown as string,
+      });
 
-      // Token generation should work with dev secret
-      const token = service.generateVerificationToken('user-001');
-      expect(service.validateVerificationToken(token)).toEqual({ userId: 'user-001' });
+      expect(() => new EmailService(configService as never)).not.toThrow();
     });
 
     it('should derive HMAC secret from JWT_PRIVATE_KEY_BASE64 when set', () => {

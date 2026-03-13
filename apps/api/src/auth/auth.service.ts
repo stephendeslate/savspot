@@ -287,6 +287,11 @@ export class AuthService {
       });
 
       if (user) {
+        if (!user.emailVerified) {
+          throw new UnauthorizedException(
+            'Please verify your email before linking OAuth accounts',
+          );
+        }
         // Link Google account to existing user
         user = await this.prisma.user.update({
           where: { id: user.id },
@@ -328,6 +333,11 @@ export class AuthService {
       });
 
       if (user) {
+        if (!user.emailVerified) {
+          throw new UnauthorizedException(
+            'Please verify your email before linking OAuth accounts',
+          );
+        }
         user = await this.prisma.user.update({
           where: { id: user.id },
           data: {

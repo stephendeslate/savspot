@@ -38,6 +38,7 @@ export class OutlookCalendarService {
   private readonly clientSecret: string;
   private readonly redirectUri: string;
   private readonly encryptionKey: Buffer;
+  private readonly stateHmacKey: Buffer;
 
   private readonly SCOPES = ['Calendars.ReadWrite', 'offline_access'];
 
@@ -63,13 +64,19 @@ export class OutlookCalendarService {
       'http://localhost:3001/api/auth/outlook-calendar/callback',
     );
 
-    // Derive AES-256 encryption key from JWT private key or fallback
+    // Derive AES-256 encryption key from JWT private key
     const jwtKey = this.configService.get<string>('jwt.privateKeyBase64');
-    const keySource = jwtKey || 'dev-calendar-encryption-key-change-in-prod';
+    if (!jwtKey) {
+      this.logger.warn(
+        'jwt.privateKeyBase64 not set — Outlook calendar encryption will use a non-persistent key. Set JWT_PRIVATE_KEY_BASE64 for production use.',
+      );
+    }
     this.encryptionKey = crypto
       .createHash('sha256')
-      .update(keySource)
+      .update(jwtKey || crypto.randomBytes(32).toString('hex'))
       .digest();
+
+    this.stateHmacKey = crypto.createHash('sha256').update(this.encryptionKey).update('oauth-state').digest();
   }
 
   // ---------------------------------------------------------------------------
@@ -81,9 +88,7 @@ export class OutlookCalendarService {
    * State param encodes tenantId + userId for the callback.
    */
   getAuthUrl(tenantId: string, userId: string): string {
-    const state = Buffer.from(
-      JSON.stringify({ tenantId, userId }),
-    ).toString('base64url');
+    const state = this.createSignedState(tenantId, userId);
 
     const params = new URLSearchParams({
       client_id: this.clientId,
@@ -106,12 +111,10 @@ export class OutlookCalendarService {
     code: string,
     state: string,
   ): Promise<{ tenantId: string; connectionId: string }> {
-    // Decode state
+    // Verify and decode signed state
     let stateData: { tenantId: string; userId: string };
     try {
-      stateData = JSON.parse(
-        Buffer.from(state, 'base64url').toString('utf8'),
-      );
+      stateData = this.verifySignedState(state);
     } catch {
       throw new BadRequestException('Invalid state parameter');
     }
@@ -307,6 +310,40 @@ export class OutlookCalendarService {
   // ---------------------------------------------------------------------------
   // Private Helpers
   // ---------------------------------------------------------------------------
+
+  private createSignedState(tenantId: string, userId: string): string {
+    const nonce = crypto.randomBytes(16).toString('hex');
+    const timestamp = Date.now().toString();
+    const payload = JSON.stringify({ tenantId, userId, nonce, timestamp });
+    const signature = crypto.createHmac('sha256', this.stateHmacKey)
+      .update(payload)
+      .digest('base64url');
+    return Buffer.from(JSON.stringify({ payload, signature })).toString('base64url');
+  }
+
+  private verifySignedState(state: string): { tenantId: string; userId: string } {
+    const decoded = JSON.parse(Buffer.from(state, 'base64url').toString()) as {
+      payload: string;
+      signature: string;
+    };
+    const expectedSig = crypto.createHmac('sha256', this.stateHmacKey)
+      .update(decoded.payload)
+      .digest('base64url');
+    if (!crypto.timingSafeEqual(Buffer.from(decoded.signature), Buffer.from(expectedSig))) {
+      throw new Error('Invalid OAuth state signature');
+    }
+    const data = JSON.parse(decoded.payload) as {
+      tenantId: string;
+      userId: string;
+      nonce: string;
+      timestamp: string;
+    };
+    const elapsed = Date.now() - parseInt(data.timestamp, 10);
+    if (elapsed > 600_000) {
+      throw new Error('OAuth state expired');
+    }
+    return { tenantId: data.tenantId, userId: data.userId };
+  }
 
   /**
    * Exchange an authorization code for access and refresh tokens.

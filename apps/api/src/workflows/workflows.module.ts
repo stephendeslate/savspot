@@ -4,6 +4,8 @@ import { CommunicationsModule } from '../communications/communications.module';
 import { SmsModule } from '../sms/sms.module';
 import { InvoicesModule } from '../invoices/invoices.module';
 import { BrowserPushModule } from '../browser-push/browser-push.module';
+import { DevicePushTokensModule } from '../device-push-tokens/device-push-tokens.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { QUEUE_WEBHOOKS } from '../bullmq/queue.constants';
 import { WorkflowEngineService } from './workflow-engine.service';
 import { WorkflowsController } from './workflows.controller';
@@ -12,7 +14,10 @@ import { TemplateService } from './services/template.service';
 import { StageService } from './services/stage.service';
 import { ExecutionService } from './services/execution.service';
 import { WebhookService } from './services/webhook.service';
+import { StageAutomationService } from './services/stage-automation.service';
+import { StageOrchestratorService } from './services/stage-orchestrator.service';
 import { WebhookDispatchHandler } from './processors/webhook-dispatch.processor';
+import { StageExecutionHandler } from './processors/stage-execution.handler';
 import { WebhooksDispatcher } from './webhooks.dispatcher';
 
 @Module({
@@ -21,6 +26,8 @@ import { WebhooksDispatcher } from './webhooks.dispatcher';
     SmsModule,
     InvoicesModule,
     BrowserPushModule,
+    DevicePushTokensModule,
+    NotificationsModule,
     BullModule.registerQueue({ name: QUEUE_WEBHOOKS }),
   ],
   controllers: [WorkflowsController, WebhooksController],
@@ -30,7 +37,10 @@ import { WebhooksDispatcher } from './webhooks.dispatcher';
     StageService,
     ExecutionService,
     WebhookService,
+    StageAutomationService,
+    StageOrchestratorService,
     WebhookDispatchHandler,
+    StageExecutionHandler,
     WebhooksDispatcher,
   ],
   exports: [WorkflowEngineService, WebhookService, ExecutionService],

@@ -1,8 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Briefcase, Plus, Pencil, Ban } from 'lucide-react';
-import { Button, Badge, Card, CardContent, CardHeader, CardTitle, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Skeleton } from '@savspot/ui';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, Button, Badge, Card, CardContent, CardHeader, CardTitle, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Skeleton } from '@savspot/ui';
 import { ROUTES } from '@/lib/constants';
 import { useServices, useDeactivateService } from '@/hooks/use-api';
 
@@ -27,9 +28,17 @@ export default function ServicesPage() {
     error: Error | null;
   };
   const deactivateMutation = useDeactivateService();
+  const [deactivateTarget, setDeactivateTarget] = useState<{ id: string; name: string } | null>(null);
 
-  const handleDeactivate = (serviceId: string) => {
-    deactivateMutation.mutate(serviceId);
+  const handleDeactivate = (serviceId: string, serviceName: string) => {
+    setDeactivateTarget({ id: serviceId, name: serviceName });
+  };
+
+  const confirmDeactivate = () => {
+    if (deactivateTarget) {
+      deactivateMutation.mutate(deactivateTarget.id);
+      setDeactivateTarget(null);
+    }
   };
 
   const error = queryError?.message ?? deactivateMutation.error?.message ?? null;
@@ -107,7 +116,7 @@ export default function ServicesPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -196,7 +205,7 @@ export default function ServicesPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeactivate(service.id)}
+                            onClick={() => handleDeactivate(service.id, service.name)}
                           >
                             <Ban className="h-4 w-4" />
                           </Button>
@@ -210,6 +219,23 @@ export default function ServicesPage() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deactivateTarget} onOpenChange={(open) => { if (!open) setDeactivateTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deactivate Service</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to deactivate &quot;{deactivateTarget?.name}&quot;? This will hide it from booking.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeactivate}>
+              Deactivate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

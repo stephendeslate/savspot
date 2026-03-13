@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createHmac } from 'crypto';
+import * as bcrypt from 'bcryptjs';
 import { MfaService } from '@/auth/mfa/mfa.service';
 
 function makePrisma() {
@@ -183,13 +184,15 @@ describe('MfaService', () => {
 
   describe('useRecoveryCode', () => {
     it('should consume a valid recovery code and return tokens', async () => {
-      const codes = ['code1234', 'code5678', 'code9012'];
+      const hashedCodes = await Promise.all(
+        ['code1234', 'code5678', 'code9012'].map((c) => bcrypt.hash(c, 10)),
+      );
       prisma.user.findUnique.mockResolvedValue({
         id: 'user-1',
         email: 'test@test.com',
         role: 'USER',
         mfaEnabled: true,
-        mfaRecoveryCodes: codes,
+        mfaRecoveryCodes: hashedCodes,
         memberships: [],
       });
       prisma.user.update.mockResolvedValue({});
@@ -197,20 +200,19 @@ describe('MfaService', () => {
       const result = await service.useRecoveryCode('user-1', 'code5678');
       expect(result.accessToken).toBe('access-token');
       expect(result.refreshToken).toBe('refresh-token');
-      expect(prisma.user.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: {
-            mfaRecoveryCodes: ['code1234', 'code9012'],
-          },
-        }),
-      );
+      // Remaining codes should be the hashes of code1234 and code9012 (index 1 removed)
+      const updateCall = prisma.user.update.mock.calls[0]![0] as { data: { mfaRecoveryCodes: string[] } };
+      expect(updateCall.data.mfaRecoveryCodes).toHaveLength(2);
+      expect(updateCall.data.mfaRecoveryCodes[0]).toBe(hashedCodes[0]);
+      expect(updateCall.data.mfaRecoveryCodes[1]).toBe(hashedCodes[2]);
     });
 
     it('should reject an invalid recovery code', async () => {
+      const hashed = await bcrypt.hash('code1234', 10);
       prisma.user.findUnique.mockResolvedValue({
         id: 'user-1',
         mfaEnabled: true,
-        mfaRecoveryCodes: ['code1234'],
+        mfaRecoveryCodes: [hashed],
         memberships: [],
       });
 

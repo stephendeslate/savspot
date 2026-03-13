@@ -18,6 +18,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Skeleton, Button, Badge, Card, CardContent, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@savspot/ui';
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
+import { queryKeys } from '@/hooks/use-api';
 import { WalkInDialog } from '@/components/bookings/walk-in-dialog';
 import { BookingPopover } from '@/components/calendar/booking-popover';
 import { getStatusStyle, getClientDisplayName } from './calendar-helpers';
@@ -278,7 +279,7 @@ export default function CalendarPage() {
   }, [currentDate, currentView, viewMode]);
 
   const { data: calendarData, isLoading, error: queryError } = useQuery({
-    queryKey: ['calendar-events', tenantId, dateRange.start.toISOString(), dateRange.end.toISOString()],
+    queryKey: queryKeys.calendarEvents(tenantId!, dateRange.start.toISOString(), dateRange.end.toISOString()),
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set('startDate', dateRange.start.toISOString());
@@ -485,7 +486,7 @@ export default function CalendarPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -748,7 +749,7 @@ export default function CalendarPage() {
             </DialogDescription>
           </DialogHeader>
           {rescheduleError && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               {rescheduleError}
             </div>
           )}

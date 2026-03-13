@@ -121,7 +121,7 @@ export default function PortalDashboardPage() {
         <div>
           <h1 className="text-2xl font-semibold">Dashboard</h1>
         </div>
-        <div className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">
           {error}
         </div>
       </div>
