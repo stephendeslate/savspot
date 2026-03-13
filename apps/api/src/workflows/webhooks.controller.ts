@@ -107,7 +107,7 @@ export class WebhooksController {
     return this.webhookService.listDeliveries(id, {
       status,
       page: page ? parseInt(page, 10) : undefined,
-      limit: limit ? parseInt(limit, 10) : undefined,
+      limit: limit ? Math.min(parseInt(limit, 10) || 20, 100) : undefined,
     });
   }
 }

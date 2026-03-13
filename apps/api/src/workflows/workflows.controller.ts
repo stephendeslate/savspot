@@ -57,7 +57,7 @@ export class WorkflowsController {
   ) {
     return this.templateService.list(tenantId, {
       page: page ? parseInt(page, 10) : undefined,
-      limit: limit ? parseInt(limit, 10) : undefined,
+      limit: limit ? Math.min(parseInt(limit, 10) || 20, 100) : undefined,
     });
   }
 
@@ -186,7 +186,7 @@ export class WorkflowsController {
     return this.executionService.listByTemplate(id, {
       status,
       page: page ? parseInt(page, 10) : undefined,
-      limit: limit ? parseInt(limit, 10) : undefined,
+      limit: limit ? Math.min(parseInt(limit, 10) || 20, 100) : undefined,
     });
   }
 

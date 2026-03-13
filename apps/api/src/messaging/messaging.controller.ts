@@ -43,7 +43,7 @@ export class MessagingController {
       tenantId,
       userId,
       page ? parseInt(page, 10) : undefined,
-      limit ? parseInt(limit, 10) : undefined,
+      limit ? Math.min(parseInt(limit, 10) || 20, 100) : undefined,
     );
   }
 
