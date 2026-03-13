@@ -5,6 +5,7 @@ import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Skeleton } from '@savspot/ui';
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
+import { RequireRole } from '@/components/rbac/require-role';
 
 interface AvailabilityRule {
   id: string;
@@ -192,6 +193,7 @@ export default function AvailabilityPage() {
   }
 
   return (
+    <RequireRole minimum="ADMIN">
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -363,5 +365,6 @@ export default function AvailabilityPage() {
         </CardContent>
       </Card>
     </div>
+    </RequireRole>
   );
 }

@@ -13,7 +13,7 @@ import {
 import { Button, Card, CardContent, CardHeader, CardTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Skeleton } from '@savspot/ui';
 import { ApiError, apiClient, isSubscriptionError, parseRequiredTier } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
-import { RequireRole } from '@/components/auth/require-role';
+import { RequireRole } from '@/components/rbac/require-role';
 import { formatAmount } from '@/lib/format-utils';
 import { UpgradeBanner } from '@/components/upgrade-banner';
 

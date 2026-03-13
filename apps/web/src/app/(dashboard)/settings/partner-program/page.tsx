@@ -16,7 +16,7 @@ import {
 import { Button, Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Skeleton, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@savspot/ui';
 import { apiClient } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
-import { RequireRole } from '@/components/auth/require-role';
+import { RequireRole } from '@/components/rbac/require-role';
 
 // ---------- Types ----------
 
@@ -215,6 +215,7 @@ function PartnerProgramContent() {
 
   if (isNotPartner) {
     return (
+      <RequireRole minimum="ADMIN">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
@@ -312,12 +313,14 @@ function PartnerProgramContent() {
           </CardContent>
         </Card>
       </div>
+      </RequireRole>
     );
   }
 
   // ---------- Partner Dashboard ----------
 
   return (
+    <RequireRole minimum="ADMIN">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
@@ -568,5 +571,6 @@ function PartnerProgramContent() {
         </CardContent>
       </Card>
     </div>
+    </RequireRole>
   );
 }

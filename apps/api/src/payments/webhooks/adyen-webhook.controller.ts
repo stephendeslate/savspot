@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Logger,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiTags, ApiOperation, ApiResponse, ApiExcludeEndpoint } from '@nestjs/swagger';
@@ -124,10 +125,7 @@ export class AdyenWebhookController {
   ): void {
     const hmacKey = this.configService.get<string>('ADYEN_HMAC_KEY');
     if (!hmacKey) {
-      this.logger.warn(
-        'No ADYEN_HMAC_KEY configured — skipping HMAC verification',
-      );
-      return;
+      throw new UnauthorizedException('ADYEN_HMAC_KEY is not configured');
     }
 
     const signature = notificationItem.additionalData?.['hmacSignature'];
