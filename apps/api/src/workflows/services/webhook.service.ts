@@ -84,9 +84,9 @@ export class WebhookService {
     };
   }
 
-  async update(id: string, dto: UpdateWebhookDto) {
+  async update(tenantId: string, id: string, dto: UpdateWebhookDto) {
     const existing = await this.prisma.webhookEndpoint.findUnique({
-      where: { id },
+      where: { id, tenantId },
     });
 
     if (!existing) {
@@ -106,7 +106,7 @@ export class WebhookService {
     if (dto.description !== undefined) data.description = dto.description;
 
     return this.prisma.webhookEndpoint.update({
-      where: { id },
+      where: { id, tenantId },
       data,
       select: {
         id: true,
@@ -125,9 +125,9 @@ export class WebhookService {
     });
   }
 
-  async delete(id: string) {
+  async delete(tenantId: string, id: string) {
     const existing = await this.prisma.webhookEndpoint.findUnique({
-      where: { id },
+      where: { id, tenantId },
     });
 
     if (!existing) {
@@ -144,9 +144,9 @@ export class WebhookService {
     this.logger.log(`Webhook endpoint ${id} deleted`);
   }
 
-  async sendTest(id: string) {
+  async sendTest(tenantId: string, id: string) {
     const endpoint = await this.prisma.webhookEndpoint.findUnique({
-      where: { id },
+      where: { id, tenantId },
     });
 
     if (!endpoint) {
@@ -180,9 +180,9 @@ export class WebhookService {
     return { deliveryId: delivery.id, status: 'queued' };
   }
 
-  async rotateSecret(id: string) {
+  async rotateSecret(tenantId: string, id: string) {
     const endpoint = await this.prisma.webhookEndpoint.findUnique({
-      where: { id },
+      where: { id, tenantId },
     });
 
     if (!endpoint) {
@@ -207,9 +207,18 @@ export class WebhookService {
   }
 
   async listDeliveries(
+    tenantId: string,
     endpointId: string,
     query: { status?: string; page?: number; limit?: number },
   ) {
+    const endpoint = await this.prisma.webhookEndpoint.findUnique({
+      where: { id: endpointId, tenantId },
+    });
+
+    if (!endpoint) {
+      throw new NotFoundException('Webhook endpoint not found');
+    }
+
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;

@@ -14,13 +14,23 @@ const ROLE_HIERARCHY: Record<string, number> = {
 };
 
 /**
- * Returns the current user's tenant role from the active membership.
+ * Returns the current user's role for the active tenant.
+ * If activeTenantId is set but doesn't match any membership, returns null (no permissions).
+ * Only falls back to the first membership when there is no activeTenantId.
  */
 export function useRole(): string | null {
   const { user, activeTenantId } = useAuth();
-  const membership = user?.memberships?.find((m) => m.tenantId === activeTenantId)
-    ?? user?.memberships?.[0];
-  return membership?.role ?? null;
+
+  return useMemo(() => {
+    if (!user?.memberships?.length) return null;
+
+    if (activeTenantId) {
+      const match = user.memberships.find((m) => m.tenantId === activeTenantId);
+      return match?.role ?? null;
+    }
+
+    return user.memberships[0]?.role ?? null;
+  }, [user?.memberships, activeTenantId]);
 }
 
 /**

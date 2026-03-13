@@ -94,13 +94,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 409, description: 'Email already registered' })
-  async register(
-    @Body() dto: RegisterDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const result = await this.authService.register(dto);
-    this.setAuthCookies(res, { accessToken: result.accessToken as string, refreshToken: result.refreshToken as string });
-    return result;
+  async register(@Body() dto: RegisterDto) {
+    await this.authService.register(dto);
+    return { message: 'Registration successful. Please check your email to verify your account.' };
   }
 
   @Public()

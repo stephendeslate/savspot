@@ -218,6 +218,30 @@ export const envSchema = z.object({
 
   // ---- AI Triage ----
   AI_CONFIDENCE_THRESHOLD: z.coerce.number().min(0).max(1).default(0.85),
+}).superRefine((data, ctx) => {
+  if (data.NODE_ENV === 'production') {
+    if (!data.JWT_PRIVATE_KEY_BASE64) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['JWT_PRIVATE_KEY_BASE64'],
+        message: 'JWT_PRIVATE_KEY_BASE64 is required in production',
+      });
+    }
+    if (!data.JWT_PUBLIC_KEY_BASE64) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['JWT_PUBLIC_KEY_BASE64'],
+        message: 'JWT_PUBLIC_KEY_BASE64 is required in production',
+      });
+    }
+    if (!data.ENCRYPTION_KEY) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['ENCRYPTION_KEY'],
+        message: 'ENCRYPTION_KEY is required in production',
+      });
+    }
+  }
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

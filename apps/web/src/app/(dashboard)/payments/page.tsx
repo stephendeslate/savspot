@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
 import {
   CreditCard,
   DollarSign,
@@ -17,6 +18,9 @@ import {
 import { Button, Badge, Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Skeleton } from '@savspot/ui';
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
+import { useDebounce } from '@/hooks/use-debounce';
+import { useUrlState } from '@/hooks/use-url-state';
+import { queryKeys } from '@/hooks/use-api';
 import {
   getPaymentStatusColor,
   formatAmount,
@@ -83,131 +87,113 @@ export default function PaymentsPage() {
   const router = useRouter();
   const { tenantId } = useTenant();
 
-  // Data state
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // URL state
+  const [urlState, setUrlState] = useUrlState({
+    status: '',
+    startDate: '',
+    endDate: '',
+    search: '',
+    page: '1',
+  });
 
-  // Stats
-  const [stats, setStats] = useState<PaymentStats>({
+  const statusFilter = urlState.status;
+  const startDate = urlState.startDate;
+  const endDate = urlState.endDate;
+  const page = Number(urlState.page) || 1;
+
+  const [searchInput, setSearchInput] = useState(urlState.search);
+  const [showFilters, setShowFilters] = useState(false);
+
+  const debouncedSearch = useDebounce(searchInput, 300);
+
+  useEffect(() => {
+    setUrlState({ search: debouncedSearch, page: '1' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
+
+  const queryParams = useMemo(() => {
+    const params: Record<string, string> = {
+      page: String(page),
+      limit: String(PAGE_LIMIT),
+    };
+    if (statusFilter) params['status'] = statusFilter;
+    if (startDate) params['startDate'] = startDate;
+    if (endDate) params['endDate'] = endDate;
+    if (debouncedSearch) params['search'] = debouncedSearch;
+    return params;
+  }, [page, statusFilter, startDate, endDate, debouncedSearch]);
+
+  const { data: paymentsRes, isLoading, error: queryError } = useQuery({
+    queryKey: queryKeys.payments(tenantId!, queryParams),
+    queryFn: () => {
+      const searchParams = new URLSearchParams(queryParams).toString();
+      return apiClient.getRaw<PaymentsResponse>(
+        `/api/tenants/${tenantId}/payments?${searchParams}`,
+      );
+    },
+    enabled: !!tenantId,
+  });
+
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: queryKeys.paymentStats(tenantId!),
+    queryFn: () =>
+      apiClient.get<PaymentStats>(
+        `/api/tenants/${tenantId}/payments/stats`,
+      ),
+    enabled: !!tenantId,
+  });
+
+  const payments = paymentsRes?.data ?? [];
+  const total = paymentsRes?.meta?.total ?? 0;
+  const currentPage = paymentsRes?.meta?.page ?? 1;
+  const error = queryError
+    ? (queryError instanceof Error ? queryError.message : 'Failed to load payments')
+    : null;
+  const totalPages = Math.ceil(total / PAGE_LIMIT);
+
+  const safeStats: PaymentStats = stats ?? {
     totalRevenue: '0',
     thisMonth: '0',
     pendingPayments: '0',
     refunded: '0',
-  });
-  const [statsLoading, setStatsLoading] = useState(true);
-
-  // Filter state
-  const [statusFilter, setStatusFilter] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [search, setSearch] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-
-  const fetchPayments = useCallback(
-    async (pageNum: number) => {
-      if (!tenantId) return;
-
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const params = new URLSearchParams();
-        params.set('page', String(pageNum));
-        params.set('limit', String(PAGE_LIMIT));
-        if (statusFilter) params.set('status', statusFilter);
-        if (startDate) params.set('startDate', startDate);
-        if (endDate) params.set('endDate', endDate);
-        if (search) params.set('search', search);
-
-        const res = await apiClient.getRaw<PaymentsResponse>(
-          `/api/tenants/${tenantId}/payments?${params.toString()}`,
-        );
-        setPayments(res.data);
-        setTotal(res.meta.total);
-        setPage(res.meta.page);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to load payments',
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [tenantId, statusFilter, startDate, endDate, search],
-  );
-
-  const fetchStats = useCallback(async () => {
-    if (!tenantId) return;
-
-    setStatsLoading(true);
-    try {
-      const data = await apiClient.get<PaymentStats>(
-        `/api/tenants/${tenantId}/payments/stats`,
-      );
-      setStats(data);
-    } catch {
-      // Stats are non-critical, silently fail
-    } finally {
-      setStatsLoading(false);
-    }
-  }, [tenantId]);
-
-  useEffect(() => {
-    if (!tenantId) {
-      setIsLoading(false);
-      setStatsLoading(false);
-      return;
-    }
-    void fetchPayments(1);
-    void fetchStats();
-  }, [tenantId, fetchPayments, fetchStats]);
+  };
 
   const handleApplyFilters = () => {
-    void fetchPayments(1);
+    setUrlState({ page: '1' });
   };
 
   const handlePreviousPage = () => {
-    if (page > 1) {
-      void fetchPayments(page - 1);
-    }
+    setUrlState({ page: String(page - 1) });
   };
 
   const handleNextPage = () => {
-    const totalPages = Math.ceil(total / PAGE_LIMIT);
-    if (page < totalPages) {
-      void fetchPayments(page + 1);
-    }
+    setUrlState({ page: String(page + 1) });
   };
-
-  const totalPages = Math.ceil(total / PAGE_LIMIT);
 
   // ---------- Stat cards ----------
 
   const statCards = [
     {
       name: 'Total Revenue',
-      value: formatAmount(stats.totalRevenue, 'USD'),
+      value: formatAmount(safeStats.totalRevenue, 'USD'),
       icon: DollarSign,
       description: 'All time earnings',
     },
     {
       name: 'This Month',
-      value: formatAmount(stats.thisMonth, 'USD'),
+      value: formatAmount(safeStats.thisMonth, 'USD'),
       icon: TrendingUp,
       description: 'Current month revenue',
     },
     {
       name: 'Pending Payments',
-      value: formatAmount(stats.pendingPayments, 'USD'),
+      value: formatAmount(safeStats.pendingPayments, 'USD'),
       icon: AlertCircle,
       description: 'Awaiting processing',
     },
     {
       name: 'Refunded',
-      value: formatAmount(stats.refunded, 'USD'),
+      value: formatAmount(safeStats.refunded, 'USD'),
       icon: RotateCcw,
       description: 'Total refunds issued',
     },
@@ -326,7 +312,7 @@ export default function PaymentsPage() {
               <Label htmlFor="payment-filter-status">Status</Label>
               <Select
                 value={statusFilter || 'all'}
-                onValueChange={(v) => setStatusFilter(v === 'all' ? '' : v)}
+                onValueChange={(v) => setUrlState({ status: v === 'all' ? '' : v, page: '1' })}
               >
                 <SelectTrigger id="payment-filter-status" className="w-full">
                   <SelectValue placeholder="All Statuses" />
@@ -346,7 +332,7 @@ export default function PaymentsPage() {
                 id="payment-filter-start"
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => setUrlState({ startDate: e.target.value, page: '1' })}
               />
             </div>
             <div className="flex-1 space-y-2">
@@ -355,7 +341,7 @@ export default function PaymentsPage() {
                 id="payment-filter-end"
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => setUrlState({ endDate: e.target.value, page: '1' })}
               />
             </div>
             <div className="flex-1 space-y-2">
@@ -366,8 +352,8 @@ export default function PaymentsPage() {
                   id="payment-filter-search"
                   type="text"
                   placeholder="Client name or email..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   className="pl-9"
                 />
               </div>
@@ -418,10 +404,18 @@ export default function PaymentsPage() {
                   {payments.map((payment) => (
                     <TableRow
                       key={payment.id}
+                      role="button"
+                      tabIndex={0}
                       className="cursor-pointer"
                       onClick={() =>
                         router.push(`/bookings/${payment.booking.id}`)
                       }
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          router.push(`/bookings/${payment.booking.id}`);
+                        }
+                      }}
                     >
                       <TableCell className="hidden whitespace-nowrap sm:table-cell">
                         {format(
@@ -477,14 +471,14 @@ export default function PaymentsPage() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-between border-t pt-4 mt-4">
                   <p className="text-sm text-muted-foreground">
-                    Page {page} of {totalPages}
+                    Page {currentPage} of {totalPages}
                   </p>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handlePreviousPage}
-                      disabled={page <= 1}
+                      disabled={currentPage <= 1}
                     >
                       <ChevronLeft className="mr-1 h-4 w-4" />
                       Previous
@@ -493,7 +487,7 @@ export default function PaymentsPage() {
                       variant="outline"
                       size="sm"
                       onClick={handleNextPage}
-                      disabled={page >= totalPages}
+                      disabled={currentPage >= totalPages}
                     >
                       Next
                       <ChevronRight className="ml-1 h-4 w-4" />
