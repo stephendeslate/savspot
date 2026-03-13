@@ -70,6 +70,7 @@ COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 # Copy built shared package
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 
 # Copy compiled API output (same binary, worker processors included)
 COPY --from=builder /app/apps/api/dist ./apps/api/dist

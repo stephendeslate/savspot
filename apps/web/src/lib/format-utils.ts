@@ -115,7 +115,10 @@ export function formatAmount(
  * Converts an UPPER_SNAKE_CASE status to Title Case with spaces.
  */
 export function formatStatus(status: string): string {
-  return status.replace(/_/g, ' ');
+  return status
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /**

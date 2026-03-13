@@ -66,7 +66,7 @@ export function LoginForm() {
     try {
       setError(null);
       await login(values);
-      router.push(ROUTES.DASHBOARD);
+      router.push(from);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(

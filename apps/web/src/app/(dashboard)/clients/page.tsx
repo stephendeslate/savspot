@@ -16,6 +16,7 @@ import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useUrlState } from '@/hooks/use-url-state';
+import { queryKeys } from '@/hooks/use-api';
 import { formatAmount } from '@/lib/format-utils';
 
 // ---------- Types ----------
@@ -92,7 +93,7 @@ export default function ClientsPage() {
   }, [page, debouncedSearch, sortBy, tagFilter]);
 
   const { data: clientsRes, isLoading, error: queryError } = useQuery({
-    queryKey: ['clients', tenantId, queryParams],
+    queryKey: queryKeys.clients(tenantId ?? '', queryParams),
     queryFn: () => {
       const searchParams = new URLSearchParams(queryParams).toString();
       return apiClient.getRaw<ClientsResponse>(

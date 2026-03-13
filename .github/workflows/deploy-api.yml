@@ -35,6 +35,7 @@ jobs:
   deploy-worker:
     name: Deploy Worker to Fly.io
     runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
     needs: [deploy]
     steps:
       - uses: actions/checkout@v4

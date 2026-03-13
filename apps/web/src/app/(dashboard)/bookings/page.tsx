@@ -17,6 +17,8 @@ import { Button, Badge, Card, CardContent, CardHeader, CardTitle, Input, Label, 
 import { apiClient } from '@/lib/api-client';
 import { useTenant } from '@/hooks/use-tenant';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useUrlState } from '@/hooks/use-url-state';
+import { queryKeys } from '@/hooks/use-api';
 import { WalkInDialog } from '@/components/bookings/walk-in-dialog';
 import {
   getStatusColor,
@@ -91,23 +93,31 @@ export default function BookingsPage() {
   const { tenantId } = useTenant();
   const queryClient = useQueryClient();
 
-  // Filter state (UI state)
-  const [statusFilter, setStatusFilter] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
+  // URL state
+  const [urlState, setUrlState] = useUrlState({
+    status: '',
+    startDate: '',
+    endDate: '',
+    search: '',
+    page: '1',
+  });
+
+  const statusFilter = urlState.status;
+  const startDate = urlState.startDate;
+  const endDate = urlState.endDate;
+  const page = Number(urlState.page) || 1;
+
+  const [searchInput, setSearchInput] = useState(urlState.search);
   const [showFilters, setShowFilters] = useState(false);
 
   // Walk-in dialog
   const [walkInOpen, setWalkInOpen] = useState(false);
 
-  const debouncedSearch = useDebounce(search, 300);
-
-  // Reset page when filters change
+  const debouncedSearch = useDebounce(searchInput, 300);
   useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, statusFilter]);
+    setUrlState({ search: debouncedSearch, page: '1' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   const queryParams = useMemo(() => {
     const params: Record<string, string> = {
@@ -122,7 +132,7 @@ export default function BookingsPage() {
   }, [page, statusFilter, startDate, endDate, debouncedSearch]);
 
   const { data: bookingsRes, isLoading, error: queryError } = useQuery({
-    queryKey: ['bookings', tenantId, queryParams],
+    queryKey: queryKeys.bookings(tenantId ?? '', queryParams),
     queryFn: () => {
       const searchParams = new URLSearchParams(queryParams).toString();
       return apiClient.getRaw<BookingsResponse>(
@@ -143,15 +153,15 @@ export default function BookingsPage() {
   const totalPages = Math.ceil(total / PAGE_LIMIT);
 
   const handleApplyFilters = () => {
-    setPage(1);
+    setUrlState({ page: '1' });
   };
 
   const handlePreviousPage = () => {
-    setPage((p) => p - 1);
+    setUrlState({ page: String(page - 1) });
   };
 
   const handleNextPage = () => {
-    setPage((p) => p + 1);
+    setUrlState({ page: String(page + 1) });
   };
 
   const handleWalkInSuccess = () => {
@@ -229,7 +239,7 @@ export default function BookingsPage() {
               <Label htmlFor="filter-status">Status</Label>
               <Select
                 value={statusFilter || 'all'}
-                onValueChange={(v) => setStatusFilter(v === 'all' ? '' : v)}
+                onValueChange={(v) => setUrlState({ status: v === 'all' ? '' : v, page: '1' })}
               >
                 <SelectTrigger id="filter-status" className="w-full">
                   <SelectValue placeholder="All Statuses" />
@@ -249,7 +259,7 @@ export default function BookingsPage() {
                 id="filter-start-date"
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => setUrlState({ startDate: e.target.value, page: '1' })}
               />
             </div>
             <div className="flex-1 space-y-2">
@@ -258,7 +268,7 @@ export default function BookingsPage() {
                 id="filter-end-date"
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => setUrlState({ endDate: e.target.value, page: '1' })}
               />
             </div>
             <div className="flex-1 space-y-2">
@@ -269,8 +279,8 @@ export default function BookingsPage() {
                   id="filter-search"
                   type="text"
                   placeholder="Client name or email..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   className="pl-9"
                 />
               </div>
@@ -382,6 +392,7 @@ export default function BookingsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          aria-label="View booking"
                           onClick={() =>
                             router.push(`/bookings/${booking.id}`)
                           }
