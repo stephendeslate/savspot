@@ -3,14 +3,14 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateCheckoutDto {
   @ApiProperty({
-    enum: ['PREMIUM', 'ENTERPRISE'],
-    example: 'PREMIUM',
+    enum: ['PRO'],
+    example: 'PRO',
     description: 'Subscription tier to upgrade to',
   })
-  @IsEnum(['PREMIUM', 'ENTERPRISE'], {
-    message: 'tier must be either PREMIUM or ENTERPRISE',
+  @IsEnum(['PRO'], {
+    message: 'tier must be PRO',
   })
-  tier!: 'PREMIUM' | 'ENTERPRISE';
+  tier!: 'PRO';
 
   @ApiProperty({
     example: false,

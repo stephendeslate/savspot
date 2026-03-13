@@ -72,8 +72,8 @@ describe('AdminController', () => {
   describe('getSubscriptionOverview', () => {
     it('should delegate to adminService.getSubscriptionOverview', async () => {
       const overview = {
-        tierDistribution: { FREE: 5, PREMIUM: 3 },
-        mrr: 147,
+        tierDistribution: { FREE: 5, PRO: 3 },
+        mrr: 30,
         recentChurn: 1,
       };
       service.getSubscriptionOverview.mockResolvedValue(overview);

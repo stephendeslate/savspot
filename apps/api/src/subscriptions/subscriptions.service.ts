@@ -9,7 +9,7 @@ import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 import { TIER_FEATURES } from './entitlements';
 
-type SubscriptionTierType = 'FREE' | 'PREMIUM' | 'ENTERPRISE';
+type SubscriptionTierType = 'FREE' | 'PRO';
 
 export interface PlanInfo {
   tier: SubscriptionTierType;
@@ -20,11 +20,10 @@ export interface PlanInfo {
 }
 
 const PLAN_PRICES: Record<
-  'PREMIUM' | 'ENTERPRISE',
+  'PRO',
   { monthly: number; annualMonthly: number }
 > = {
-  PREMIUM: { monthly: 29, annualMonthly: 23 },
-  ENTERPRISE: { monthly: 79, annualMonthly: 63 },
+  PRO: { monthly: 10, annualMonthly: 8 },
 };
 
 @Injectable()
@@ -66,18 +65,11 @@ export class SubscriptionsService {
         features: TIER_FEATURES.FREE,
       },
       {
-        tier: 'PREMIUM',
-        name: 'Premium',
-        monthlyPrice: PLAN_PRICES.PREMIUM.monthly,
-        annualMonthlyPrice: PLAN_PRICES.PREMIUM.annualMonthly,
-        features: TIER_FEATURES.PREMIUM,
-      },
-      {
-        tier: 'ENTERPRISE',
-        name: 'Enterprise',
-        monthlyPrice: PLAN_PRICES.ENTERPRISE.monthly,
-        annualMonthlyPrice: PLAN_PRICES.ENTERPRISE.annualMonthly,
-        features: TIER_FEATURES.ENTERPRISE,
+        tier: 'PRO',
+        name: 'Pro',
+        monthlyPrice: PLAN_PRICES.PRO.monthly,
+        annualMonthlyPrice: PLAN_PRICES.PRO.annualMonthly,
+        features: TIER_FEATURES.PRO,
       },
     ];
   }
@@ -109,7 +101,7 @@ export class SubscriptionsService {
 
   async createCheckoutSession(
     tenantId: string,
-    tier: 'PREMIUM' | 'ENTERPRISE',
+    tier: 'PRO',
     isAnnual: boolean,
   ) {
     const stripe = this.ensureStripe();
@@ -384,7 +376,7 @@ export class SubscriptionsService {
     }
 
     const validTier =
-      tier && (['FREE', 'PREMIUM', 'ENTERPRISE'] as const).includes(tier)
+      tier && (['FREE', 'PRO'] as const).includes(tier)
         ? tier
         : undefined;
 

@@ -9,7 +9,7 @@ import { SetMetadata } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Request } from 'express';
 
-export type SubscriptionTierLevel = 'FREE' | 'PREMIUM' | 'ENTERPRISE';
+export type SubscriptionTierLevel = 'FREE' | 'PRO';
 
 export const REQUIRED_TIER_KEY = 'requiredTier';
 
@@ -24,8 +24,7 @@ interface AuthenticatedUser {
 
 const TIER_HIERARCHY: Record<SubscriptionTierLevel, number> = {
   FREE: 0,
-  PREMIUM: 1,
-  ENTERPRISE: 2,
+  PRO: 1,
 };
 
 @Injectable()

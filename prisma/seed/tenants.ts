@@ -91,7 +91,7 @@ export async function seedTenants(prisma: PrismaClient): Promise<void> {
       },
       brandColor: '#0f3460',
       isPublished: true,
-      subscriptionTier: 'PREMIUM' as const,
+      subscriptionTier: 'PRO' as const,
       status: 'ACTIVE' as const,
     },
   ];

@@ -13,7 +13,7 @@ export type BusinessCategory = z.infer<typeof BusinessCategory>;
 export const PaymentProviderType = z.enum(['STRIPE', 'ADYEN', 'PAYPAL', 'OFFLINE', 'GCASH', 'MAYA', 'RAZORPAY', 'MOLLIE', 'DLOCAL']);
 export type PaymentProviderType = z.infer<typeof PaymentProviderType>;
 
-export const SubscriptionTier = z.enum(['FREE', 'PREMIUM', 'ENTERPRISE']);
+export const SubscriptionTier = z.enum(['FREE', 'PRO']);
 export type SubscriptionTier = z.infer<typeof SubscriptionTier>;
 
 export const TenantStatus = z.enum(['ACTIVE', 'SUSPENDED', 'DEACTIVATED']);

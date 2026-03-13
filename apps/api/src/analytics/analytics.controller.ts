@@ -51,7 +51,7 @@ export class AnalyticsController {
   }
 
   @Get('revenue')
-  @RequireTier('PREMIUM')
+  @RequireTier('PRO')
   @ApiOperation({ summary: 'Get revenue trends' })
   @ApiResponse({ status: 200, description: 'Revenue trend data' })
   async getRevenue(
@@ -66,7 +66,7 @@ export class AnalyticsController {
   }
 
   @Get('bookings')
-  @RequireTier('PREMIUM')
+  @RequireTier('PRO')
   @ApiOperation({ summary: 'Get booking volume trends' })
   @ApiResponse({ status: 200, description: 'Booking trend data' })
   async getBookings(
@@ -81,7 +81,7 @@ export class AnalyticsController {
   }
 
   @Get('no-shows')
-  @RequireTier('ENTERPRISE')
+  @RequireTier('PRO')
   @ApiOperation({ summary: 'Get no-show rate trends' })
   @ApiResponse({ status: 200, description: 'No-show trend data' })
   async getNoShows(
@@ -96,7 +96,7 @@ export class AnalyticsController {
   }
 
   @Get('clients')
-  @RequireTier('ENTERPRISE')
+  @RequireTier('PRO')
   @ApiOperation({ summary: 'Get client metrics (new vs returning, LTV)' })
   @ApiResponse({ status: 200, description: 'Client metrics' })
   async getClients(
@@ -111,7 +111,7 @@ export class AnalyticsController {
   }
 
   @Get('funnel')
-  @RequireTier('ENTERPRISE')
+  @RequireTier('PRO')
   @ApiOperation({ summary: 'Get booking flow funnel metrics' })
   @ApiResponse({ status: 200, description: 'Funnel data' })
   async getFunnel(
@@ -125,7 +125,7 @@ export class AnalyticsController {
   }
 
   @Get('utilization')
-  @RequireTier('ENTERPRISE')
+  @RequireTier('PRO')
   @ApiOperation({ summary: 'Get slot utilization heatmap data' })
   @ApiResponse({ status: 200, description: 'Utilization heatmap data' })
   async getUtilization(
@@ -140,7 +140,7 @@ export class AnalyticsController {
   }
 
   @Get('staff-performance')
-  @RequireTier('ENTERPRISE')
+  @RequireTier('PRO')
   @ApiOperation({ summary: 'Get per-staff performance metrics' })
   @ApiResponse({ status: 200, description: 'Staff performance data' })
   async getStaffPerformance(
@@ -155,7 +155,7 @@ export class AnalyticsController {
   }
 
   @Get('benchmarks')
-  @RequireTier('ENTERPRISE')
+  @RequireTier('PRO')
   @ApiOperation({ summary: 'Get benchmarks vs category average' })
   @ApiResponse({ status: 200, description: 'Benchmark data' })
   async getBenchmarks(
@@ -165,7 +165,7 @@ export class AnalyticsController {
   }
 
   @Get('benchmarks/trends')
-  @RequireTier('ENTERPRISE')
+  @RequireTier('PRO')
   @ApiOperation({ summary: 'Get benchmark trends over time' })
   @ApiResponse({ status: 200, description: 'Benchmark trend data' })
   async getBenchmarkTrends(
@@ -180,7 +180,7 @@ export class AnalyticsController {
   }
 
   @Post('export')
-  @RequireTier('ENTERPRISE')
+  @RequireTier('PRO')
   @ApiOperation({ summary: 'Export analytics data as CSV or JSON' })
   @ApiResponse({ status: 200, description: 'Exported file' })
   async exportData(

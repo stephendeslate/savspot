@@ -38,26 +38,18 @@ describe('SubscriptionsService', () => {
   });
 
   describe('getPlans', () => {
-    it('should return all three plans', () => {
+    it('should return two plans', () => {
       const plans = service.getPlans();
-      expect(plans).toHaveLength(3);
+      expect(plans).toHaveLength(2);
       expect(plans[0]!.tier).toBe('FREE');
-      expect(plans[1]!.tier).toBe('PREMIUM');
-      expect(plans[2]!.tier).toBe('ENTERPRISE');
+      expect(plans[1]!.tier).toBe('PRO');
     });
 
-    it('should include pricing for PREMIUM', () => {
+    it('should include pricing for PRO', () => {
       const plans = service.getPlans();
-      const premium = plans.find((p) => p.tier === 'PREMIUM');
-      expect(premium!.monthlyPrice).toBe(29);
-      expect(premium!.annualMonthlyPrice).toBe(23);
-    });
-
-    it('should include pricing for ENTERPRISE', () => {
-      const plans = service.getPlans();
-      const enterprise = plans.find((p) => p.tier === 'ENTERPRISE');
-      expect(enterprise!.monthlyPrice).toBe(79);
-      expect(enterprise!.annualMonthlyPrice).toBe(63);
+      const pro = plans.find((p) => p.tier === 'PRO');
+      expect(pro!.monthlyPrice).toBe(10);
+      expect(pro!.annualMonthlyPrice).toBe(8);
     });
 
     it('should set FREE plan pricing to zero', () => {
@@ -71,7 +63,7 @@ describe('SubscriptionsService', () => {
   describe('getCurrentSubscription', () => {
     it('should return subscription details', async () => {
       prisma.tenant.findUnique.mockResolvedValue({
-        subscriptionTier: 'PREMIUM',
+        subscriptionTier: 'PRO',
         subscriptionProviderId: SUBSCRIPTION_ID,
         subscriptionStatus: 'ACTIVE',
         subscriptionCurrentPeriodEnd: new Date('2025-06-01T00:00:00Z'),
@@ -79,7 +71,7 @@ describe('SubscriptionsService', () => {
       });
 
       const result = await service.getCurrentSubscription(TENANT_ID);
-      expect(result.tier).toBe('PREMIUM');
+      expect(result.tier).toBe('PRO');
       expect(result.status).toBe('ACTIVE');
       expect(result.providerId).toBe(SUBSCRIPTION_ID);
     });
@@ -96,7 +88,7 @@ describe('SubscriptionsService', () => {
     it('should throw NotFoundException when tenant not found', async () => {
       prisma.tenant.findUnique.mockResolvedValue(null);
       await expect(
-        service.createCheckoutSession(TENANT_ID, 'PREMIUM', false),
+        service.createCheckoutSession(TENANT_ID, 'PRO', false),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -104,12 +96,12 @@ describe('SubscriptionsService', () => {
       prisma.tenant.findUnique.mockResolvedValue({
         id: TENANT_ID,
         name: 'Test Tenant',
-        subscriptionTier: 'PREMIUM',
+        subscriptionTier: 'PRO',
         subscriptionProviderId: SUBSCRIPTION_ID,
       });
 
       await expect(
-        service.createCheckoutSession(TENANT_ID, 'PREMIUM', false),
+        service.createCheckoutSession(TENANT_ID, 'PRO', false),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -141,20 +133,13 @@ describe('SubscriptionsService', () => {
       expect(entitlements.multiLocation).toBe(false);
     });
 
-    it('should return PREMIUM tier entitlements', () => {
-      const entitlements = service.getEntitlements('PREMIUM');
-      expect(entitlements.maxStaff).toBe(5);
+    it('should return PRO tier entitlements', () => {
+      const entitlements = service.getEntitlements('PRO');
+      expect(entitlements.maxStaff).toBe(15);
       expect(entitlements.maxBookingsPerMonth).toBe(Infinity);
       expect(entitlements.teamManagement).toBe(true);
-      expect(entitlements.multiLocation).toBe(false);
-      expect(entitlements.customTemplates).toBe(true);
-    });
-
-    it('should return ENTERPRISE tier entitlements', () => {
-      const entitlements = service.getEntitlements('ENTERPRISE');
-      expect(entitlements.maxStaff).toBe(15);
-      expect(entitlements.teamManagement).toBe(true);
       expect(entitlements.multiLocation).toBe(true);
+      expect(entitlements.customTemplates).toBe(true);
     });
   });
 
@@ -275,7 +260,7 @@ describe('SubscriptionsService', () => {
               current_period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
               metadata: {
                 tenantId: TENANT_ID,
-                tier: 'PREMIUM',
+                tier: 'PRO',
               },
             },
           },
@@ -287,7 +272,7 @@ describe('SubscriptionsService', () => {
           where: { id: TENANT_ID },
           data: expect.objectContaining({
             subscriptionProviderId: SUBSCRIPTION_ID,
-            subscriptionTier: 'PREMIUM',
+            subscriptionTier: 'PRO',
             subscriptionStatus: 'ACTIVE',
             subscriptionGracePeriodEnd: null,
             subscriptionCurrentPeriodEnd: expect.any(Date),

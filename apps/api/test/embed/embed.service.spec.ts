@@ -60,10 +60,10 @@ describe('EmbedService', () => {
       expect(result.allowedModes).toEqual(['button']);
     });
 
-    it('should allow popup and inline for premium tier', async () => {
+    it('should allow popup and inline for pro tier', async () => {
       prisma.tenant.findUnique.mockResolvedValue({
         ...activeTenant,
-        subscriptionTier: 'PREMIUM',
+        subscriptionTier: 'PRO',
       });
 
       const result = await service.getWidgetConfig(SLUG);

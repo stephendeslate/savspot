@@ -1493,8 +1493,8 @@ components/accounting/
 
 ### 7.7 Premium Gate
 
-All accounting endpoints require `subscription.tier >= ENTERPRISE` (FR-PAY-18, $79/mo).
-Use existing `SubscriptionGuard` from Phase 2 with `@RequireTier('ENTERPRISE')` decorator.
+All accounting endpoints require `subscription.tier >= PRO` (FR-PAY-18, $10/mo).
+Use existing `SubscriptionGuard` from Phase 2 with `@RequireTier('PRO')` decorator.
 
 ---
 
@@ -1529,7 +1529,7 @@ apps/api/src/analytics/
     └── export.dto.ts
 ```
 
-**Authorization:** All analytics endpoints require `JwtAuthGuard` + `TenantGuard`. Tier gating: `/overview` available to all tiers; `/revenue` and `/bookings` require `@RequireTier('PREMIUM')` or higher; all other endpoints require `@RequireTier('ENTERPRISE')` (see §8.3).
+**Authorization:** All analytics endpoints require `JwtAuthGuard` + `TenantGuard`. Tier gating: `/overview` available to all tiers; all other endpoints require `@RequireTier('PRO')` (see §8.3).
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -1773,7 +1773,7 @@ model VoiceCallLog {
 
 ### 9.6 Premium Gate
 
-Voice Receptionist requires `subscription.tier >= ENTERPRISE` ($79/mo).
+Voice Receptionist requires `subscription.tier >= PRO` ($10/mo).
 Additional per-minute charges may apply (Twilio costs passed through).
 
 ### 9.7 Frontend

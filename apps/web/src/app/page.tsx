@@ -177,7 +177,7 @@ const PRICING_FEATURES = {
     'AI voice receptionist',
     'Data export (GDPR-compliant)',
   ],
-  premium: [
+  pro: [
     'Everything in Free',
     'Custom email templates',
     'SMS to clients',
@@ -186,17 +186,13 @@ const PRICING_FEATURES = {
     'Intake forms & questionnaires',
     'Digital contracts & signatures',
     'Advanced workflow automation',
-    'Accounting integrations',
-    'Priority support',
-  ],
-  enterprise: [
-    'Everything in Premium',
     'Multi-location management',
     'Team & staff management',
     'Custom integrations',
-    'Dedicated account manager',
     'Custom domain support',
     'Advanced reporting',
+    'Accounting integrations',
+    'Priority support',
   ],
 } as const;
 
@@ -375,7 +371,7 @@ export default function Home() {
             <p className="mx-auto mt-3 max-w-xl text-center text-muted-foreground">
               Start free with everything you need. Upgrade only when you want more.
             </p>
-            <div className="mt-12 grid gap-6 lg:grid-cols-3">
+            <div className="mx-auto mt-12 grid max-w-4xl gap-6 lg:grid-cols-2">
               {/* Free Tier */}
               <div className="flex flex-col rounded-lg border bg-card p-6 shadow-sm">
                 <div>
@@ -385,7 +381,7 @@ export default function Home() {
                     <span className="text-sm text-muted-foreground">/month</span>
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    1% on payments + a one-time referral fee only when we bring you a new client.
+                    Free forever. No credit card required.
                   </p>
                 </div>
                 <ul className="mt-6 flex-1 space-y-2.5">
@@ -404,7 +400,7 @@ export default function Home() {
                 </Link>
               </div>
 
-              {/* Premium Tier */}
+              {/* Pro Tier */}
               <div className="relative flex flex-col rounded-lg border-2 border-primary bg-card p-6 shadow-sm">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
@@ -412,17 +408,20 @@ export default function Home() {
                   </span>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">Premium</h3>
+                  <h3 className="text-lg font-semibold">Pro</h3>
                   <div className="mt-2 flex items-baseline gap-1">
-                    <span className="text-3xl font-bold">$29</span>
+                    <span className="text-3xl font-bold">$10</span>
                     <span className="text-sm text-muted-foreground">/month</span>
                   </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    or $8/mo billed annually
+                  </p>
                   <p className="mt-2 text-sm text-muted-foreground">
                     For growing businesses that want more control.
                   </p>
                 </div>
                 <ul className="mt-6 flex-1 space-y-2.5">
-                  {PRICING_FEATURES.premium.map((feature) => (
+                  {PRICING_FEATURES.pro.map((feature) => (
                     <li key={feature} className="flex items-start gap-2 text-sm">
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                       <span>{feature}</span>
@@ -434,34 +433,6 @@ export default function Home() {
                   className="mt-8 inline-flex h-11 w-full items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                 >
                   Start Free, Upgrade Later
-                </Link>
-              </div>
-
-              {/* Enterprise Tier */}
-              <div className="flex flex-col rounded-lg border bg-card p-6 shadow-sm">
-                <div>
-                  <h3 className="text-lg font-semibold">Enterprise</h3>
-                  <div className="mt-2 flex items-baseline gap-1">
-                    <span className="text-3xl font-bold">$79</span>
-                    <span className="text-sm text-muted-foreground">/month</span>
-                  </div>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    For multi-location businesses and teams.
-                  </p>
-                </div>
-                <ul className="mt-6 flex-1 space-y-2.5">
-                  {PRICING_FEATURES.enterprise.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2 text-sm">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="/register"
-                  className="mt-8 inline-flex h-11 w-full items-center justify-center rounded-md border border-input bg-background text-sm font-medium transition-colors hover:bg-accent"
-                >
-                  Contact Sales
                 </Link>
               </div>
             </div>
