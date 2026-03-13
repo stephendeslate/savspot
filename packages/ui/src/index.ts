@@ -1,6 +1,7 @@
 export { cn } from './lib/utils';
 
 // Components
+export { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogOverlay, AlertDialogPortal, AlertDialogTitle, AlertDialogTrigger } from './components/alert-dialog';
 export { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from './components/accordion';
 export { Avatar, AvatarImage, AvatarFallback, AvatarBadge, AvatarGroup, AvatarGroupCount } from './components/avatar';
 export { Badge, badgeVariants } from './components/badge';

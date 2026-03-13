@@ -1,11 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Briefcase, Plus, Pencil, Ban } from 'lucide-react';
-import { Button, Badge, Card, CardContent, CardHeader, CardTitle, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Skeleton } from '@savspot/ui';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, Button, Badge, Card, CardContent, CardHeader, CardTitle, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Skeleton } from '@savspot/ui';
 import { ROUTES } from '@/lib/constants';
 import { useServices, useDeactivateService } from '@/hooks/use-api';
-import { formatAmount } from '@/lib/format-utils';
 
 interface Service {
   id: string;
@@ -28,14 +28,27 @@ export default function ServicesPage() {
     error: Error | null;
   };
   const deactivateMutation = useDeactivateService();
+  const [deactivateTarget, setDeactivateTarget] = useState<{ id: string; name: string } | null>(null);
 
   const handleDeactivate = (serviceId: string, serviceName: string) => {
-    if (window.confirm(`Are you sure you want to deactivate "${serviceName}"? This will hide it from booking.`)) {
-      deactivateMutation.mutate(serviceId);
+    setDeactivateTarget({ id: serviceId, name: serviceName });
+  };
+
+  const confirmDeactivate = () => {
+    if (deactivateTarget) {
+      deactivateMutation.mutate(deactivateTarget.id);
+      setDeactivateTarget(null);
     }
   };
 
   const error = queryError?.message ?? deactivateMutation.error?.message ?? null;
+
+  const formatPrice = (amount: number, currency: string) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency,
+    }).format(Number(amount));
+  };
 
   const formatDuration = (minutes: number) => {
     if (minutes < 60) return `${minutes}min`;
@@ -103,7 +116,7 @@ export default function ServicesPage() {
       </div>
 
       {error && (
-        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -168,7 +181,7 @@ export default function ServicesPage() {
                       {formatDuration(service.durationMinutes)}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {formatAmount(String(service.basePrice), service.currency)}
+                      {formatPrice(service.basePrice, service.currency)}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <Badge
@@ -182,7 +195,6 @@ export default function ServicesPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          aria-label="Edit service"
                           onClick={() =>
                             router.push(`/services/${service.id}`)
                           }
@@ -193,11 +205,7 @@ export default function ServicesPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            aria-label="Deactivate service"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeactivate(service.id, service.name);
-                            }}
+                            onClick={() => handleDeactivate(service.id, service.name)}
                           >
                             <Ban className="h-4 w-4" />
                           </Button>
@@ -211,6 +219,23 @@ export default function ServicesPage() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deactivateTarget} onOpenChange={(open) => { if (!open) setDeactivateTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deactivate Service</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to deactivate &quot;{deactivateTarget?.name}&quot;? This will hide it from booking.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeactivate}>
+              Deactivate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
