@@ -208,6 +208,7 @@ export class PaymentsService {
     const processingFeeCents = Math.round(
       (chargeAmountCents * platformFeePercent) / 100,
     );
+    const platformFeeDollars = processingFeeCents / 100;
 
     // Calculate referral commission (on total booking amount, not deposit)
     const referralCommissionCents = await this.calculateReferralCommission(
@@ -216,6 +217,9 @@ export class PaymentsService {
       booking.source,
       totalAmountCents,
     );
+    const referralCommissionDollars = referralCommissionCents
+      ? referralCommissionCents / 100
+      : null;
 
     // Total platform fee = processing fee + referral commission
     const totalPlatformFee =
@@ -240,10 +244,10 @@ export class PaymentsService {
       data: {
         tenantId,
         bookingId,
-        amount: chargeAmountCents,
-        platformFee: processingFeeCents,
-        processingFee: processingFeeCents,
-        referralCommission: referralCommissionCents,
+        amount: chargeAmount,
+        platformFee: platformFeeDollars,
+        processingFee: platformFeeDollars,
+        referralCommission: referralCommissionDollars,
         currency: booking.currency,
         type: paymentType,
         status: 'PENDING',
@@ -474,7 +478,7 @@ export class PaymentsService {
 
     const refundResult = await this.stripeProvider.createRefund({
       paymentIntentId: payment.providerTransactionId,
-      amount,
+      amount: amount ? Math.round(amount * 100) : undefined,
       reason: 'requested_by_customer',
       tenantId,
     });

@@ -337,8 +337,9 @@ export class BookingsService {
     const startTime = new Date(newStartTime);
     const endTime = new Date(newEndTime);
 
-    // Check availability with pessimistic locking
-    await this.prisma.$transaction(async (tx) => {
+    // Check availability AND perform reschedule in a single transaction
+    // to prevent race conditions (FOR UPDATE lock holds until commit)
+    const [updatedBooking] = await this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
 
       // Check for conflicting bookings (excluding current booking)
@@ -373,11 +374,8 @@ export class BookingsService {
       ) {
         throw new ConflictException('Time slot is currently held by another session');
       }
-    });
 
-    // Perform the reschedule
-    const [updatedBooking] = await this.prisma.$transaction([
-      this.prisma.booking.update({
+      const result = await tx.booking.update({
         where: { id },
         data: {
           startTime,
@@ -385,8 +383,9 @@ export class BookingsService {
           originalStartDate: booking.originalStartDate ?? booking.startTime,
           rescheduleCount: { increment: 1 },
         },
-      }),
-      this.prisma.bookingStateHistory.create({
+      });
+
+      await tx.bookingStateHistory.create({
         data: {
           bookingId: id,
           tenantId,
@@ -401,8 +400,10 @@ export class BookingsService {
             newEndTime,
           } as Prisma.InputJsonValue,
         },
-      }),
-    ]);
+      });
+
+      return [result];
+    });
 
     this.logger.log(`Booking ${id} rescheduled by ${userId}`);
 
