@@ -32,7 +32,11 @@ export default function ServicesPage() {
     deactivateMutation.mutate(serviceId);
   };
 
-  const error = queryError?.message ?? deactivateMutation.error?.message ?? null;
+  const error = (queryError ?? deactivateMutation.error)
+    ? (process.env.NODE_ENV === 'development'
+        ? (queryError?.message ?? deactivateMutation.error?.message ?? 'Failed to load data')
+        : 'Failed to load data')
+    : null;
 
   const formatPrice = (amount: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {
@@ -145,14 +149,16 @@ export default function ServicesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {services.map((service) => (
+                {services.map((service) => {
+                  const badges = getComplexityBadges(service);
+                  return (
                   <TableRow key={service.id}>
                     <TableCell>
                       <div className="min-w-0">
                         <div className="truncate font-medium">{service.name}</div>
-                        {getComplexityBadges(service).length > 0 && (
+                        {badges.length > 0 && (
                           <div className="mt-1 flex flex-wrap gap-1">
-                            {getComplexityBadges(service).map((badge) => (
+                            {badges.map((badge) => (
                               <span
                                 key={badge}
                                 className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
@@ -204,7 +210,8 @@ export default function ServicesPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}

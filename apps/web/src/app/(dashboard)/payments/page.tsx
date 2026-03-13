@@ -105,7 +105,6 @@ export default function PaymentsPage() {
   const [showFilters, setShowFilters] = useState(false);
 
   const debouncedSearch = useDebounce(searchInput, 300);
-
   useEffect(() => {
     setUrlState({ search: debouncedSearch, page: '1' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -172,28 +171,30 @@ export default function PaymentsPage() {
 
   // ---------- Stat cards ----------
 
+  const statsCurrency = payments[0]?.currency ?? 'USD';
+
   const statCards = [
     {
       name: 'Total Revenue',
-      value: formatAmount(safeStats.totalRevenue, 'USD'),
+      value: formatAmount(safeStats.totalRevenue, statsCurrency),
       icon: DollarSign,
       description: 'All time earnings',
     },
     {
       name: 'This Month',
-      value: formatAmount(safeStats.thisMonth, 'USD'),
+      value: formatAmount(safeStats.thisMonth, statsCurrency),
       icon: TrendingUp,
       description: 'Current month revenue',
     },
     {
       name: 'Pending Payments',
-      value: formatAmount(safeStats.pendingPayments, 'USD'),
+      value: formatAmount(safeStats.pendingPayments, statsCurrency),
       icon: AlertCircle,
       description: 'Awaiting processing',
     },
     {
       name: 'Refunded',
-      value: formatAmount(safeStats.refunded, 'USD'),
+      value: formatAmount(safeStats.refunded, statsCurrency),
       icon: RotateCcw,
       description: 'Total refunds issued',
     },

@@ -57,7 +57,7 @@ export function NotificationBell() {
   const unreadCount = unreadData?.count ?? 0;
 
   const { data: notifications = [], isLoading } = useQuery({
-    queryKey: queryKeys.notifications(tenantId!),
+    queryKey: queryKeys.notifications(tenantId ?? ''),
     queryFn: () =>
       apiClient.get<Notification[]>(
         `/api/tenants/${tenantId}/notifications?limit=10`,

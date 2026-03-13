@@ -8,6 +8,7 @@ import {
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { QuickBooksProvider } from './providers/quickbooks.provider';
 import { XeroProvider } from './providers/xero.provider';
@@ -27,6 +28,7 @@ export class AccountingService {
   private readonly logger = new Logger(AccountingService.name);
 
   private readonly providers: Record<string, AccountingProviderInterface>;
+  private readonly encryptionKey: Buffer;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -39,6 +41,13 @@ export class AccountingService {
       QUICKBOOKS: this.quickBooksProvider,
       XERO: this.xeroProvider,
     };
+
+    const encKey = this.configService.get<string>('ENCRYPTION_KEY');
+    const keySource = encKey || 'dev-accounting-encryption-key-change-in-prod';
+    this.encryptionKey = crypto
+      .createHash('sha256')
+      .update(keySource)
+      .digest();
   }
 
   async getConnections(tenantId: string) {
@@ -83,6 +92,11 @@ export class AccountingService {
 
     const tokens = await providerImpl.exchangeCode(code, redirectUri);
 
+    const encryptedAccess = this.encryptToken(tokens.accessToken);
+    const encryptedRefresh = tokens.refreshToken
+      ? this.encryptToken(tokens.refreshToken)
+      : '';
+
     const existingConnection = await this.prisma.accountingConnection.findFirst({
       where: {
         tenantId: stateData.tenantId,
@@ -94,8 +108,8 @@ export class AccountingService {
       await this.prisma.accountingConnection.update({
         where: { id: existingConnection.id },
         data: {
-          accessToken: tokens.accessToken,
-          refreshToken: tokens.refreshToken,
+          accessToken: encryptedAccess,
+          refreshToken: encryptedRefresh,
           tokenExpiresAt: tokens.expiresAt,
           companyId: tokens.realmId ?? tokens.tenantId ?? existingConnection.companyId,
           status: 'ACTIVE',
@@ -113,8 +127,8 @@ export class AccountingService {
       data: {
         tenantId: stateData.tenantId,
         provider: provider.toUpperCase() as 'QUICKBOOKS' | 'XERO',
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
+        accessToken: encryptedAccess,
+        refreshToken: encryptedRefresh,
         tokenExpiresAt: tokens.expiresAt,
         companyId: tokens.realmId ?? tokens.tenantId,
         status: 'ACTIVE',
@@ -342,8 +356,10 @@ export class AccountingService {
     provider: string;
   }): AccountingTokens {
     return {
-      accessToken: connection.accessToken,
-      refreshToken: connection.refreshToken ?? '',
+      accessToken: this.decryptToken(connection.accessToken),
+      refreshToken: connection.refreshToken
+        ? this.decryptToken(connection.refreshToken)
+        : '',
       expiresAt: connection.tokenExpiresAt ?? new Date(0),
       realmId: connection.provider === 'QUICKBOOKS' ? (connection.companyId ?? undefined) : undefined,
       tenantId: connection.provider === 'XERO' ? (connection.companyId ?? undefined) : undefined,
@@ -356,6 +372,44 @@ export class AccountingService {
       throw new BadRequestException(`Unsupported accounting provider: ${provider}`);
     }
     return impl;
+  }
+
+  encryptToken(token: string): string {
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', this.encryptionKey, iv);
+    const encrypted = Buffer.concat([
+      cipher.update(token, 'utf8'),
+      cipher.final(),
+    ]);
+    const tag = cipher.getAuthTag();
+
+    return `${iv.toString('hex')}:${encrypted.toString('hex')}:${tag.toString('hex')}`;
+  }
+
+  decryptToken(encryptedToken: string): string {
+    const parts = encryptedToken.split(':');
+    if (parts.length !== 3) {
+      throw new Error('Invalid encrypted token format');
+    }
+
+    const [ivHex, encryptedHex, tagHex] = parts;
+    const iv = Buffer.from(ivHex!, 'hex');
+    const encrypted = Buffer.from(encryptedHex!, 'hex');
+    const tag = Buffer.from(tagHex!, 'hex');
+
+    const decipher = crypto.createDecipheriv(
+      'aes-256-gcm',
+      this.encryptionKey,
+      iv,
+    );
+    decipher.setAuthTag(tag);
+
+    const decrypted = Buffer.concat([
+      decipher.update(encrypted),
+      decipher.final(),
+    ]);
+
+    return decrypted.toString('utf8');
   }
 
   private getCallbackUrl(provider: string): string {

@@ -17,7 +17,7 @@ export function useBookings(params: Record<string, string> = {}) {
   const { tenantId } = useTenant();
   const searchParams = new URLSearchParams(params).toString();
   return useQuery({
-    queryKey: queryKeys.bookings(tenantId!, params),
+    queryKey: queryKeys.bookings(tenantId ?? '', params),
     queryFn: () =>
       apiClient.getRaw<PaginatedResponse<unknown>>(
         `/api/tenants/${tenantId}/bookings${searchParams ? `?${searchParams}` : ''}`,
@@ -29,7 +29,7 @@ export function useBookings(params: Record<string, string> = {}) {
 export function useCalendarEvents(startDate: string, endDate: string) {
   const { tenantId } = useTenant();
   return useQuery({
-    queryKey: queryKeys.calendarEvents(tenantId!, startDate, endDate),
+    queryKey: queryKeys.calendarEvents(tenantId ?? '', startDate, endDate),
     queryFn: () => {
       const params = new URLSearchParams();
       params.set('startDate', startDate);

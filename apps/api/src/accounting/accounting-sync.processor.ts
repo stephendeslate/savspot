@@ -42,8 +42,8 @@ export class AccountingSyncInvoicesHandler {
         await this.prisma.accountingConnection.update({
           where: { id: connectionId },
           data: {
-            accessToken: tokens.accessToken,
-            refreshToken: tokens.refreshToken,
+            accessToken: this.accountingService.encryptToken(tokens.accessToken),
+            refreshToken: this.accountingService.encryptToken(tokens.refreshToken),
             tokenExpiresAt: tokens.expiresAt,
           },
         });
@@ -148,8 +148,8 @@ export class AccountingSyncPaymentsHandler {
         await this.prisma.accountingConnection.update({
           where: { id: connectionId },
           data: {
-            accessToken: tokens.accessToken,
-            refreshToken: tokens.refreshToken,
+            accessToken: this.accountingService.encryptToken(tokens.accessToken),
+            refreshToken: this.accountingService.encryptToken(tokens.refreshToken),
             tokenExpiresAt: tokens.expiresAt,
           },
         });
@@ -243,8 +243,8 @@ export class AccountingSyncSingleInvoiceHandler {
         await this.prisma.accountingConnection.update({
           where: { id: connectionId },
           data: {
-            accessToken: tokens.accessToken,
-            refreshToken: tokens.refreshToken,
+            accessToken: this.accountingService.encryptToken(tokens.accessToken),
+            refreshToken: this.accountingService.encryptToken(tokens.refreshToken),
             tokenExpiresAt: tokens.expiresAt,
           },
         });
@@ -340,8 +340,8 @@ export class AccountingSyncClientsHandler {
         await this.prisma.accountingConnection.update({
           where: { id: connectionId },
           data: {
-            accessToken: tokens.accessToken,
-            refreshToken: tokens.refreshToken,
+            accessToken: this.accountingService.encryptToken(tokens.accessToken),
+            refreshToken: this.accountingService.encryptToken(tokens.refreshToken),
             tokenExpiresAt: tokens.expiresAt,
           },
         });
