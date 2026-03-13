@@ -112,9 +112,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const setActiveTenant = useCallback((tenantId: string) => {
+    if (!user?.memberships.some((m) => m.tenantId === tenantId)) return;
     localStorage.setItem(ACTIVE_TENANT_KEY, tenantId);
     setActiveTenantId(tenantId);
-  }, []);
+  }, [user]);
 
   const login = useCallback(
     async (input: LoginInput) => {

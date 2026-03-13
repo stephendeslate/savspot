@@ -186,7 +186,7 @@ export default function DirectoryPage() {
       )}
 
       {error && (
-        <div className="mb-6 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="mb-6 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}

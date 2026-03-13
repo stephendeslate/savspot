@@ -115,7 +115,7 @@ export function NotesPanel({ entityType, entityId, tenantId }: NotesPanelProps) 
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : error ? (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           ) : sortedNotes.length === 0 ? (

@@ -114,6 +114,10 @@ export default function PaymentsSettingsPage() {
       const data = await apiClient.post<{ url: string }>(
         `/api/tenants/${tenantId}/payments/connect/dashboard`,
       );
+      const dashUrl = new URL(data.url);
+      if (!['dashboard.stripe.com', 'connect.stripe.com'].includes(dashUrl.hostname)) {
+        throw new Error('Invalid redirect URL');
+      }
       window.open(data.url, '_blank');
     } catch (err) {
       setError(
