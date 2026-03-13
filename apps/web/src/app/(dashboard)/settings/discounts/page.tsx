@@ -14,6 +14,7 @@ import { Button, Badge, Card, CardContent, CardDescription, CardHeader, CardTitl
 import { apiClient } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
 import { useTenant } from '@/hooks/use-tenant';
+import { RequireRole } from '@/components/rbac/require-role';
 
 // ---------- Types ----------
 
@@ -377,6 +378,7 @@ export default function DiscountsSettingsPage() {
   // ---------- Render ----------
 
   return (
+    <RequireRole minimum="ADMIN">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -402,7 +404,7 @@ export default function DiscountsSettingsPage() {
       </div>
 
       {error && (
-        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -554,7 +556,7 @@ export default function DiscountsSettingsPage() {
           </DialogHeader>
 
           {formError && (
-            <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               {formError}
             </div>
           )}
@@ -782,5 +784,6 @@ export default function DiscountsSettingsPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </RequireRole>
   );
 }

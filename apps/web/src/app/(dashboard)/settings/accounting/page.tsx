@@ -7,6 +7,7 @@ import { Button, Badge, Card, CardContent, CardDescription, CardHeader, CardTitl
 import { apiClient } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
 import { useTenant } from '@/hooks/use-tenant';
+import { RequireRole } from '@/components/rbac/require-role';
 
 // ---------- Types ----------
 
@@ -180,6 +181,7 @@ export default function AccountingSettingsPage() {
   // ---------- Render ----------
 
   return (
+    <RequireRole minimum="ADMIN">
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button
@@ -198,7 +200,7 @@ export default function AccountingSettingsPage() {
       </div>
 
       {error && (
-        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -235,7 +237,7 @@ export default function AccountingSettingsPage() {
                     </div>
 
                     {connection.errorMessage && (
-                      <div role="alert" className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">
+                      <div className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">
                         {connection.errorMessage}
                       </div>
                     )}
@@ -328,5 +330,6 @@ export default function AccountingSettingsPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </RequireRole>
   );
 }
