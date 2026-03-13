@@ -1,5 +1,6 @@
 'use client';
 
+import * as Sentry from '@sentry/nextjs';
 import { useEffect } from 'react';
 import Link from 'next/link';
 
@@ -11,6 +12,7 @@ export default function DashboardError({
   reset: () => void;
 }) {
   useEffect(() => {
+    Sentry.captureException(error);
     if (process.env.NODE_ENV === 'development') {
       console.error('Dashboard error boundary caught:', error);
     }
@@ -21,9 +23,7 @@ export default function DashboardError({
       <div className="w-full max-w-md space-y-6 text-center">
         <h1 className="text-2xl font-semibold">Something went wrong</h1>
         <p className="text-sm text-muted-foreground">
-          {process.env.NODE_ENV === 'development'
-            ? error.message
-            : 'An unexpected error occurred. Please try again.'}
+          {error.message || 'An unexpected error occurred.'}
         </p>
         <div className="flex items-center justify-center gap-3">
           <Link

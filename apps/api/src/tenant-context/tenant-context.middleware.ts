@@ -1,4 +1,4 @@
-import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
+import { Injectable, NestMiddleware, Logger, InternalServerErrorException } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from './tenant-context.service';
@@ -45,8 +45,7 @@ export class TenantContextMiddleware implements NestMiddleware {
             error instanceof Error ? error.message : String(error)
           }`,
         );
-        // Don't block the request — RLS will still deny access
-        // if the session variable is not set
+        throw new InternalServerErrorException('Failed to establish tenant context');
       }
     }
 

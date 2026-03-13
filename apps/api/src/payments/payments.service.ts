@@ -239,44 +239,41 @@ export class PaymentsService {
       },
     });
 
-    // Create Payment record and state history atomically
-    const payment = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.payment.create({
-        data: {
-          tenantId,
-          bookingId,
-          amount: chargeAmount,
-          platformFee: platformFeeDollars,
-          processingFee: platformFeeDollars,
-          referralCommission: referralCommissionDollars,
-          currency: booking.currency,
-          type: paymentType,
-          status: 'PENDING',
-          providerTransactionId: intentResult.id,
-          metadata: {
-            stripePaymentIntentId: intentResult.id,
-            sessionId,
-            totalBookingAmount: totalAmountCents,
-            depositConfig: depositConfig ?? undefined,
-          } as Prisma.InputJsonValue,
-        },
-      });
+    // Create Payment record
+    const payment = await this.prisma.payment.create({
+      data: {
+        tenantId,
+        bookingId,
+        amount: chargeAmount,
+        platformFee: platformFeeDollars,
+        processingFee: platformFeeDollars,
+        referralCommission: referralCommissionDollars,
+        currency: booking.currency,
+        type: paymentType,
+        status: 'PENDING',
+        providerTransactionId: intentResult.id,
+        metadata: {
+          stripePaymentIntentId: intentResult.id,
+          sessionId,
+          totalBookingAmount: totalAmountCents,
+          depositConfig: depositConfig ?? undefined,
+        } as Prisma.InputJsonValue,
+      },
+    });
 
-      await tx.paymentStateHistory.create({
-        data: {
-          paymentId: created.id,
-          tenantId,
-          fromState: 'CREATED',
-          toState: 'PENDING',
-          triggeredBy: 'SYSTEM',
-          reason: `Stripe PaymentIntent created (${paymentType})`,
-          metadata: {
-            stripePaymentIntentId: intentResult.id,
-          } as Prisma.InputJsonValue,
-        },
-      });
-
-      return created;
+    // Create state history
+    await this.prisma.paymentStateHistory.create({
+      data: {
+        paymentId: payment.id,
+        tenantId,
+        fromState: 'CREATED',
+        toState: 'PENDING',
+        triggeredBy: 'SYSTEM',
+        reason: `Stripe PaymentIntent created (${paymentType})`,
+        metadata: {
+          stripePaymentIntentId: intentResult.id,
+        } as Prisma.InputJsonValue,
+      },
     });
 
     this.logger.log(
@@ -317,43 +314,47 @@ export class PaymentsService {
     }
 
     const previousStatus = payment.status;
+    const shouldConfirmBooking = payment.booking.status === 'PENDING';
 
-    // Update payment status
-    await this.prisma.payment.update({
-      where: { id: payment.id },
-      data: { status: 'SUCCEEDED' },
-    });
-
-    // Create state history
-    await this.prisma.paymentStateHistory.create({
-      data: {
-        paymentId: payment.id,
-        tenantId: payment.tenantId,
-        fromState: previousStatus,
-        toState: 'SUCCEEDED',
-        triggeredBy: 'WEBHOOK',
-        reason: 'Payment succeeded via Stripe webhook',
-      },
-    });
-
-    // Confirm the booking if it is PENDING
-    if (payment.booking.status === 'PENDING') {
-      await this.prisma.booking.update({
-        where: { id: payment.bookingId },
-        data: { status: 'CONFIRMED' },
-      });
-
-      await this.prisma.bookingStateHistory.create({
+    const ops: Prisma.PrismaPromise<unknown>[] = [
+      this.prisma.payment.update({
+        where: { id: payment.id },
+        data: { status: 'SUCCEEDED' },
+      }),
+      this.prisma.paymentStateHistory.create({
         data: {
-          bookingId: payment.bookingId,
+          paymentId: payment.id,
           tenantId: payment.tenantId,
-          fromState: 'PENDING',
-          toState: 'CONFIRMED',
+          fromState: previousStatus,
+          toState: 'SUCCEEDED',
           triggeredBy: 'WEBHOOK',
-          reason: 'Payment succeeded — booking auto-confirmed',
+          reason: 'Payment succeeded via Stripe webhook',
         },
-      });
+      }),
+    ];
+
+    if (shouldConfirmBooking) {
+      ops.push(
+        this.prisma.booking.update({
+          where: { id: payment.bookingId },
+          data: { status: 'CONFIRMED' },
+        }),
+      );
+      ops.push(
+        this.prisma.bookingStateHistory.create({
+          data: {
+            bookingId: payment.bookingId,
+            tenantId: payment.tenantId,
+            fromState: 'PENDING',
+            toState: 'CONFIRMED',
+            triggeredBy: 'WEBHOOK',
+            reason: 'Payment succeeded — booking auto-confirmed',
+          },
+        }),
+      );
     }
+
+    await this.prisma.$transaction(ops);
 
     // Load booking details for event payload
     const fullBooking = await this.prisma.booking.findFirst({
@@ -377,7 +378,7 @@ export class PaymentsService {
         serviceName: fullBooking.service?.name ?? '',
       });
 
-      if (payment.booking.status === 'PENDING') {
+      if (shouldConfirmBooking) {
         this.eventsService.emitBookingConfirmed({
           tenantId: payment.tenantId,
           bookingId: payment.bookingId,
@@ -415,22 +416,21 @@ export class PaymentsService {
 
     const previousStatus = payment.status;
 
-    await this.prisma.$transaction([
-      this.prisma.payment.update({
-        where: { id: payment.id },
-        data: { status: 'FAILED' },
-      }),
-      this.prisma.paymentStateHistory.create({
-        data: {
-          paymentId: payment.id,
-          tenantId: payment.tenantId,
-          fromState: previousStatus,
-          toState: 'FAILED',
-          triggeredBy: 'WEBHOOK',
-          reason: reason ?? 'Payment failed via Stripe webhook',
-        },
-      }),
-    ]);
+    await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: { status: 'FAILED' },
+    });
+
+    await this.prisma.paymentStateHistory.create({
+      data: {
+        paymentId: payment.id,
+        tenantId: payment.tenantId,
+        fromState: previousStatus,
+        toState: 'FAILED',
+        triggeredBy: 'WEBHOOK',
+        reason: reason ?? 'Payment failed via Stripe webhook',
+      },
+    });
 
     // Load booking details for event payload
     const failedBooking = await this.prisma.booking.findFirst({
@@ -490,26 +490,25 @@ export class PaymentsService {
     const isFullRefund = !amount || amount >= payment.amount.toNumber();
     const newStatus = isFullRefund ? 'REFUNDED' : 'PARTIALLY_REFUNDED';
 
-    await this.prisma.$transaction([
-      this.prisma.payment.update({
-        where: { id: payment.id },
-        data: { status: newStatus },
-      }),
-      this.prisma.paymentStateHistory.create({
-        data: {
-          paymentId: payment.id,
-          tenantId,
-          fromState: 'SUCCEEDED',
-          toState: newStatus,
-          triggeredBy: 'ADMIN',
-          reason: `Refund processed: ${refundResult.id}`,
-          metadata: {
-            refundId: refundResult.id,
-            refundAmount: refundResult.amount,
-          } as Prisma.InputJsonValue,
-        },
-      }),
-    ]);
+    await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: { status: newStatus },
+    });
+
+    await this.prisma.paymentStateHistory.create({
+      data: {
+        paymentId: payment.id,
+        tenantId,
+        fromState: 'SUCCEEDED',
+        toState: newStatus,
+        triggeredBy: 'ADMIN',
+        reason: `Refund processed: ${refundResult.id}`,
+        metadata: {
+          refundId: refundResult.id,
+          refundAmount: refundResult.amount,
+        } as Prisma.InputJsonValue,
+      },
+    });
 
     this.logger.log(
       `Refund ${refundResult.id} processed for payment ${paymentId}`,
@@ -540,34 +539,31 @@ export class PaymentsService {
       throw new NotFoundException('Booking not found');
     }
 
-    const payment = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.payment.create({
-        data: {
-          tenantId,
-          bookingId,
-          amount,
-          currency,
-          type: 'FULL_PAYMENT',
-          status: 'SUCCEEDED',
-          metadata: {
-            paymentMethod,
-            markedPaidManually: true,
-          } as Prisma.InputJsonValue,
-        },
-      });
+    const payment = await this.prisma.payment.create({
+      data: {
+        tenantId,
+        bookingId,
+        amount,
+        currency,
+        type: 'FULL_PAYMENT',
+        status: 'SUCCEEDED',
+        metadata: {
+          paymentMethod,
+          markedPaidManually: true,
+        } as Prisma.InputJsonValue,
+      },
+    });
 
-      await tx.paymentStateHistory.create({
-        data: {
-          paymentId: created.id,
-          tenantId,
-          fromState: 'CREATED',
-          toState: 'SUCCEEDED',
-          triggeredBy: 'ADMIN',
-          reason: `Marked paid offline via ${paymentMethod}`,
-        },
-      });
-
-      return created;
+    // Create state history (directly to SUCCEEDED)
+    await this.prisma.paymentStateHistory.create({
+      data: {
+        paymentId: payment.id,
+        tenantId,
+        fromState: 'CREATED',
+        toState: 'SUCCEEDED',
+        triggeredBy: 'ADMIN',
+        reason: `Marked paid offline via ${paymentMethod}`,
+      },
     });
 
     // Load booking details for event payload

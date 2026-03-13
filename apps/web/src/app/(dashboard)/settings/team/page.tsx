@@ -8,7 +8,6 @@ import { apiClient } from '@/lib/api-client';
 import { ROUTES } from '@/lib/constants';
 import { useTenant } from '@/hooks/use-tenant';
 import { useAuth } from '@/hooks/use-auth';
-import { RequireRole } from '@/components/auth/require-role';
 import { InviteDialog } from '@/components/team/invite-dialog';
 import {
   MemberList,
@@ -100,83 +99,81 @@ export default function TeamSettingsPage() {
   // ---------- Render ----------
 
   return (
-    <RequireRole minimum="ADMIN">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push(ROUTES.SETTINGS)}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h2 className="text-lg font-semibold">Team</h2>
-              <p className="text-sm text-muted-foreground">
-                Manage your team members and invitations
-              </p>
-            </div>
-          </div>
-          <Button onClick={() => setInviteDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Invite Member
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push(ROUTES.SETTINGS)}
+          >
+            <ArrowLeft className="h-4 w-4" />
           </Button>
-        </div>
-
-        {error && (
-          <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-            {error}
+          <div>
+            <h2 className="text-lg font-semibold">Team</h2>
+            <p className="text-sm text-muted-foreground">
+              Manage your team members and invitations
+            </p>
           </div>
-        )}
-
-        {/* Team Members Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Team Members</CardTitle>
-            <CardDescription>
-              {members.length === 0
-                ? 'No team members yet. Invite someone to collaborate on your business.'
-                : `${members.length} member${members.length !== 1 ? 's' : ''} on your team`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {members.length === 0 && invitations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <UserPlus className="mb-4 h-12 w-12 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
-                  Your team is empty. Invite members to start collaborating.
-                </p>
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() => setInviteDialogOpen(true)}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Invite Member
-                </Button>
-              </div>
-            ) : (
-              <MemberList
-                tenantId={tenantId}
-                members={members}
-                invitations={invitations}
-                currentUserId={user?.id ?? null}
-                onMembersChanged={fetchTeamData}
-              />
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Invite Dialog */}
-        <InviteDialog
-          tenantId={tenantId}
-          open={inviteDialogOpen}
-          onOpenChange={setInviteDialogOpen}
-          onSuccess={fetchTeamData}
-        />
+        </div>
+        <Button onClick={() => setInviteDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Invite Member
+        </Button>
       </div>
-    </RequireRole>
+
+      {error && (
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      {/* Team Members Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Team Members</CardTitle>
+          <CardDescription>
+            {members.length === 0
+              ? 'No team members yet. Invite someone to collaborate on your business.'
+              : `${members.length} member${members.length !== 1 ? 's' : ''} on your team`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {members.length === 0 && invitations.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <UserPlus className="mb-4 h-12 w-12 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Your team is empty. Invite members to start collaborating.
+              </p>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={() => setInviteDialogOpen(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Invite Member
+              </Button>
+            </div>
+          ) : (
+            <MemberList
+              tenantId={tenantId}
+              members={members}
+              invitations={invitations}
+              currentUserId={user?.id ?? null}
+              onMembersChanged={fetchTeamData}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Invite Dialog */}
+      <InviteDialog
+        tenantId={tenantId}
+        open={inviteDialogOpen}
+        onOpenChange={setInviteDialogOpen}
+        onSuccess={fetchTeamData}
+      />
+    </div>
   );
 }

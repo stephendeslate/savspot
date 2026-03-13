@@ -240,7 +240,7 @@ export default function ClientDetailPage() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Clients
         </Button>
-        <div className="rounded-md bg-destructive/10 p-6 text-center">
+        <div role="alert" className="rounded-md bg-destructive/10 p-6 text-center">
           <p className="text-sm text-destructive">
             {error ?? 'Client not found'}
           </p>

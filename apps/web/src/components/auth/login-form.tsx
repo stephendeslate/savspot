@@ -33,8 +33,7 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const { login, loadUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
-  const rawFrom = searchParams.get('from') || ROUTES.DASHBOARD;
-  const from = rawFrom.startsWith('/') && !rawFrom.startsWith('//') ? rawFrom : ROUTES.DASHBOARD;
+  const from = searchParams.get('from') || ROUTES.DASHBOARD;
 
   useEffect(() => {
     const oauth = searchParams.get('oauth');
@@ -66,7 +65,7 @@ export function LoginForm() {
     try {
       setError(null);
       await login(values);
-      router.push(from);
+      router.push(ROUTES.DASHBOARD);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(
@@ -99,7 +98,7 @@ export function LoginForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           )}

@@ -120,6 +120,9 @@ export class AdyenWebhookController {
   ): void {
     const hmacKey = process.env['ADYEN_HMAC_KEY'];
     if (!hmacKey) {
+      if (process.env['NODE_ENV'] === 'production') {
+        throw new BadRequestException('HMAC verification is required in production');
+      }
       this.logger.warn(
         'No ADYEN_HMAC_KEY configured — skipping HMAC verification',
       );
@@ -133,9 +136,7 @@ export class AdyenWebhookController {
       .createHmac('sha256', keyBuffer)
       .update(payload)
       .digest('base64');
-    const computedBuf = Buffer.from(computed, 'base64');
-    const signatureBuf = Buffer.from(signature, 'base64');
-    if (computedBuf.length !== signatureBuf.length || !crypto.timingSafeEqual(computedBuf, signatureBuf)) {
+    if (computed !== signature) {
       throw new BadRequestException('Invalid HMAC signature');
     }
   }
@@ -185,20 +186,22 @@ export class AdyenWebhookController {
           });
           if (payment) {
             const previousStatus = payment.status;
-            await this.prisma.payment.update({
-              where: { id: payment.id },
-              data: { status: 'REFUNDED' },
-            });
-            await this.prisma.paymentStateHistory.create({
-              data: {
-                paymentId: payment.id,
-                tenantId: payment.tenantId,
-                fromState: previousStatus,
-                toState: 'REFUNDED',
-                triggeredBy: 'WEBHOOK',
-                reason: 'Adyen refund webhook confirmation',
-              },
-            });
+            await this.prisma.$transaction([
+              this.prisma.payment.update({
+                where: { id: payment.id },
+                data: { status: 'REFUNDED' },
+              }),
+              this.prisma.paymentStateHistory.create({
+                data: {
+                  paymentId: payment.id,
+                  tenantId: payment.tenantId,
+                  fromState: previousStatus,
+                  toState: 'REFUNDED',
+                  triggeredBy: 'WEBHOOK',
+                  reason: 'Adyen refund webhook confirmation',
+                },
+              }),
+            ]);
           }
         }
         break;
