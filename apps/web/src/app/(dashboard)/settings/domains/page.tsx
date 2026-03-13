@@ -270,7 +270,7 @@ export default function DomainsSettingsPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -392,7 +392,7 @@ export default function DomainsSettingsPage() {
 
                 {domain.status === 'FAILED' && (
                   <div className="space-y-3">
-                    <div className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">
+                    <div role="alert" className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">
                       DNS verification failed. Please check your DNS records and try again.
                     </div>
                     <Button
@@ -429,7 +429,7 @@ export default function DomainsSettingsPage() {
           </DialogHeader>
 
           {formError && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               {formError}
             </div>
           )}
