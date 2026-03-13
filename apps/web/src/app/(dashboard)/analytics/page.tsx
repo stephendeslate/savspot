@@ -101,8 +101,13 @@ export default function AnalyticsPage() {
 
     if (overviewResult.status === 'fulfilled') {
       setOverview(overviewResult.value);
+    } else if (isSubscriptionError(overviewResult.reason)) {
+      // Overview shouldn't be gated, but handle gracefully if it is
+      setError(null);
     } else {
-      setError('Failed to load analytics overview');
+      const reason = overviewResult.reason;
+      const msg = reason instanceof Error ? reason.message : 'Failed to load analytics overview';
+      setError(msg);
     }
 
     if (revenueResult.status === 'fulfilled') {
