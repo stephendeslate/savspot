@@ -121,9 +121,23 @@ class ApiClient {
         credentials: 'include',
         body: JSON.stringify({}),
       });
-      return res.ok;
+      if (!res.ok) {
+        this.clearSessionCookie();
+        return false;
+      }
+      return true;
     } catch {
+      this.clearSessionCookie();
       return false;
+    }
+  }
+
+  private clearSessionCookie(): void {
+    if (typeof document !== 'undefined') {
+      // Clear with domain (production)
+      document.cookie = 'savspot_session=; path=/; domain=.savspot.co; max-age=0';
+      // Clear without domain (local dev)
+      document.cookie = 'savspot_session=; path=/; max-age=0';
     }
   }
 
