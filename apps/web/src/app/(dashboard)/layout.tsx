@@ -40,12 +40,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
   }, [isLoading, isAuthenticated, router]);
 
-  if (!isLoading && !isAuthenticated) {
-    return null;
-  }
-
-  // Show loading state
-  if (isLoading) {
+  // Show loading skeleton while checking auth or redirecting to login
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="flex min-h-screen">
         <div className="hidden lg:block w-64 border-r bg-card" />
