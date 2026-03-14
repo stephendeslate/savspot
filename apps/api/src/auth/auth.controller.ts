@@ -113,6 +113,7 @@ export class AuthController {
   ) {
     const result = await this.authService.login(dto.email, dto.password);
     if ('accessToken' in result && 'refreshToken' in result) {
+      this.clearAuthCookies(res);
       this.setAuthCookies(res, { accessToken: result.accessToken as string, refreshToken: result.refreshToken as string });
     }
     return result;
@@ -148,6 +149,7 @@ export class AuthController {
       throw new BadRequestException('Refresh token is required');
     }
     const result = await this.authService.refreshTokens(refreshToken);
+    this.clearAuthCookies(res);
     this.setAuthCookies(res, { accessToken: result.accessToken as string, refreshToken: result.refreshToken as string });
     return result;
   }
@@ -231,6 +233,7 @@ export class AuthController {
 
     try {
       const result = await this.authService.loginOAuthUser(user['id'] as string);
+      this.clearAuthCookies(res);
       this.setAuthCookies(res, { accessToken: result.accessToken as string, refreshToken: result.refreshToken as string });
       return res.redirect(`${webUrl}/login?oauth=success`);
     } catch {
@@ -264,6 +267,7 @@ export class AuthController {
 
     try {
       const result = await this.authService.loginOAuthUser(user['id'] as string);
+      this.clearAuthCookies(res);
       this.setAuthCookies(res, { accessToken: result.accessToken as string, refreshToken: result.refreshToken as string });
       return res.redirect(`${webUrl}/login?oauth=success`);
     } catch {
