@@ -5,29 +5,30 @@
 /**
  * Returns Tailwind classes for a booking status badge.
  * Covers booking statuses and common payment statuses (SUCCEEDED, FAILED, REFUNDED).
+ * Uses semantic status tokens defined in globals.css.
  */
 export function getStatusColor(status: string): string {
   switch (status) {
     case 'PENDING':
-      return 'bg-yellow-100 text-yellow-800';
+      return 'bg-status-pending text-status-pending-foreground';
     case 'CONFIRMED':
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-status-confirmed text-status-confirmed-foreground';
     case 'IN_PROGRESS':
-      return 'bg-purple-100 text-purple-800';
+      return 'bg-status-confirmed text-status-confirmed-foreground';
     case 'COMPLETED':
-      return 'bg-green-100 text-green-800';
+      return 'bg-status-completed text-status-completed-foreground';
     case 'CANCELLED':
-      return 'bg-red-100 text-red-800';
+      return 'bg-status-cancelled text-status-cancelled-foreground';
     case 'NO_SHOW':
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-status-neutral text-status-neutral-foreground';
     case 'SUCCEEDED':
-      return 'bg-green-100 text-green-800';
+      return 'bg-status-completed text-status-completed-foreground';
     case 'FAILED':
-      return 'bg-red-100 text-red-800';
+      return 'bg-status-error text-status-error-foreground';
     case 'REFUNDED':
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-status-neutral text-status-neutral-foreground';
     default:
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-status-neutral text-status-neutral-foreground';
   }
 }
 
@@ -37,13 +38,13 @@ export function getStatusColor(status: string): string {
 export function getSourceColor(source: string): string {
   switch (source) {
     case 'WALK_IN':
-      return 'bg-orange-100 text-orange-800';
+      return 'bg-status-pending text-status-pending-foreground';
     case 'DIRECT':
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-status-confirmed text-status-confirmed-foreground';
     case 'REFERRAL':
-      return 'bg-green-100 text-green-800';
+      return 'bg-status-completed text-status-completed-foreground';
     default:
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-status-neutral text-status-neutral-foreground';
   }
 }
 
@@ -55,20 +56,20 @@ export function getPaymentStatusColor(status: string): string {
     case 'PAID':
     case 'SUCCEEDED':
     case 'COMPLETED':
-      return 'bg-green-100 text-green-800';
+      return 'bg-status-completed text-status-completed-foreground';
     case 'SENT':
     case 'PENDING':
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-status-confirmed text-status-confirmed-foreground';
     case 'PROCESSING':
-      return 'bg-yellow-100 text-yellow-800';
+      return 'bg-status-pending text-status-pending-foreground';
     case 'OVERDUE':
-      return 'bg-red-100 text-red-800';
+      return 'bg-status-error text-status-error-foreground';
     case 'FAILED':
-      return 'bg-red-100 text-red-800';
+      return 'bg-status-error text-status-error-foreground';
     case 'REFUNDED':
-      return 'bg-orange-100 text-orange-800';
+      return 'bg-status-pending text-status-pending-foreground';
     default:
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-status-neutral text-status-neutral-foreground';
   }
 }
 
@@ -80,20 +81,20 @@ export function getInvoiceStatusColor(status: string): string {
     case 'PAID':
     case 'SUCCEEDED':
     case 'COMPLETED':
-      return 'bg-green-100 text-green-800';
+      return 'bg-status-completed text-status-completed-foreground';
     case 'SENT':
     case 'PENDING':
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-status-confirmed text-status-confirmed-foreground';
     case 'OVERDUE':
-      return 'bg-red-100 text-red-800';
+      return 'bg-status-error text-status-error-foreground';
     case 'DRAFT':
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-status-neutral text-status-neutral-foreground';
     case 'REFUNDED':
-      return 'bg-orange-100 text-orange-800';
+      return 'bg-status-pending text-status-pending-foreground';
     case 'VOID':
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-status-cancelled text-status-cancelled-foreground';
     default:
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-status-neutral text-status-neutral-foreground';
   }
 }
 

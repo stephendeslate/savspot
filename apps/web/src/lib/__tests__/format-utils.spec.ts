@@ -11,76 +11,76 @@ import {
 
 describe('getStatusColor', () => {
   it.each([
-    ['PENDING', 'bg-yellow-100 text-yellow-800'],
-    ['CONFIRMED', 'bg-blue-100 text-blue-800'],
-    ['IN_PROGRESS', 'bg-purple-100 text-purple-800'],
-    ['COMPLETED', 'bg-green-100 text-green-800'],
-    ['CANCELLED', 'bg-red-100 text-red-800'],
-    ['NO_SHOW', 'bg-gray-100 text-gray-800'],
-    ['SUCCEEDED', 'bg-green-100 text-green-800'],
-    ['FAILED', 'bg-red-100 text-red-800'],
-    ['REFUNDED', 'bg-gray-100 text-gray-800'],
+    ['PENDING', 'bg-status-pending text-status-pending-foreground'],
+    ['CONFIRMED', 'bg-status-confirmed text-status-confirmed-foreground'],
+    ['IN_PROGRESS', 'bg-status-confirmed text-status-confirmed-foreground'],
+    ['COMPLETED', 'bg-status-completed text-status-completed-foreground'],
+    ['CANCELLED', 'bg-status-cancelled text-status-cancelled-foreground'],
+    ['NO_SHOW', 'bg-status-neutral text-status-neutral-foreground'],
+    ['SUCCEEDED', 'bg-status-completed text-status-completed-foreground'],
+    ['FAILED', 'bg-status-error text-status-error-foreground'],
+    ['REFUNDED', 'bg-status-neutral text-status-neutral-foreground'],
   ])('returns correct classes for %s', (status, expected) => {
     expect(getStatusColor(status)).toBe(expected);
   });
 
-  it('returns default gray classes for unknown status', () => {
-    expect(getStatusColor('UNKNOWN')).toBe('bg-gray-100 text-gray-800');
-    expect(getStatusColor('')).toBe('bg-gray-100 text-gray-800');
+  it('returns default neutral classes for unknown status', () => {
+    expect(getStatusColor('UNKNOWN')).toBe('bg-status-neutral text-status-neutral-foreground');
+    expect(getStatusColor('')).toBe('bg-status-neutral text-status-neutral-foreground');
   });
 });
 
 describe('getSourceColor', () => {
   it.each([
-    ['WALK_IN', 'bg-orange-100 text-orange-800'],
-    ['DIRECT', 'bg-blue-100 text-blue-800'],
-    ['REFERRAL', 'bg-green-100 text-green-800'],
+    ['WALK_IN', 'bg-status-pending text-status-pending-foreground'],
+    ['DIRECT', 'bg-status-confirmed text-status-confirmed-foreground'],
+    ['REFERRAL', 'bg-status-completed text-status-completed-foreground'],
   ])('returns correct classes for %s', (source, expected) => {
     expect(getSourceColor(source)).toBe(expected);
   });
 
-  it('returns default gray classes for unknown source', () => {
-    expect(getSourceColor('UNKNOWN')).toBe('bg-gray-100 text-gray-800');
+  it('returns default neutral classes for unknown source', () => {
+    expect(getSourceColor('UNKNOWN')).toBe('bg-status-neutral text-status-neutral-foreground');
   });
 });
 
 describe('getPaymentStatusColor', () => {
   it.each([
-    ['PAID', 'bg-green-100 text-green-800'],
-    ['SUCCEEDED', 'bg-green-100 text-green-800'],
-    ['COMPLETED', 'bg-green-100 text-green-800'],
-    ['SENT', 'bg-blue-100 text-blue-800'],
-    ['PENDING', 'bg-blue-100 text-blue-800'],
-    ['PROCESSING', 'bg-yellow-100 text-yellow-800'],
-    ['OVERDUE', 'bg-red-100 text-red-800'],
-    ['FAILED', 'bg-red-100 text-red-800'],
-    ['REFUNDED', 'bg-orange-100 text-orange-800'],
+    ['PAID', 'bg-status-completed text-status-completed-foreground'],
+    ['SUCCEEDED', 'bg-status-completed text-status-completed-foreground'],
+    ['COMPLETED', 'bg-status-completed text-status-completed-foreground'],
+    ['SENT', 'bg-status-confirmed text-status-confirmed-foreground'],
+    ['PENDING', 'bg-status-confirmed text-status-confirmed-foreground'],
+    ['PROCESSING', 'bg-status-pending text-status-pending-foreground'],
+    ['OVERDUE', 'bg-status-error text-status-error-foreground'],
+    ['FAILED', 'bg-status-error text-status-error-foreground'],
+    ['REFUNDED', 'bg-status-pending text-status-pending-foreground'],
   ])('returns correct classes for %s', (status, expected) => {
     expect(getPaymentStatusColor(status)).toBe(expected);
   });
 
-  it('returns default gray classes for unknown status', () => {
-    expect(getPaymentStatusColor('UNKNOWN')).toBe('bg-gray-100 text-gray-800');
+  it('returns default neutral classes for unknown status', () => {
+    expect(getPaymentStatusColor('UNKNOWN')).toBe('bg-status-neutral text-status-neutral-foreground');
   });
 });
 
 describe('getInvoiceStatusColor', () => {
   it.each([
-    ['PAID', 'bg-green-100 text-green-800'],
-    ['SUCCEEDED', 'bg-green-100 text-green-800'],
-    ['COMPLETED', 'bg-green-100 text-green-800'],
-    ['SENT', 'bg-blue-100 text-blue-800'],
-    ['PENDING', 'bg-blue-100 text-blue-800'],
-    ['OVERDUE', 'bg-red-100 text-red-800'],
-    ['DRAFT', 'bg-gray-100 text-gray-800'],
-    ['REFUNDED', 'bg-orange-100 text-orange-800'],
-    ['VOID', 'bg-gray-100 text-gray-800'],
+    ['PAID', 'bg-status-completed text-status-completed-foreground'],
+    ['SUCCEEDED', 'bg-status-completed text-status-completed-foreground'],
+    ['COMPLETED', 'bg-status-completed text-status-completed-foreground'],
+    ['SENT', 'bg-status-confirmed text-status-confirmed-foreground'],
+    ['PENDING', 'bg-status-confirmed text-status-confirmed-foreground'],
+    ['OVERDUE', 'bg-status-error text-status-error-foreground'],
+    ['DRAFT', 'bg-status-neutral text-status-neutral-foreground'],
+    ['REFUNDED', 'bg-status-pending text-status-pending-foreground'],
+    ['VOID', 'bg-status-cancelled text-status-cancelled-foreground'],
   ])('returns correct classes for %s', (status, expected) => {
     expect(getInvoiceStatusColor(status)).toBe(expected);
   });
 
-  it('returns default gray classes for unknown status', () => {
-    expect(getInvoiceStatusColor('UNKNOWN')).toBe('bg-gray-100 text-gray-800');
+  it('returns default neutral classes for unknown status', () => {
+    expect(getInvoiceStatusColor('UNKNOWN')).toBe('bg-status-neutral text-status-neutral-foreground');
   });
 });
 
