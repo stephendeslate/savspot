@@ -1,0 +1,47 @@
+# Dependencies (installed fresh in Docker)
+node_modules
+**/node_modules
+
+# Build output (built fresh in Docker)
+.next
+out
+**/dist
+
+# Version control
+.git
+.gitignore
+
+# Environment files (secrets set via env vars)
+.env
+.env.*
+!.env.example
+
+# Test files
+e2e/
+**/*.spec.ts
+**/*.test.ts
+coverage/
+test-results/
+playwright-report/
+
+# IDE / editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Turborepo cache
+.turbo
+
+# Misc
+*.md
+LICENSE
