@@ -139,15 +139,27 @@ export default function InsightsPage() {
     enabled: !!tenantId,
   });
 
+  const insightsKey = ['insights-demand', tenantId];
   const dismissMutation = useMutation({
     mutationFn: (insightId: string) =>
       apiClient.post(
         `/api/tenants/${tenantId}/ai/insights/${insightId}/dismiss`,
       ),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ['insights-demand', tenantId],
-      });
+    onMutate: async (insightId) => {
+      await queryClient.cancelQueries({ queryKey: insightsKey });
+      const previous = queryClient.getQueryData<DemandInsight[]>(insightsKey);
+      queryClient.setQueryData<DemandInsight[]>(insightsKey, (old) =>
+        old?.filter((i) => i.id !== insightId),
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(insightsKey, context.previous);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: insightsKey });
     },
   });
 

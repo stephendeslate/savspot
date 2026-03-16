@@ -102,12 +102,33 @@ export default function MessagesPage() {
     enabled: !!tenantId && !!selectedThreadId,
   });
 
+  const threadsKey = queryKeys.messageThreads(tenantId!, debouncedSearch);
   const markReadMutation = useMutation({
     mutationFn: (threadId: string) =>
       apiClient.patch(
         `/api/tenants/${tenantId}/messages/threads/${threadId}/read`,
       ),
-    onSuccess: () => {
+    onMutate: async (threadId) => {
+      await queryClient.cancelQueries({ queryKey: threadsKey });
+      const previous = queryClient.getQueryData<ThreadsResponse>(threadsKey);
+      queryClient.setQueryData<ThreadsResponse>(threadsKey, (old) =>
+        old
+          ? {
+              ...old,
+              data: old.data.map((t) =>
+                t.id === threadId ? { ...t, unreadCount: 0 } : t,
+              ),
+            }
+          : old,
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(threadsKey, context.previous);
+      }
+    },
+    onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ['message-threads', tenantId] });
     },
   });
@@ -118,8 +139,32 @@ export default function MessagesPage() {
         `/api/tenants/${tenantId}/messages/threads/${selectedThreadId}/messages`,
         { body },
       ),
-    onSuccess: () => {
+    onMutate: async (body) => {
+      const threadKey = queryKeys.messageThread(tenantId!, selectedThreadId!);
+      await queryClient.cancelQueries({ queryKey: threadKey });
+      const previous = queryClient.getQueryData<ThreadDetailResponse>(threadKey);
+      const optimisticMessage: Message = {
+        id: `optimistic-${Date.now()}`,
+        body,
+        senderType: 'STAFF',
+        senderName: null,
+        createdAt: new Date().toISOString(),
+      };
+      queryClient.setQueryData<ThreadDetailResponse>(threadKey, (old) =>
+        old
+          ? { ...old, messages: [...(old.messages ?? []), optimisticMessage] }
+          : old,
+      );
       setNewMessage('');
+      return { previous, threadKey };
+    },
+    onError: (_err, body, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(context.threadKey, context.previous);
+        setNewMessage(body);
+      }
+    },
+    onSettled: () => {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.messageThread(tenantId!, selectedThreadId!),
       });
@@ -133,12 +178,39 @@ export default function MessagesPage() {
         `/api/tenants/${tenantId}/messages/threads`,
         data,
       ),
-    onSuccess: (thread) => {
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({ queryKey: threadsKey });
+      const previous = queryClient.getQueryData<ThreadsResponse>(threadsKey);
+      const optimisticThread: MessageThread = {
+        id: `optimistic-${Date.now()}`,
+        subject: data.subject,
+        clientId: null,
+        clientName: data.clientName || null,
+        lastMessageAt: new Date().toISOString(),
+        unreadCount: 0,
+        status: 'OPEN',
+      };
+      queryClient.setQueryData<ThreadsResponse>(threadsKey, (old) =>
+        old
+          ? { ...old, data: [optimisticThread, ...old.data], meta: { ...old.meta, total: old.meta.total + 1 } }
+          : old,
+      );
       setNewThreadOpen(false);
       setNewThreadSubject('');
       setNewThreadClientName('');
       setNewThreadBody('');
+      return { previous };
+    },
+    onSuccess: (thread) => {
       setSelectedThreadId(thread.id);
+    },
+    onError: (_err, _data, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(threadsKey, context.previous);
+      }
+      setNewThreadOpen(true);
+    },
+    onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ['message-threads', tenantId] });
     },
   });

@@ -207,14 +207,38 @@ export default function ContractsPage() {
 
     setSaving(true);
 
-    try {
-      const payload: Record<string, unknown> = {
-        name: formData.name.trim(),
-        clientEmail: formData.clientEmail.trim(),
-      };
-      if (formData.templateId) payload['templateId'] = formData.templateId;
-      if (formData.content.trim()) payload['content'] = formData.content.trim();
+    const previous = contracts;
+    const payload: Record<string, unknown> = {
+      name: formData.name.trim(),
+      clientEmail: formData.clientEmail.trim(),
+    };
+    if (formData.templateId) payload['templateId'] = formData.templateId;
+    if (formData.content.trim()) payload['content'] = formData.content.trim();
 
+    if (editingContract) {
+      setContracts((prev) =>
+        prev.map((c) =>
+          c.id === editingContract.id
+            ? { ...c, name: formData.name.trim(), clientEmail: formData.clientEmail.trim() }
+            : c,
+        ),
+      );
+    } else {
+      const optimistic: Contract = {
+        id: `optimistic-${Date.now()}`,
+        name: formData.name.trim(),
+        clientName: '',
+        clientEmail: formData.clientEmail.trim(),
+        status: 'DRAFT',
+        templateName: null,
+        createdAt: new Date().toISOString(),
+        signedAt: null,
+      };
+      setContracts((prev) => [optimistic, ...prev]);
+    }
+    setDialogOpen(false);
+
+    try {
       if (editingContract) {
         await apiClient.patch(
           `/api/tenants/${tenantId}/contracts/${editingContract.id}`,
@@ -229,10 +253,11 @@ export default function ContractsPage() {
         setSuccess('Contract created successfully');
       }
 
-      setDialogOpen(false);
       await fetchContracts();
       setTimeout(() => setSuccess(null), 4000);
     } catch (err) {
+      setContracts(previous);
+      setDialogOpen(true);
       setFormError(
         err instanceof Error ? err.message : 'Failed to save contract',
       );
@@ -246,6 +271,10 @@ export default function ContractsPage() {
     if (!tenantId) return;
     setOpenActionId(null);
 
+    const previous = contracts;
+    setContracts((prev) =>
+      prev.map((c) => (c.id === contract.id ? { ...c, status: 'SENT' } : c)),
+    );
     try {
       await apiClient.post(
         `/api/tenants/${tenantId}/contracts/${contract.id}/send`,
@@ -254,6 +283,7 @@ export default function ContractsPage() {
       await fetchContracts();
       setTimeout(() => setSuccess(null), 4000);
     } catch (err) {
+      setContracts(previous);
       setError(
         err instanceof Error ? err.message : 'Failed to send contract',
       );
@@ -265,6 +295,10 @@ export default function ContractsPage() {
     if (!tenantId) return;
     setOpenActionId(null);
 
+    const previous = contracts;
+    setContracts((prev) =>
+      prev.map((c) => (c.id === contract.id ? { ...c, status: 'VOIDED' } : c)),
+    );
     try {
       await apiClient.post(
         `/api/tenants/${tenantId}/contracts/${contract.id}/void`,
@@ -273,6 +307,7 @@ export default function ContractsPage() {
       await fetchContracts();
       setTimeout(() => setSuccess(null), 4000);
     } catch (err) {
+      setContracts(previous);
       setError(
         err instanceof Error ? err.message : 'Failed to void contract',
       );

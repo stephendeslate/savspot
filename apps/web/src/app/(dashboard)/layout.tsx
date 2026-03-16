@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Sidebar } from '@/components/layout/sidebar';
+import { Sidebar, COLLAPSED_KEY } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { PushPrompt } from '@/components/push-prompt';
 import { MobileNav } from '@/components/layout/mobile-nav';
@@ -27,11 +27,27 @@ const pageTitles: Record<string, string> = {
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { isLoading, isAuthenticated } = useAuth();
 
   const title = pageTitles[pathname] ?? '';
+
+  // Sync sidebar collapsed state from localStorage
+  useEffect(() => {
+    const check = () => {
+      setSidebarCollapsed(localStorage.getItem(COLLAPSED_KEY) === 'true');
+    };
+    check();
+    window.addEventListener('storage', check);
+    // Also poll briefly — the sidebar sets localStorage on click
+    const interval = setInterval(check, 200);
+    return () => {
+      window.removeEventListener('storage', check);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -74,13 +90,21 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       />
 
       {/* Main content */}
-      <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
+      <div
+        className="flex min-w-0 flex-1 flex-col transition-[padding] duration-200"
+        style={{ paddingLeft: `var(--sidebar-width, 0px)` }}
+      >
+        <style>{`
+          @media (min-width: 1024px) {
+            :root { --sidebar-width: ${sidebarCollapsed ? '4rem' : '16rem'}; }
+          }
+        `}</style>
         <Header
           title={title}
           onMenuClick={() => setMobileNavOpen(true)}
         />
         <PushPrompt />
-        <main className="min-w-0 flex-1 p-4 lg:p-6 animate-in fade-in duration-150">
+        <main className="min-w-0 flex-1 p-4 lg:p-6 max-w-[1600px] animate-in fade-in duration-150">
           {children}
         </main>
       </div>
