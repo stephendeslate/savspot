@@ -1,0 +1,45 @@
+# =============================================================================
+# SavSpot — Caddy Reverse Proxy
+# =============================================================================
+# Automatic HTTPS via Let's Encrypt when DOMAIN is set to a real domain.
+# Falls back to HTTP on localhost for local testing.
+# =============================================================================
+
+{$DOMAIN:localhost} {
+	# API routes → NestJS backend
+	handle /api/* {
+		reverse_proxy api:3001
+	}
+
+	# Health check endpoint (direct to API)
+	handle /health {
+		reverse_proxy api:3001
+	}
+
+	# Stripe webhook (direct to API, no buffering)
+	handle /webhooks/* {
+		reverse_proxy api:3001
+	}
+
+	# Everything else → Next.js frontend
+	handle {
+		reverse_proxy web:3000
+	}
+
+	# Compression
+	encode gzip zstd
+
+	# Security headers
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	# Logging
+	log {
+		output stdout
+		format console
+	}
+}
