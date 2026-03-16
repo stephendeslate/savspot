@@ -117,6 +117,9 @@ describe('TenantsService', () => {
       prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
         const tx = {
           $executeRaw: vi.fn(),
+          tenantMembership: {
+            findFirst: vi.fn().mockResolvedValue(null),
+          },
           tenant: {
             create: vi.fn().mockResolvedValue(createdTenant),
           },
