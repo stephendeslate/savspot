@@ -86,7 +86,7 @@ export default function BookingDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [actionLoading, _setActionLoading] = useState(false);
 
   // Notes editing
   const [editedNotes, setEditedNotes] = useState('');
