@@ -17,7 +17,7 @@ export function Header({ title, onMenuClick }: HeaderProps) {
   const displayName = user ? user.name : 'Loading...';
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border/50 bg-background/80 backdrop-blur-sm px-4 lg:px-6">
+    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border/50 bg-background/80 backdrop-blur-sm px-4 lg:px-6">
       {/* Left: Mobile menu button + title */}
       <div className="flex items-center gap-4">
         <button
