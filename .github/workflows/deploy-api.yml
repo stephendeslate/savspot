@@ -18,7 +18,7 @@ jobs:
     name: Deploy API to Fly.io
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.event.workflow_run.conclusion == 'success' && github.repository == 'stephendeslate/savspot'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [deploy]
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.event.workflow_run.conclusion == 'success' && github.repository == 'stephendeslate/savspot'
     steps:
       - uses: actions/checkout@v6
         with:
