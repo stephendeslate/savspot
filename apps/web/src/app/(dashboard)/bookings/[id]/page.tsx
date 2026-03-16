@@ -86,7 +86,7 @@ export default function BookingDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [actionLoading, _setActionLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Notes editing
   const [editedNotes, setEditedNotes] = useState('');
@@ -144,6 +144,7 @@ export default function BookingDetailPage() {
     const previous = booking;
     setBooking((prev) => prev ? { ...prev, status: 'CONFIRMED' } : prev);
     setActionError(null);
+    setActionLoading(true);
     try {
       await apiClient.post(
         `/api/tenants/${tenantId}/bookings/${bookingId}/confirm`,
@@ -154,6 +155,8 @@ export default function BookingDetailPage() {
       setActionError(
         err instanceof Error ? err.message : 'Failed to confirm booking',
       );
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -163,6 +166,7 @@ export default function BookingDetailPage() {
     setBooking((prev) => prev ? { ...prev, status: 'CANCELLED' } : prev);
     setCancelOpen(false);
     setActionError(null);
+    setActionLoading(true);
     try {
       await apiClient.post(
         `/api/tenants/${tenantId}/bookings/${bookingId}/cancel`,
@@ -175,6 +179,8 @@ export default function BookingDetailPage() {
       setActionError(
         err instanceof Error ? err.message : 'Failed to cancel booking',
       );
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -183,6 +189,7 @@ export default function BookingDetailPage() {
     const previous = booking;
     setBooking((prev) => prev ? { ...prev, status: 'NO_SHOW' } : prev);
     setActionError(null);
+    setActionLoading(true);
     try {
       await apiClient.post(
         `/api/tenants/${tenantId}/bookings/${bookingId}/no-show`,
@@ -193,6 +200,8 @@ export default function BookingDetailPage() {
       setActionError(
         err instanceof Error ? err.message : 'Failed to mark as no-show',
       );
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -213,6 +222,7 @@ export default function BookingDetailPage() {
     setBooking((prev) => prev ? { ...prev, startTime, endTime } : prev);
     setRescheduleOpen(false);
     setActionError(null);
+    setActionLoading(true);
     try {
       await apiClient.post(
         `/api/tenants/${tenantId}/bookings/${bookingId}/reschedule`,
@@ -230,6 +240,8 @@ export default function BookingDetailPage() {
           err instanceof Error ? err.message : 'Failed to reschedule booking',
         );
       }
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -251,6 +263,7 @@ export default function BookingDetailPage() {
     );
     setMarkPaidOpen(false);
     setActionError(null);
+    setActionLoading(true);
     try {
       await apiClient.post(
         `/api/tenants/${tenantId}/bookings/${bookingId}/mark-paid`,
@@ -266,6 +279,8 @@ export default function BookingDetailPage() {
       setActionError(
         err instanceof Error ? err.message : 'Failed to mark as paid',
       );
+    } finally {
+      setActionLoading(false);
     }
   };
 
