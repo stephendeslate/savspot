@@ -3,7 +3,7 @@ name: reviewer
 description: >
   Reviews code changes for bugs, security issues, and quality problems.
   Use before merging important changes. Read-only — does not modify files.
-model: anthropic/claude-opus-4-6
+model: claude-opus-4-6-20250918
 allowed_tools:
   - Read
   - Glob

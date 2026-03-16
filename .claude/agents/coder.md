@@ -1,12 +1,11 @@
 ---
-name: local-coder
+name: coder
 description: >
-  Full implementation agent using local model. Use for writing new features,
-  implementing code from a decided plan, generating modules/services/components,
-  and any coding task where the architecture is already determined. Zero token
-  cost. Runs in isolated worktree. Do NOT use for architectural decisions or
-  ambiguous requirements — use Opus for those.
-model: ollama/qwen3-coder-next
+  Implementation agent for SavSpot. Runs on local model via Ollama (zero API cost).
+  Use for all code changes: features, bug fixes, refactoring, config updates.
+  Runs in an isolated worktree. Knows SavSpot conventions (Turborepo, NestJS,
+  Next.js, Prisma, RLS multi-tenancy).
+model: qwen3-coder-next:q8_0
 isolation: worktree
 allowed_tools:
   - Read
