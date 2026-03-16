@@ -19,6 +19,13 @@ pnpm format / format:check
 - **BullMQ workers:** Run outside HTTP lifecycle — pass tenant_id in job payload
 - **Payments:** Stripe Connect Express with destination charges + application_fee_amount
 
+## Coder Agent Limits (Stall Prevention)
+- Do NOT delegate if the primary file is >300 lines
+- Do NOT delegate if >3 functions need editing in one file
+- Do NOT delegate if the change involves cross-handler React state management
+- When in doubt: Opus implements directly — faster and more reliable
+- Override: include `CODER_FORCE` in the prompt to bypass the PreToolUse size check
+
 ## Prisma + RLS + Interactive Transactions
 Prisma Client Extensions with `$allOperations` can create nested transactions that break `SELECT ... FOR UPDATE` locks. For booking slot reservation, use `$queryRaw` with explicit transaction.
 
