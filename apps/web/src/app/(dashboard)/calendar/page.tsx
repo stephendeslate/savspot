@@ -284,7 +284,7 @@ export default function CalendarPage() {
       const params = new URLSearchParams();
       params.set('startDate', dateRange.start.toISOString());
       params.set('endDate', dateRange.end.toISOString());
-      params.set('limit', '500');
+      params.set('limit', '100');
       const res = await apiClient.getRaw<BookingsResponse>(
         `/api/tenants/${tenantId}/bookings?${params.toString()}`,
       );
