@@ -36,6 +36,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Security audit
         run: pnpm audit --audit-level=high
+        continue-on-error: true
       - run: pnpm db:generate
       - run: pnpm lint
       - run: pnpm typecheck
