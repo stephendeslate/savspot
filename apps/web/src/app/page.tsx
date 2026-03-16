@@ -27,32 +27,38 @@ import {
   Phone,
   Workflow,
   ChevronDown,
+  Github,
+  Terminal,
+  Code2,
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'SavSpot — The Booking Platform That Pays for Itself',
+  title: 'SavSpot — Open-Source Booking Platform for Service Businesses',
   description:
-    'All-in-one booking and business management platform for service businesses. Online scheduling, payments, client management, and AI-powered tools. Free to start.',
+    'Open-source booking and business management platform. Self-host with Docker or use our managed cloud. Scheduling, payments, CRM, and AI tools. AGPL v3 licensed.',
   openGraph: {
-    title: 'SavSpot — The Booking Platform That Pays for Itself',
+    title: 'SavSpot — Open-Source Booking Platform for Service Businesses',
     description:
-      'All-in-one booking and business management platform for service businesses. Online scheduling, payments, client management, and AI-powered tools.',
+      'Open-source booking and business management platform. Self-host with Docker or use our managed cloud. Scheduling, payments, CRM, and AI tools.',
     type: 'website',
-    url: 'https://savspot.com',
+    url: 'https://savspot.co',
     siteName: 'SavSpot',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'SavSpot — The Booking Platform That Pays for Itself',
+    title: 'SavSpot — Open-Source Booking Platform for Service Businesses',
     description:
-      'All-in-one booking and business management platform for service businesses.',
+      'Open-source booking platform. Self-host with Docker or use managed cloud. AGPL v3 licensed.',
   },
   keywords: [
-    'booking platform',
+    'open source booking platform',
+    'self-hosted booking software',
     'appointment scheduling',
     'business management',
     'online booking',
     'service business software',
+    'AGPL',
+    'docker booking',
   ],
 };
 
@@ -196,8 +202,19 @@ export default function Home() {
             <a href="#features" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
               Features
             </a>
-            <a href="#pricing" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+            <Link href="/pricing" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
               Pricing
+            </Link>
+            <Link href="/docs/self-hosting" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+              Self-Host
+            </Link>
+            <a
+              href="https://github.com/stephendeslate/savspot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Github className="h-5 w-5" />
             </a>
           </div>
           <div className="flex items-center gap-3">
@@ -232,14 +249,24 @@ export default function Home() {
           <div className="absolute left-1/2 top-0 -translate-x-1/2 h-[600px] w-[800px] rounded-full bg-primary/[0.04] blur-3xl" />
 
           <div className="relative mx-auto max-w-6xl px-4 py-24 text-center sm:py-32 lg:py-36">
+            <a
+              href="https://github.com/stephendeslate/savspot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:text-foreground"
+            >
+              <Code2 className="h-4 w-4" />
+              Open Source · AGPL v3
+              <ArrowRight className="h-3 w-3" />
+            </a>
             <h1 className="text-5xl font-bold tracking-tighter sm:text-6xl lg:text-7xl">
               The booking platform
               <br />
               <span className="text-accent">that pays for itself.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl">
-              Scheduling, payments, CRM, Google Calendar sync, and AI-powered tools for any service business.
-              Live in under 5 minutes. No monthly fees — we only earn when you do.
+              Open-source scheduling, payments, CRM, and AI tools for any service business.
+              Self-host with Docker or use our managed cloud. Live in under 5 minutes.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
@@ -249,16 +276,29 @@ export default function Home() {
                 Get Started Free
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
-              <Link
-                href="/login"
+              <a
+                href="https://github.com/stephendeslate/savspot"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex h-12 items-center justify-center rounded-lg border border-border bg-background px-8 text-base font-medium transition-colors hover:bg-secondary"
               >
-                Sign In
-              </Link>
+                <Github className="mr-2 h-5 w-5" />
+                Star on GitHub
+              </a>
             </div>
-            <p className="mt-5 text-sm text-muted-foreground">
-              No credit card required · Import clients from Booksy, Fresha, Square, or Vagaro
-            </p>
+            <div className="mt-5 flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-4">
+              <p className="text-sm text-muted-foreground">
+                No credit card required · Import from Booksy, Fresha, Square, or Vagaro
+              </p>
+              <span className="hidden text-muted-foreground/40 sm:inline">|</span>
+              <a
+                href="/docs/self-hosting"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+              >
+                <Terminal className="h-3.5 w-3.5" />
+                Self-host with Docker
+              </a>
+            </div>
           </div>
         </section>
 
@@ -385,19 +425,61 @@ export default function Home() {
               Simple, honest pricing
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-center text-muted-foreground">
-              Start free with everything you need. Upgrade only when you want more.
+              Self-host for free or let us handle the infrastructure. Upgrade only when you want more.
             </p>
-            <div className="mx-auto mt-12 grid max-w-4xl gap-6 lg:grid-cols-2">
-              {/* Free Tier */}
+            <div className="mx-auto mt-12 grid max-w-5xl gap-6 lg:grid-cols-3">
+              {/* Self-Hosted Tier */}
               <div className="flex flex-col rounded-xl border bg-card p-6 shadow-[var(--shadow-colored)]">
                 <div>
-                  <h3 className="text-lg font-semibold">Free</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold">Self-Hosted</h3>
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">AGPL v3</span>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <span className="text-3xl font-bold">Free</span>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Run on your own server. Full source code, no limits, no fees.
+                  </p>
+                </div>
+                <ul className="mt-6 flex-1 space-y-2.5">
+                  {[
+                    'Full source code access',
+                    'All features included',
+                    'No transaction fees',
+                    'Docker one-command setup',
+                    'Auto HTTPS via Caddy',
+                    'PostgreSQL + Redis included',
+                    'Unlimited businesses',
+                    'Community support',
+                  ].map((feature) => (
+                    <li key={feature} className="flex items-start gap-2 text-sm">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href="https://github.com/stephendeslate/savspot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-8 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-background text-sm font-medium transition-colors hover:bg-secondary"
+                >
+                  <Github className="h-4 w-4" />
+                  View on GitHub
+                </a>
+              </div>
+
+              {/* Cloud Free Tier */}
+              <div className="flex flex-col rounded-xl border bg-card p-6 shadow-[var(--shadow-colored)]">
+                <div>
+                  <h3 className="text-lg font-semibold">Cloud Free</h3>
                   <div className="mt-2 flex items-baseline gap-1">
                     <span className="text-3xl font-bold">$0</span>
                     <span className="text-sm text-muted-foreground">/month</span>
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Free forever. No credit card required. 1% fee on transactions.
+                    We host it for you. No credit card required. 1% fee on transactions.
                   </p>
                 </div>
                 <ul className="mt-6 flex-1 space-y-2.5">
@@ -416,7 +498,7 @@ export default function Home() {
                 </Link>
               </div>
 
-              {/* Pro Tier */}
+              {/* Cloud Pro Tier */}
               <div className="relative flex flex-col rounded-xl border-2 border-accent bg-card p-6 shadow-[var(--shadow-elevated)]">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground shadow-[0_0_12px_var(--glow-accent)]">
@@ -424,7 +506,7 @@ export default function Home() {
                   </span>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">Pro</h3>
+                  <h3 className="text-lg font-semibold">Cloud Pro</h3>
                   <div className="mt-2 flex items-baseline gap-1">
                     <span className="text-3xl font-bold">$10</span>
                     <span className="text-sm text-muted-foreground">/month</span>
@@ -453,8 +535,8 @@ export default function Home() {
               </div>
             </div>
             <p className="mx-auto mt-6 max-w-lg text-center text-xs text-muted-foreground">
-              A 1% processing fee applies to all transactions on both plans.
-              This is how we keep SavSpot affordable — no hidden charges.
+              Cloud plans include a 1% processing fee on transactions.
+              Self-hosted has no fees — bring your own Stripe account.
             </p>
           </div>
         </section>
@@ -464,9 +546,9 @@ export default function Home() {
           <div className="mx-auto max-w-6xl px-4">
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
               {[
+                { icon: Code2, title: 'Open source', desc: 'Full source code on GitHub. Audit it, extend it, or self-host it. AGPL v3 licensed.' },
                 { icon: Shield, title: 'Secure by default', desc: 'Row-level security, encrypted tokens, GDPR-compliant data handling.' },
                 { icon: Smartphone, title: 'Mobile-optimized', desc: 'Your booking page and admin dashboard work beautifully on any device.' },
-                { icon: Globe, title: 'Multi-timezone', desc: 'UTC storage with timezone-aware display. Serve clients anywhere.' },
                 { icon: Star, title: 'AI-powered', desc: 'AI voice receptionist, agent-bookable via MCP, and smart insights built in.' },
               ].map((item) => (
                 <div key={item.title} className="text-center">
@@ -491,15 +573,26 @@ export default function Home() {
             <p className="mt-3 text-primary-foreground/80">
               Join service businesses already using SavSpot to manage their schedule, payments, and clients — all in one place.
             </p>
-            <Link
-              href="/register"
-              className="mt-8 inline-flex h-12 items-center justify-center rounded-lg bg-accent px-8 text-base font-medium text-accent-foreground shadow-[0_0_24px_var(--glow-accent)] transition-all hover:shadow-[0_0_36px_var(--glow-accent)] hover:brightness-105"
-            >
-              Create Your Free Booking Page
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
+            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <Link
+                href="/register"
+                className="inline-flex h-12 items-center justify-center rounded-lg bg-accent px-8 text-base font-medium text-accent-foreground shadow-[0_0_24px_var(--glow-accent)] transition-all hover:shadow-[0_0_36px_var(--glow-accent)] hover:brightness-105"
+              >
+                Create Your Free Booking Page
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+              <a
+                href="https://github.com/stephendeslate/savspot"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-12 items-center justify-center rounded-lg border border-primary-foreground/20 px-8 text-base font-medium text-primary-foreground transition-colors hover:bg-primary-foreground/10"
+              >
+                <Github className="mr-2 h-5 w-5" />
+                Self-Host for Free
+              </a>
+            </div>
             <p className="mt-3 text-sm text-primary-foreground/70">
-              No credit card. No contracts. Cancel anytime.
+              No credit card. No contracts. Open source forever.
             </p>
           </div>
         </section>
@@ -508,11 +601,11 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t py-10">
         <div className="mx-auto max-w-6xl px-4">
-          <div className="grid gap-8 sm:grid-cols-4">
+          <div className="grid gap-8 sm:grid-cols-5">
             <div>
               <span className="text-sm font-semibold text-primary">SavSpot</span>
               <p className="mt-2 text-xs text-muted-foreground">
-                The booking platform that pays for itself.
+                Open-source booking platform for service businesses.
               </p>
             </div>
             <div>
@@ -520,10 +613,19 @@ export default function Home() {
               <ul className="mt-3 space-y-2">
                 <li><a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a></li>
                 <li><a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a></li>
+                <li><Link href="/docs/self-hosting" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Self-Host</Link></li>
               </ul>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Company</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Community</p>
+              <ul className="mt-3 space-y-2">
+                <li><a href="https://github.com/stephendeslate/savspot" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">GitHub</a></li>
+                <li><a href="https://github.com/stephendeslate/savspot/issues" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Issues</a></li>
+                <li><a href="https://github.com/stephendeslate/savspot/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Contributing</a></li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Account</p>
               <ul className="mt-3 space-y-2">
                 <li><Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Sign In</Link></li>
                 <li><Link href="/register" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Get Started</Link></li>
@@ -534,12 +636,13 @@ export default function Home() {
               <ul className="mt-3 space-y-2">
                 <li><Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms</Link></li>
                 <li><Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy</Link></li>
+                <li><a href="https://github.com/stephendeslate/savspot/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">License (AGPL v3)</a></li>
               </ul>
             </div>
           </div>
           <div className="mt-8 border-t pt-6">
             <p className="text-center text-xs text-muted-foreground">
-              &copy; {new Date().getFullYear()} SavSpot. All rights reserved.
+              &copy; {new Date().getFullYear()} SavSpot. Open source under AGPL v3.
             </p>
           </div>
         </div>
