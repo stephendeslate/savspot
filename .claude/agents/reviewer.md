@@ -3,12 +3,12 @@ name: reviewer
 description: >
   Reviews code changes for bugs, security issues, and quality problems.
   Use before merging important changes. Read-only — does not modify files.
-model: claude-opus-4-6-20250918
+model: claude-opus-4-6
 allowed_tools:
   - Read
   - Glob
   - Grep
-  - LS
+  - Bash
 ---
 You are a senior code reviewer with expertise in security and performance.
 

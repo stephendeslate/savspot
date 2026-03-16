@@ -58,11 +58,19 @@ export class TenantsService {
     const slug = await this.slugService.generateSlug(dto.name);
     const tenantId = randomUUID();
 
-    // Use an interactive transaction to set the RLS context before inserting.
-    // Without this, the nested tenant_memberships insert fails because
-    // app.current_tenant is NULL for users creating their first tenant.
+    // Use an interactive transaction to set the RLS context before inserting
+    // and to prevent TOCTOU races on the ownership check.
     const tenant = await this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+
+      // Prevent duplicate tenants — a user can only own one tenant.
+      // Check inside transaction to avoid race conditions.
+      const existingOwnership = await tx.tenantMembership.findFirst({
+        where: { userId, role: 'OWNER' },
+      });
+      if (existingOwnership) {
+        throw new ConflictException('You already own a business. Use the dashboard to manage it.');
+      }
 
       return tx.tenant.create({
         data: {

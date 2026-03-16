@@ -79,11 +79,19 @@ function clearSavedProgress() {
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { loadUser } = useAuth();
+  const { user, isLoading, loadUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedType, setSelectedType] = useState<BusinessType | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Redirect to dashboard if user already owns a business
+  const isOwner = user?.memberships.some((m) => m.role === 'OWNER') ?? false;
+  useEffect(() => {
+    if (!isLoading && isOwner) {
+      router.replace(ROUTES.DASHBOARD);
+    }
+  }, [isLoading, isOwner, router]);
 
   const {
     register,
@@ -178,7 +186,7 @@ export default function OnboardingPage() {
   });
 
   const handleCreate = async () => {
-    if (!selectedType) return;
+    if (!selectedType || isSubmitting) return;
     setIsSubmitting(true);
     setError(null);
 
@@ -197,13 +205,17 @@ export default function OnboardingPage() {
         category: selectedType,
       });
 
-      // Apply business preset
-      await apiClient.post(`/api/tenants/${tenant.id}/apply-preset`, {
-        category: selectedType,
-      });
-
-      // Clear saved onboarding progress
+      // Clear saved progress after tenant is created to prevent retry creating duplicates
       clearSavedProgress();
+
+      // Apply business preset (non-critical — don't block on failure)
+      try {
+        await apiClient.post(`/api/tenants/${tenant.id}/apply-preset`, {
+          category: selectedType,
+        });
+      } catch {
+        // Preset can be applied later; tenant is already created
+      }
 
       // Reload user to get the new tenantId
       await loadUser();
@@ -219,6 +231,15 @@ export default function OnboardingPage() {
       setIsSubmitting(false);
     }
   };
+
+  // Don't render the form while checking auth or redirecting owners
+  if (isLoading || isOwner) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
