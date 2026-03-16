@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import { MapPin, Mail, Phone } from 'lucide-react';
+import { MapPin, Mail, Phone, ShieldCheck, CalendarX2, Star } from 'lucide-react';
 import { Badge } from '@savspot/ui';
 import type { TenantData } from '@/components/booking/booking-types';
 import { buildJsonLd } from './helpers';
@@ -33,7 +33,7 @@ function HeroSection({ tenant }: { tenant: TenantData }) {
 
   return (
     <div className="mb-8">
-      {/* Cover photo */}
+      {/* Cover photo with glass card overlay */}
       {tenant.coverPhotoUrl ? (
         <div className="relative mb-6 h-48 w-full overflow-hidden rounded-xl sm:h-64">
           <Image
@@ -43,7 +43,39 @@ function HeroSection({ tenant }: { tenant: TenantData }) {
             className="object-cover"
             unoptimized
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+          {/* Glass card overlay on desktop */}
+          <div className="absolute bottom-4 left-4 right-4 hidden rounded-xl border border-white/20 bg-white/10 p-4 backdrop-blur-md sm:block">
+            <div className="flex items-center gap-4">
+              {tenant.logoUrl ? (
+                <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border-2 border-white/30 shadow-lg">
+                  <Image
+                    src={tenant.logoUrl}
+                    alt={`${tenant.name} logo`}
+                    width={56}
+                    height={56}
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+              ) : (
+                <div
+                  className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg border-2 border-white/30 bg-primary text-xl font-bold text-primary-foreground shadow-lg"
+                  style={brandStyle}
+                >
+                  {tenant.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="text-white">
+                <h1 className="font-heading text-xl font-bold">{tenant.name}</h1>
+                {tenant.category && (
+                  <span className="text-sm text-white/80">
+                    {tenant.categoryLabel || CATEGORY_LABELS[tenant.category] || tenant.category}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
         <div
@@ -51,13 +83,13 @@ function HeroSection({ tenant }: { tenant: TenantData }) {
           style={{
             background: tenant.brandColor
               ? `linear-gradient(135deg, ${tenant.brandColor}, ${tenant.brandColor}88)`
-              : 'linear-gradient(135deg, hsl(222.2 47.4% 11.2%), hsl(222.2 47.4% 25%))',
+              : 'linear-gradient(135deg, oklch(35% 0.12 185), oklch(25% 0.08 185))',
           }}
         />
       )}
 
-      {/* Business info */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+      {/* Business info (mobile always, desktop only when no cover photo) */}
+      <div className={`flex flex-col gap-4 sm:flex-row sm:items-start ${tenant.coverPhotoUrl ? 'sm:hidden' : ''}`}>
         {/* Logo */}
         {tenant.logoUrl ? (
           <div className="-mt-10 ml-4 h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border-4 border-background bg-background shadow-md sm:-mt-12 sm:h-24 sm:w-24">
@@ -91,6 +123,11 @@ function HeroSection({ tenant }: { tenant: TenantData }) {
         </div>
       </div>
 
+      {/* Desktop: description below cover (when cover photo has glass card) */}
+      {tenant.coverPhotoUrl && tenant.description && (
+        <p className="mt-2 hidden text-muted-foreground sm:block">{tenant.description}</p>
+      )}
+
       {/* Contact info */}
       {(tenant.address || tenant.contactEmail || tenant.contactPhone) && (
         <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
@@ -120,6 +157,22 @@ function HeroSection({ tenant }: { tenant: TenantData }) {
           )}
         </div>
       )}
+
+      {/* Trust signals */}
+      <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+          Secure payments
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <CalendarX2 className="h-3.5 w-3.5 text-primary" />
+          Free cancellation
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <Star className="h-3.5 w-3.5 text-primary" />
+          Instant confirmation
+        </span>
+      </div>
     </div>
   );
 }

@@ -33,7 +33,7 @@ interface Quote {
   quoteNumber: string;
   clientName: string;
   clientEmail: string;
-  status: 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED';
+  status: 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'VOIDED';
   total: string;
   currency: string;
   validUntil: string;
@@ -265,17 +265,48 @@ export default function QuotesPage() {
 
     setSaving(true);
 
-    try {
-      const payload = {
-        clientEmail: formData.clientEmail.trim(),
-        validUntil: formData.validUntil,
-        lineItems: validLineItems.map((item) => ({
-          description: item.description.trim(),
-          quantity: parseFloat(item.quantity) || 1,
-          unitPrice: item.unitPrice,
-        })),
-      };
+    const payload = {
+      clientEmail: formData.clientEmail.trim(),
+      validUntil: formData.validUntil,
+      lineItems: validLineItems.map((item) => ({
+        description: item.description.trim(),
+        quantity: parseFloat(item.quantity) || 1,
+        unitPrice: item.unitPrice,
+        total: String((parseFloat(item.quantity) || 1) * parseFloat(item.unitPrice || '0')),
+      })),
+    };
 
+    const previousQuotes = quotes;
+
+    if (editingQuote) {
+      setQuotes((prev) =>
+        prev.map((q) =>
+          q.id === editingQuote.id
+            ? { ...q, clientEmail: payload.clientEmail, validUntil: payload.validUntil }
+            : q,
+        ),
+      );
+    } else {
+      const optimisticQuote: Quote = {
+        id: `optimistic-${Date.now()}`,
+        quoteNumber: '',
+        clientName: '',
+        currency: 'USD',
+        ...payload,
+        status: 'DRAFT',
+        total: String(
+          validLineItems.reduce(
+            (sum, item) => sum + (parseFloat(item.quantity) || 1) * parseFloat(item.unitPrice || '0'),
+            0,
+          ),
+        ),
+        createdAt: new Date().toISOString(),
+      };
+      setQuotes((prev) => [optimisticQuote, ...prev]);
+    }
+    setDialogOpen(false);
+
+    try {
       if (editingQuote) {
         await apiClient.patch(
           `/api/tenants/${tenantId}/quotes/${editingQuote.id}`,
@@ -290,10 +321,11 @@ export default function QuotesPage() {
         setSuccess('Quote created successfully');
       }
 
-      setDialogOpen(false);
       await fetchQuotes();
       setTimeout(() => setSuccess(null), 4000);
     } catch (err) {
+      setQuotes(previousQuotes);
+      setDialogOpen(true);
       setFormError(
         err instanceof Error ? err.message : 'Failed to save quote',
       );
@@ -307,6 +339,11 @@ export default function QuotesPage() {
     if (!tenantId) return;
     setOpenActionId(null);
 
+    const previousQuotes = quotes;
+    setQuotes((prev) =>
+      prev.map((q) => (q.id === quote.id ? { ...q, status: 'SENT' } : q)),
+    );
+
     try {
       await apiClient.post(
         `/api/tenants/${tenantId}/quotes/${quote.id}/send`,
@@ -315,6 +352,7 @@ export default function QuotesPage() {
       await fetchQuotes();
       setTimeout(() => setSuccess(null), 4000);
     } catch (err) {
+      setQuotes(previousQuotes);
       setError(
         err instanceof Error ? err.message : 'Failed to send quote',
       );
@@ -326,6 +364,11 @@ export default function QuotesPage() {
     if (!tenantId) return;
     setOpenActionId(null);
 
+    const previousQuotes = quotes;
+    setQuotes((prev) =>
+      prev.map((q) => (q.id === quote.id ? { ...q, status: 'VOIDED' as const } : q)),
+    );
+
     try {
       await apiClient.post(
         `/api/tenants/${tenantId}/quotes/${quote.id}/void`,
@@ -334,6 +377,7 @@ export default function QuotesPage() {
       await fetchQuotes();
       setTimeout(() => setSuccess(null), 4000);
     } catch (err) {
+      setQuotes(previousQuotes);
       setError(
         err instanceof Error ? err.message : 'Failed to void quote',
       );

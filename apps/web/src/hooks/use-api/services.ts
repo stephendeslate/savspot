@@ -29,16 +29,28 @@ export function useServices() {
 export function useDeactivateService() {
   const queryClient = useQueryClient();
   const { tenantId } = useTenant();
+  const qk = queryKeys.services(tenantId ?? '');
   return useMutation({
     mutationFn: (serviceId: string) =>
       apiClient.patch(`/api/tenants/${tenantId}/services/${serviceId}`, {
         isActive: false,
       }),
-    onSuccess: () => {
+    onMutate: async (serviceId) => {
+      await queryClient.cancelQueries({ queryKey: qk });
+      const previous = queryClient.getQueryData<Service[]>(qk);
+      queryClient.setQueryData<Service[]>(qk, (old) =>
+        old?.map((s) => (s.id === serviceId ? { ...s, isActive: false } : s)),
+      );
+      return { previous };
+    },
+    onError: (_err, _serviceId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(qk, context.previous);
+      }
+    },
+    onSettled: () => {
       if (tenantId) {
-        void queryClient.invalidateQueries({
-          queryKey: queryKeys.services(tenantId),
-        });
+        void queryClient.invalidateQueries({ queryKey: qk });
       }
     },
   });

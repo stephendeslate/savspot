@@ -140,8 +140,9 @@ export default function BookingDetailPage() {
   // ---------- Action handlers ----------
 
   const handleConfirm = async () => {
-    if (!tenantId || !bookingId) return;
-    setActionLoading(true);
+    if (!tenantId || !bookingId || !booking) return;
+    const previous = booking;
+    setBooking((prev) => prev ? { ...prev, status: 'CONFIRMED' } : prev);
     setActionError(null);
     try {
       await apiClient.post(
@@ -149,37 +150,38 @@ export default function BookingDetailPage() {
       );
       await fetchBooking();
     } catch (err) {
+      setBooking(previous);
       setActionError(
         err instanceof Error ? err.message : 'Failed to confirm booking',
       );
-    } finally {
-      setActionLoading(false);
     }
   };
 
   const handleCancel = async () => {
-    if (!tenantId || !bookingId) return;
-    setActionLoading(true);
+    if (!tenantId || !bookingId || !booking) return;
+    const previous = booking;
+    setBooking((prev) => prev ? { ...prev, status: 'CANCELLED' } : prev);
+    setCancelOpen(false);
     setActionError(null);
     try {
       await apiClient.post(
         `/api/tenants/${tenantId}/bookings/${bookingId}/cancel`,
         { reason: cancelReason },
       );
-      setCancelOpen(false);
       await fetchBooking();
     } catch (err) {
+      setBooking(previous);
+      setCancelOpen(true);
       setActionError(
         err instanceof Error ? err.message : 'Failed to cancel booking',
       );
-    } finally {
-      setActionLoading(false);
     }
   };
 
   const handleNoShow = async () => {
-    if (!tenantId || !bookingId) return;
-    setActionLoading(true);
+    if (!tenantId || !bookingId || !booking) return;
+    const previous = booking;
+    setBooking((prev) => prev ? { ...prev, status: 'NO_SHOW' } : prev);
     setActionError(null);
     try {
       await apiClient.post(
@@ -187,37 +189,38 @@ export default function BookingDetailPage() {
       );
       await fetchBooking();
     } catch (err) {
+      setBooking(previous);
       setActionError(
         err instanceof Error ? err.message : 'Failed to mark as no-show',
       );
-    } finally {
-      setActionLoading(false);
     }
   };
 
   const handleReschedule = async () => {
-    if (!tenantId || !bookingId) return;
+    if (!tenantId || !bookingId || !booking) return;
     if (!rescheduleDate || !rescheduleStartTime || !rescheduleEndTime) {
       setActionError('Please fill in all reschedule fields');
       return;
     }
-    setActionLoading(true);
+    const startTime = new Date(
+      `${rescheduleDate}T${rescheduleStartTime}`,
+    ).toISOString();
+    const endTime = new Date(
+      `${rescheduleDate}T${rescheduleEndTime}`,
+    ).toISOString();
+
+    const previous = booking;
+    setBooking((prev) => prev ? { ...prev, startTime, endTime } : prev);
+    setRescheduleOpen(false);
     setActionError(null);
     try {
-      const startTime = new Date(
-        `${rescheduleDate}T${rescheduleStartTime}`,
-      ).toISOString();
-      const endTime = new Date(
-        `${rescheduleDate}T${rescheduleEndTime}`,
-      ).toISOString();
-
       await apiClient.post(
         `/api/tenants/${tenantId}/bookings/${bookingId}/reschedule`,
         { startTime, endTime },
       );
-      setRescheduleOpen(false);
       await fetchBooking();
     } catch (err) {
+      setBooking(previous);
       if (err instanceof ApiError && err.status === 409) {
         setActionError(
           'This time slot conflicts with an existing booking. Please choose a different time.',
@@ -227,18 +230,26 @@ export default function BookingDetailPage() {
           err instanceof Error ? err.message : 'Failed to reschedule booking',
         );
       }
-    } finally {
-      setActionLoading(false);
     }
   };
 
   const handleMarkPaid = async () => {
-    if (!tenantId || !bookingId) return;
+    if (!tenantId || !bookingId || !booking) return;
     if (!paidAmount) {
       setActionError('Please enter a payment amount');
       return;
     }
-    setActionLoading(true);
+    const previous = booking;
+    const optimisticPayment: BookingPayment = {
+      id: `optimistic-${Date.now()}`,
+      status: 'COMPLETED',
+      amount: paidAmount,
+      type: paidMethod,
+    };
+    setBooking((prev) =>
+      prev ? { ...prev, payments: [...prev.payments, optimisticPayment] } : prev,
+    );
+    setMarkPaidOpen(false);
     setActionError(null);
     try {
       await apiClient.post(
@@ -249,29 +260,32 @@ export default function BookingDetailPage() {
           paymentMethod: paidMethod,
         },
       );
-      setMarkPaidOpen(false);
       await fetchBooking();
     } catch (err) {
+      setBooking(previous);
       setActionError(
         err instanceof Error ? err.message : 'Failed to mark as paid',
       );
-    } finally {
-      setActionLoading(false);
     }
   };
 
   const handleSaveNotes = async () => {
-    if (!tenantId || !bookingId) return;
+    if (!tenantId || !bookingId || !booking) return;
+    const previousNotes = booking.notes;
+    setBooking((prev) =>
+      prev ? { ...prev, notes: editedNotes || null } : prev,
+    );
     setNotesSaving(true);
     try {
       await apiClient.patch(
         `/api/tenants/${tenantId}/bookings/${bookingId}`,
         { notes: editedNotes || null },
       );
-      setBooking((prev) =>
-        prev ? { ...prev, notes: editedNotes || null } : prev,
-      );
     } catch (err) {
+      setBooking((prev) =>
+        prev ? { ...prev, notes: previousNotes } : prev,
+      );
+      setEditedNotes(previousNotes ?? '');
       setActionError(
         err instanceof Error ? err.message : 'Failed to save notes',
       );

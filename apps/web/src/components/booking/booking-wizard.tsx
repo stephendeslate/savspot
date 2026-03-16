@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { ArrowLeft, ArrowRight, Eye, Loader2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Eye, Loader2, RefreshCw, X } from 'lucide-react';
 import { Button } from '@savspot/ui';
 import { FadeIn, StepTransition } from '@/components/ui/motion';
 import { BookingProgress } from './booking-progress';
@@ -333,16 +333,26 @@ export function BookingWizard({
       {/* Error banner */}
       {error && (
         <FadeIn>
-          <div role="alert" className="mb-4 flex items-start justify-between gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            <span>{error}</span>
-            <button
-              type="button"
-              onClick={() => setError(null)}
-              className="shrink-0 rounded-sm p-0.5 hover:bg-destructive/20 transition-colors"
-              aria-label="Dismiss error"
-            >
-              <X className="h-4 w-4" />
-            </button>
+          <div role="alert" className="mb-4 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive/15">
+                  <X className="h-3 w-3 text-destructive" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-destructive">Something went wrong</p>
+                  <p className="mt-0.5 text-xs text-destructive/80">{error}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setError(null)}
+                className="shrink-0 rounded-md p-1 text-destructive/60 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                aria-label="Dismiss error"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         </FadeIn>
       )}
