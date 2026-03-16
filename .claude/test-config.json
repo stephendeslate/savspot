@@ -1,0 +1,4 @@
+{
+  "testCommand": "pnpm test",
+  "lintCommand": "pnpm lint && pnpm typecheck"
+}
