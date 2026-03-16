@@ -60,7 +60,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
         {/* Close button */}
         <button
           type="button"
-          className="absolute right-2 top-3 rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          className="absolute right-2 top-4 z-10 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           onClick={onClose}
           aria-label="Close menu"
         >

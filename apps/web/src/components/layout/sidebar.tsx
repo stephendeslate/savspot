@@ -126,14 +126,17 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
               SavSpot
             </Link>
           )}
-          <button
-            type="button"
-            onClick={toggleCollapsed}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-          </button>
+          {/* Hide collapse toggle on mobile (when onNavigate is set — mobile nav handles close) */}
+          {!onNavigate && (
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </button>
+          )}
         </div>
 
         {/* Tenant Switcher */}
