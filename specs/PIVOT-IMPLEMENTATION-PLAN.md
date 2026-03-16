@@ -29,14 +29,14 @@ The self-hosted community (r/selfhosted, awesome-selfhosted, Docker Hub, Hacker 
 
 ### What SavSpot Becomes
 
-A four-leg business model:
+A four-leg business model (three revenue-generating legs + distribution):
 
 | Leg | What | Revenue | Timeline |
 |-----|------|---------|----------|
 | **1. Open Source** | AGPL-licensed, Docker-first self-hosting | Distribution + credibility (enables legs 2–3) | Launch in ~2 weeks |
 | **2. Managed Cloud** | savspot.co — hosted multi-tenant platform | MRR: $39–99/month per tenant | 3–6 months to first paying customers |
 | **3. Pro License** | Commercial license + priority support for self-hosters | One-time: $399–499 | Available at launch |
-| **4. Freelance/Consulting** | Upwork + technical writing using SavSpot as credential | Hourly: $30–150/hr + $200–500/article | Parallel track, starts immediately |
+| **4. Freelance/Consulting** | Upwork using SavSpot as credential | Hourly: $30–150/hr | Parallel track, starts immediately |
 
 ---
 
@@ -267,44 +267,7 @@ Prepare posts for (write all drafts before posting any):
 - **First job will likely be small:** $50–300 fixed-price or a few hours of hourly work. Take it. The review matters more than the money.
 - **The grind timeline:** Months 1–3 are about surviving the credibility gap. Months 4–6 are when repeat clients and inbound invites start replacing cold proposals.
 
-#### D2. Technical Writing
-
-**Phase 1 — Portfolio Building (Weeks 1–4, $0 income):**
-
-You cannot pitch paid platforms with zero published work. Every platform requires writing samples. The path:
-
-1. Set up a DEV.to or Hashnode account (zero friction, instant audience)
-2. Publish 3–5 free articles derived from SavSpot:
-   - "Multi-Tenant Row-Level Security with Prisma and PostgreSQL"
-   - "Stripe Connect Express: Destination Charges for Marketplace Platforms"
-   - "BullMQ Dispatcher Pattern: One Worker Per Queue in NestJS"
-   - "Building a Dynamic Booking Flow Engine with NestJS"
-3. Each article takes 8–15 hours (research, working code examples, writing, proofreading). Budget 2 articles/month alongside other work.
-
-**Phase 2 — Pitching Paid Platforms (Weeks 5–8):**
-
-With 3+ published articles as portfolio, pitch to platforms that are confirmed open in 2026:
-- **Smashing Magazine** ($200–500/article) — explicitly accepts first-timers, pitch an outline
-- **Draft.dev** ($300+/article) — agency model, they assign topics from clients
-- **Auth0/Okta** (~$450/article) — submit via email with topic ideas
-- **Fauna** (up to $700/article) — submit proposal
-- **Vultr** ($800/article) — highest pay, cloud/DevOps focus
-- **Appsmith** ($200–400/article) — low-code tutorials
-
-**Note:** LogRocket is currently NOT accepting new writers. DigitalOcean's program is paused. Many lists online are outdated — verify before pitching.
-
-Full verified list: github.com/malgamves/CommunityWriterPrograms
-
-**Phase 3 — Steady Output (Month 3+):**
-
-- Target 1–2 paid articles/month (realistic alongside Upwork and open-source work)
-- 2–4/month is a full-time writing commitment and unlikely when starting out
-- Expect 4–8 weeks from first pitch to first payment (editorial review + revision cycles)
-- Realistic income: $0 month 1, $0–300 month 2, $300–700 month 3, $400–800/month by month 4–6
-
-Each article serves double duty: income + content marketing for SavSpot.
-
-#### D3. LinkedIn Technical Content
+#### D2. LinkedIn Content
 
 Post 3–5x/week — not "build in public" fluff, but genuine technical insights:
 - Architecture decisions and trade-offs from SavSpot
@@ -322,7 +285,7 @@ Explicitly out of scope for this pivot:
 - **End-user documentation** — self-hosters read developer docs, not user guides
 - **White-label agency program** — add this later when agencies find you through the open-source project
 - **API documentation portal** — the Public API v1 exists but documenting it is lower priority than self-hosting docs
-- **Video tutorials** — write first, video later if demand warrants it
+- **Video tutorials** — not needed for launch, add later if demand warrants it
 
 ---
 
@@ -336,8 +299,6 @@ Explicitly out of scope for this pivot:
 
 **Upwork:** ~90% of new freelancers quit within 12 months. The typical new developer sends 50–100 proposals before their first contract. Starting effective rate after fees: $15–25/hr. The first 3 months are a credibility grind, not a showcase.
 
-**Technical writing:** Month 1 is portfolio building (free articles). First paid article arrives month 2–3. Realistic income: $0 for weeks, then $300–800/month once established.
-
 **awesome-selfhosted:** Requires your project to have been public for 4+ months before submission. Not a launch-day activity.
 
 ### 30-Day Targets (Post-Launch)
@@ -350,8 +311,6 @@ Explicitly out of scope for this pivot:
 | Cloud signups | 3–10 | Could be 0 | Don't conflate signups with paying customers |
 | Upwork proposals sent | 40–60 | 3–5/day, 5 days/week | Pipeline volume matters more than quality at this stage |
 | Upwork contracts won | 0–1 | Likely 0 in month 1 | First job typically comes month 2–4 |
-| Free articles published | 2–3 | On DEV.to/Hashnode (portfolio building) | Required before pitching paid platforms |
-| Paid articles pitched | 2–3 | Pitches sent, not articles accepted | Starting the relationship pipeline |
 
 ### 90-Day Targets
 
@@ -364,8 +323,7 @@ Explicitly out of scope for this pivot:
 | Pro License sales | 0–1 | Likely 0 | This is gravy, not a revenue plan |
 | Upwork contracts completed | 2–5 | At $15–30/hr, small projects | Building reviews and JSS is the goal, not income |
 | Upwork earnings | $500–2,000 total | After fees and connect costs | Treat this as investment in your profile |
-| Paid articles published | 1–3 | $300–900 total | Supplementary income, not primary |
-| Total income (all sources) | $800–3,000 | 3-month cumulative, not monthly | Honest floor to plan finances around |
+| Total income (all sources) | $500–2,000 | 3-month cumulative, not monthly | Honest floor to plan finances around |
 
 ### 6-Month Checkpoint
 
@@ -375,8 +333,7 @@ Explicitly out of scope for this pivot:
 | Cloud paying customers | 5–10 | 1–5 | 0–1 |
 | MRR | $200–500 | $0–200 | $0 |
 | Upwork monthly income | $1,500–3,000 | $500–1,500 | $200–500 |
-| Writing monthly income | $600–1,200 | $300–800 | $0–300 |
-| Total monthly income | $2,500–5,000 | $800–2,500 | $200–800 |
+| Total monthly income | $1,500–3,000 | $500–1,500 | $200–500 |
 
 ### 12-Month North Star
 
@@ -385,10 +342,9 @@ Explicitly out of scope for this pivot:
 | GitHub stars | 300–1,000 | Enough for awesome-selfhosted listing and credibility |
 | Cloud MRR | $200–1,000 | 5–20 paying customers at $39–99/mo |
 | Upwork monthly | $2,000–4,000 | Rate should be $40–60/hr by now with 10+ reviews |
-| Writing monthly | $800–1,500 | 2–3 paid articles/month at established platforms |
-| Total monthly income | $3,000–6,500 | Sustainable, not spectacular |
+| Total monthly income | $2,200–5,000 | Sustainable, not spectacular |
 
-> **The honest trajectory:** Months 1–3 will feel like nothing is working. Stars trickle in. Upwork proposals go unanswered. Your first paid article takes 6 weeks from pitch to payment. This is normal for cold starts. The compounding effect kicks in around month 4–6 when reviews, stars, and published articles start creating inbound interest. Plan your finances for 3–6 months of minimal income.
+> **The honest trajectory:** Months 1–3 will feel like nothing is working. Stars trickle in. Upwork proposals go unanswered. This is normal for cold starts. The compounding effect kicks in around month 4–6 when reviews, stars, and community presence start creating inbound interest. Plan your finances for 3–6 months of minimal income.
 
 ---
 
@@ -408,16 +364,16 @@ Explicitly out of scope for this pivot:
 
 ### Income Timeline (Cumulative, All Sources)
 
-| Month | Upwork | Writing | Cloud/License | Total (Cumulative) |
-|-------|--------|---------|--------------|-------------------|
-| 1 | $0 | $0 | $0 | $0 |
-| 2 | $0–200 | $0 | $0 | $0–200 |
-| 3 | $200–800 | $0–300 | $0 | $200–1,100 |
-| 4 | $500–1,500 | $300–600 | $0 | $1,000–3,200 |
-| 5 | $800–2,000 | $300–700 | $0–100 | $2,100–6,000 |
-| 6 | $1,200–2,500 | $400–800 | $0–200 | $3,700–9,500 |
+| Month | Upwork | Cloud/License | Total (Cumulative) |
+|-------|--------|--------------|-------------------|
+| 1 | $0 | $0 | $0 |
+| 2 | $0–200 | $0 | $0–200 |
+| 3 | $200–800 | $0 | $200–1,000 |
+| 4 | $500–1,500 | $0 | $700–2,500 |
+| 5 | $800–2,000 | $0–100 | $1,500–4,600 |
+| 6 | $1,200–2,500 | $0–200 | $2,700–7,300 |
 
-**Bottom line:** Plan your personal finances for 2–3 months of near-zero income and 4–6 months before anything resembling sustainability. The total 6-month realistic range is $2,000–$6,000 — not $0, but not a salary either.
+**Bottom line:** Plan your personal finances for 2–3 months of near-zero income and 4–6 months before anything resembling sustainability. The total 6-month realistic range is $1,500–$5,000 — not $0, but not a salary either.
 
 ---
 
@@ -426,7 +382,6 @@ Explicitly out of scope for this pivot:
 ```
 Week 1:  A1 (Web Dockerfile) + A2 (docker-compose.prod.yml) + D1 (Upwork profile)
          A3 (env config + scripts)
-         Start D2 (first technical article draft)
 
 Week 2:  A4 (self-hosting docs) + B1 (README) + B2 (repo hygiene)
          B3 (demo instance setup)
@@ -435,7 +390,6 @@ Week 2:  A4 (self-hosting docs) + B1 (README) + B2 (repo hygiene)
 
 Week 3:  C1 (landing page updates) + C2 (pricing page)
          C3 (draft all community launch posts)
-         Publish first technical article
          Continue Upwork proposals
 
 Week 4:  LAUNCH — Make repo public
@@ -446,8 +400,6 @@ Week 4:  LAUNCH — Make repo public
          DO NOT submit to awesome-selfhosted yet (4-month minimum wait)
 
 Ongoing: Upwork proposals daily (3-5/day)
-         1 free article every 2 weeks (months 1-2)
-         Pitch paid platforms starting month 2
          LinkedIn technical posts 3x/week
          Respond to GitHub issues within 24 hours
          Monthly: reassess what's working, cut what isn't
@@ -465,11 +417,10 @@ Ongoing: Upwork proposals daily (3-5/day)
 | Show HN / Reddit posts get zero traction | **High** | Low | The median HN submission gets 1–2 points. Plan multiple attempts over months, not one big launch. Each post is a lottery ticket, not a strategy. |
 | Self-hosters consume support time without paying | Medium | Medium | GitHub Issues only (no email support for free tier). Excellent docs reduce support load. This is a good problem to have — it means people are using it. |
 | Someone forks and outcompetes | Low | Medium | AGPL requires sharing modifications. Moat is integrations, reliability, and hosted convenience — not source code. |
-| Upwork takes 3+ months to generate any income | **High** | High | 50–100 proposals before first hire is normal. Budget for Connect costs ($50–100) and plan finances for zero Upwork income for months 1–3. Technical writing provides a parallel income path. |
+| Upwork takes 3+ months to generate any income | **High** | High | 50–100 proposals before first hire is normal. Budget for Connect costs ($50–100) and plan finances for zero Upwork income for months 1–3. |
 | Cloud conversion rate is zero for 6+ months | **Medium-High** | Medium | Open-source → cloud conversion is slow. Plausible took years to reach $1M ARR. Don't count on cloud revenue in the first 6 months. |
-| Technical writing platforms reject you | Medium | Low | Mitigated by publishing 3–5 free articles first. Smashing Magazine explicitly accepts first-timers. Multiple platforms means you don't depend on any one acceptance. |
-| Personal burnout from grinding multiple tracks | **Medium-High** | High | Running open-source + Upwork + writing + job search simultaneously is exhausting. Prioritize ruthlessly: Upwork proposals daily, 1 article/month, open-source maintenance weekly. Don't try to do everything at full intensity. |
-| The "3-year gap" blocks traditional employment | **High** | High | Cold applications have <2% success rate even without a gap. Mitigated by: Upwork reviews as de facto work experience, published articles as credibility, open-source project as proof of capability. LinkedIn technical content builds the referral network that actually gets you past resume screens. |
+| Personal burnout from grinding multiple tracks | **Medium-High** | High | Running open-source + Upwork + job search simultaneously is exhausting. Prioritize ruthlessly: Upwork proposals daily, open-source maintenance weekly. Don't try to do everything at full intensity. |
+| The "3-year gap" blocks traditional employment | **High** | High | Cold applications have <2% success rate even without a gap. Mitigated by: Upwork reviews as de facto work experience, open-source project as proof of capability. LinkedIn technical content builds the referral network that actually gets you past resume screens. |
 | Market timing — "SaaSpocalypse" reduces demand | Low-Medium | Low | Open-source positioning is counter-cyclical: businesses cutting SaaS costs look for self-hosted alternatives. |
 
 ---
