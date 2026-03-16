@@ -4,7 +4,6 @@ import {
   ArrowRight,
   CheckCircle2,
   Github,
-  Code2,
   Terminal,
   X,
 } from 'lucide-react';
