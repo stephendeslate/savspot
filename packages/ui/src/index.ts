@@ -6,12 +6,12 @@ export { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from './
 export { Avatar, AvatarImage, AvatarFallback, AvatarBadge, AvatarGroup, AvatarGroupCount } from './components/avatar';
 export { Badge, badgeVariants } from './components/badge';
 export { Button, type ButtonProps } from './components/button';
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from './components/card';
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent, type CardVariant, type CardProps, type CardTitleProps } from './components/card';
 export { Checkbox } from './components/checkbox';
 export { Command, CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, CommandShortcut, CommandSeparator } from './components/command';
 export { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogOverlay, DialogPortal, DialogTitle, DialogTrigger } from './components/dialog';
 export { DropdownMenu, DropdownMenuPortal, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuItem, DropdownMenuCheckboxItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from './components/dropdown-menu';
-export { Input } from './components/input';
+export { Input, type InputProps } from './components/input';
 export { Label } from './components/label';
 export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor, PopoverHeader, PopoverTitle, PopoverDescription } from './components/popover';
 export { Progress } from './components/progress';

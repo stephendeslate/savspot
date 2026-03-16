@@ -1,19 +1,33 @@
 import * as React from 'react';
 import { cn } from '../lib/utils';
 
-const Card = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      'rounded-xl border bg-card text-card-foreground shadow-sm transition-shadow hover:shadow-md',
-      className,
-    )}
-    {...props}
-  />
-));
+type CardVariant = 'default' | 'outlined' | 'elevated' | 'glass';
+
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: CardVariant;
+}
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ className, variant = 'default', ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(
+        'rounded-xl border bg-card text-card-foreground transition-shadow',
+        {
+          'shadow-[var(--shadow-colored)] hover:shadow-[var(--shadow-elevated)]':
+            variant === 'default',
+          'shadow-none': variant === 'outlined',
+          'shadow-[var(--shadow-elevated)] hover:shadow-[var(--shadow-elevated)] hover:scale-[1.01] transition-[shadow,transform]':
+            variant === 'elevated',
+          'backdrop-blur-sm bg-card/80 border-border/50':
+            variant === 'glass',
+        },
+        className,
+      )}
+      {...props}
+    />
+  ),
+);
 Card.displayName = 'Card';
 
 const CardHeader = React.forwardRef<
@@ -28,19 +42,22 @@ const CardHeader = React.forwardRef<
 ));
 CardHeader.displayName = 'CardHeader';
 
-const CardTitle = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
-  <h3
-    ref={ref}
-    className={cn(
-      'text-2xl font-semibold leading-none tracking-tight',
-      className,
-    )}
-    {...props}
-  />
-));
+interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
+  as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+}
+
+const CardTitle = React.forwardRef<HTMLHeadingElement, CardTitleProps>(
+  ({ className, as: Comp = 'h3', ...props }, ref) => (
+    <Comp
+      ref={ref}
+      className={cn(
+        'text-2xl font-semibold leading-none tracking-tight',
+        className,
+      )}
+      {...props}
+    />
+  ),
+);
 CardTitle.displayName = 'CardTitle';
 
 const CardDescription = React.forwardRef<
@@ -76,3 +93,4 @@ const CardFooter = React.forwardRef<
 CardFooter.displayName = 'CardFooter';
 
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };
+export type { CardVariant, CardProps, CardTitleProps };

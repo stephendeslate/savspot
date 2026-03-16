@@ -42,19 +42,38 @@ export function useUnreadCount() {
 export function useMarkNotificationRead() {
   const queryClient = useQueryClient();
   const { tenantId } = useTenant();
+  const notifKey = queryKeys.notifications(tenantId ?? '');
+  const countKey = queryKeys.unreadCount(tenantId ?? '');
   return useMutation({
     mutationFn: (notificationId: string) =>
       apiClient.patch(
         `/api/tenants/${tenantId}/notifications/${notificationId}/read`,
       ),
-    onSuccess: () => {
+    onMutate: async (notificationId) => {
+      await queryClient.cancelQueries({ queryKey: notifKey });
+      await queryClient.cancelQueries({ queryKey: countKey });
+      const previousNotifs = queryClient.getQueryData<Notification[]>(notifKey);
+      const previousCount = queryClient.getQueryData<{ count: number }>(countKey);
+      queryClient.setQueryData<Notification[]>(notifKey, (old) =>
+        old?.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n)),
+      );
+      queryClient.setQueryData<{ count: number }>(countKey, (old) =>
+        old ? { count: Math.max(0, old.count - 1) } : old,
+      );
+      return { previousNotifs, previousCount };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previousNotifs) {
+        queryClient.setQueryData(notifKey, context.previousNotifs);
+      }
+      if (context?.previousCount) {
+        queryClient.setQueryData(countKey, context.previousCount);
+      }
+    },
+    onSettled: () => {
       if (tenantId) {
-        void queryClient.invalidateQueries({
-          queryKey: queryKeys.notifications(tenantId),
-        });
-        void queryClient.invalidateQueries({
-          queryKey: queryKeys.unreadCount(tenantId),
-        });
+        void queryClient.invalidateQueries({ queryKey: notifKey });
+        void queryClient.invalidateQueries({ queryKey: countKey });
       }
     },
   });
@@ -63,17 +82,34 @@ export function useMarkNotificationRead() {
 export function useMarkAllNotificationsRead() {
   const queryClient = useQueryClient();
   const { tenantId } = useTenant();
+  const notifKey = queryKeys.notifications(tenantId ?? '');
+  const countKey = queryKeys.unreadCount(tenantId ?? '');
   return useMutation({
     mutationFn: () =>
       apiClient.post(`/api/tenants/${tenantId}/notifications/read-all`),
-    onSuccess: () => {
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: notifKey });
+      await queryClient.cancelQueries({ queryKey: countKey });
+      const previousNotifs = queryClient.getQueryData<Notification[]>(notifKey);
+      const previousCount = queryClient.getQueryData<{ count: number }>(countKey);
+      queryClient.setQueryData<Notification[]>(notifKey, (old) =>
+        old?.map((n) => ({ ...n, isRead: true })),
+      );
+      queryClient.setQueryData<{ count: number }>(countKey, () => ({ count: 0 }));
+      return { previousNotifs, previousCount };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousNotifs) {
+        queryClient.setQueryData(notifKey, context.previousNotifs);
+      }
+      if (context?.previousCount) {
+        queryClient.setQueryData(countKey, context.previousCount);
+      }
+    },
+    onSettled: () => {
       if (tenantId) {
-        void queryClient.invalidateQueries({
-          queryKey: queryKeys.notifications(tenantId),
-        });
-        void queryClient.invalidateQueries({
-          queryKey: queryKeys.unreadCount(tenantId),
-        });
+        void queryClient.invalidateQueries({ queryKey: notifKey });
+        void queryClient.invalidateQueries({ queryKey: countKey });
       }
     },
   });

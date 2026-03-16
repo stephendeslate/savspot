@@ -15,6 +15,7 @@ import {
   Users,
   Plus,
   ArrowRight,
+  TrendingUp,
 } from 'lucide-react';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Skeleton } from '@savspot/ui';
 import { FadeIn } from '@/components/ui/motion';
@@ -136,26 +137,46 @@ export default function DashboardPage() {
       value: stats.todayBookings,
       icon: Calendar,
       description: 'Appointments today',
+      accent: 'border-l-primary',
     },
     {
       name: 'Revenue (Month)',
       value: formatRevenue(stats.revenueThisMonth, stats.revenueCurrency),
       icon: DollarSign,
       description: 'This month so far',
+      accent: 'border-l-accent',
     },
     {
       name: 'New Clients',
       value: stats.newClientsThisWeek,
       icon: Users,
       description: 'This week',
+      accent: 'border-l-primary',
     },
     {
       name: 'Pending Actions',
       value: stats.pendingActions,
       icon: AlertCircle,
       description: 'Bookings awaiting confirmation',
+      accent: stats.pendingActions > 0 ? 'border-l-accent' : 'border-l-muted',
     },
   ];
+
+  // Next Best Action recommendations
+  const actions: { label: string; description: string; href: string; icon: typeof Plus; priority: number }[] = [];
+  if (stats.totalServices === 0) {
+    actions.push({ label: 'Add your first service', description: 'Create a bookable service for your clients', href: ROUTES.SERVICES_NEW, icon: Plus, priority: 1 });
+  }
+  if (stats.availabilityRules === 0) {
+    actions.push({ label: 'Set your availability', description: 'Define your working hours so clients can book', href: ROUTES.SETTINGS_AVAILABILITY, icon: Clock, priority: 2 });
+  }
+  if (!stats.hasStripe) {
+    actions.push({ label: 'Connect Stripe', description: 'Accept online payments from your clients', href: ROUTES.SETTINGS_PAYMENTS, icon: CreditCard, priority: 3 });
+  }
+  if (!stats.hasCalendar) {
+    actions.push({ label: 'Connect Google Calendar', description: 'Sync bookings and prevent double-bookings', href: ROUTES.SETTINGS_CALENDAR, icon: CalendarSync, priority: 4 });
+  }
+  actions.sort((a, b) => a.priority - b.priority);
 
   const quickActions = [
     {
@@ -210,16 +231,17 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {statCards.map((stat, index) => (
             <FadeIn key={stat.name} delay={index * 0.05}>
-              <Card>
+              <Card className={`border-l-4 ${stat.accent}`}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
                     {stat.name}
                   </CardTitle>
                   <stat.icon className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                    <TrendingUp className="h-3 w-3" />
                     {stat.description}
                   </p>
                 </CardContent>
@@ -229,68 +251,37 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Setup Prompts */}
-      {!isLoading && (stats.totalServices === 0 || stats.availabilityRules === 0 || !stats.hasStripe || !stats.hasCalendar) && (
-        <Card>
+      {/* Next Best Action — replaces static setup prompts */}
+      {!isLoading && actions.length > 0 && (
+        <Card variant="elevated">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <AlertCircle className="h-4 w-4 text-amber-500" />
-              Complete Your Setup
+              <ArrowRight className="h-4 w-4 text-accent" />
+              Recommended Next Steps
             </CardTitle>
             <CardDescription>
-              Finish configuring these items to start accepting bookings
+              Complete these to start accepting bookings
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {stats.totalServices === 0 && (
-                <Link href={ROUTES.SERVICES_NEW}>
-                  <div className="flex items-center gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 transition-colors hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950 dark:hover:bg-amber-900">
-                    <Plus className="h-4 w-4 text-amber-600" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Add your first service</p>
-                      <p className="text-xs text-muted-foreground">Create a bookable service for your clients</p>
+            <div className="space-y-2">
+              {actions.map((action, i) => (
+                <Link key={action.label} href={action.href}>
+                  <div className="flex items-center gap-3 rounded-lg border border-accent/20 bg-accent/5 p-3 transition-all hover:bg-accent/10 hover:shadow-[var(--shadow-colored)]">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-accent/15">
+                      <action.icon className="h-4 w-4 text-accent-foreground" />
                     </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{action.label}</p>
+                      <p className="text-xs text-muted-foreground">{action.description}</p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent-foreground">
+                      Step {i + 1}
+                    </span>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                   </div>
                 </Link>
-              )}
-              {stats.availabilityRules === 0 && (
-                <Link href={ROUTES.SETTINGS_AVAILABILITY}>
-                  <div className="flex items-center gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 transition-colors hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950 dark:hover:bg-amber-900">
-                    <Clock className="h-4 w-4 text-amber-600" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Set your availability</p>
-                      <p className="text-xs text-muted-foreground">Define your working hours so clients can book</p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </Link>
-              )}
-              {!stats.hasStripe && (
-                <Link href={ROUTES.SETTINGS_PAYMENTS}>
-                  <div className="flex items-center gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 transition-colors hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950 dark:hover:bg-amber-900">
-                    <CreditCard className="h-4 w-4 text-amber-600" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Connect Stripe</p>
-                      <p className="text-xs text-muted-foreground">Accept online payments from your clients</p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </Link>
-              )}
-              {!stats.hasCalendar && (
-                <Link href={ROUTES.SETTINGS_CALENDAR}>
-                  <div className="flex items-center gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 transition-colors hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950 dark:hover:bg-amber-900">
-                    <CalendarSync className="h-4 w-4 text-amber-600" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Connect Google Calendar</p>
-                      <p className="text-xs text-muted-foreground">Sync your bookings and prevent double-bookings</p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </Link>
-              )}
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -308,8 +299,8 @@ export default function DashboardPage() {
           <div className="grid gap-4 sm:grid-cols-3">
             {quickActions.map((action) => (
               <Link key={action.name} href={action.href}>
-                <div className="flex items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-accent/50">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
+                <div className="flex items-center gap-4 rounded-xl border p-4 transition-all hover:bg-secondary/50 hover:shadow-[var(--shadow-colored)]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                     <action.icon className="h-5 w-5 text-primary" />
                   </div>
                   <div>

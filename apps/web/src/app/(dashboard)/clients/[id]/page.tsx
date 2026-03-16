@@ -119,7 +119,11 @@ export default function ClientDetailPage() {
   // ---------- Handlers ----------
 
   const handleSaveNotes = async () => {
-    if (!tenantId || !clientId) return;
+    if (!tenantId || !clientId || !client) return;
+    const previousNotes = client.notes;
+    setClient((prev) =>
+      prev ? { ...prev, notes: editedNotes || null } : prev,
+    );
     setNotesSaving(true);
     setNotesError(null);
     try {
@@ -127,10 +131,11 @@ export default function ClientDetailPage() {
         `/api/tenants/${tenantId}/clients/${clientId}`,
         { notes: editedNotes || null },
       );
-      setClient((prev) =>
-        prev ? { ...prev, notes: editedNotes || null } : prev,
-      );
     } catch (err) {
+      setClient((prev) =>
+        prev ? { ...prev, notes: previousNotes } : prev,
+      );
+      setEditedNotes(previousNotes ?? '');
       setNotesError(
         err instanceof Error ? err.message : 'Failed to save notes',
       );
@@ -148,16 +153,18 @@ export default function ClientDetailPage() {
       return;
     }
 
+    const previousTags = client.tags;
+    const updatedTags = [...client.tags, tag];
+    setClient((prev) => (prev ? { ...prev, tags: updatedTags } : prev));
+    setNewTag('');
     setTagsSaving(true);
     try {
-      const updatedTags = [...client.tags, tag];
       await apiClient.patch(
         `/api/tenants/${tenantId}/clients/${clientId}`,
         { tags: updatedTags },
       );
-      setClient((prev) => (prev ? { ...prev, tags: updatedTags } : prev));
-      setNewTag('');
     } catch (err) {
+      setClient((prev) => (prev ? { ...prev, tags: previousTags } : prev));
       setNotesError(
         err instanceof Error ? err.message : 'Failed to add tag',
       );
@@ -169,15 +176,17 @@ export default function ClientDetailPage() {
   const handleRemoveTag = async (tagToRemove: string) => {
     if (!tenantId || !clientId || !client) return;
 
+    const previousTags = client.tags;
+    const updatedTags = client.tags.filter((t) => t !== tagToRemove);
+    setClient((prev) => (prev ? { ...prev, tags: updatedTags } : prev));
     setTagsSaving(true);
     try {
-      const updatedTags = client.tags.filter((t) => t !== tagToRemove);
       await apiClient.patch(
         `/api/tenants/${tenantId}/clients/${clientId}`,
         { tags: updatedTags },
       );
-      setClient((prev) => (prev ? { ...prev, tags: updatedTags } : prev));
     } catch (err) {
+      setClient((prev) => (prev ? { ...prev, tags: previousTags } : prev));
       setNotesError(
         err instanceof Error ? err.message : 'Failed to remove tag',
       );
