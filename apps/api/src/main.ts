@@ -2,6 +2,7 @@ import './instrument';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { apiReference } from '@scalar/nestjs-api-reference';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -85,7 +86,13 @@ async function bootstrap() {
       .build();
 
     const document = SwaggerModule.createDocument(app, swaggerConfig);
-    SwaggerModule.setup('docs', app, document);
+    app.use(
+      '/docs',
+      apiReference({
+        content: document,
+        theme: 'kepler',
+      }),
+    );
   }
 
   // Global exception filter
@@ -107,7 +114,7 @@ async function bootstrap() {
   await app.listen(port);
   logger.log(`SavSpot API running on http://localhost:${port}`);
   if (!isProduction) {
-    logger.log(`Swagger docs available at http://localhost:${port}/docs`);
+    logger.log(`API docs available at http://localhost:${port}/docs`);
   }
 }
 
