@@ -60,5 +60,8 @@ test-results/
 .claude/settings.local.json
 .worktreeinclude
 
+# Specs (local-only, not published to repo)
+specs/
+
 # Misc
 *.tsbuildinfo
