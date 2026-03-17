@@ -4,7 +4,7 @@
 // Run with: npx tsx scripts/admin/reset-demo.ts
 // =============================================================================
 
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../prisma/generated/prisma/index.js';
 import { getPrisma } from './_shared.js';
 import { seedDemo } from '../../prisma/seed/demo.js';
 import {
