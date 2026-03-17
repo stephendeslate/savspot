@@ -15,14 +15,13 @@ import {
 
 const DEMO_USER_IDS = [DEMO_OWNER_ID, DEMO_STAFF_1_ID, DEMO_STAFF_2_ID];
 
-// Prisma $executeRawUnsafe sends params as text type, which PostgreSQL refuses
-// to compare against uuid columns even with ::uuid casts. Since these are
-// hardcoded constants (no injection risk), we inline them directly.
+// Note: Prisma String fields map to PostgreSQL text, not uuid.
+// All ID/tenant_id columns are text type — no ::uuid casts needed.
 
 async function deleteTenant(table: string, col = 'tenant_id'): Promise<void> {
   const prisma = getPrisma();
   await prisma.$executeRawUnsafe(
-    `DELETE FROM "${table}" WHERE "${col}" = '${DEMO_TENANT_ID}'::uuid`,
+    `DELETE FROM "${table}" WHERE "${col}" = '${DEMO_TENANT_ID}'`,
   );
 }
 
@@ -33,7 +32,7 @@ async function clearDemoData(): Promise<void> {
 
   // Layer 1: Leaf tables scoped to tenant
   await prisma.$executeRawUnsafe(
-    `DELETE FROM "booking_state_history" WHERE booking_id IN (SELECT id FROM "bookings" WHERE tenant_id = '${DEMO_TENANT_ID}'::uuid)`,
+    `DELETE FROM "booking_state_history" WHERE booking_id IN (SELECT id FROM "bookings" WHERE tenant_id = '${DEMO_TENANT_ID}')`,
   );
   await deleteTenant('booking_reminders');
   await deleteTenant('booking_flow_analytics');
@@ -55,7 +54,7 @@ async function clearDemoData(): Promise<void> {
 
   // Layer 3: Service and availability tables
   await prisma.$executeRawUnsafe(
-    `DELETE FROM "service_addons" WHERE service_id IN (SELECT id FROM "services" WHERE tenant_id = '${DEMO_TENANT_ID}'::uuid)`,
+    `DELETE FROM "service_addons" WHERE service_id IN (SELECT id FROM "services" WHERE tenant_id = '${DEMO_TENANT_ID}')`,
   );
   await deleteTenant('service_providers');
   await deleteTenant('availability_rules');
@@ -70,7 +69,7 @@ async function clearDemoData(): Promise<void> {
   // Layer 5: Demo users
   for (const userId of DEMO_USER_IDS) {
     await prisma.$executeRawUnsafe(
-      `DELETE FROM "users" WHERE id = '${userId}'::uuid`,
+      `DELETE FROM "users" WHERE id = '${userId}'`,
     );
   }
 
