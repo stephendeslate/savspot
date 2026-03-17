@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
-import { MapPin, Mail, Phone, ShieldCheck, CalendarX2, Star } from 'lucide-react';
+import { MapPin, Mail, Phone, ShieldCheck, CalendarX2, Star, Info } from 'lucide-react';
+import { DEMO_TENANT_SLUG } from '@savspot/shared';
 import { Badge } from '@savspot/ui';
 import type { TenantData } from '@/components/booking/booking-types';
 import { buildJsonLd } from './helpers';
@@ -227,6 +229,17 @@ export default async function BookingPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      {slug === DEMO_TENANT_SLUG && (
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-200">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            This is a demo booking page. Explore the full booking flow freely.{' '}
+            <Link href="/register" className="font-medium underline hover:no-underline">
+              Create your own free booking page &rarr;
+            </Link>
+          </p>
+        </div>
+      )}
       <HeroSection tenant={tenant} />
       <BookingPageClient tenant={tenant} />
     </div>

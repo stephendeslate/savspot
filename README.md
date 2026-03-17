@@ -3,7 +3,7 @@
   <p align="center">
     Open-source booking platform for service businesses
     <br />
-    <a href="https://savspot.co">Cloud</a> &middot; <a href="docs/self-hosting.md">Self-Host</a> &middot; <a href="https://github.com/stephendeslate/savspot/issues">Issues</a>
+    <a href="https://savspot.co/book/demo-barbershop">Live Demo</a> &middot; <a href="https://savspot.co">Cloud</a> &middot; <a href="docs/self-hosting.md">Self-Host</a> &middot; <a href="https://github.com/stephendeslate/savspot/issues">Issues</a>
   </p>
 </p>
 

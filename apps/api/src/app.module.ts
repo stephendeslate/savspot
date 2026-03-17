@@ -69,6 +69,7 @@ import { PosthogModule } from './posthog/posthog.module';
 import { CustomThrottlerGuard } from './common/guards/throttle.guard';
 import { CsrfGuard } from './common/guards/csrf.guard';
 import { TenantStatusGuard } from './common/guards/tenant-status.guard';
+import { DemoTenantGuard } from './common/guards/demo-tenant.guard';
 import { SecurityHeadersMiddleware } from './common/middleware/security-headers.middleware';
 import { validateEnv } from './config/env.validation';
 import {
@@ -178,6 +179,10 @@ import {
     {
       provide: APP_GUARD,
       useClass: TenantStatusGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: DemoTenantGuard,
     },
     {
       provide: APP_GUARD,

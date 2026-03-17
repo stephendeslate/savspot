@@ -1,0 +1,30 @@
+name: Reset Demo Tenant
+
+on:
+  schedule:
+    - cron: '17 6 * * *' # 6:17 UTC daily
+  workflow_dispatch: # manual trigger
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @savspot/shared build
+
+      - name: Reset demo tenant
+        run: npx tsx scripts/admin/reset-demo.ts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
