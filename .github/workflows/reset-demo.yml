@@ -19,12 +19,24 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
 
+      - uses: superfly/flyctl-actions/setup-flyctl@1.5
+
       - run: pnpm install --frozen-lockfile
 
       - name: Build shared package
         run: pnpm --filter @savspot/shared build
 
-      - name: Reset demo tenant
-        run: npx tsx scripts/admin/reset-demo.ts
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Start Fly proxy
+        run: |
+          flyctl proxy 15432:5432 -a savspot-db &
+          sleep 3
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Reset demo tenant
+        run: pnpm tsx scripts/admin/reset-demo.ts
+        env:
+          DATABASE_URL: postgres://postgres:${{ secrets.FLY_PG_PASSWORD }}@localhost:15432/savspot?sslmode=disable
