@@ -35,7 +35,7 @@ Looking for feedback on the architecture, the self-hosting experience, and wheth
 
 GitHub: https://github.com/stephendeslate/savspot
 Self-hosting docs: https://github.com/stephendeslate/savspot/blob/main/docs/self-hosting.md
-Live demo: https://savspot.co
+Live demo: https://savspot.co/book/demo-barbershop
 
 ---
 
@@ -80,6 +80,7 @@ There's also a managed cloud at savspot.co if you don't want to self-host, but t
 
 GitHub: https://github.com/stephendeslate/savspot
 Docs: https://github.com/stephendeslate/savspot/blob/main/docs/self-hosting.md
+Live demo: https://savspot.co/book/demo-barbershop
 
 Happy to answer questions or take feature requests!
 
@@ -113,6 +114,7 @@ The project includes a CONTRIBUTING.md with dev setup instructions if you want t
 
 GitHub: https://github.com/stephendeslate/savspot
 Self-hosting guide: https://github.com/stephendeslate/savspot/blob/main/docs/self-hosting.md
+Live demo: https://savspot.co/book/demo-barbershop
 
 ---
 

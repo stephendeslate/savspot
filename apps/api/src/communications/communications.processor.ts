@@ -11,6 +11,7 @@ import {
   JOB_SEND_BOOKING_REMINDERS,
 } from '../bullmq/queue.constants';
 import { SendBookingRemindersHandler } from '../jobs/send-booking-reminders.processor';
+import { DEMO_TENANT_ID } from '@savspot/shared';
 
 interface DeliverCommunicationPayload {
   communicationId: string;
@@ -79,6 +80,23 @@ export class CommunicationsHandler {
     job: Job<DeliverCommunicationPayload>,
   ): Promise<void> {
     const { communicationId, tenantId } = job.data;
+
+    // Suppress email delivery for the demo tenant
+    if (tenantId === DEMO_TENANT_ID) {
+      this.logger.debug(`Demo tenant — suppressing email delivery for ${communicationId}`);
+      await this.prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenantId}, TRUE)`;
+        await tx.communication.update({
+          where: { id: communicationId },
+          data: {
+            status: 'SENT',
+            sentAt: new Date(),
+            providerMessageId: 'demo-suppressed',
+          },
+        });
+      });
+      return;
+    }
 
     this.logger.log(
       `Processing deliverCommunication: id=${communicationId} tenant=${tenantId}`,

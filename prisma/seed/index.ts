@@ -11,6 +11,7 @@ import { seedServices } from './services.js';
 import { seedAvailabilityRules } from './availability.js';
 import { seedBookings } from './bookings.js';
 import { seedNotificationTypes } from './notification-types.js';
+import { seedDemo } from './demo.js';
 
 const prisma = new PrismaClient();
 
@@ -143,6 +144,10 @@ async function main(): Promise<void> {
   // 6. Notification Types (no FK dependencies)
   console.log('[6/7] Notification Types');
   await seedNotificationTypes(prisma);
+
+  // 7. Demo Tenant (self-contained, uses upsert for idempotency)
+  console.log('[7/7] Demo Tenant');
+  await seedDemo(prisma);
 
   console.log('\n=== Seed complete! ===');
 }

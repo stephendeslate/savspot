@@ -291,6 +291,13 @@ export default function Home() {
                 No credit card required · Import from Booksy, Fresha, Square, or Vagaro
               </p>
               <span className="hidden text-muted-foreground/40 sm:inline">|</span>
+              <Link
+                href="/book/demo-barbershop"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+              >
+                Try the live demo &rarr;
+              </Link>
+              <span className="hidden text-muted-foreground/40 sm:inline">|</span>
               <a
                 href="/docs/self-hosting"
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors"

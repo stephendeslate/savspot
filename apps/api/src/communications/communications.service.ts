@@ -11,6 +11,7 @@ import {
 } from '../bullmq/queue.constants';
 import { sanitizeColor } from '../common/utils/sanitize-color';
 import { checkNotificationPreference } from './notification-preference.util';
+import { DEMO_TENANT_ID } from '@savspot/shared';
 
 /**
  * Template keys that are transactional (not marketing).
@@ -186,6 +187,15 @@ export class CommunicationsService {
     this.logger.log(
       `Communication created: id=${communication.id} template=${templateKey} recipient=${recipientEmail}`,
     );
+
+    // Demo tenant: mark as sent immediately, skip queue
+    if (tenantId === DEMO_TENANT_ID) {
+      await this.prisma.communication.update({
+        where: { id: communication.id },
+        data: { status: 'SENT', sentAt: new Date(), providerMessageId: 'demo-suppressed' },
+      });
+      return communication.id;
+    }
 
     await this.commsQueue.add(
       JOB_DELIVER_COMMUNICATION,
