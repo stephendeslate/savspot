@@ -43,7 +43,7 @@ export async function seedTenants(prisma: PrismaClient): Promise<void> {
       },
       brandColor: '#1a1a2e',
       isPublished: true,
-      subscriptionTier: 'FREE' as const,
+      subscriptionTier: 'STARTER' as const,
       status: 'ACTIVE' as const,
     },
     {
@@ -67,7 +67,7 @@ export async function seedTenants(prisma: PrismaClient): Promise<void> {
       },
       brandColor: '#e94560',
       isPublished: true,
-      subscriptionTier: 'FREE' as const,
+      subscriptionTier: 'STARTER' as const,
       status: 'ACTIVE' as const,
     },
     {
@@ -91,7 +91,7 @@ export async function seedTenants(prisma: PrismaClient): Promise<void> {
       },
       brandColor: '#0f3460',
       isPublished: true,
-      subscriptionTier: 'PRO' as const,
+      subscriptionTier: 'TEAM' as const,
       status: 'ACTIVE' as const,
     },
   ];

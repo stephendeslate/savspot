@@ -31,7 +31,7 @@ export class EmbedService {
     }
 
     const allowedModes: string[] = ['button'];
-    if (tenant.subscriptionTier === 'PRO') {
+    if (tenant.subscriptionTier === 'TEAM' || tenant.subscriptionTier === 'BUSINESS') {
       allowedModes.push('popup', 'inline');
     }
 

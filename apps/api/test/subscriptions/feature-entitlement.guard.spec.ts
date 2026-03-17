@@ -56,13 +56,13 @@ describe('FeatureEntitlementGuard', () => {
     it('should allow when tenant meets tier requirement', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
         ((key: string) => {
-          if (key === REQUIRES_TIER_KEY) return 'PRO';
+          if (key === REQUIRES_TIER_KEY) return 'TEAM';
           return undefined;
         }) as never,
       );
 
       prisma.tenant.findUnique.mockResolvedValue({
-        subscriptionTier: 'PRO',
+        subscriptionTier: 'TEAM',
       });
 
       const ctx = makeExecutionContext('tenant-1');
@@ -73,13 +73,13 @@ describe('FeatureEntitlementGuard', () => {
     it('should deny when tenant tier is below requirement', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
         ((key: string) => {
-          if (key === REQUIRES_TIER_KEY) return 'PRO';
+          if (key === REQUIRES_TIER_KEY) return 'TEAM';
           return undefined;
         }) as never,
       );
 
       prisma.tenant.findUnique.mockResolvedValue({
-        subscriptionTier: 'FREE',
+        subscriptionTier: 'STARTER',
       });
 
       const ctx = makeExecutionContext('tenant-1');
@@ -99,7 +99,7 @@ describe('FeatureEntitlementGuard', () => {
       );
 
       prisma.tenant.findUnique.mockResolvedValue({
-        subscriptionTier: 'PRO',
+        subscriptionTier: 'TEAM',
       });
 
       const ctx = makeExecutionContext('tenant-1');
@@ -116,7 +116,7 @@ describe('FeatureEntitlementGuard', () => {
       );
 
       prisma.tenant.findUnique.mockResolvedValue({
-        subscriptionTier: 'FREE',
+        subscriptionTier: 'STARTER',
       });
 
       const ctx = makeExecutionContext('tenant-1');
@@ -125,7 +125,7 @@ describe('FeatureEntitlementGuard', () => {
       );
     });
 
-    it('should deny when feature is disabled (numeric 0)', async () => {
+    it('should allow smsAllocation for STARTER tier (non-zero)', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
         ((key: string) => {
           if (key === REQUIRES_FEATURE_KEY) return 'smsAllocation';
@@ -134,13 +134,12 @@ describe('FeatureEntitlementGuard', () => {
       );
 
       prisma.tenant.findUnique.mockResolvedValue({
-        subscriptionTier: 'FREE',
+        subscriptionTier: 'STARTER',
       });
 
       const ctx = makeExecutionContext('tenant-1');
-      await expect(guard.canActivate(ctx as never)).rejects.toThrow(
-        ForbiddenException,
-      );
+      const result = await guard.canActivate(ctx as never);
+      expect(result).toBe(true);
     });
 
     it('should allow smsAllocation for PRO tier', async () => {
@@ -152,7 +151,7 @@ describe('FeatureEntitlementGuard', () => {
       );
 
       prisma.tenant.findUnique.mockResolvedValue({
-        subscriptionTier: 'PRO',
+        subscriptionTier: 'TEAM',
       });
 
       const ctx = makeExecutionContext('tenant-1');
@@ -169,7 +168,7 @@ describe('FeatureEntitlementGuard', () => {
       );
 
       prisma.tenant.findUnique.mockResolvedValue({
-        subscriptionTier: 'PRO',
+        subscriptionTier: 'TEAM',
       });
 
       const ctx = makeExecutionContext('tenant-1');
@@ -182,7 +181,7 @@ describe('FeatureEntitlementGuard', () => {
     it('should throw when no tenant context', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
         ((key: string) => {
-          if (key === REQUIRES_TIER_KEY) return 'PRO';
+          if (key === REQUIRES_TIER_KEY) return 'TEAM';
           return undefined;
         }) as never,
       );
@@ -196,7 +195,7 @@ describe('FeatureEntitlementGuard', () => {
     it('should throw when tenant not found', async () => {
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
         ((key: string) => {
-          if (key === REQUIRES_TIER_KEY) return 'PRO';
+          if (key === REQUIRES_TIER_KEY) return 'TEAM';
           return undefined;
         }) as never,
       );

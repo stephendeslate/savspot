@@ -149,4 +149,4 @@ For commercial use without AGPL obligations, contact us about the Pro License.
 
 ---
 
-Built by [SD Solutions, LLC](https://savspot.co)
+Built by [SJD Labs, LLC](https://savspot.co)

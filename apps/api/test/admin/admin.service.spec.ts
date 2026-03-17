@@ -35,7 +35,7 @@ function makeTenant(overrides: Record<string, unknown> = {}) {
     slug: 'acme-studio',
     category: 'STUDIO',
     status: 'ACTIVE',
-    subscriptionTier: 'PRO',
+    subscriptionTier: 'TEAM',
     currency: 'USD',
     country: 'US',
     isPublished: true,
@@ -169,15 +169,15 @@ describe('AdminService', () => {
     it('should return tier distribution, MRR, and churn', async () => {
       prisma.$queryRaw
         .mockResolvedValueOnce([
-          { subscription_tier: 'FREE', count: BigInt(5) },
-          { subscription_tier: 'PRO', count: BigInt(3) },
+          { subscription_tier: 'STARTER', count: BigInt(5) },
+          { subscription_tier: 'TEAM', count: BigInt(3) },
         ])
         .mockResolvedValueOnce([{ mrr: 30 }])
         .mockResolvedValueOnce([{ churned: BigInt(1) }]);
 
       const result = await service.getSubscriptionOverview();
 
-      expect(result.tierDistribution).toEqual({ FREE: 5, PRO: 3 });
+      expect(result.tierDistribution).toEqual({ STARTER: 5, TEAM: 3 });
       expect(result.mrr).toBe(30);
       expect(result.recentChurn).toBe(1);
     });

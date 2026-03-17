@@ -100,7 +100,7 @@ savspot/
 
 ## Contributor License Agreement
 
-By contributing to SavSpot, you agree that your contributions will be licensed under the same [AGPL v3 license](LICENSE) that covers the project. You also grant SD Solutions, LLC a non-exclusive, irrevocable license to use your contributions under any license, including commercial licenses. This allows the project to offer dual-licensing (e.g., Pro License) while keeping the open-source version AGPL.
+By contributing to SavSpot, you agree that your contributions will be licensed under the same [AGPL v3 license](LICENSE) that covers the project. You also grant SJD Labs, LLC a non-exclusive, irrevocable license to use your contributions under any license, including commercial licenses. This allows the project to offer dual-licensing (e.g., Pro License) while keeping the open-source version AGPL.
 
 ## Reporting Bugs
 

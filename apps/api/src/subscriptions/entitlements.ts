@@ -1,8 +1,8 @@
 export const TIER_FEATURES = {
-  FREE: {
+  STARTER: {
     maxStaff: 1,
-    maxBookingsPerMonth: 100,
-    smsAllocation: 0,
+    maxBookingsPerMonth: Infinity,
+    smsAllocation: 100,
     embedModes: ['redirect'] as const,
     clientManagement: 'basic' as const,
     contracts: 'basic' as const,
@@ -11,8 +11,8 @@ export const TIER_FEATURES = {
     multiLocation: false,
     customTemplates: false,
   },
-  PRO: {
-    maxStaff: 15,
+  TEAM: {
+    maxStaff: 10,
     maxBookingsPerMonth: Infinity,
     smsAllocation: 500,
     embedModes: ['redirect', 'popup', 'inline'] as const,
@@ -23,6 +23,18 @@ export const TIER_FEATURES = {
     multiLocation: true,
     customTemplates: true,
   },
+  BUSINESS: {
+    maxStaff: Infinity,
+    maxBookingsPerMonth: Infinity,
+    smsAllocation: 2000,
+    embedModes: ['redirect', 'popup', 'inline'] as const,
+    clientManagement: 'full' as const,
+    contracts: 'full' as const,
+    analytics: 'advanced' as const,
+    teamManagement: true,
+    multiLocation: true,
+    customTemplates: true,
+  },
 } as const;
 
-export type FeatureKey = keyof typeof TIER_FEATURES.FREE;
+export type FeatureKey = keyof typeof TIER_FEATURES.STARTER;

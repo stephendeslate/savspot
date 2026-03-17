@@ -42,8 +42,9 @@ enum PaymentProviderType {
 }
 
 enum SubscriptionTier {
-  FREE
-  PRO
+  STARTER
+  TEAM
+  BUSINESS
 }
 
 enum TenantStatus {
@@ -761,7 +762,7 @@ model Tenant {
   paymentProvider          PaymentProviderType      @default(STRIPE) @map("payment_provider")
   paymentProviderAccountId String?                  @map("payment_provider_account_id")
   paymentProviderOnboarded Boolean                  @default(false) @map("payment_provider_onboarded")
-  subscriptionTier         SubscriptionTier         @default(FREE) @map("subscription_tier")
+  subscriptionTier         SubscriptionTier         @default(STARTER) @map("subscription_tier")
   subscriptionProviderId   String?                  @map("subscription_provider_id")
   subscriptionStatus       SubscriptionStatus       @default(ACTIVE) @map("subscription_status")
   subscriptionCurrentPeriodEnd DateTime?             @map("subscription_current_period_end")

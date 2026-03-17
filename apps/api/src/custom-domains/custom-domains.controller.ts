@@ -24,7 +24,7 @@ import { AddDomainDto } from './dto/add-domain.dto';
 @ApiTags('Custom Domains')
 @ApiBearerAuth()
 @UseGuards(TenantRolesGuard, FeatureEntitlementGuard)
-@RequiresTier('PRO')
+@RequiresTier('TEAM')
 @TenantRoles('OWNER', 'ADMIN')
 @Controller('tenants/:tenantId/custom-domain')
 export class CustomDomainsController {

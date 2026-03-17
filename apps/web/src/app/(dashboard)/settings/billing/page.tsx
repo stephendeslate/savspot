@@ -48,14 +48,16 @@ interface Subscription {
 
 // ---------- Helpers ----------
 
-const TIER_ORDER = ['FREE', 'PRO'];
+const TIER_ORDER = ['STARTER', 'TEAM', 'BUSINESS'];
 
 function getTierBadge(tier: string) {
   switch (tier) {
-    case 'FREE':
-      return <Badge className="bg-gray-100 text-gray-800">Free</Badge>;
-    case 'PRO':
-      return <Badge className="bg-blue-100 text-blue-800">Pro</Badge>;
+    case 'STARTER':
+      return <Badge className="bg-green-100 text-green-800">Starter</Badge>;
+    case 'TEAM':
+      return <Badge className="bg-blue-100 text-blue-800">Team</Badge>;
+    case 'BUSINESS':
+      return <Badge className="bg-purple-100 text-purple-800">Business</Badge>;
     default:
       return <Badge className="bg-gray-100 text-gray-800">{tier}</Badge>;
   }

@@ -9,22 +9,27 @@ import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 import { TIER_FEATURES } from './entitlements';
 
-type SubscriptionTierType = 'FREE' | 'PRO';
+type SubscriptionTierType = 'STARTER' | 'TEAM' | 'BUSINESS';
 
 export interface PlanInfo {
   tier: SubscriptionTierType;
   name: string;
   monthlyPrice: number;
   annualMonthlyPrice: number;
+  perSeat: boolean;
   features: (typeof TIER_FEATURES)[SubscriptionTierType];
 }
 
 const PLAN_PRICES: Record<
-  'PRO',
+  'STARTER' | 'TEAM',
   { monthly: number; annualMonthly: number }
 > = {
-  PRO: { monthly: 10, annualMonthly: 8 },
+  STARTER: { monthly: 9, annualMonthly: 7 },
+  TEAM: { monthly: 7, annualMonthly: 5 },
 };
+
+/** All new cloud tenants get a 14-day free trial */
+const TRIAL_PERIOD_DAYS = 14;
 
 @Injectable()
 export class SubscriptionsService {
@@ -58,18 +63,28 @@ export class SubscriptionsService {
   getPlans(): PlanInfo[] {
     return [
       {
-        tier: 'FREE',
-        name: 'Free',
-        monthlyPrice: 0,
-        annualMonthlyPrice: 0,
-        features: TIER_FEATURES.FREE,
+        tier: 'STARTER',
+        name: 'Starter',
+        monthlyPrice: PLAN_PRICES.STARTER.monthly,
+        annualMonthlyPrice: PLAN_PRICES.STARTER.annualMonthly,
+        perSeat: false,
+        features: TIER_FEATURES.STARTER,
       },
       {
-        tier: 'PRO',
-        name: 'Pro',
-        monthlyPrice: PLAN_PRICES.PRO.monthly,
-        annualMonthlyPrice: PLAN_PRICES.PRO.annualMonthly,
-        features: TIER_FEATURES.PRO,
+        tier: 'TEAM',
+        name: 'Team',
+        monthlyPrice: PLAN_PRICES.TEAM.monthly,
+        annualMonthlyPrice: PLAN_PRICES.TEAM.annualMonthly,
+        perSeat: true,
+        features: TIER_FEATURES.TEAM,
+      },
+      {
+        tier: 'BUSINESS',
+        name: 'Business',
+        monthlyPrice: 0,
+        annualMonthlyPrice: 0,
+        perSeat: true,
+        features: TIER_FEATURES.BUSINESS,
       },
     ];
   }
@@ -101,8 +116,9 @@ export class SubscriptionsService {
 
   async createCheckoutSession(
     tenantId: string,
-    tier: 'PRO',
+    tier: 'STARTER' | 'TEAM',
     isAnnual: boolean,
+    seatCount?: number,
   ) {
     const stripe = this.ensureStripe();
 
@@ -129,6 +145,8 @@ export class SubscriptionsService {
       ? prices.annualMonthly * 100
       : prices.monthly * 100;
 
+    const quantity = tier === 'TEAM' ? (seatCount ?? 2) : 1;
+
     const webUrl = this.configService.get<string>(
       'app.webUrl',
       'http://localhost:3000',
@@ -141,34 +159,36 @@ export class SubscriptionsService {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: `SavSpot ${tier.charAt(0) + tier.slice(1).toLowerCase()} Plan`,
-              description: isAnnual ? 'Annual billing' : 'Monthly billing',
+              name: `SavSpot ${tier === 'STARTER' ? 'Starter' : 'Team'} Plan`,
+              description: `${isAnnual ? 'Annual billing' : 'Monthly billing'}${tier === 'TEAM' ? ` — ${quantity} seats` : ''}`,
             },
             unit_amount: unitAmount,
             recurring: {
               interval: isAnnual ? 'year' : 'month',
             },
           },
-          quantity: 1,
+          quantity,
         },
       ],
-      metadata: {
-        tenantId,
-        tier,
-        isAnnual: String(isAnnual),
-      },
       subscription_data: {
+        trial_period_days: TRIAL_PERIOD_DAYS,
         metadata: {
           tenantId,
           tier,
         },
+      },
+      metadata: {
+        tenantId,
+        tier,
+        isAnnual: String(isAnnual),
+        seatCount: String(quantity),
       },
       success_url: `${webUrl}/settings/billing?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${webUrl}/settings/billing?canceled=true`,
     });
 
     this.logger.log(
-      `Checkout session created for tenant ${tenantId}: ${session.id} (${tier}, ${isAnnual ? 'annual' : 'monthly'})`,
+      `Checkout session created for tenant ${tenantId}: ${session.id} (${tier}, ${isAnnual ? 'annual' : 'monthly'}, ${quantity} seats)`,
     );
 
     return {
@@ -335,10 +355,10 @@ export class SubscriptionsService {
       return;
     }
 
+    // When subscription is canceled, tenant loses access (no free tier)
     await this.prisma.tenant.update({
       where: { id: tenant.id },
       data: {
-        subscriptionTier: 'FREE',
         subscriptionStatus: 'CANCELED',
         subscriptionProviderId: null,
         subscriptionCurrentPeriodEnd: null,
@@ -347,7 +367,7 @@ export class SubscriptionsService {
     });
 
     this.logger.log(
-      `Tenant ${tenant.id} subscription canceled, downgraded to FREE`,
+      `Tenant ${tenant.id} subscription canceled`,
     );
   }
 
@@ -375,10 +395,8 @@ export class SubscriptionsService {
       return;
     }
 
-    const validTier =
-      tier && (['FREE', 'PRO'] as const).includes(tier)
-        ? tier
-        : undefined;
+    const validTiers: readonly SubscriptionTierType[] = ['STARTER', 'TEAM', 'BUSINESS'];
+    const validTier = tier && validTiers.includes(tier) ? tier : undefined;
 
     let subscriptionStatus: 'ACTIVE' | 'PAST_DUE' | 'TRIALING' | undefined;
     let clearGracePeriod = false;

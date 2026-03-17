@@ -21,8 +21,9 @@ interface AuthenticatedUser {
 }
 
 const TIER_HIERARCHY: Record<SubscriptionTierType, number> = {
-  FREE: 0,
-  PRO: 1,
+  STARTER: 0,
+  TEAM: 1,
+  BUSINESS: 2,
 };
 
 @Injectable()

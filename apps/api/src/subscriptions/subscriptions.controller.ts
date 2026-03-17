@@ -32,7 +32,7 @@ import { SubscriptionsService } from './subscriptions.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { StripeProvider } from '../payments/providers/stripe.provider';
 
-type SubscriptionTierType = 'FREE' | 'PRO';
+type SubscriptionTierType = 'STARTER' | 'TEAM' | 'BUSINESS';
 
 @ApiTags('Subscriptions')
 @Controller('subscriptions')
@@ -81,6 +81,7 @@ export class SubscriptionsController {
       tenantId,
       dto.tier,
       dto.isAnnual,
+      dto.seatCount,
     );
   }
 

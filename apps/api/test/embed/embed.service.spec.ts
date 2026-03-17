@@ -45,7 +45,7 @@ describe('EmbedService', () => {
       logoUrl: null,
       brandColor: '#6366f1',
       category: 'SALON',
-      subscriptionTier: 'FREE',
+      subscriptionTier: 'STARTER',
       status: 'ACTIVE',
     };
 
@@ -60,10 +60,10 @@ describe('EmbedService', () => {
       expect(result.allowedModes).toEqual(['button']);
     });
 
-    it('should allow popup and inline for pro tier', async () => {
+    it('should allow popup and inline for team tier', async () => {
       prisma.tenant.findUnique.mockResolvedValue({
         ...activeTenant,
-        subscriptionTier: 'PRO',
+        subscriptionTier: 'TEAM',
       });
 
       const result = await service.getWidgetConfig(SLUG);

@@ -163,7 +163,8 @@ export class AdminService {
       >`
         SELECT COALESCE(SUM(
           CASE subscription_tier
-            WHEN 'PRO' THEN 10
+            WHEN 'STARTER' THEN 9
+            WHEN 'TEAM' THEN 7
             ELSE 0
           END
         ), 0) AS mrr

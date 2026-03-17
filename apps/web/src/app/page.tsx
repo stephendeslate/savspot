@@ -135,14 +135,14 @@ const MORE_FEATURES = [
 ] as const;
 
 const PRICING_FEATURES = {
-  free: [
+  starter: [
     'Unlimited bookings',
     'Online & offline payments',
     '1% processing fee on transactions',
     'Google Calendar sync',
     'Client CRM',
     'Email notifications & reminders',
-    'SMS alerts (to you)',
+    '100 SMS/month',
     'Client import from competitors',
     'Walk-in booking support',
     'Invoice generation',
@@ -151,13 +151,15 @@ const PRICING_FEATURES = {
     'AI agent discoverability (MCP)',
     'AI voice receptionist',
     'Data export (GDPR-compliant)',
+    '14-day free trial',
   ],
-  pro: [
-    'Everything in Free (incl. 1% processing fee)',
-    'Custom email templates',
-    'SMS to clients',
+  team: [
+    'Everything in Starter',
+    '2-10 staff members',
+    '500 SMS/month',
     'Advanced analytics dashboard',
-    'Embeddable booking widget',
+    'Embeddable booking widget (popup & inline)',
+    'Custom email templates',
     'Intake forms & questionnaires',
     'Digital contracts & signatures',
     'Advanced workflow automation',
@@ -166,8 +168,16 @@ const PRICING_FEATURES = {
     'Custom integrations',
     'Custom domain support',
     'Advanced reporting',
-    'Accounting integrations',
+  ],
+  business: [
+    'Everything in Team',
+    'Unlimited staff members',
+    '2,000 SMS/month',
     'Priority support',
+    'Dedicated account manager',
+    'Custom onboarding',
+    'Accounting integrations',
+    'SLA guarantee',
   ],
 } as const;
 
@@ -432,9 +442,9 @@ export default function Home() {
               Simple, honest pricing
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-center text-muted-foreground">
-              Self-host for free or let us handle the infrastructure. Upgrade only when you want more.
+              Self-host for free or let us handle the infrastructure. All cloud plans include a 14-day free trial.
             </p>
-            <div className="mx-auto mt-12 grid max-w-5xl gap-6 lg:grid-cols-3">
+            <div className="mx-auto mt-12 grid max-w-6xl gap-6 lg:grid-cols-4">
               {/* Self-Hosted Tier */}
               <div className="flex flex-col rounded-xl border bg-card p-6 shadow-[var(--shadow-colored)]">
                 <div>
@@ -477,20 +487,23 @@ export default function Home() {
                 </a>
               </div>
 
-              {/* Cloud Free Tier */}
+              {/* Cloud Starter Tier */}
               <div className="flex flex-col rounded-xl border bg-card p-6 shadow-[var(--shadow-colored)]">
                 <div>
-                  <h3 className="text-lg font-semibold">Cloud Free</h3>
+                  <h3 className="text-lg font-semibold">Cloud Starter</h3>
                   <div className="mt-2 flex items-baseline gap-1">
-                    <span className="text-3xl font-bold">$0</span>
+                    <span className="text-3xl font-bold">$9</span>
                     <span className="text-sm text-muted-foreground">/month</span>
                   </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    or $7/mo billed annually
+                  </p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    We host it for you. No credit card required. 1% fee on transactions.
+                    Perfect for solo practitioners. 1 staff member included.
                   </p>
                 </div>
                 <ul className="mt-6 flex-1 space-y-2.5">
-                  {PRICING_FEATURES.free.map((feature) => (
+                  {PRICING_FEATURES.starter.map((feature) => (
                     <li key={feature} className="flex items-start gap-2 text-sm">
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                       <span>{feature}</span>
@@ -501,11 +514,11 @@ export default function Home() {
                   href="/register"
                   className="mt-8 inline-flex h-11 w-full items-center justify-center rounded-lg bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                 >
-                  Get Started Free
+                  Start Free Trial
                 </Link>
               </div>
 
-              {/* Cloud Pro Tier */}
+              {/* Cloud Team Tier */}
               <div className="relative flex flex-col rounded-xl border-2 border-accent bg-card p-6 shadow-[var(--shadow-elevated)]">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground shadow-[0_0_12px_var(--glow-accent)]">
@@ -513,20 +526,20 @@ export default function Home() {
                   </span>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">Cloud Pro</h3>
+                  <h3 className="text-lg font-semibold">Cloud Team</h3>
                   <div className="mt-2 flex items-baseline gap-1">
-                    <span className="text-3xl font-bold">$10</span>
-                    <span className="text-sm text-muted-foreground">/month</span>
+                    <span className="text-3xl font-bold">$7</span>
+                    <span className="text-sm text-muted-foreground">/seat/month</span>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    or $8/mo billed annually
+                    or $5/seat/mo billed annually
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    For growing businesses that want more control.
+                    For growing teams with 2-10 staff members.
                   </p>
                 </div>
                 <ul className="mt-6 flex-1 space-y-2.5">
-                  {PRICING_FEATURES.pro.map((feature) => (
+                  {PRICING_FEATURES.team.map((feature) => (
                     <li key={feature} className="flex items-start gap-2 text-sm">
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
                       <span>{feature}</span>
@@ -537,12 +550,39 @@ export default function Home() {
                   href="/register"
                   className="mt-8 inline-flex h-11 w-full items-center justify-center rounded-lg bg-accent text-sm font-medium text-accent-foreground shadow-[0_0_12px_var(--glow-accent)] transition-all hover:shadow-[0_0_20px_var(--glow-accent)] hover:brightness-105"
                 >
-                  Start Free, Upgrade Later
+                  Start Free Trial
                 </Link>
+              </div>
+
+              {/* Cloud Business Tier */}
+              <div className="flex flex-col rounded-xl border bg-card p-6 shadow-[var(--shadow-colored)]">
+                <div>
+                  <h3 className="text-lg font-semibold">Cloud Business</h3>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <span className="text-3xl font-bold">Custom</span>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    For larger operations with 10+ staff. Custom pricing and onboarding.
+                  </p>
+                </div>
+                <ul className="mt-6 flex-1 space-y-2.5">
+                  {PRICING_FEATURES.business.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2 text-sm">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href="mailto:hello@savspot.com?subject=Business%20Plan%20Inquiry"
+                  className="mt-8 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-background text-sm font-medium transition-colors hover:bg-secondary"
+                >
+                  Contact Us
+                </a>
               </div>
             </div>
             <p className="mx-auto mt-6 max-w-lg text-center text-xs text-muted-foreground">
-              Cloud plans include a 1% processing fee on transactions.
+              All cloud plans include a 1% processing fee on transactions and a 14-day free trial (no credit card required).
               Self-hosted has no fees — bring your own Stripe account.
             </p>
           </div>

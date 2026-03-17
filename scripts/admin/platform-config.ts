@@ -31,7 +31,6 @@ Options:
 Available Keys:
   platform_fee_percent           Platform fee percentage (e.g., 1)
   referral_commission_percent    Referral commission percentage (e.g., 5)
-  max_free_tier_bookings         Max bookings on free tier (e.g., 50)
   maintenance_mode               Enable/disable maintenance mode (true/false)
 
 Examples:
@@ -48,7 +47,6 @@ Examples:
 interface PlatformConfig {
   platform_fee_percent: number;
   referral_commission_percent: number;
-  max_free_tier_bookings: number;
   maintenance_mode: boolean;
   [key: string]: unknown;
 }
@@ -56,7 +54,6 @@ interface PlatformConfig {
 const VALID_KEYS = [
   'platform_fee_percent',
   'referral_commission_percent',
-  'max_free_tier_bookings',
   'maintenance_mode',
 ] as const;
 
@@ -65,7 +62,6 @@ type ValidKey = (typeof VALID_KEYS)[number];
 const DEFAULT_CONFIG: PlatformConfig = {
   platform_fee_percent: 1,
   referral_commission_percent: 5,
-  max_free_tier_bookings: 50,
   maintenance_mode: false,
 };
 
@@ -112,14 +108,6 @@ function parseValue(key: ValidKey, rawValue: string): unknown {
       const num = parseFloat(rawValue);
       if (isNaN(num) || num < 0 || num > 100) {
         exitWithError(`"${key}" must be a number between 0 and 100. Got: "${rawValue}"`);
-      }
-      return num;
-    }
-
-    case 'max_free_tier_bookings': {
-      const num = parseInt(rawValue, 10);
-      if (isNaN(num) || num < 0) {
-        exitWithError(`"${key}" must be a non-negative integer. Got: "${rawValue}"`);
       }
       return num;
     }

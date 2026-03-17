@@ -65,8 +65,9 @@ describe('SubscriptionsController', () => {
   describe('getPlans', () => {
     it('should return plans from service', () => {
       const plans = [
-        { tier: 'FREE', monthlyPrice: 0 },
-        { tier: 'PRO', monthlyPrice: 10 },
+        { tier: 'STARTER', monthlyPrice: 9 },
+        { tier: 'TEAM', monthlyPrice: 7 },
+        { tier: 'BUSINESS', monthlyPrice: 0 },
       ];
       service.getPlans.mockReturnValue(plans);
 
@@ -78,7 +79,7 @@ describe('SubscriptionsController', () => {
 
   describe('getCurrentSubscription', () => {
     it('should return current subscription', async () => {
-      const sub = { tier: 'PRO', status: 'ACTIVE' };
+      const sub = { tier: 'TEAM', status: 'ACTIVE' };
       service.getCurrentSubscription.mockResolvedValue(sub);
 
       const result = await controller.getCurrentSubscription(TENANT_ID);
@@ -93,15 +94,16 @@ describe('SubscriptionsController', () => {
       service.createCheckoutSession.mockResolvedValue(sessionResult);
 
       const result = await controller.createCheckoutSession(TENANT_ID, {
-        tier: 'PRO',
+        tier: 'STARTER',
         isAnnual: false,
       });
 
       expect(result).toEqual(sessionResult);
       expect(service.createCheckoutSession).toHaveBeenCalledWith(
         TENANT_ID,
-        'PRO',
+        'STARTER',
         false,
+        undefined,
       );
     });
   });
@@ -120,14 +122,14 @@ describe('SubscriptionsController', () => {
   describe('getEntitlements', () => {
     it('should return entitlements for current tier', async () => {
       service.getCurrentSubscription.mockResolvedValue({
-        tier: 'PRO',
+        tier: 'TEAM',
         status: 'ACTIVE',
       });
-      service.getEntitlements.mockReturnValue(TIER_FEATURES.PRO);
+      service.getEntitlements.mockReturnValue(TIER_FEATURES.TEAM);
 
       const result = await controller.getEntitlements(TENANT_ID);
-      expect(result).toEqual(TIER_FEATURES.PRO);
-      expect(service.getEntitlements).toHaveBeenCalledWith('PRO');
+      expect(result).toEqual(TIER_FEATURES.TEAM);
+      expect(service.getEntitlements).toHaveBeenCalledWith('TEAM');
     });
   });
 });

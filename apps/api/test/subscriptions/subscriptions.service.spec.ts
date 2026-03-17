@@ -38,32 +38,42 @@ describe('SubscriptionsService', () => {
   });
 
   describe('getPlans', () => {
-    it('should return two plans', () => {
+    it('should return three plans', () => {
       const plans = service.getPlans();
-      expect(plans).toHaveLength(2);
-      expect(plans[0]!.tier).toBe('FREE');
-      expect(plans[1]!.tier).toBe('PRO');
+      expect(plans).toHaveLength(3);
+      expect(plans[0]!.tier).toBe('STARTER');
+      expect(plans[1]!.tier).toBe('TEAM');
+      expect(plans[2]!.tier).toBe('BUSINESS');
     });
 
-    it('should include pricing for PRO', () => {
+    it('should include pricing for STARTER', () => {
       const plans = service.getPlans();
-      const pro = plans.find((p) => p.tier === 'PRO');
-      expect(pro!.monthlyPrice).toBe(10);
-      expect(pro!.annualMonthlyPrice).toBe(8);
+      const starter = plans.find((p) => p.tier === 'STARTER');
+      expect(starter!.monthlyPrice).toBe(9);
+      expect(starter!.annualMonthlyPrice).toBe(7);
+      expect(starter!.perSeat).toBe(false);
     });
 
-    it('should set FREE plan pricing to zero', () => {
+    it('should include per-seat pricing for TEAM', () => {
       const plans = service.getPlans();
-      const free = plans.find((p) => p.tier === 'FREE');
-      expect(free!.monthlyPrice).toBe(0);
-      expect(free!.annualMonthlyPrice).toBe(0);
+      const team = plans.find((p) => p.tier === 'TEAM');
+      expect(team!.monthlyPrice).toBe(7);
+      expect(team!.annualMonthlyPrice).toBe(5);
+      expect(team!.perSeat).toBe(true);
+    });
+
+    it('should set BUSINESS plan as custom pricing', () => {
+      const plans = service.getPlans();
+      const business = plans.find((p) => p.tier === 'BUSINESS');
+      expect(business!.monthlyPrice).toBe(0);
+      expect(business!.perSeat).toBe(true);
     });
   });
 
   describe('getCurrentSubscription', () => {
     it('should return subscription details', async () => {
       prisma.tenant.findUnique.mockResolvedValue({
-        subscriptionTier: 'PRO',
+        subscriptionTier: 'TEAM',
         subscriptionProviderId: SUBSCRIPTION_ID,
         subscriptionStatus: 'ACTIVE',
         subscriptionCurrentPeriodEnd: new Date('2025-06-01T00:00:00Z'),
@@ -71,7 +81,7 @@ describe('SubscriptionsService', () => {
       });
 
       const result = await service.getCurrentSubscription(TENANT_ID);
-      expect(result.tier).toBe('PRO');
+      expect(result.tier).toBe('TEAM');
       expect(result.status).toBe('ACTIVE');
       expect(result.providerId).toBe(SUBSCRIPTION_ID);
     });
@@ -88,7 +98,7 @@ describe('SubscriptionsService', () => {
     it('should throw NotFoundException when tenant not found', async () => {
       prisma.tenant.findUnique.mockResolvedValue(null);
       await expect(
-        service.createCheckoutSession(TENANT_ID, 'PRO', false),
+        service.createCheckoutSession(TENANT_ID, 'STARTER', false),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -96,12 +106,12 @@ describe('SubscriptionsService', () => {
       prisma.tenant.findUnique.mockResolvedValue({
         id: TENANT_ID,
         name: 'Test Tenant',
-        subscriptionTier: 'PRO',
+        subscriptionTier: 'TEAM',
         subscriptionProviderId: SUBSCRIPTION_ID,
       });
 
       await expect(
-        service.createCheckoutSession(TENANT_ID, 'PRO', false),
+        service.createCheckoutSession(TENANT_ID, 'TEAM', false),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -125,21 +135,28 @@ describe('SubscriptionsService', () => {
   });
 
   describe('getEntitlements', () => {
-    it('should return FREE tier entitlements', () => {
-      const entitlements = service.getEntitlements('FREE');
+    it('should return STARTER tier entitlements', () => {
+      const entitlements = service.getEntitlements('STARTER');
       expect(entitlements.maxStaff).toBe(1);
-      expect(entitlements.maxBookingsPerMonth).toBe(100);
+      expect(entitlements.maxBookingsPerMonth).toBe(Infinity);
       expect(entitlements.teamManagement).toBe(false);
       expect(entitlements.multiLocation).toBe(false);
     });
 
-    it('should return PRO tier entitlements', () => {
-      const entitlements = service.getEntitlements('PRO');
-      expect(entitlements.maxStaff).toBe(15);
+    it('should return TEAM tier entitlements', () => {
+      const entitlements = service.getEntitlements('TEAM');
+      expect(entitlements.maxStaff).toBe(10);
       expect(entitlements.maxBookingsPerMonth).toBe(Infinity);
       expect(entitlements.teamManagement).toBe(true);
       expect(entitlements.multiLocation).toBe(true);
       expect(entitlements.customTemplates).toBe(true);
+    });
+
+    it('should return BUSINESS tier entitlements', () => {
+      const entitlements = service.getEntitlements('BUSINESS');
+      expect(entitlements.maxStaff).toBe(Infinity);
+      expect(entitlements.teamManagement).toBe(true);
+      expect(entitlements.multiLocation).toBe(true);
     });
   });
 
@@ -220,7 +237,7 @@ describe('SubscriptionsService', () => {
     });
 
     describe('customer.subscription.deleted', () => {
-      it('should downgrade tenant to FREE and CANCELED', async () => {
+      it('should set status to CANCELED', async () => {
         prisma.tenant.findFirst.mockResolvedValue({ id: TENANT_ID });
         prisma.tenant.update.mockResolvedValue({});
 
@@ -236,7 +253,6 @@ describe('SubscriptionsService', () => {
         expect(prisma.tenant.update).toHaveBeenCalledWith({
           where: { id: TENANT_ID },
           data: {
-            subscriptionTier: 'FREE',
             subscriptionStatus: 'CANCELED',
             subscriptionProviderId: null,
             subscriptionCurrentPeriodEnd: null,
@@ -260,7 +276,7 @@ describe('SubscriptionsService', () => {
               current_period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
               metadata: {
                 tenantId: TENANT_ID,
-                tier: 'PRO',
+                tier: 'TEAM',
               },
             },
           },
@@ -272,7 +288,7 @@ describe('SubscriptionsService', () => {
           where: { id: TENANT_ID },
           data: expect.objectContaining({
             subscriptionProviderId: SUBSCRIPTION_ID,
-            subscriptionTier: 'PRO',
+            subscriptionTier: 'TEAM',
             subscriptionStatus: 'ACTIVE',
             subscriptionGracePeriodEnd: null,
             subscriptionCurrentPeriodEnd: expect.any(Date),
