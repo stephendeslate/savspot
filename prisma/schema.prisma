@@ -8,6 +8,15 @@ generator client {
   output   = "./generated/prisma"
 }
 
+generator dbml {
+  provider            = "prisma-dbml-generator"
+  output              = "./dbml"
+  outputName          = "schema.dbml"
+  projectName         = "SavSpot"
+  projectDatabaseType = "PostgreSQL"
+  projectNote         = "Multi-tenant SaaS booking platform"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")

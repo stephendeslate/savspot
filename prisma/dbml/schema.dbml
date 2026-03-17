@@ -1,0 +1,2791 @@
+//// ------------------------------------------------------
+//// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+//// ------------------------------------------------------
+
+Project "SavSpot" {
+  database_type: 'PostgreSQL'
+  Note: 'Multi-tenant SaaS booking platform'
+}
+
+Table tenants {
+  id String [pk]
+  name String [not null]
+  slug String [unique, not null]
+  description String
+  category BusinessCategory [not null]
+  categoryDescription String
+  categoryLabel String
+  logoUrl String
+  coverPhotoUrl String
+  brandColor String
+  timezone String [not null]
+  currency String [not null]
+  country String [not null]
+  address Json
+  contactEmail String
+  contactPhone String
+  paymentProvider PaymentProviderType [not null, default: 'STRIPE']
+  paymentProviderAccountId String
+  paymentProviderOnboarded Boolean [not null, default: false]
+  subscriptionTier SubscriptionTier [not null, default: 'STARTER']
+  subscriptionProviderId String
+  subscriptionStatus SubscriptionStatus [not null, default: 'ACTIVE']
+  subscriptionCurrentPeriodEnd DateTime
+  subscriptionGracePeriodEnd DateTime
+  benchmarkOptOut Boolean [not null, default: false]
+  isPublished Boolean [not null, default: false]
+  tosAcceptedAt DateTime
+  tosVersion String
+  dpaAcceptedAt DateTime
+  dpaVersion String
+  status TenantStatus [not null, default: 'ACTIVE']
+  retentionOverrides Json
+  isPublic Boolean [not null, default: false]
+  voicePhoneNumber String
+  voiceEnabled Boolean [not null, default: false]
+  voiceConfig Json
+  supportedCurrencies String[] [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  memberships tenant_memberships [not null]
+  invitations team_invitations [not null]
+  services services [not null]
+  venues venues [not null]
+  serviceCategories service_categories [not null]
+  serviceProviders service_providers [not null]
+  bookingSessions booking_sessions [not null]
+  bookings bookings [not null]
+  bookingFlows booking_flows [not null]
+  bookingStateHistory booking_state_history [not null]
+  dateReservations date_reservations [not null]
+  availabilityRules availability_rules [not null]
+  blockedDates blocked_dates [not null]
+  payments payments [not null]
+  paymentStateHistory payment_state_history [not null]
+  paymentDisputes payment_disputes [not null]
+  invoices invoices [not null]
+  discounts discounts [not null]
+  taxRates tax_rates [not null]
+  communications communications [not null]
+  communicationTemplates communication_templates [not null]
+  emailLayouts email_layouts [not null]
+  notifications notifications [not null]
+  calendarConnections calendar_connections [not null]
+  calendarEvents calendar_events [not null]
+  contractTemplates contract_templates [not null]
+  contracts contracts [not null]
+  quotes quotes [not null]
+  workflowAutomations workflow_automations [not null]
+  workflowTemplates workflow_templates [not null]
+  workflowWebhooks workflow_webhooks [not null]
+  bookingReminders booking_reminders [not null]
+  messageThreads message_threads [not null]
+  clientProfiles client_profiles [not null]
+  galleryPhotos gallery_photos [not null]
+  reviews reviews [not null]
+  apiKeys api_keys [not null]
+  notes notes [not null]
+  referralLinks referral_links [not null]
+  auditLogs audit_logs [not null]
+  dataRequests data_requests [not null]
+  supportTickets support_tickets [not null]
+  feedback feedback [not null]
+  importJobs import_jobs [not null]
+  accountingConnections accounting_connections [not null]
+  bookingFlowAnalytics booking_flow_analytics [not null]
+  serviceAddons service_addons [not null]
+  browserPushSubscriptions browser_push_subscriptions [not null]
+  slotDemandInsights slot_demand_insights [not null]
+  automationExecutions automation_executions [not null]
+  webhookEndpoints webhook_endpoints [not null]
+  voiceCallLogs voice_call_logs [not null]
+  accountingSyncLogs accounting_sync_logs [not null]
+  directoryListing directory_listings
+  savedBusinesses saved_businesses [not null]
+  customDomain custom_domains
+  clientRecommendations client_recommendations [not null]
+  partnerReferrals partner_referrals [not null]
+}
+
+Table users {
+  id String [pk]
+  email String [unique, not null]
+  passwordHash String
+  name String [not null]
+  phone String
+  avatarUrl String
+  role PlatformRole [not null, default: 'USER']
+  emailVerified Boolean [not null, default: false]
+  googleId String [unique]
+  appleId String [unique]
+  locale String
+  timezone String
+  mfaEnabled Boolean [not null, default: false]
+  mfaSecret String
+  mfaRecoveryCodes Json
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  memberships tenant_memberships [not null]
+  invitationsSent team_invitations [not null]
+  bookingSessions booking_sessions [not null]
+  bookingsAsClient bookings [not null]
+  bookingsCheckedInBy bookings [not null]
+  bookingsCheckedOutBy bookings [not null]
+  communications communications [not null]
+  notifications notifications [not null]
+  notificationPreference notification_preferences
+  notificationDigests notification_digests [not null]
+  devicePushTokens device_push_tokens [not null]
+  contractSignatures contract_signatures [not null]
+  contractsVoidedBy contracts [not null]
+  amendmentsRequestedBy contract_amendments [not null]
+  amendmentsReviewedBy contract_amendments [not null]
+  calendarConnections calendar_connections [not null]
+  messagesWritten messages [not null]
+  messageReadStatuses message_read_status [not null]
+  clientProfiles client_profiles [not null]
+  reviewsWritten reviews [not null]
+  reviewsRespondedTo reviews [not null]
+  apiKeysCreated api_keys [not null]
+  notesAuthored notes [not null]
+  referralLinksCreated referral_links [not null]
+  onboardingTours onboarding_tours [not null]
+  auditLogs audit_logs [not null]
+  dataRequests data_requests [not null]
+  consentRecords consent_records [not null]
+  affectedUsers affected_users [not null]
+  supportTickets support_tickets [not null]
+  feedbackSubmitted feedback [not null]
+  importJobsInitiated import_jobs [not null]
+  serviceProviders service_providers [not null]
+  blockedDatesCreated blocked_dates [not null]
+  bookingWorkflowOverrides booking_workflow_overrides [not null]
+  securityBreachesAssigned security_breaches [not null]
+  browserPushSubscriptions browser_push_subscriptions [not null]
+  insightsDismissed slot_demand_insights [not null]
+  voiceCallsAsCaller voice_call_logs [not null]
+  savedBusinesses saved_businesses [not null]
+  clientRecommendations client_recommendations [not null]
+  partner partners
+  venueStaffAssignments venue_staff [not null]
+}
+
+Table tenant_memberships {
+  id String [pk]
+  tenantId String [not null]
+  userId String [not null]
+  role TenantRole [not null]
+  permissions Json
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+  user users [not null]
+
+  indexes {
+    (tenantId, userId) [unique]
+  }
+}
+
+Table team_invitations {
+  id String [pk]
+  tenantId String [not null]
+  invitedBy String [not null]
+  inviteeEmail String [not null]
+  role TenantRole [not null]
+  token String [unique, not null]
+  status InvitationStatus [not null, default: 'PENDING']
+  expiresAt DateTime [not null]
+  acceptedAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+  inviter users [not null]
+}
+
+Table booking_sessions {
+  id String [pk]
+  tenantId String [not null]
+  bookingFlowId String
+  serviceId String
+  clientId String
+  source BookingSource [not null, default: 'DIRECT']
+  currentStep Int [not null, default: 0]
+  resolvedSteps Json [not null]
+  data Json
+  reservationToken String [unique]
+  reservationExpiresAt DateTime
+  status BookingSessionStatus [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  bookingFlow booking_flows
+  service services
+  client users
+  dateReservations date_reservations [not null]
+}
+
+Table bookings {
+  id String [pk]
+  tenantId String [not null]
+  clientId String [not null]
+  serviceId String [not null]
+  venueId String
+  bookingFlowId String
+  status BookingStatus [not null]
+  startTime DateTime [not null]
+  endTime DateTime [not null]
+  totalAmount Decimal [not null]
+  currency String [not null]
+  guestCount Int
+  guestDetails Json
+  notes String
+  questionnaireResponses Json
+  source BookingSource [not null]
+  metadata Json
+  referralLinkId String
+  checkInStatus CheckInStatus [not null, default: 'PENDING']
+  checkedInAt DateTime
+  checkedOutAt DateTime
+  checkedInBy String
+  checkedOutBy String
+  originalStartDate DateTime
+  rescheduleCount Int [not null, default: 0]
+  cancellationReason CancellationReason
+  cancelledAt DateTime
+  noShowRiskScore Decimal
+  excessHours Decimal [not null, default: 0]
+  excessHourFee Decimal [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  client users [not null]
+  service services [not null]
+  venue venues
+  bookingFlow booking_flows
+  checkedInByUser users
+  checkedOutByUser users
+  payments payments [not null]
+  invoices invoices [not null]
+  communications communications [not null]
+  bookingStateHistory booking_state_history [not null]
+  contracts contracts [not null]
+  quotes quotes [not null]
+  bookingReminders booking_reminders [not null]
+  bookingWorkflowOverrides booking_workflow_overrides [not null]
+  review reviews
+  calendarEvents calendar_events [not null]
+  messageThreads message_threads [not null]
+  referralLink referral_links
+  automationExecutions automation_executions [not null]
+  voiceCallLogs voice_call_logs [not null]
+}
+
+Table booking_state_history {
+  id String [pk]
+  bookingId String [not null]
+  tenantId String [not null]
+  fromState BookingStatus [not null]
+  toState BookingStatus [not null]
+  reason String
+  triggeredBy StateTransitionTrigger [not null]
+  metadata Json
+  createdAt DateTime [default: `now()`, not null]
+  booking bookings [not null]
+  tenant tenants [not null]
+}
+
+Table date_reservations {
+  id String [pk]
+  tenantId String [not null]
+  sessionId String [not null]
+  venueId String
+  serviceId String [not null]
+  reservedDate DateTime [not null]
+  startTime DateTime [not null]
+  endTime DateTime [not null]
+  token String [unique, not null]
+  expiresAt DateTime [not null]
+  status DateReservationStatus [not null]
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+  session booking_sessions [not null]
+  venue venues
+  service services [not null]
+}
+
+Table availability_rules {
+  id String [pk]
+  tenantId String [not null]
+  venueId String
+  serviceId String
+  dayOfWeek Int [not null]
+  startTime DateTime [not null]
+  endTime DateTime [not null]
+  isActive Boolean [not null, default: true]
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+  venue venues
+  service services
+}
+
+Table blocked_dates {
+  id String [pk]
+  tenantId String [not null]
+  venueId String
+  serviceId String
+  blockedDate DateTime [not null]
+  reason String
+  createdBy String [not null]
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+  venue venues
+  service services
+  creator users [not null]
+}
+
+Table booking_flows {
+  id String [pk]
+  tenantId String [not null]
+  name String [not null]
+  isDefault Boolean [not null, default: false]
+  stepOverrides Json
+  settings Json
+  minBookingAdvanceDays Int [not null, default: 1]
+  maxBookingAdvanceDays Int [not null, default: 365]
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+  bookingSessions booking_sessions [not null]
+  bookings bookings [not null]
+  bookingFlowAnalytics booking_flow_analytics [not null]
+}
+
+Table payments {
+  id String [pk]
+  tenantId String [not null]
+  bookingId String [not null]
+  invoiceId String
+  providerTransactionId String
+  amount Decimal [not null]
+  platformFee Decimal
+  processingFee Decimal
+  referralCommission Decimal
+  currency String [not null]
+  status PaymentStatus [not null]
+  type PaymentType [not null]
+  retryCount Int [not null, default: 0]
+  nextRetryAt DateTime
+  metadata Json
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+  booking bookings [not null]
+  invoice invoices
+  paymentStateHistory payment_state_history [not null]
+  paymentDisputes payment_disputes [not null]
+}
+
+Table payment_state_history {
+  id String [pk]
+  paymentId String [not null]
+  tenantId String [not null]
+  fromState PaymentStatus [not null]
+  toState PaymentStatus [not null]
+  reason String
+  triggeredBy StateTransitionTrigger [not null]
+  metadata Json
+  createdAt DateTime [default: `now()`, not null]
+  payment payments [not null]
+  tenant tenants [not null]
+}
+
+Table payment_disputes {
+  id String [pk]
+  paymentId String [not null]
+  tenantId String [not null]
+  providerDisputeId String
+  reason DisputeReason [not null]
+  status DisputeStatus [not null]
+  amount Decimal [not null]
+  evidenceDueBy DateTime
+  resolvedAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  payment payments [not null]
+  tenant tenants [not null]
+}
+
+Table payment_webhook_logs {
+  id String [pk]
+  gateway String [not null]
+  eventId String [unique, not null]
+  eventType String [not null]
+  rawData Json [not null]
+  processed Boolean [not null, default: false]
+  processingError String
+  retryCount Int [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+  deadLetters webhook_dead_letters [not null]
+}
+
+Table webhook_dead_letters {
+  id String [pk]
+  webhookLogId String [not null]
+  finalError String [not null]
+  retryCount Int [not null, default: 0]
+  resolved Boolean [not null, default: false]
+  resolvedBy String
+  resolvedAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  webhookLog payment_webhook_logs [not null]
+}
+
+Table invoices {
+  id String [pk]
+  tenantId String [not null]
+  bookingId String [not null]
+  invoiceNumber String [not null]
+  subtotal Decimal [not null]
+  taxAmount Decimal [not null, default: 0]
+  discountAmount Decimal [not null, default: 0]
+  total Decimal [not null]
+  amountPaid Decimal [not null, default: 0]
+  currency String [not null]
+  status InvoiceStatus [not null]
+  dueDate DateTime
+  pdfUrl String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  booking bookings [not null]
+  lineItems invoice_line_items [not null]
+  payments payments [not null]
+
+  indexes {
+    (tenantId, invoiceNumber) [unique]
+  }
+}
+
+Table invoice_line_items {
+  id String [pk]
+  invoiceId String [not null]
+  description String [not null]
+  quantity Int [not null, default: 1]
+  unitPrice Decimal [not null]
+  taxRateId String
+  taxAmount Decimal [not null, default: 0]
+  discountAmount Decimal [not null, default: 0]
+  total Decimal [not null]
+  sortOrder Int [not null, default: 0]
+  invoice invoices [not null]
+  taxRate tax_rates
+}
+
+Table services {
+  id String [pk]
+  tenantId String [not null]
+  name String [not null]
+  description String
+  durationMinutes Int [not null, default: 60]
+  basePrice Decimal [not null, default: 0]
+  currency String [not null]
+  pricingModel PricingModel [not null, default: 'FIXED']
+  isActive Boolean [not null, default: true]
+  sortOrder Int [not null, default: 0]
+  pricingUnit PricingUnit
+  baseHours Decimal
+  excessHourPrice Decimal
+  tierConfig Json
+  guestConfig Json
+  depositConfig Json
+  intakeFormConfig Json
+  contractTemplateId String
+  bufferBeforeMinutes Int [not null, default: 0]
+  bufferAfterMinutes Int [not null, default: 0]
+  cancellationPolicy Json
+  autoCancelOnOverdue Boolean
+  maxRescheduleCount Int
+  noShowGraceMinutes Int
+  confirmationMode ConfirmationMode [not null, default: 'AUTO_CONFIRM']
+  approvalDeadlineHours Int
+  images Json
+  preferenceTemplate Json
+  venueId String
+  categoryId String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  contractTemplate contract_templates
+  venue venues
+  category service_categories
+  bookingSessions booking_sessions [not null]
+  bookings bookings [not null]
+  dateReservations date_reservations [not null]
+  availabilityRules availability_rules [not null]
+  blockedDates blocked_dates [not null]
+  serviceProviders service_providers [not null]
+  serviceAddons service_addons [not null]
+  galleryPhotos gallery_photos [not null]
+  quoteLineItems quote_line_items [not null]
+  quoteOptionItems quote_option_items [not null]
+  clientRecommendations client_recommendations [not null]
+}
+
+Table venues {
+  id String [pk]
+  tenantId String [not null]
+  name String [not null]
+  description String
+  address Json
+  capacity Int
+  images Json
+  isActive Boolean [not null, default: true]
+  sortOrder Int [not null, default: 0]
+  contactEmail String
+  contactPhone String
+  timezone String
+  branding Json
+  bookingSlug String [unique]
+  operatingHours Json
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  services services [not null]
+  bookings bookings [not null]
+  dateReservations date_reservations [not null]
+  availabilityRules availability_rules [not null]
+  blockedDates blocked_dates [not null]
+  galleryPhotos gallery_photos [not null]
+  venueStaff venue_staff [not null]
+}
+
+Table service_categories {
+  id String [pk]
+  tenantId String [not null]
+  name String [not null]
+  description String
+  sortOrder Int [not null, default: 0]
+  isActive Boolean [not null, default: true]
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+  services services [not null]
+}
+
+Table service_providers {
+  serviceId String [not null]
+  userId String [not null]
+  tenantId String [not null]
+  createdAt DateTime [default: `now()`, not null]
+  service services [not null]
+  user users [not null]
+  tenant tenants [not null]
+
+  indexes {
+    (serviceId, userId) [pk]
+  }
+}
+
+Table service_addons {
+  id String [pk]
+  tenantId String [not null]
+  serviceId String [not null]
+  name String [not null]
+  description String
+  price Decimal [not null]
+  isRequired Boolean [not null, default: false]
+  isActive Boolean [not null, default: true]
+  sortOrder Int [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  service services [not null]
+}
+
+Table discounts {
+  id String [pk]
+  tenantId String [not null]
+  name String [not null]
+  code String [not null]
+  type DiscountType [not null]
+  value Decimal [not null]
+  application DiscountApplication [not null]
+  validFrom DateTime
+  validUntil DateTime
+  usageLimit Int
+  usageCount Int [not null, default: 0]
+  minOrderAmount Decimal
+  productScope Json
+  isActive Boolean [not null, default: true]
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+}
+
+Table tax_rates {
+  id String [pk]
+  tenantId String [not null]
+  name String [not null]
+  rate Decimal [not null]
+  region String
+  isInclusive Boolean [not null, default: false]
+  isDefault Boolean [not null, default: false]
+  isActive Boolean [not null, default: true]
+  tenant tenants [not null]
+  lineItems invoice_line_items [not null]
+}
+
+Table communications {
+  id String [pk]
+  tenantId String [not null]
+  recipientId String [not null]
+  bookingId String
+  channel CommunicationChannel [not null]
+  templateKey String
+  subject String
+  body String [not null]
+  status CommunicationStatus [not null]
+  providerMessageId String
+  sentAt DateTime
+  deliveredAt DateTime
+  openedAt DateTime
+  failureReason String
+  metadata Json
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+  recipient users [not null]
+  booking bookings
+}
+
+Table communication_templates {
+  id String [pk]
+  tenantId String
+  key String [not null]
+  name String [not null]
+  channel CommunicationChannel [not null]
+  subjectTemplate String
+  bodyTemplate String [not null]
+  layoutId String
+  isActive Boolean [not null, default: true]
+  isSystem Boolean [not null, default: false]
+  sandboxValidated Boolean [not null, default: false]
+  validationErrors Json
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants
+  layout email_layouts
+  templateHistory template_history [not null]
+
+  indexes {
+    (tenantId, key) [unique]
+  }
+}
+
+Table email_layouts {
+  id String [pk]
+  tenantId String
+  name String [not null]
+  headerTemplate String
+  footerTemplate String
+  wrapperTemplate String [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants
+  templates communication_templates [not null]
+}
+
+Table template_history {
+  id String [pk]
+  templateId String [not null]
+  version Int [not null]
+  subjectTemplate String
+  bodyTemplate String [not null]
+  changedBy String [not null]
+  changeReason String
+  createdAt DateTime [default: `now()`, not null]
+  template communication_templates [not null]
+}
+
+Table notification_types {
+  id String [pk]
+  key String [unique, not null]
+  name String [not null]
+  category NotificationCategory [not null]
+  defaultChannels Json [not null]
+  priority NotificationPriority [not null, default: 'NORMAL']
+  autoExpireHours Int
+  isSystem Boolean [not null, default: false]
+  description String
+  notifications notifications [not null]
+}
+
+Table notifications {
+  id String [pk]
+  userId String [not null]
+  tenantId String
+  typeId String [not null]
+  title String [not null]
+  body String [not null]
+  data Json
+  isRead Boolean [not null, default: false]
+  readAt DateTime
+  expiresAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  user users [not null]
+  tenant tenants
+  notificationType notification_types [not null]
+}
+
+Table notification_preferences {
+  id String [pk]
+  userId String [unique, not null]
+  digestFrequency DigestFrequency [not null, default: 'IMMEDIATE']
+  quietHoursStart DateTime
+  quietHoursEnd DateTime
+  quietHoursTimezone String
+  preferences Json
+  updatedAt DateTime [not null]
+  user users [not null]
+}
+
+Table notification_digests {
+  id String [pk]
+  userId String [not null]
+  frequency DigestFrequency [not null]
+  notificationIds Json [not null]
+  status ReminderStatus [not null]
+  scheduledFor DateTime [not null]
+  sentAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  user users [not null]
+}
+
+Table device_push_tokens {
+  id String [pk]
+  userId String [not null]
+  token String [unique, not null]
+  deviceType DeviceType [not null]
+  deviceName String
+  isActive Boolean [not null, default: true]
+  failureCount Int [not null, default: 0]
+  lastUsedAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  user users [not null]
+}
+
+Table contract_templates {
+  id String [pk]
+  tenantId String [not null]
+  name String [not null]
+  content String [not null]
+  signatureRequirements Json
+  category String
+  isActive Boolean [not null, default: true]
+  version Int [not null, default: 1]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  contracts contracts [not null]
+  services services [not null]
+}
+
+Table contracts {
+  id String [pk]
+  tenantId String [not null]
+  bookingId String [not null]
+  templateId String [not null]
+  quoteId String
+  content String [not null]
+  documentHash String
+  status ContractStatus [not null]
+  expiryDate DateTime
+  signedAt DateTime
+  voidedAt DateTime
+  voidedBy String
+  voidReason String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  booking bookings [not null]
+  template contract_templates [not null]
+  quote quotes
+  voidedByUser users
+  signatures contract_signatures [not null]
+  amendments contract_amendments [not null]
+}
+
+Table contract_signatures {
+  id String [pk]
+  contractId String [not null]
+  signerId String [not null]
+  role SignerRole [not null]
+  signatureData String
+  signatureType SignatureType
+  signedAt DateTime
+  ipAddress String
+  userAgent String
+  deviceFingerprint Json
+  legalDisclosureAccepted Boolean [not null, default: false]
+  electronicConsentAt DateTime
+  signatureConfidence Decimal
+  order Int [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+  contract contracts [not null]
+  signer users [not null]
+}
+
+Table contract_amendments {
+  id String [pk]
+  contractId String [not null]
+  requestedBy String [not null]
+  status AmendmentStatus [not null]
+  sectionsChanged Json
+  valueChange Decimal
+  reason String
+  reviewedBy String
+  reviewedAt DateTime
+  signedAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  contract contracts [not null]
+  requestedByUser users [not null]
+  reviewedByUser users
+}
+
+Table quotes {
+  id String [pk]
+  tenantId String [not null]
+  bookingId String [not null]
+  version Int [not null, default: 1]
+  status QuoteStatus [not null]
+  subtotal Decimal [not null]
+  taxTotal Decimal [not null, default: 0]
+  total Decimal [not null]
+  currency String [not null]
+  validUntil DateTime
+  notes String
+  acceptedAt DateTime
+  acceptedSignature String
+  sentAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  booking bookings [not null]
+  lineItems quote_line_items [not null]
+  options quote_options [not null]
+  contracts contracts [not null]
+
+  indexes {
+    (bookingId, version) [unique]
+  }
+}
+
+Table quote_line_items {
+  id String [pk]
+  quoteId String [not null]
+  productId String
+  description String [not null]
+  quantity Int [not null, default: 1]
+  unitPrice Decimal [not null]
+  taxRate Decimal [not null, default: 0]
+  total Decimal [not null]
+  excessHours Decimal
+  excessRate Decimal
+  sortOrder Int [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+  quote quotes [not null]
+  product services
+}
+
+Table quote_options {
+  id String [pk]
+  quoteId String [not null]
+  name String [not null]
+  description String
+  total Decimal [not null]
+  isSelected Boolean [not null, default: false]
+  sortOrder Int [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+  quote quotes [not null]
+  items quote_option_items [not null]
+}
+
+Table quote_option_items {
+  id String [pk]
+  optionId String [not null]
+  productId String
+  description String [not null]
+  quantity Int [not null, default: 1]
+  unitPrice Decimal [not null]
+  taxRate Decimal [not null, default: 0]
+  total Decimal [not null]
+  option quote_options [not null]
+  product services
+}
+
+Table workflow_automations {
+  id String [pk]
+  tenantId String [not null]
+  triggerEvent WorkflowTriggerEvent [not null]
+  actionType WorkflowActionType [not null]
+  actionConfig Json [not null]
+  isActive Boolean [not null, default: true]
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+}
+
+Table workflow_templates {
+  id String [pk]
+  tenantId String [not null]
+  name String [not null]
+  description String
+  triggerEvent WorkflowTriggerEvent [not null]
+  isDefault Boolean [not null, default: false]
+  isActive Boolean [not null, default: true]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  stages workflow_stages [not null]
+  automationExecutions automation_executions [not null]
+}
+
+Table workflow_stages {
+  id String [pk]
+  templateId String [not null]
+  name String [not null]
+  order Int [not null]
+  automationType WorkflowStageAutomationType [not null]
+  automationConfig Json [not null]
+  triggerTime WorkflowStageTriggerTime [not null]
+  triggerDays Int
+  progressionCondition WorkflowStageProgressionCondition
+  isOptional Boolean [not null, default: false]
+  createdAt DateTime [default: `now()`, not null]
+  template workflow_templates [not null]
+  bookingWorkflowOverrides booking_workflow_overrides [not null]
+  automationExecutions automation_executions [not null]
+
+  indexes {
+    (templateId, order) [unique]
+  }
+}
+
+Table booking_workflow_overrides {
+  id String [pk]
+  bookingId String [not null]
+  stageId String
+  overrideType BookingWorkflowOverrideType [not null]
+  overrideConfig Json
+  reason String [not null]
+  createdBy String [not null]
+  createdAt DateTime [default: `now()`, not null]
+  booking bookings [not null]
+  stage workflow_stages
+  creator users [not null]
+}
+
+Table workflow_webhooks {
+  id String [pk]
+  tenantId String [not null]
+  name String [not null]
+  url String [not null]
+  secret String [not null]
+  events Json [not null]
+  isActive Boolean [not null, default: true]
+  lastTriggeredAt DateTime
+  failureCount Int [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+}
+
+Table booking_reminders {
+  id String [pk]
+  bookingId String [not null]
+  tenantId String [not null]
+  reminderType ReminderType [not null]
+  intervalDays Int [not null]
+  scheduledFor DateTime [not null]
+  sentAt DateTime
+  channel CommunicationChannel [not null]
+  status ReminderStatus [not null]
+  createdAt DateTime [default: `now()`, not null]
+  booking bookings [not null]
+  tenant tenants [not null]
+
+  indexes {
+    (bookingId, reminderType, intervalDays, channel) [unique]
+  }
+}
+
+Table calendar_connections {
+  id String [pk]
+  tenantId String [not null]
+  userId String [not null]
+  provider CalendarProvider [not null]
+  accessToken String [not null]
+  refreshToken String
+  tokenExpiresAt DateTime
+  calendarId String
+  syncDirection SyncDirection [not null, default: 'ONE_WAY']
+  syncCalendars Json
+  syncFrequencyMinutes Int [not null, default: 15]
+  lastSyncedAt DateTime
+  status CalendarConnectionStatus [not null, default: 'ACTIVE']
+  errorMessage String
+  icalFeedToken String [unique]
+  webhookChannelId String
+  webhookToken String
+  webhookExpiresAt DateTime
+  webhookStatus String
+  syncToken String
+  deltaLink String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  user users [not null]
+  calendarEvents calendar_events [not null]
+}
+
+Table calendar_events {
+  id String [pk]
+  tenantId String [not null]
+  calendarConnectionId String [not null]
+  bookingId String
+  externalEventId String
+  direction CalendarEventDirection [not null]
+  startTime DateTime [not null]
+  endTime DateTime [not null]
+  title String
+  syncedAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+  calendarConnection calendar_connections [not null]
+  booking bookings
+}
+
+Table message_threads {
+  id String [pk]
+  tenantId String [not null]
+  bookingId String
+  subject String
+  priority MessageThreadPriority [not null, default: 'NORMAL']
+  status MessageThreadStatus [not null, default: 'OPEN']
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  booking bookings
+  messages messages [not null]
+}
+
+Table messages {
+  id String [pk]
+  threadId String [not null]
+  senderId String [not null]
+  body String [not null]
+  isInternal Boolean [not null, default: false]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  thread message_threads [not null]
+  sender users [not null]
+  readStatuses message_read_status [not null]
+  attachments message_attachments [not null]
+}
+
+Table message_read_status {
+  id String [pk]
+  messageId String [not null]
+  userId String [not null]
+  readAt DateTime [not null]
+  message messages [not null]
+  user users [not null]
+
+  indexes {
+    (messageId, userId) [unique]
+  }
+}
+
+Table message_attachments {
+  id String [pk]
+  messageId String [not null]
+  fileName String [not null]
+  fileUrl String [not null]
+  fileSize Int [not null]
+  mimeType String [not null]
+  createdAt DateTime [default: `now()`, not null]
+  message messages [not null]
+}
+
+Table client_profiles {
+  id String [pk]
+  tenantId String [not null]
+  clientId String [not null]
+  preferences Json
+  tags Json
+  internalRating Int
+  optimalReminderLeadHours Decimal
+  rebookingIntervalDays Int
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  client users [not null]
+
+  indexes {
+    (tenantId, clientId) [unique]
+  }
+}
+
+Table gallery_photos {
+  id String [pk]
+  tenantId String [not null]
+  venueId String
+  serviceId String
+  category String
+  url String [not null]
+  thumbnailUrl String
+  altText String
+  caption String
+  isFeatured Boolean [not null, default: false]
+  sortOrder Int [not null, default: 0]
+  width Int
+  height Int
+  fileSize Int
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+  venue venues
+  service services
+}
+
+Table onboarding_tours {
+  id String [pk]
+  userId String [not null]
+  tourKey String [not null]
+  completedAt DateTime
+  dismissedAt DateTime
+  stepsCompleted Int [not null, default: 0]
+  totalSteps Int [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+  user users [not null]
+
+  indexes {
+    (userId, tourKey) [unique]
+  }
+}
+
+Table booking_flow_analytics {
+  id String [pk]
+  tenantId String [not null]
+  flowId String [not null]
+  date DateTime [not null]
+  stepMetrics Json [not null]
+  totalSessions Int [not null, default: 0]
+  completedSessions Int [not null, default: 0]
+  conversionRate Decimal [not null, default: 0]
+  totalRevenue Decimal [not null, default: 0]
+  bounceRate Decimal [not null, default: 0]
+  avgCompletionTimeSec Int [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+  bookingFlow booking_flows [not null]
+
+  indexes {
+    (tenantId, flowId, date) [unique]
+  }
+}
+
+Table audit_logs {
+  id String [pk]
+  tenantId String
+  entityType String [not null]
+  entityId String [not null]
+  action AuditAction [not null]
+  actorId String
+  actorType ActorType [not null]
+  oldValues Json
+  newValues Json
+  ipAddress String
+  userAgent String
+  metadata Json
+  timestamp DateTime [default: `now()`, not null]
+  tenant tenants
+  actor users
+}
+
+Table security_breaches {
+  id String [pk]
+  breachType BreachType [not null]
+  severity BreachSeverity [not null]
+  status BreachStatus [not null]
+  title String [not null]
+  description String
+  detectedAt DateTime [not null]
+  confirmedAt DateTime
+  containedAt DateTime
+  resolvedAt DateTime
+  gdprNotificationDeadline DateTime
+  affectedTenantIds Json
+  affectedUserCount Int
+  rootCause String
+  remediationSteps String
+  assignedTo String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  assignedToUser users
+  breachNotifications breach_notifications [not null]
+  affectedUsers affected_users [not null]
+}
+
+Table breach_notifications {
+  id String [pk]
+  breachId String [not null]
+  recipientType BreachNotificationRecipientType [not null]
+  recipientId String
+  channel BreachNotificationChannel [not null]
+  sentAt DateTime
+  content String
+  createdAt DateTime [default: `now()`, not null]
+  breach security_breaches [not null]
+}
+
+Table affected_users {
+  id String [pk]
+  breachId String [not null]
+  userId String [not null]
+  dataTypesExposed Json
+  notifiedAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  breach security_breaches [not null]
+  user users [not null]
+
+  indexes {
+    (breachId, userId) [unique]
+  }
+}
+
+Table data_requests {
+  id String [pk]
+  userId String [not null]
+  tenantId String
+  requestType DataRequestType [not null]
+  status DataRequestStatus [not null, default: 'PENDING']
+  requestedAt DateTime [not null]
+  completedAt DateTime
+  deadlineAt DateTime [not null]
+  exportUrl String
+  notes String
+  createdAt DateTime [default: `now()`, not null]
+  user users [not null]
+  tenant tenants
+}
+
+Table consent_records {
+  id String [pk]
+  userId String [not null]
+  purpose ConsentPurpose [not null]
+  consented Boolean [not null]
+  consentedAt DateTime [not null]
+  withdrawnAt DateTime
+  ipAddress String
+  userAgent String
+  consentTextVersion String
+  createdAt DateTime [default: `now()`, not null]
+  user users [not null]
+
+  indexes {
+    (userId, purpose) [unique]
+  }
+}
+
+Table reviews {
+  id String [pk]
+  tenantId String [not null]
+  bookingId String [unique, not null]
+  clientId String [not null]
+  rating Int [not null]
+  title String
+  body String
+  isPublished Boolean [not null, default: true]
+  response String
+  respondedAt DateTime
+  respondedBy String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  booking bookings [not null]
+  client users [not null]
+  respondedByUser users
+  photos review_photos [not null]
+}
+
+Table review_photos {
+  id String [pk]
+  reviewId String [not null]
+  url String [not null]
+  thumbnailUrl String
+  sortOrder Int [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+  review reviews [not null]
+}
+
+Table api_keys {
+  id String [pk]
+  tenantId String [not null]
+  name String [not null]
+  prefix String [not null]
+  keyHash String [not null]
+  scopes Json [not null]
+  rateLimit Int [not null, default: 60]
+  lastUsedAt DateTime
+  expiresAt DateTime
+  allowedIps String[] [not null]
+  lastRotatedAt DateTime
+  isActive Boolean [not null, default: true]
+  createdBy String [not null]
+  createdAt DateTime [default: `now()`, not null]
+  revokedAt DateTime
+  tenant tenants [not null]
+  creator users [not null]
+}
+
+Table notes {
+  id String [pk]
+  tenantId String [not null]
+  authorId String [not null]
+  entityType NoteEntityType [not null]
+  entityId String [not null]
+  body String [not null]
+  isPinned Boolean [not null, default: false]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  author users [not null]
+}
+
+Table referral_links {
+  id String [pk]
+  tenantId String [not null]
+  code String [not null]
+  name String [not null]
+  commissionPercent Decimal
+  createdBy String [not null]
+  usageCount Int [not null, default: 0]
+  isActive Boolean [not null, default: true]
+  expiresAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+  creator users [not null]
+  bookings bookings [not null]
+
+  indexes {
+    (tenantId, code) [unique]
+  }
+}
+
+Table support_tickets {
+  id String [pk]
+  tenantId String
+  submittedBy String [not null]
+  category TicketCategory [not null]
+  severity TicketSeverity [not null, default: 'LOW']
+  subject String [not null]
+  body String [not null]
+  status TicketStatus [not null, default: 'NEW']
+  aiDiagnosis String
+  aiResponse String
+  aiResolutionType AIResolutionType
+  resolvedBy ResolvedBy
+  resolvedAt DateTime
+  developerNotes String
+  sourceContext Json
+  userSatisfaction Boolean
+  relatedTicketId String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants
+  submitter users [not null]
+  relatedTicket support_tickets
+  childTickets support_tickets [not null]
+}
+
+Table feedback {
+  id String [pk]
+  tenantId String [not null]
+  submittedBy String [not null]
+  type FeedbackType [not null]
+  contextPage String
+  body String [not null]
+  screenshotUrl String
+  status FeedbackStatus [not null, default: 'NEW']
+  developerNotes String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  submitter users [not null]
+}
+
+Table import_jobs {
+  id String [pk]
+  tenantId String [not null]
+  sourcePlatform SourcePlatform [not null]
+  importType ImportType [not null]
+  status ImportJobStatus [not null, default: 'PENDING']
+  fileUrl String
+  columnMapping Json
+  stats Json
+  errorLog Json
+  initiatedBy String
+  createdAt DateTime [default: `now()`, not null]
+  completedAt DateTime
+  tenant tenants [not null]
+  initiator users
+  records import_records [not null]
+}
+
+Table import_records {
+  id String [pk]
+  importJobId String [not null]
+  rowNumber Int [not null]
+  status ImportRecordStatus [not null]
+  targetTable String [not null]
+  targetId String
+  rawData Json [not null]
+  errorMessage String
+  importJob import_jobs [not null]
+}
+
+Table accounting_connections {
+  id String [pk]
+  tenantId String [not null]
+  provider AccountingProvider [not null]
+  accessToken String [not null]
+  refreshToken String
+  tokenExpiresAt DateTime
+  companyId String
+  categoryMappings Json
+  lastSyncedAt DateTime
+  status AccountingConnectionStatus [not null, default: 'ACTIVE']
+  errorMessage String
+  tenant tenants [not null]
+  syncLogs accounting_sync_logs [not null]
+}
+
+Table browser_push_subscriptions {
+  id String [pk]
+  userId String [not null]
+  tenantId String [not null]
+  endpoint String [not null]
+  p256dh String [not null]
+  auth String [not null]
+  lastUsedAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  user users [not null]
+  tenant tenants [not null]
+}
+
+Table slot_demand_insights {
+  id String [pk]
+  tenantId String [not null]
+  insightType SlotInsightType [not null]
+  dayOfWeek Int [not null]
+  timeSlot DateTime [not null]
+  metricValue Decimal [not null]
+  recommendation String [not null]
+  isDismissed Boolean [not null, default: false]
+  dismissedBy String
+  expiresAt DateTime [not null]
+  computedAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+  dismissedByUser users
+}
+
+Table category_benchmarks {
+  id String [pk]
+  businessCategory BusinessCategory [not null]
+  metricKey String [not null]
+  p25 Decimal [not null]
+  p50 Decimal [not null]
+  p75 Decimal [not null]
+  sampleSize Int [not null]
+  computedAt DateTime [default: `now()`, not null]
+
+  indexes {
+    (businessCategory, metricKey) [unique]
+  }
+}
+
+Table automation_executions {
+  id String [pk]
+  tenantId String [not null]
+  templateId String [not null]
+  bookingId String
+  currentStageId String
+  triggerEvent WorkflowTriggerEvent [not null]
+  triggerEventData Json
+  status AutomationExecutionStatus [not null, default: 'PENDING']
+  startedAt DateTime [default: `now()`, not null]
+  completedAt DateTime
+  error String
+  stageResults Json
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+  template workflow_templates [not null]
+  booking bookings
+  currentStage workflow_stages
+}
+
+Table webhook_endpoints {
+  id String [pk]
+  tenantId String [not null]
+  url String [not null]
+  secret String [not null]
+  previousSecret String
+  secretRotatedAt DateTime
+  events String[] [not null]
+  isActive Boolean [not null, default: true]
+  maxAttempts Int [not null, default: 5]
+  timeoutSeconds Int [not null, default: 10]
+  description String
+  failureCount Int [not null, default: 0]
+  lastFailureAt DateTime
+  disabledReason String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  deliveries webhook_deliveries [not null]
+}
+
+Table webhook_deliveries {
+  id String [pk]
+  endpointId String [not null]
+  event String [not null]
+  idempotencyKey String [unique, not null]
+  payload Json [not null]
+  requestHeaders Json
+  responseStatus Int
+  responseBody String
+  status WebhookDeliveryStatus [not null, default: 'PENDING']
+  attemptCount Int [not null, default: 0]
+  nextRetryAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  completedAt DateTime
+  endpoint webhook_endpoints [not null]
+}
+
+Table voice_call_logs {
+  id String [pk]
+  tenantId String [not null]
+  callSid String [unique, not null]
+  callerNumber String [not null]
+  callerClientId String
+  direction VoiceCallDirection [not null, default: 'INBOUND']
+  duration Int
+  status VoiceCallStatus [not null]
+  aiHandled Boolean [not null, default: false]
+  transcript Json
+  toolCalls Json
+  aiConfidenceScores Json
+  transferredAt DateTime
+  transferredTo String
+  recordingUrl String
+  bookingId String
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+  booking bookings
+  callerClient users
+}
+
+Table accounting_sync_logs {
+  id String [pk]
+  tenantId String [not null]
+  connectionId String [not null]
+  entityType String [not null]
+  entityId String [not null]
+  direction String [not null, default: 'OUTBOUND']
+  status String [not null, default: 'PENDING']
+  externalId String
+  idempotencyKey String [unique, not null]
+  requestPayload Json
+  responsePayload Json
+  errorMessage String
+  errorCode String
+  retryCount Int [not null, default: 0]
+  syncedAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  tenant tenants [not null]
+  connection accounting_connections [not null]
+}
+
+Table platform_metrics {
+  id String [pk]
+  key String [not null]
+  value Int [not null]
+  metadata Json
+  measuredAt DateTime [not null]
+  createdAt DateTime [default: `now()`, not null]
+}
+
+Table platform_alerts {
+  id String [pk]
+  metricKey String [not null]
+  threshold Int [not null]
+  currentValue Int [not null]
+  message String [not null]
+  acknowledged Boolean [not null, default: false]
+  acknowledgedAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+}
+
+Table directory_listings {
+  id String [pk]
+  tenantId String [unique, not null]
+  featuredUntil DateTime
+  sortBoost Int [not null, default: 0]
+  totalBookings Int [not null, default: 0]
+  averageRating Decimal
+  reviewCount Int [not null, default: 0]
+  responseRate Decimal
+  responseTimeMin Int
+  lastActiveAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+}
+
+Table saved_businesses {
+  id String [pk]
+  userId String [not null]
+  tenantId String [not null]
+  createdAt DateTime [default: `now()`, not null]
+  user users [not null]
+  tenant tenants [not null]
+
+  indexes {
+    (userId, tenantId) [unique]
+  }
+}
+
+Table custom_domains {
+  id String [pk]
+  tenantId String [unique, not null]
+  domain String [unique, not null]
+  status CustomDomainStatus [not null, default: 'PENDING_VERIFICATION']
+  verificationToken String [not null]
+  verifiedAt DateTime
+  sslStatus SslStatus [not null, default: 'PENDING']
+  sslIssuedAt DateTime
+  sslExpiresAt DateTime
+  lastCheckedAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+}
+
+Table venue_staff {
+  id String [pk]
+  venueId String [not null]
+  userId String [not null]
+  isPrimary Boolean [not null, default: false]
+  createdAt DateTime [default: `now()`, not null]
+  venue venues [not null]
+  user users [not null]
+
+  indexes {
+    (venueId, userId) [unique]
+  }
+}
+
+Table recommendation_models {
+  id String [pk]
+  type RecommendationType [not null]
+  category String
+  modelData Json [not null]
+  trainingSize Int [not null]
+  accuracy Decimal
+  trainedAt DateTime [not null]
+  createdAt DateTime [default: `now()`, not null]
+}
+
+Table client_recommendations {
+  id String [pk]
+  userId String [not null]
+  tenantId String [not null]
+  serviceId String [not null]
+  score Decimal [not null]
+  reason String [not null]
+  impressions Int [not null, default: 0]
+  clicked Boolean [not null, default: false]
+  bookedFromRec Boolean [not null, default: false]
+  expiresAt DateTime [not null]
+  createdAt DateTime [default: `now()`, not null]
+  user users [not null]
+  tenant tenants [not null]
+  service services [not null]
+}
+
+Table churn_risk_scores {
+  id String [pk]
+  clientId String [not null]
+  tenantId String [not null]
+  riskLevel RiskLevel [not null]
+  score Decimal [not null]
+  factors Json [not null]
+  lastBooking DateTime [not null]
+  expectedNext DateTime
+  computedAt DateTime [not null]
+  createdAt DateTime [default: `now()`, not null]
+
+  indexes {
+    (clientId, tenantId) [unique]
+  }
+}
+
+Table partners {
+  id String [pk]
+  userId String [unique, not null]
+  type PartnerType [not null]
+  companyName String [not null]
+  companyUrl String
+  status PartnerStatus [not null, default: 'PENDING']
+  tier PartnerTier [not null, default: 'STANDARD']
+  referralCode String [unique, not null]
+  commissionRate Decimal [not null, default: 0.1]
+  totalReferrals Int [not null, default: 0]
+  totalEarnings Decimal [not null, default: 0]
+  payoutMethod String
+  approvedAt DateTime
+  approvedBy String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  user users [not null]
+  referredTenants partner_referrals [not null]
+  payouts partner_payouts [not null]
+}
+
+Table partner_referrals {
+  id String [pk]
+  partnerId String [not null]
+  tenantId String [not null]
+  status PartnerReferralStatus [not null, default: 'PENDING']
+  activatedAt DateTime
+  firstBookingAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  partner partners [not null]
+  tenant tenants [not null]
+
+  indexes {
+    (partnerId, tenantId) [unique]
+  }
+}
+
+Table partner_payouts {
+  id String [pk]
+  partnerId String [not null]
+  amount Decimal [not null]
+  currency String [not null, default: 'USD']
+  status PayoutStatus [not null, default: 'PENDING']
+  periodStart DateTime [not null]
+  periodEnd DateTime [not null]
+  paidAt DateTime
+  providerPayoutId String
+  createdAt DateTime [default: `now()`, not null]
+  partner partners [not null]
+}
+
+Enum BusinessCategory {
+  VENUE
+  SALON
+  STUDIO
+  FITNESS
+  PROFESSIONAL
+  OTHER
+}
+
+Enum PaymentProviderType {
+  STRIPE
+  ADYEN
+  PAYPAL
+  OFFLINE
+  GCASH
+  MAYA
+  RAZORPAY
+  MOLLIE
+  DLOCAL
+}
+
+Enum SubscriptionTier {
+  STARTER
+  TEAM
+  BUSINESS
+}
+
+Enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+Enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+Enum SlotInsightType {
+  HIGH_DEMAND_SLOT
+  LOW_FILL_SLOT
+  CANCELLATION_PATTERN
+}
+
+Enum PlatformRole {
+  PLATFORM_ADMIN
+  USER
+}
+
+Enum TenantRole {
+  OWNER
+  ADMIN
+  STAFF
+}
+
+Enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+Enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+Enum BookingSource {
+  DIRECT
+  DIRECTORY
+  API
+  WIDGET
+  REFERRAL
+  WALK_IN
+  IMPORT
+}
+
+Enum BookingSessionStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+  EXPIRED
+}
+
+Enum CancellationReason {
+  CLIENT_REQUEST
+  PAYMENT_TIMEOUT
+  APPROVAL_TIMEOUT
+  DATE_TAKEN
+  ADMIN
+}
+
+Enum DateReservationStatus {
+  HELD
+  CONFIRMED
+  RELEASED
+  EXPIRED
+}
+
+Enum StateTransitionTrigger {
+  SYSTEM
+  ADMIN
+  CLIENT
+  WEBHOOK
+}
+
+Enum CheckInStatus {
+  PENDING
+  CHECKED_IN
+  CHECKED_OUT
+  NO_SHOW
+}
+
+Enum PaymentStatus {
+  CREATED
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  DISPUTED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+Enum PaymentType {
+  DEPOSIT
+  FULL_PAYMENT
+  INSTALLMENT
+  REFUND
+}
+
+Enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+  CANCELLED
+}
+
+Enum DisputeReason {
+  DUPLICATE
+  FRAUDULENT
+  PRODUCT_UNACCEPTABLE
+  OTHER
+}
+
+Enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  WON
+  LOST
+  CLOSED
+}
+
+Enum PricingModel {
+  FIXED
+  HOURLY
+  TIERED
+  CUSTOM
+}
+
+Enum PricingUnit {
+  PER_EVENT
+  PER_PERSON
+  PER_HOUR
+}
+
+Enum ConfirmationMode {
+  AUTO_CONFIRM
+  MANUAL_APPROVAL
+}
+
+Enum CommunicationChannel {
+  EMAIL
+  SMS
+  IN_APP
+}
+
+Enum CommunicationStatus {
+  QUEUED
+  SENDING
+  SENT
+  DELIVERED
+  OPENED
+  BOUNCED
+  FAILED
+}
+
+Enum NotificationCategory {
+  SYSTEM
+  BOOKING
+  PAYMENT
+  CONTRACT
+  COMMUNICATION
+  MARKETING
+  REVIEW
+  CALENDAR
+}
+
+Enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+Enum DigestFrequency {
+  IMMEDIATE
+  HOURLY
+  DAILY
+  WEEKLY
+}
+
+Enum DeviceType {
+  IOS
+  ANDROID
+}
+
+Enum WorkflowTriggerEvent {
+  BOOKING_CREATED
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  BOOKING_RESCHEDULED
+  BOOKING_COMPLETED
+  PAYMENT_RECEIVED
+  REMINDER_DUE
+  PAYMENT_OVERDUE
+  CONTRACT_SIGNED
+  CONTRACT_EXPIRED
+  QUOTE_ACCEPTED
+  QUOTE_REJECTED
+  QUOTE_EXPIRED
+  REVIEW_SUBMITTED
+  CLIENT_REGISTERED
+  BOOKING_NO_SHOW
+  BOOKING_WALK_IN
+  INVOICE_OVERDUE
+}
+
+Enum WorkflowActionType {
+  SEND_EMAIL
+  SEND_SMS
+  SEND_PUSH
+  SEND_NOTIFICATION
+}
+
+Enum ReminderType {
+  BOOKING
+  PAYMENT
+  QUESTIONNAIRE_REMINDER
+}
+
+Enum ReminderStatus {
+  PENDING
+  SENT
+  SKIPPED
+  FAILED
+}
+
+Enum ContractStatus {
+  DRAFT
+  SENT
+  PARTIALLY_SIGNED
+  SIGNED
+  EXPIRED
+  VOID
+  AMENDED
+}
+
+Enum SignatureType {
+  DRAWN
+  TYPED
+  UPLOADED
+}
+
+Enum SignerRole {
+  CLIENT
+  WITNESS
+  COMPANY_REP
+  GUARDIAN
+  PARTNER
+  OTHER
+}
+
+Enum AmendmentStatus {
+  REQUESTED
+  DRAFT
+  SENT_FOR_REVIEW
+  APPROVED
+  SIGNED
+  REJECTED
+  CANCELLED
+}
+
+Enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+Enum TicketCategory {
+  BUG
+  FEATURE_REQUEST
+  QUESTION
+  ACCOUNT_ISSUE
+  PAYMENT_ISSUE
+  OTHER
+}
+
+Enum TicketSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+Enum TicketStatus {
+  NEW
+  AI_INVESTIGATING
+  AI_RESOLVED
+  NEEDS_MANUAL_REVIEW
+  RESOLVED
+  CLOSED
+}
+
+Enum AIResolutionType {
+  FAQ_MATCH
+  CONFIGURATION_GUIDANCE
+  KNOWN_WORKAROUND
+  CODE_FIX_PREPARED
+}
+
+Enum ResolvedBy {
+  AI
+  DEVELOPER
+}
+
+Enum FeedbackType {
+  FEATURE_REQUEST
+  UX_FRICTION
+  COMPARISON_NOTE
+  GENERAL
+}
+
+Enum FeedbackStatus {
+  NEW
+  ACKNOWLEDGED
+  PLANNED
+  SHIPPED
+  DECLINED
+}
+
+Enum SourcePlatform {
+  BOOKSY
+  FRESHA
+  SQUARE
+  VAGARO
+  MINDBODY
+  CSV_GENERIC
+  JSON_GENERIC
+}
+
+Enum ImportType {
+  CLIENTS
+  SERVICES
+  APPOINTMENTS
+  FULL
+}
+
+Enum ImportJobStatus {
+  PENDING
+  MAPPING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+Enum ImportRecordStatus {
+  IMPORTED
+  SKIPPED_DUPLICATE
+  ERROR
+}
+
+Enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  READ
+  LOGIN
+  LOGOUT
+  EXPORT
+  IMPORT
+  SIGN
+  VOID
+  SEND
+  ACCEPT
+  REJECT
+  PASSWORD_CHANGE
+  MFA_ENABLE
+  MFA_DISABLE
+}
+
+Enum ActorType {
+  USER
+  SYSTEM
+  API_KEY
+  WEBHOOK
+}
+
+Enum DataRequestType {
+  EXPORT
+  DELETION
+  TENANT_EXPORT
+}
+
+Enum DataRequestStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+Enum ConsentPurpose {
+  DATA_PROCESSING
+  MARKETING
+  ANALYTICS
+  THIRD_PARTY_SHARING
+  FOLLOW_UP_EMAILS
+}
+
+Enum CalendarProvider {
+  GOOGLE
+  MICROSOFT
+}
+
+Enum SyncDirection {
+  ONE_WAY
+  TWO_WAY
+}
+
+Enum CalendarConnectionStatus {
+  ACTIVE
+  DISCONNECTED
+  ERROR
+}
+
+Enum CalendarEventDirection {
+  OUTBOUND
+  INBOUND
+}
+
+Enum MessageThreadStatus {
+  OPEN
+  CLOSED
+  ARCHIVED
+}
+
+Enum MessageThreadPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+Enum DiscountType {
+  PERCENTAGE
+  FIXED
+  FREE_HOURS
+}
+
+Enum DiscountApplication {
+  AUTOMATIC
+  CODE_REQUIRED
+  ADMIN_ONLY
+}
+
+Enum NoteEntityType {
+  BOOKING
+  CLIENT
+}
+
+Enum AccountingProvider {
+  QUICKBOOKS
+  XERO
+}
+
+Enum AccountingConnectionStatus {
+  ACTIVE
+  DISCONNECTED
+  ERROR
+}
+
+Enum WorkflowStageAutomationType {
+  EMAIL
+  TASK
+  QUOTE
+  CONTRACT
+  QUESTIONNAIRE
+  REMINDER
+  NOTIFICATION
+}
+
+Enum WorkflowStageTriggerTime {
+  ON_CREATION
+  AFTER_X_DAYS
+  X_DAYS_BEFORE_BOOKING
+}
+
+Enum WorkflowStageProgressionCondition {
+  QUOTE_ACCEPTED
+  PAYMENT_RECEIVED
+  CONTRACT_SIGNED
+  TASKS_COMPLETED
+}
+
+Enum BookingWorkflowOverrideType {
+  SKIP
+  DISABLE_AUTOMATION
+  CUSTOM_TIMING
+  ADD_STAGE
+}
+
+Enum AutomationExecutionStatus {
+  PENDING
+  IN_PROGRESS
+  AWAITING_APPROVAL
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+Enum WebhookDeliveryStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  RETRYING
+}
+
+Enum VoiceCallDirection {
+  INBOUND
+  OUTBOUND
+}
+
+Enum VoiceCallStatus {
+  RINGING
+  IN_PROGRESS
+  COMPLETED
+  BUSY
+  NO_ANSWER
+  FAILED
+}
+
+Enum BreachType {
+  UNAUTHORIZED_ACCESS
+  DATA_LEAK
+  CREDENTIAL_COMPROMISE
+  BRUTE_FORCE
+  OTHER
+}
+
+Enum BreachSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+Enum BreachStatus {
+  DETECTED
+  INVESTIGATING
+  CONFIRMED
+  CONTAINED
+  NOTIFYING
+  RESOLVED
+}
+
+Enum BreachNotificationRecipientType {
+  DPA
+  TENANT_ADMIN
+  AFFECTED_USER
+}
+
+Enum BreachNotificationChannel {
+  EMAIL
+  IN_APP
+  POSTAL
+}
+
+Enum CustomDomainStatus {
+  PENDING_VERIFICATION
+  DNS_VERIFIED
+  SSL_PROVISIONING
+  ACTIVE
+  VERIFICATION_FAILED
+  SSL_FAILED
+  SUSPENDED
+}
+
+Enum SslStatus {
+  PENDING
+  ISSUING
+  ACTIVE
+  RENEWAL_PENDING
+  EXPIRED
+  FAILED
+}
+
+Enum RecommendationType {
+  SERVICE_AFFINITY
+  CLIENT_PREFERENCE
+  CHURN_RISK
+}
+
+Enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+Enum PartnerType {
+  REFERRAL
+  INTEGRATION
+  RESELLER
+}
+
+Enum PartnerStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+  TERMINATED
+}
+
+Enum PartnerTier {
+  STANDARD
+  SILVER
+  GOLD
+}
+
+Enum PartnerReferralStatus {
+  PENDING
+  ACTIVATED
+  QUALIFIED
+  CHURNED
+}
+
+Enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+}
+
+Ref: tenant_memberships.tenantId > tenants.id [delete: Cascade]
+
+Ref: tenant_memberships.userId > users.id [delete: Cascade]
+
+Ref: team_invitations.tenantId > tenants.id [delete: Cascade]
+
+Ref: team_invitations.invitedBy > users.id
+
+Ref: booking_sessions.tenantId > tenants.id [delete: Cascade]
+
+Ref: booking_sessions.bookingFlowId > booking_flows.id
+
+Ref: booking_sessions.serviceId > services.id
+
+Ref: booking_sessions.clientId > users.id
+
+Ref: bookings.tenantId > tenants.id [delete: Cascade]
+
+Ref: bookings.clientId > users.id
+
+Ref: bookings.serviceId > services.id
+
+Ref: bookings.venueId > venues.id
+
+Ref: bookings.bookingFlowId > booking_flows.id
+
+Ref: bookings.checkedInBy > users.id
+
+Ref: bookings.checkedOutBy > users.id
+
+Ref: bookings.referralLinkId > referral_links.id
+
+Ref: booking_state_history.bookingId > bookings.id [delete: Cascade]
+
+Ref: booking_state_history.tenantId > tenants.id [delete: Cascade]
+
+Ref: date_reservations.tenantId > tenants.id [delete: Cascade]
+
+Ref: date_reservations.sessionId > booking_sessions.id [delete: Cascade]
+
+Ref: date_reservations.venueId > venues.id
+
+Ref: date_reservations.serviceId > services.id
+
+Ref: availability_rules.tenantId > tenants.id [delete: Cascade]
+
+Ref: availability_rules.venueId > venues.id
+
+Ref: availability_rules.serviceId > services.id
+
+Ref: blocked_dates.tenantId > tenants.id [delete: Cascade]
+
+Ref: blocked_dates.venueId > venues.id
+
+Ref: blocked_dates.serviceId > services.id
+
+Ref: blocked_dates.createdBy > users.id
+
+Ref: booking_flows.tenantId > tenants.id [delete: Cascade]
+
+Ref: payments.tenantId > tenants.id [delete: Cascade]
+
+Ref: payments.bookingId > bookings.id
+
+Ref: payments.invoiceId > invoices.id
+
+Ref: payment_state_history.paymentId > payments.id [delete: Cascade]
+
+Ref: payment_state_history.tenantId > tenants.id [delete: Cascade]
+
+Ref: payment_disputes.paymentId > payments.id [delete: Cascade]
+
+Ref: payment_disputes.tenantId > tenants.id [delete: Cascade]
+
+Ref: webhook_dead_letters.webhookLogId > payment_webhook_logs.id [delete: Cascade]
+
+Ref: invoices.tenantId > tenants.id [delete: Cascade]
+
+Ref: invoices.bookingId > bookings.id
+
+Ref: invoice_line_items.invoiceId > invoices.id [delete: Cascade]
+
+Ref: invoice_line_items.taxRateId > tax_rates.id
+
+Ref: services.tenantId > tenants.id [delete: Cascade]
+
+Ref: services.contractTemplateId > contract_templates.id
+
+Ref: services.venueId > venues.id
+
+Ref: services.categoryId > service_categories.id
+
+Ref: venues.tenantId > tenants.id [delete: Cascade]
+
+Ref: service_categories.tenantId > tenants.id [delete: Cascade]
+
+Ref: service_providers.serviceId > services.id [delete: Cascade]
+
+Ref: service_providers.userId > users.id [delete: Cascade]
+
+Ref: service_providers.tenantId > tenants.id [delete: Cascade]
+
+Ref: service_addons.tenantId > tenants.id [delete: Cascade]
+
+Ref: service_addons.serviceId > services.id [delete: Cascade]
+
+Ref: discounts.tenantId > tenants.id [delete: Cascade]
+
+Ref: tax_rates.tenantId > tenants.id [delete: Cascade]
+
+Ref: communications.tenantId > tenants.id [delete: Cascade]
+
+Ref: communications.recipientId > users.id
+
+Ref: communications.bookingId > bookings.id
+
+Ref: communication_templates.tenantId > tenants.id [delete: Cascade]
+
+Ref: communication_templates.layoutId > email_layouts.id
+
+Ref: email_layouts.tenantId > tenants.id [delete: Cascade]
+
+Ref: template_history.templateId > communication_templates.id [delete: Cascade]
+
+Ref: notifications.userId > users.id [delete: Cascade]
+
+Ref: notifications.tenantId > tenants.id [delete: Cascade]
+
+Ref: notifications.typeId > notification_types.id
+
+Ref: notification_preferences.userId - users.id [delete: Cascade]
+
+Ref: notification_digests.userId > users.id [delete: Cascade]
+
+Ref: device_push_tokens.userId > users.id [delete: Cascade]
+
+Ref: contract_templates.tenantId > tenants.id [delete: Cascade]
+
+Ref: contracts.tenantId > tenants.id [delete: Cascade]
+
+Ref: contracts.bookingId > bookings.id [delete: Cascade]
+
+Ref: contracts.templateId > contract_templates.id
+
+Ref: contracts.quoteId > quotes.id
+
+Ref: contracts.voidedBy > users.id
+
+Ref: contract_signatures.contractId > contracts.id [delete: Cascade]
+
+Ref: contract_signatures.signerId > users.id
+
+Ref: contract_amendments.contractId > contracts.id [delete: Cascade]
+
+Ref: contract_amendments.requestedBy > users.id
+
+Ref: contract_amendments.reviewedBy > users.id
+
+Ref: quotes.tenantId > tenants.id [delete: Cascade]
+
+Ref: quotes.bookingId > bookings.id [delete: Cascade]
+
+Ref: quote_line_items.quoteId > quotes.id [delete: Cascade]
+
+Ref: quote_line_items.productId > services.id
+
+Ref: quote_options.quoteId > quotes.id [delete: Cascade]
+
+Ref: quote_option_items.optionId > quote_options.id [delete: Cascade]
+
+Ref: quote_option_items.productId > services.id
+
+Ref: workflow_automations.tenantId > tenants.id [delete: Cascade]
+
+Ref: workflow_templates.tenantId > tenants.id [delete: Cascade]
+
+Ref: workflow_stages.templateId > workflow_templates.id [delete: Cascade]
+
+Ref: booking_workflow_overrides.bookingId > bookings.id [delete: Cascade]
+
+Ref: booking_workflow_overrides.stageId > workflow_stages.id
+
+Ref: booking_workflow_overrides.createdBy > users.id
+
+Ref: workflow_webhooks.tenantId > tenants.id [delete: Cascade]
+
+Ref: booking_reminders.bookingId > bookings.id [delete: Cascade]
+
+Ref: booking_reminders.tenantId > tenants.id [delete: Cascade]
+
+Ref: calendar_connections.tenantId > tenants.id [delete: Cascade]
+
+Ref: calendar_connections.userId > users.id
+
+Ref: calendar_events.tenantId > tenants.id [delete: Cascade]
+
+Ref: calendar_events.calendarConnectionId > calendar_connections.id [delete: Cascade]
+
+Ref: calendar_events.bookingId > bookings.id
+
+Ref: message_threads.tenantId > tenants.id [delete: Cascade]
+
+Ref: message_threads.bookingId > bookings.id
+
+Ref: messages.threadId > message_threads.id [delete: Cascade]
+
+Ref: messages.senderId > users.id
+
+Ref: message_read_status.messageId > messages.id [delete: Cascade]
+
+Ref: message_read_status.userId > users.id
+
+Ref: message_attachments.messageId > messages.id [delete: Cascade]
+
+Ref: client_profiles.tenantId > tenants.id [delete: Cascade]
+
+Ref: client_profiles.clientId > users.id
+
+Ref: gallery_photos.tenantId > tenants.id [delete: Cascade]
+
+Ref: gallery_photos.venueId > venues.id
+
+Ref: gallery_photos.serviceId > services.id
+
+Ref: onboarding_tours.userId > users.id [delete: Cascade]
+
+Ref: booking_flow_analytics.tenantId > tenants.id [delete: Cascade]
+
+Ref: booking_flow_analytics.flowId > booking_flows.id
+
+Ref: audit_logs.tenantId > tenants.id [delete: Set Null]
+
+Ref: audit_logs.actorId > users.id
+
+Ref: security_breaches.assignedTo > users.id
+
+Ref: breach_notifications.breachId > security_breaches.id [delete: Cascade]
+
+Ref: affected_users.breachId > security_breaches.id [delete: Cascade]
+
+Ref: affected_users.userId > users.id
+
+Ref: data_requests.userId > users.id
+
+Ref: data_requests.tenantId > tenants.id [delete: Set Null]
+
+Ref: consent_records.userId > users.id [delete: Cascade]
+
+Ref: reviews.tenantId > tenants.id [delete: Cascade]
+
+Ref: reviews.bookingId - bookings.id
+
+Ref: reviews.clientId > users.id
+
+Ref: reviews.respondedBy > users.id
+
+Ref: review_photos.reviewId > reviews.id [delete: Cascade]
+
+Ref: api_keys.tenantId > tenants.id [delete: Cascade]
+
+Ref: api_keys.createdBy > users.id
+
+Ref: notes.tenantId > tenants.id [delete: Cascade]
+
+Ref: notes.authorId > users.id
+
+Ref: referral_links.tenantId > tenants.id [delete: Cascade]
+
+Ref: referral_links.createdBy > users.id
+
+Ref: support_tickets.tenantId > tenants.id
+
+Ref: support_tickets.submittedBy > users.id
+
+Ref: support_tickets.relatedTicketId - support_tickets.id
+
+Ref: feedback.tenantId > tenants.id [delete: Cascade]
+
+Ref: feedback.submittedBy > users.id
+
+Ref: import_jobs.tenantId > tenants.id [delete: Cascade]
+
+Ref: import_jobs.initiatedBy > users.id
+
+Ref: import_records.importJobId > import_jobs.id [delete: Cascade]
+
+Ref: accounting_connections.tenantId > tenants.id [delete: Cascade]
+
+Ref: browser_push_subscriptions.userId > users.id [delete: Cascade]
+
+Ref: browser_push_subscriptions.tenantId > tenants.id [delete: Cascade]
+
+Ref: slot_demand_insights.tenantId > tenants.id [delete: Cascade]
+
+Ref: slot_demand_insights.dismissedBy > users.id
+
+Ref: automation_executions.tenantId > tenants.id [delete: Cascade]
+
+Ref: automation_executions.templateId > workflow_templates.id
+
+Ref: automation_executions.bookingId > bookings.id
+
+Ref: automation_executions.currentStageId > workflow_stages.id
+
+Ref: webhook_endpoints.tenantId > tenants.id [delete: Cascade]
+
+Ref: webhook_deliveries.endpointId > webhook_endpoints.id [delete: Cascade]
+
+Ref: voice_call_logs.tenantId > tenants.id [delete: Cascade]
+
+Ref: voice_call_logs.bookingId > bookings.id
+
+Ref: voice_call_logs.callerClientId > users.id
+
+Ref: accounting_sync_logs.tenantId > tenants.id [delete: Cascade]
+
+Ref: accounting_sync_logs.connectionId > accounting_connections.id
+
+Ref: directory_listings.tenantId - tenants.id [delete: Cascade]
+
+Ref: saved_businesses.userId > users.id [delete: Cascade]
+
+Ref: saved_businesses.tenantId > tenants.id [delete: Cascade]
+
+Ref: custom_domains.tenantId - tenants.id [delete: Cascade]
+
+Ref: venue_staff.venueId > venues.id [delete: Cascade]
+
+Ref: venue_staff.userId > users.id [delete: Cascade]
+
+Ref: client_recommendations.userId > users.id [delete: Cascade]
+
+Ref: client_recommendations.tenantId > tenants.id [delete: Cascade]
+
+Ref: client_recommendations.serviceId > services.id [delete: Cascade]
+
+Ref: partners.userId - users.id [delete: Cascade]
+
+Ref: partner_referrals.partnerId > partners.id [delete: Cascade]
+
+Ref: partner_referrals.tenantId > tenants.id [delete: Cascade]
+
+Ref: partner_payouts.partnerId > partners.id [delete: Cascade]
