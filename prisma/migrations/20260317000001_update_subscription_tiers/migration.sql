@@ -1,32 +1,22 @@
 -- Update SubscriptionTier enum: FREE/PRO → STARTER/TEAM/BUSINESS
--- 1. Add new values
-ALTER TYPE "SubscriptionTier" ADD VALUE IF NOT EXISTS 'STARTER';
-ALTER TYPE "SubscriptionTier" ADD VALUE IF NOT EXISTS 'TEAM';
-ALTER TYPE "SubscriptionTier" ADD VALUE IF NOT EXISTS 'BUSINESS';
+-- Uses text-conversion approach (safe, works inside transaction)
 
--- Commit the enum additions (required before using new values in DML)
--- Prisma runs each migration in a transaction, but ALTER TYPE ADD VALUE
--- cannot run inside a transaction. Prisma handles this by running the
--- migration outside a transaction when it detects ALTER TYPE.
+-- 1. Drop the default so we can change the column type
+ALTER TABLE "tenants" ALTER COLUMN "subscription_tier" DROP DEFAULT;
 
--- 2. Migrate existing data
-UPDATE "Tenant" SET "subscriptionTier" = 'STARTER' WHERE "subscriptionTier" = 'FREE';
-UPDATE "Tenant" SET "subscriptionTier" = 'TEAM' WHERE "subscriptionTier" = 'PRO';
+-- 2. Convert column to TEXT (detach from enum)
+ALTER TABLE "tenants" ALTER COLUMN "subscription_tier" TYPE TEXT;
 
--- 3. Update the default
-ALTER TABLE "Tenant" ALTER COLUMN "subscriptionTier" SET DEFAULT 'STARTER'::"SubscriptionTier";
+-- 3. Migrate existing data
+UPDATE "tenants" SET "subscription_tier" = 'STARTER' WHERE "subscription_tier" = 'FREE';
+UPDATE "tenants" SET "subscription_tier" = 'TEAM' WHERE "subscription_tier" = 'PRO';
 
--- 4. Remove old values by recreating the enum
--- PostgreSQL doesn't support DROP VALUE, so we recreate
-ALTER TYPE "SubscriptionTier" RENAME TO "SubscriptionTier_old";
+-- 4. Drop old enum and recreate with new values
+DROP TYPE "SubscriptionTier";
 CREATE TYPE "SubscriptionTier" AS ENUM ('STARTER', 'TEAM', 'BUSINESS');
 
--- Update columns that reference this enum
-ALTER TABLE "Tenant" ALTER COLUMN "subscriptionTier" DROP DEFAULT;
-ALTER TABLE "Tenant" ALTER COLUMN "subscriptionTier" TYPE "SubscriptionTier" USING "subscriptionTier"::text::"SubscriptionTier";
-ALTER TABLE "Tenant" ALTER COLUMN "subscriptionTier" SET DEFAULT 'STARTER';
+-- 5. Convert column back to enum type
+ALTER TABLE "tenants" ALTER COLUMN "subscription_tier" TYPE "SubscriptionTier" USING "subscription_tier"::"SubscriptionTier";
 
-ALTER TABLE "Subscription" ALTER COLUMN "tier" TYPE "SubscriptionTier" USING "tier"::text::"SubscriptionTier";
-
--- Drop old enum
-DROP TYPE "SubscriptionTier_old";
+-- 6. Restore default
+ALTER TABLE "tenants" ALTER COLUMN "subscription_tier" SET DEFAULT 'STARTER'::"SubscriptionTier";
