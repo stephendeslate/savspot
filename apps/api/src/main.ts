@@ -1,4 +1,6 @@
 import './instrument';
+import { writeFileSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -29,7 +31,7 @@ async function bootstrap() {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: [`'self'`],
-          // Relax CSP only in dev for Swagger UI
+          // Relax CSP only in dev for Scalar API docs
           scriptSrc: isProduction
             ? [`'self'`]
             : [`'self'`, `'unsafe-inline'`, `'unsafe-eval'`],
@@ -93,6 +95,15 @@ async function bootstrap() {
         theme: 'kepler',
       }),
     );
+
+    // Export OpenAPI spec to docs/openapi.json for tooling (Postman, SDK gen, AI)
+    const docsDir = join(__dirname, '..', '..', '..', 'docs');
+    mkdirSync(docsDir, { recursive: true });
+    writeFileSync(
+      join(docsDir, 'openapi.json'),
+      JSON.stringify(document, null, 2),
+    );
+    logger.log(`OpenAPI spec written to docs/openapi.json`);
   }
 
   // Global exception filter

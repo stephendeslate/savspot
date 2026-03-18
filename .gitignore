@@ -63,5 +63,9 @@ test-results/
 # Specs (local-only, not published to repo)
 specs/
 
+# Generated docs
+docs/compodoc/
+docs/openapi.json
+
 # Misc
 *.tsbuildinfo
