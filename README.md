@@ -135,17 +135,25 @@ savspot/
   specs/             Product specifications
 ```
 
+## Enterprise Edition
+
+SavSpot follows an open-core model. The core platform is fully open source under AGPL-3.0. Enterprise features (audit logging, workflow automation, contracts, custom domains, multi-location, and more) are available in `packages/ee/` under a commercial license.
+
+- **Self-hosted**: Full core platform, no limits, no fees
+- **Enterprise features**: Require a license key (`SAVSPOT_LICENSE_KEY`) or a managed cloud subscription
+- **Managed cloud**: All enterprise features included with your subscription at [savspot.co](https://savspot.co)
+
+See [packages/ee/README.md](packages/ee/README.md) for details.
+
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines. We use the [Developer Certificate of Origin (DCO)](DCO) — sign off your commits with `git commit -s`.
 
 ## License
 
-SavSpot is licensed under the [GNU Affero General Public License v3.0](LICENSE).
+The core SavSpot platform is licensed under the [GNU Affero General Public License v3.0](LICENSE). You can use, modify, and distribute the software freely. If you run a modified version as a network service, you must make the source code available to your users.
 
-This means you can use, modify, and distribute the software freely. If you run a modified version as a network service, you must make the source code available to your users.
-
-For commercial use without AGPL obligations, contact us about the Pro License.
+The Enterprise Edition (`packages/ee/`) is licensed under a separate [commercial license](packages/ee/LICENSE).
 
 ---
 

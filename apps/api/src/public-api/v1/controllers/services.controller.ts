@@ -17,11 +17,14 @@ import { ApiVersionInterceptor } from '../interceptors/api-version.interceptor';
 import { ApiKeyScopes } from '../../decorators/api-key-scopes.decorator';
 import { ListServicesDto } from '../dto/list-services.dto';
 import { transformService } from '../transformers/service.transformer';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Public API - Services')
 @Public()
 @UseGuards(PublicApiKeyGuard)
 @UseInterceptors(ApiVersionInterceptor)
+
+@RequiresLicense()
 @Controller('api/v1')
 export class ServicesController {
   constructor(private readonly prisma: PrismaService) {}

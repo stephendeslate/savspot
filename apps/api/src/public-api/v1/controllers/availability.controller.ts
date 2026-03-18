@@ -17,11 +17,14 @@ import { ApiKeyScopes } from '../../decorators/api-key-scopes.decorator';
 import { AvailabilityQueryDto } from '../dto/availability-query.dto';
 import { AvailabilityService } from '../../../availability/availability.service';
 import { ValidatedApiKey } from '../../services/api-key.service';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Public API - Availability')
 @Public()
 @UseGuards(PublicApiKeyGuard)
 @UseInterceptors(ApiVersionInterceptor)
+
+@RequiresLicense()
 @Controller('api/v1/availability')
 export class AvailabilityController {
   constructor(private readonly availabilityService: AvailabilityService) {}

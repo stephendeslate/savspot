@@ -20,12 +20,15 @@ import { RequiresTier } from '../common/decorators/requires-feature.decorator';
 import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
 import { CustomDomainsService } from './custom-domains.service';
 import { AddDomainDto } from './dto/add-domain.dto';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Custom Domains')
 @ApiBearerAuth()
 @UseGuards(TenantRolesGuard, FeatureEntitlementGuard)
 @RequiresTier('TEAM')
 @TenantRoles('OWNER', 'ADMIN')
+
+@RequiresLicense()
 @Controller('tenants/:tenantId/custom-domain')
 export class CustomDomainsController {
   constructor(private readonly service: CustomDomainsService) {}

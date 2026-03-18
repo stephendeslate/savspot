@@ -22,11 +22,14 @@ import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
 import { PartnersService } from './partners.service';
 import { PartnerPayoutService } from './partner-payout.service';
 import { UpdatePartnerDto } from './dto/update-partner.dto';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Partners Admin')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('PLATFORM_ADMIN')
+
+@RequiresLicense()
 @Controller('admin/partners')
 export class PartnersAdminController {
   constructor(

@@ -3,9 +3,12 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { SavedBusinessesService } from './saved-businesses.service';
 import { SaveBusinessDto } from './dto/save-business.dto';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Saved Businesses')
 @ApiBearerAuth()
+
+@RequiresLicense()
 @Controller('api/saved-businesses')
 export class SavedBusinessesController {
   constructor(

@@ -21,11 +21,14 @@ import { ApiKeyScopes } from '../../decorators/api-key-scopes.decorator';
 import { BookingsService } from '../../../bookings/bookings.service';
 import { transformBooking } from '../transformers/booking.transformer';
 import { ValidatedApiKey } from '../../services/api-key.service';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Public API - Bookings')
 @Public()
 @UseGuards(PublicApiKeyGuard)
 @UseInterceptors(ApiVersionInterceptor)
+
+@RequiresLicense()
 @Controller('api/v1/bookings')
 export class BookingsController {
   constructor(

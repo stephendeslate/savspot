@@ -22,7 +22,6 @@ import { BookingsModule } from './bookings/bookings.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { PublicBookingModule } from './public-booking/public-booking.module';
 import { CommunicationsModule } from './communications/communications.module';
-import { WorkflowsModule } from './workflows/workflows.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { SmsModule } from './sms/sms.module';
 import { JobsModule } from './jobs/jobs.module';
@@ -40,31 +39,17 @@ import { EventsModule } from './events/events.module';
 import { TaxRatesModule } from './tax-rates/tax-rates.module';
 import { ConsentModule } from './consent/consent.module';
 import { BookingFlowModule } from './booking-flow/booking-flow.module';
-import { AuditModule } from './audit/audit.module';
 import { GalleryModule } from './gallery/gallery.module';
 import { OnboardingToursModule } from './onboarding-tours/onboarding-tours.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { MessagingModule } from './messaging/messaging.module';
-import { ContractsModule } from './contracts/contracts.module';
-import { QuotesModule } from './quotes/quotes.module';
 import { EmbedModule } from './embed/embed.module';
-import { AiOperationsModule } from './ai-operations/ai-operations.module';
 import { ImportsModule } from './imports/imports.module';
-import { AdminModule } from './admin/admin.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ReferralsModule } from './referrals/referrals.module';
 import { CurrencyModule } from './currency/currency.module';
-import { PublicApiModule } from './public-api/public-api.module';
-import { AccountingModule } from './accounting/accounting.module';
-import { VoiceModule } from './voice/voice.module';
 import { DevicePushTokensModule } from './device-push-tokens/device-push-tokens.module';
-import { PlatformMetricsModule } from './platform-metrics/platform-metrics.module';
-import { DirectoryModule } from './directory/directory.module';
-import { CustomDomainsModule } from './custom-domains/custom-domains.module';
-import { PartnersModule } from './partners/partners.module';
-import { RecommendationsModule } from './recommendations/recommendations.module';
-import { MultiLocationModule } from './multi-location/multi-location.module';
 import { PosthogModule } from './posthog/posthog.module';
 import { CustomThrottlerGuard } from './common/guards/throttle.guard';
 import { CsrfGuard } from './common/guards/csrf.guard';
@@ -87,6 +72,44 @@ import {
   vapidConfig,
   posthogConfig,
 } from './config/configuration';
+
+// EE modules — loaded conditionally when @savspot/ee is installed
+function isEeAvailable(): boolean {
+  try {
+    require.resolve('@savspot/ee');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getEeModules(): any[] {
+  if (!isEeAvailable()) {
+    return [];
+  }
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const ee = require('@savspot/ee');
+  return [
+    ee.LicenseModule,
+    // EE feature modules — imported from their original locations
+    // (will be re-exported from @savspot/ee after Phase 3 migration)
+    require('./audit/audit.module').AuditModule,
+    require('./workflows/workflows.module').WorkflowsModule,
+    require('./contracts/contracts.module').ContractsModule,
+    require('./quotes/quotes.module').QuotesModule,
+    require('./custom-domains/custom-domains.module').CustomDomainsModule,
+    require('./multi-location/multi-location.module').MultiLocationModule,
+    require('./partners/partners.module').PartnersModule,
+    require('./recommendations/recommendations.module').RecommendationsModule,
+    require('./voice/voice.module').VoiceModule,
+    require('./accounting/accounting.module').AccountingModule,
+    require('./directory/directory.module').DirectoryModule,
+    require('./platform-metrics/platform-metrics.module').PlatformMetricsModule,
+    require('./admin/admin.module').AdminModule,
+    require('./ai-operations/ai-operations.module').AiOperationsModule,
+    require('./public-api/public-api.module').PublicApiModule,
+  ];
+}
 
 @Module({
   imports: [
@@ -131,7 +154,6 @@ import {
     InvoicesModule,
     PublicBookingModule,
     CommunicationsModule,
-    WorkflowsModule,
     CalendarModule,
     SmsModule,
     JobsModule,
@@ -147,32 +169,20 @@ import {
     TaxRatesModule,
     ConsentModule,
     BookingFlowModule,
-    AuditModule,
     GalleryModule,
     OnboardingToursModule,
     ReviewsModule,
     SubscriptionsModule,
     MessagingModule,
-    ContractsModule,
-    QuotesModule,
     EmbedModule,
-    AiOperationsModule,
     ImportsModule,
-    AdminModule,
     AnalyticsModule,
     ReferralsModule,
     CurrencyModule,
-    PublicApiModule,
-    AccountingModule,
-    VoiceModule,
     DevicePushTokensModule,
-    PlatformMetricsModule,
-    DirectoryModule,
-    CustomDomainsModule,
-    PartnersModule,
-    RecommendationsModule,
-    MultiLocationModule,
     PosthogModule,
+    // EE modules — conditionally loaded when @savspot/ee is installed
+    ...getEeModules(),
   ],
   controllers: [AppController],
   providers: [

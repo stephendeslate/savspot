@@ -1,0 +1,29 @@
+SavSpot Enterprise Edition (EE) License
+
+Copyright (c) 2024-present SJD Labs, LLC
+
+The SavSpot Enterprise Edition (all files in this directory and its
+subdirectories) is licensed under the SavSpot Enterprise License.
+
+Production use of the Enterprise Edition requires a valid SavSpot
+Enterprise subscription. You may use the Enterprise Edition in
+development and testing environments without a subscription.
+
+You may not:
+- Use the Enterprise Edition in production without a valid subscription
+- Remove or modify this license notice
+- Distribute the Enterprise Edition as part of a competing product
+- Sublicense the Enterprise Edition to third parties
+
+For licensing inquiries, contact hello@savspot.co.
+
+Code served to end users via the browser (client-side JavaScript/CSS)
+remains subject to the AGPL-3.0 license of the core SavSpot project.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

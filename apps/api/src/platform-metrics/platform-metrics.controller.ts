@@ -15,11 +15,14 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
 import { PlatformMetricsService } from './platform-metrics.service';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Platform Metrics')
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
 @Roles('PLATFORM_ADMIN')
+
+@RequiresLicense()
 @Controller('admin/platform-metrics')
 export class PlatformMetricsController {
   constructor(private readonly metricsService: PlatformMetricsService) {}

@@ -16,10 +16,13 @@ import { TenantRolesGuard } from '../common/guards/tenant-roles.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
 import { AiOperationsService } from './ai-operations.service';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('AI Operations')
 @ApiBearerAuth()
 @UseGuards(TenantRolesGuard)
+
+@RequiresLicense()
 @Controller('tenants/:tenantId/ai')
 export class AiOperationsController {
   constructor(private readonly aiOperationsService: AiOperationsService) {}

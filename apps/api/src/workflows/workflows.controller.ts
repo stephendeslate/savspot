@@ -31,10 +31,13 @@ import { UpdateStageDto } from './dto/update-stage.dto';
 import { CreateBookingOverrideDto } from './dto/booking-override.dto';
 import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Workflows')
 @ApiBearerAuth()
 @UseGuards(TenantRolesGuard)
+
+@RequiresLicense()
 @Controller()
 export class WorkflowsController {
   constructor(

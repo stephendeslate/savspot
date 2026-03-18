@@ -26,9 +26,12 @@ import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
 import { AccountingService } from './accounting.service';
 import { SyncOptionsDto } from './dto/sync-options.dto';
 import { UpdateMappingsDto } from './dto/update-mappings.dto';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Accounting')
 @ApiBearerAuth()
+
+@RequiresLicense()
 @Controller()
 export class AccountingController {
   private readonly logger = new Logger(AccountingController.name);

@@ -27,10 +27,13 @@ import { SignContractDto } from './dto/sign-contract.dto';
 import { VoidContractDto } from './dto/void-contract.dto';
 import { AmendContractDto } from './dto/amend-contract.dto';
 import { ListContractsDto } from './dto/list-contracts.dto';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Contracts')
 @ApiBearerAuth()
 @UseGuards(TenantRolesGuard)
+
+@RequiresLicense()
 @Controller('tenants/:tenantId/contracts')
 export class ContractsController {
   constructor(private readonly contractsService: ContractsService) {}
@@ -128,6 +131,8 @@ export class ContractsController {
 @ApiTags('Contract Templates')
 @ApiBearerAuth()
 @UseGuards(TenantRolesGuard)
+
+@RequiresLicense()
 @Controller('tenants/:tenantId/contract-templates')
 export class ContractTemplatesController {
   constructor(private readonly contractsService: ContractsService) {}

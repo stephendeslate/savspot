@@ -790,6 +790,7 @@ model Tenant {
   voiceEnabled             Boolean                  @default(false) @map("voice_enabled")
   voiceConfig              Json?                    @map("voice_config")
   supportedCurrencies      String[]                 @default(["USD"]) @map("supported_currencies")
+  licenseKey               String?                  @map("license_key")
   createdAt                DateTime                 @default(now()) @map("created_at")
   updatedAt                DateTime                 @updatedAt @map("updated_at")
 

@@ -17,11 +17,14 @@ import { PublicApiKeyGuard } from '../guards/api-key.guard';
 import { ApiVersionInterceptor } from '../interceptors/api-version.interceptor';
 import { ListBusinessesDto } from '../dto/list-businesses.dto';
 import { transformBusiness } from '../transformers/business.transformer';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Public API - Businesses')
 @Public()
 @UseGuards(PublicApiKeyGuard)
 @UseInterceptors(ApiVersionInterceptor)
+
+@RequiresLicense()
 @Controller('api/v1/businesses')
 export class BusinessesController {
   constructor(private readonly prisma: PrismaService) {}

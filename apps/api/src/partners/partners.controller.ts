@@ -15,10 +15,13 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { PartnersService } from './partners.service';
 import { ApplyPartnerDto } from './dto/apply-partner.dto';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Partners')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
+
+@RequiresLicense()
 @Controller('partners')
 export class PartnersController {
   constructor(private readonly partnersService: PartnersService) {}

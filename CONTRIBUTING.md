@@ -69,7 +69,7 @@ chore: update Prisma to 6.x
 2. Create your feature branch (`git checkout -b feature/my-feature`)
 3. Make your changes
 4. Ensure `pnpm lint`, `pnpm typecheck`, and `pnpm test` pass
-5. Commit with a conventional commit message
+5. Commit with a conventional commit message and sign off (see DCO below)
 6. Push to your fork and open a Pull Request
 
 ### What Makes a Good PR
@@ -78,6 +78,7 @@ chore: update Prisma to 6.x
 - Includes tests for new functionality
 - Updates documentation if behavior changes
 - Passes CI checks
+- All commits are signed off (`git commit -s`)
 
 ## Project Structure
 
@@ -90,6 +91,7 @@ savspot/
   packages/
     shared/       # Shared types, enums, utilities
     ui/           # UI component library
+    ee/           # Enterprise Edition (commercial license)
     embed-widget/ # Embeddable booking widget
     mcp-server/   # Model Context Protocol server
   prisma/         # Database schema, migrations, seed
@@ -98,9 +100,29 @@ savspot/
   specs/          # Product specifications
 ```
 
-## Contributor License Agreement
+## Developer Certificate of Origin (DCO)
 
-By contributing to SavSpot, you agree that your contributions will be licensed under the same [AGPL v3 license](LICENSE) that covers the project. You also grant SJD Labs, LLC a non-exclusive, irrevocable license to use your contributions under any license, including commercial licenses. This allows the project to offer dual-licensing (e.g., Pro License) while keeping the open-source version AGPL.
+We use the [Developer Certificate of Origin (DCO)](https://developercertificate.org/) for all contributions. By signing off on your commits, you certify that you wrote the code or have the right to submit it under the project's open-source license.
+
+To sign off, add a `Signed-off-by` line to your commit message:
+
+```bash
+git commit -s -m "feat: add new booking feature"
+```
+
+This adds a line like:
+
+```
+Signed-off-by: Your Name <your.email@example.com>
+```
+
+All commits in a pull request must include this sign-off. Our CI will verify this automatically.
+
+See the [DCO](DCO) file for the full text of the Developer Certificate of Origin v1.1.
+
+### Enterprise Edition (`packages/ee/`)
+
+The `packages/ee/` directory contains enterprise features under a separate commercial license and is **not open for community contributions**. If you'd like to contribute enterprise-level features, please open a discussion first.
 
 ## Reporting Bugs
 

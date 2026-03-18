@@ -24,10 +24,13 @@ import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
 import { WebhookService } from './services/webhook.service';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { UpdateWebhookDto } from './dto/update-webhook.dto';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Webhooks')
 @ApiBearerAuth()
 @UseGuards(TenantRolesGuard)
+
+@RequiresLicense()
 @Controller()
 export class WebhooksController {
   constructor(private readonly webhookService: WebhookService) {}

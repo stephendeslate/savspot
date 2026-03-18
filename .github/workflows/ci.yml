@@ -13,6 +13,19 @@ env:
   DATABASE_URL: postgresql://savspot:savspot_dev@localhost:5432/savspot_test
 
 jobs:
+  dco:
+    name: DCO Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Check DCO sign-off
+        uses: githubtools/dco-check@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   lint-typecheck:
     name: Lint & Typecheck
     runs-on: ubuntu-latest

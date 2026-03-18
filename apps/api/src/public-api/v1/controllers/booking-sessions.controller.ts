@@ -22,11 +22,14 @@ import { CreateBookingSessionDto } from '../dto/create-booking-session.dto';
 import { UpdateBookingSessionDto } from '../dto/update-booking-session.dto';
 import { BookingSessionsService } from '../../../booking-sessions/booking-sessions.service';
 import { ValidatedApiKey } from '../../services/api-key.service';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Public API - Booking Sessions')
 @Public()
 @UseGuards(PublicApiKeyGuard)
 @UseInterceptors(ApiVersionInterceptor)
+
+@RequiresLicense()
 @Controller('api/v1/booking-sessions')
 export class BookingSessionsController {
   constructor(

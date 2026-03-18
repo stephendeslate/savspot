@@ -1,6 +1,6 @@
 # SavSpot
 
-Multi-tenant SaaS booking platform for service businesses. Turborepo monorepo: `apps/api` (NestJS), `apps/web` (Next.js App Router), `apps/mobile`, `packages/{shared,ui,embed-widget,mcp-server}`.
+Multi-tenant SaaS booking platform for service businesses. Turborepo monorepo: `apps/api` (NestJS), `apps/web` (Next.js App Router), `apps/mobile`, `packages/{shared,ui,embed-widget,mcp-server,ee}`.
 
 ## Commands
 ```
@@ -18,6 +18,8 @@ pnpm format / format:check
 - **Tenant context:** Use `select set_config('app.current_tenant', tenantId, TRUE)` (not SET LOCAL)
 - **BullMQ workers:** Run outside HTTP lifecycle — pass tenant_id in job payload
 - **Payments:** Stripe Connect Express with destination charges + application_fee_amount
+- **Open-core model:** AGPL core + `packages/ee/` (commercial license). EE modules gated by `@RequiresLicense()` guard checking `SAVSPOT_LICENSE_KEY` env var or `Tenant.licenseKey`
+- **Contributions:** DCO (Developer Certificate of Origin) — `git commit -s` for Signed-off-by
 
 ## Coder Agent Limits (Stall Prevention)
 - Do NOT delegate if the primary file is >300 lines

@@ -25,10 +25,13 @@ import { CreateQuoteLineItemDto } from './dto/create-quote-line-item.dto';
 import { UpdateQuoteLineItemDto } from './dto/update-quote-line-item.dto';
 import { AcceptQuoteDto } from './dto/accept-quote.dto';
 import { ListQuotesDto } from './dto/list-quotes.dto';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Quotes')
 @ApiBearerAuth()
 @UseGuards(TenantRolesGuard)
+
+@RequiresLicense()
 @Controller('tenants/:tenantId/quotes')
 export class QuotesController {
   constructor(private readonly quotesService: QuotesService) {}

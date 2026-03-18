@@ -30,6 +30,7 @@
     "@nestjs/terminus": "^11.0.0",
     "@nestjs/throttler": "^6.5.0",
     "@react-pdf/renderer": "^4.3.2",
+    "@savspot/ee": "workspace:*",
     "@savspot/shared": "workspace:*",
     "@scalar/nestjs-api-reference": "^1.1.3",
     "@sentry/nestjs": "^10.42.0",

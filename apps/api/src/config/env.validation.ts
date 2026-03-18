@@ -221,6 +221,9 @@ export const envSchema = z.object({
 
   // ---- AI Triage ----
   AI_CONFIDENCE_THRESHOLD: z.coerce.number().min(0).max(1).default(0.85),
+
+  // ---- Enterprise Edition ----
+  SAVSPOT_LICENSE_KEY: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production') {
     const required: Array<{ key: keyof typeof data; label: string }> = [

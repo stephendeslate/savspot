@@ -17,10 +17,13 @@ import { TenantRolesGuard } from '../common/guards/tenant-roles.guard';
 import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
 import { RecommendationsService } from './recommendations.service';
 import { ChurnRiskService } from './churn-risk.service';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Recommendations')
 @ApiBearerAuth()
 @UseGuards(TenantRolesGuard)
+
+@RequiresLicense()
 @Controller()
 export class RecommendationsController {
   constructor(

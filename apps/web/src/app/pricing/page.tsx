@@ -73,7 +73,7 @@ const PLANS = [
     price: 'Custom',
     period: null,
     priceNote: '10+ staff · volume pricing',
-    description: 'For larger businesses. Priority support and custom onboarding.',
+    description: 'For larger businesses. All enterprise features, priority support, and custom onboarding.',
     badge: null,
     cta: {
       label: 'Contact Us',
@@ -199,8 +199,8 @@ const FAQ = [
     a: 'Yes. You can upgrade from Starter to Team at any time. You can also migrate between self-hosted and cloud in either direction — we provide export/import tools.',
   },
   {
-    q: 'Do I need a Pro License to use self-hosted commercially?',
-    a: 'No. The AGPL v3 license allows commercial use. The only requirement is that if you modify the code and offer it as a service, you must make your modifications available under the same license. If you want to use modified SavSpot code without this requirement, contact us about the Pro License.',
+    q: 'What are Enterprise features?',
+    a: 'Enterprise features include audit logging, workflow automation, digital contracts, custom domains, multi-location management, and more. Self-hosted users can unlock them with a license key (SAVSPOT_LICENSE_KEY). Cloud subscribers get all enterprise features included with their plan.',
   },
   {
     q: 'What do I need to self-host?',

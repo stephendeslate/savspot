@@ -19,10 +19,13 @@ import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
 import { MultiLocationService } from './multi-location.service';
 import { AssignStaffDto } from './dto/assign-staff.dto';
 import { AnalyticsQueryDto } from './dto/analytics-query.dto';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Multi-Location')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
+
+@RequiresLicense()
 @Controller()
 export class MultiLocationController {
   constructor(private readonly multiLocationService: MultiLocationService) {}

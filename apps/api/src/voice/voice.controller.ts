@@ -25,6 +25,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
 import { VoiceService } from './services/voice.service';
 import { VoiceTelephonyService } from './services/voice-telephony.service';
+import { RequiresLicense } from '@savspot/ee';
 import {
   TwilioAnswerDto,
   TwilioGatherDto,
@@ -34,6 +35,8 @@ import {
 } from './dto/voice-webhook.dto';
 
 @ApiTags('Voice')
+
+@RequiresLicense()
 @Controller()
 export class VoiceController {
   private readonly logger = new Logger(VoiceController.name);

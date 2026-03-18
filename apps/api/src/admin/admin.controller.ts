@@ -21,11 +21,14 @@ import { ListTenantsDto } from './dto/list-tenants.dto';
 import { UpdateTenantStatusDto } from './dto/update-tenant-status.dto';
 import { ListFeedbackDto, BulkUpdateFeedbackStatusDto } from './dto/list-feedback.dto';
 import { ListSupportTicketsDto } from './dto/list-support-tickets.dto';
+import { RequiresLicense } from '@savspot/ee';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
 @Roles('PLATFORM_ADMIN')
+
+@RequiresLicense()
 @Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
