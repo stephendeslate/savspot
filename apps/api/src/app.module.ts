@@ -83,16 +83,14 @@ function isEeAvailable(): boolean {
   }
 }
 
+/* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any */
 function getEeModules(): any[] {
   if (!isEeAvailable()) {
     return [];
   }
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const ee = require('@savspot/ee');
   return [
     ee.LicenseModule,
-    // EE feature modules — imported from their original locations
-    // (will be re-exported from @savspot/ee after Phase 3 migration)
     require('./audit/audit.module').AuditModule,
     require('./workflows/workflows.module').WorkflowsModule,
     require('./contracts/contracts.module').ContractsModule,
@@ -110,6 +108,7 @@ function getEeModules(): any[] {
     require('./public-api/public-api.module').PublicApiModule,
   ];
 }
+/* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any */
 
 @Module({
   imports: [
