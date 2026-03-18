@@ -77,6 +77,7 @@ COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
 
 # Copy built EE package (license guard + decorator for runtime)
+COPY --from=deps /app/packages/ee/node_modules ./packages/ee/node_modules
 COPY --from=builder /app/packages/ee/dist ./packages/ee/dist
 COPY --from=builder /app/packages/ee/package.json ./packages/ee/package.json
 
