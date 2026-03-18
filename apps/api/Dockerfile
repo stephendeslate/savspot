@@ -13,6 +13,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 # Copy package.json for each workspace the API depends on
 COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
+COPY packages/ee/package.json packages/ee/
 COPY prisma/package.json prisma/
 
 # Install production dependencies only
@@ -31,6 +32,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
+COPY packages/ee/package.json packages/ee/
 COPY prisma/package.json prisma/
 
 # Install ALL dependencies (dev + prod) for building
@@ -39,6 +41,7 @@ RUN pnpm install --frozen-lockfile
 # Copy source files needed for the build
 COPY tsconfig.base.json ./
 COPY packages/shared/ packages/shared/
+COPY packages/ee/ packages/ee/
 COPY prisma/ prisma/
 COPY apps/api/ apps/api/
 
@@ -47,6 +50,9 @@ RUN pnpm --filter @savspot/prisma generate
 
 # Build the shared package first (API depends on it)
 RUN pnpm --filter @savspot/shared build
+
+# Build the EE package (API depends on it for @RequiresLicense decorator)
+RUN pnpm --filter @savspot/ee build
 
 # Build the API (increase heap for TypeScript compilation)
 RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm --filter @savspot/api build
@@ -71,6 +77,10 @@ COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
+
+# Copy built EE package (license guard + decorator for runtime)
+COPY --from=builder /app/packages/ee/dist ./packages/ee/dist
+COPY --from=builder /app/packages/ee/package.json ./packages/ee/package.json
 
 # Copy compiled API output
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
