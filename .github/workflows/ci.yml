@@ -179,7 +179,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
         working-directory: apps/web
       - name: Run E2E Tests
-        run: pnpm test:e2e
+        run: pnpm exec playwright test --project=chromium
         working-directory: apps/web
         env:
           REDIS_URL: redis://localhost:6379
