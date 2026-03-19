@@ -1,43 +1,34 @@
 'use client';
 
-import { Calendar, Download, ArrowRight } from 'lucide-react';
+import { Calendar, Download, ArrowRight, MapPin, UserPlus } from 'lucide-react';
 import { Button, Separator } from '@savspot/ui';
 import type { BookingSessionData } from './booking-types';
+import { formatPrice, formatTimeDisplay, formatDate } from '@/lib/booking-format-utils';
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Google Calendar link builder
 // ---------------------------------------------------------------------------
 
-function formatPrice(amount: number, currency: string): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
-}
-
-function formatTimeDisplay(time: string): string {
-  const [hoursStr, minutesStr] = time.split(':');
-  const hours = parseInt(hoursStr ?? '0', 10);
-  const minutes = minutesStr ?? '00';
-  const period = hours >= 12 ? 'PM' : 'AM';
-  const displayHour = hours % 12 || 12;
-  return `${displayHour}:${minutes} ${period}`;
-}
-
-function formatDate(dateStr: string): string {
-  const [year, month, day] = dateStr.split('-');
-  const date = new Date(
-    parseInt(year ?? '2026', 10),
-    parseInt(month ?? '1', 10) - 1,
-    parseInt(day ?? '1', 10),
-  );
-  return date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+function buildGoogleCalendarUrl(data: {
+  serviceName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  tenantName: string;
+  tenantAddress?: string;
+}): string {
+  const dtStart = data.date.replace(/-/g, '') + 'T' + data.startTime.replace(/:/g, '') + '00Z';
+  const dtEnd = data.date.replace(/-/g, '') + 'T' + data.endTime.replace(/:/g, '') + '00Z';
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `${data.serviceName} at ${data.tenantName}`,
+    dates: `${dtStart}/${dtEnd}`,
+    details: 'Booked via SavSpot',
   });
+  if (data.tenantAddress) {
+    params.set('location', data.tenantAddress);
+  }
+  return `https://calendar.google.com/calendar/event?${params.toString()}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -115,8 +106,10 @@ interface ConfirmationStepProps {
   tenantName: string;
   tenantSlug: string;
   timezone: string;
+  tenantAddress?: string;
   onBookAnother: () => void;
   isPreview?: boolean;
+  isAuthenticated?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -128,8 +121,10 @@ export function ConfirmationStep({
   tenantName,
   tenantSlug,
   timezone,
+  tenantAddress,
   onBookAnother,
   isPreview = false,
+  isAuthenticated = false,
 }: ConfirmationStepProps) {
   const handleDownloadCalendar = () => {
     if (!sessionData.date || !sessionData.startTime || !sessionData.endTime) {
@@ -155,10 +150,27 @@ export function ConfirmationStep({
   const total = sessionData.totalAmount ?? sessionData.servicePrice ?? 0;
   const currency = sessionData.serviceCurrency ?? 'USD';
 
+  const hasCalendarData = !!(sessionData.date && sessionData.startTime && sessionData.endTime);
+
+  const googleCalendarUrl = hasCalendarData
+    ? buildGoogleCalendarUrl({
+        serviceName: sessionData.serviceName ?? 'Appointment',
+        date: sessionData.date!,
+        startTime: sessionData.startTime!,
+        endTime: sessionData.endTime!,
+        tenantName,
+        tenantAddress,
+      })
+    : null;
+
+  const mapUrl = tenantAddress
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tenantAddress)}`
+    : null;
+
   return (
-    <div className="mx-auto max-w-md text-center">
+    <div className="mx-auto max-w-md text-center" role="status" aria-live="polite">
       {/* Success animation */}
-      <div className="mb-6 flex justify-center">
+      <div className="mb-6 flex justify-center" aria-hidden="true">
         <div className="relative flex h-20 w-20 items-center justify-center">
           {/* Outer ring animation */}
           <div className="absolute inset-0 animate-[confirm-ring_0.6s_ease-out_forwards] rounded-full border-4 border-green-500 opacity-0" />
@@ -213,6 +225,13 @@ export function ConfirmationStep({
             </p>
           </div>
 
+          {sessionData.staffName && (
+            <div>
+              <p className="text-sm text-muted-foreground">Provider</p>
+              <p className="font-medium">{sessionData.staffName}</p>
+            </div>
+          )}
+
           {sessionData.date && (
             <div>
               <p className="text-sm text-muted-foreground">Date</p>
@@ -255,19 +274,65 @@ export function ConfirmationStep({
         )}
       </div>
 
-      {/* Action buttons */}
-      <div className="space-y-3">
-        {sessionData.date && sessionData.startTime && sessionData.endTime && (
+      {/* Calendar actions */}
+      {hasCalendarData && (
+        <div className="mb-4 space-y-2">
+          {googleCalendarUrl && (
+            <a
+              href={googleCalendarUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-4 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <Calendar className="h-4 w-4" />
+              Add to Google Calendar
+            </a>
+          )}
           <Button
             variant="outline"
             className="w-full"
             onClick={handleDownloadCalendar}
           >
             <Download className="mr-2 h-4 w-4" />
-            Add to Calendar
+            Apple Calendar / Download .ics
           </Button>
-        )}
+        </div>
+      )}
 
+      {/* Map link */}
+      {mapUrl && (
+        <div className="mb-4">
+          <a
+            href={mapUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-4 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <MapPin className="h-4 w-4" />
+            View on Map
+          </a>
+        </div>
+      )}
+
+      {/* Post-booking account creation prompt */}
+      {!isPreview && !isAuthenticated && sessionData.guestEmail && (
+        <div className="mb-4 rounded-lg border bg-muted/30 p-4 text-left">
+          <p className="text-sm font-medium">Manage your bookings</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Create an account to reschedule, cancel, or view your booking history.
+          </p>
+          <a
+            href={`/register?email=${encodeURIComponent(sessionData.guestEmail)}&name=${encodeURIComponent(sessionData.guestName ?? '')}&returnTo=/portal/bookings`}
+            className="mt-3 inline-flex h-9 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <UserPlus className="h-4 w-4" />
+            Create Account
+          </a>
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div className="space-y-3">
         <Button className="w-full" onClick={onBookAnother}>
           <Calendar className="mr-2 h-4 w-4" />
           Book Another Appointment
@@ -275,7 +340,7 @@ export function ConfirmationStep({
 
         <a
           href={`/book/${tenantSlug}`}
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           Back to {tenantName}
           <ArrowRight className="h-3 w-3" />

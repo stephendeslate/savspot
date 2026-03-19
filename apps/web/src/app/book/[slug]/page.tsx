@@ -217,6 +217,7 @@ export default async function BookingPage({
         description: s.description,
         basePrice: s.basePrice,
         currency: s.currency || tenant.currency,
+        durationMinutes: s.durationMinutes,
       })),
     },
     slug,

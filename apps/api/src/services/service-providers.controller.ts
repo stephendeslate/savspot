@@ -16,6 +16,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { ServiceProvidersService } from './service-providers.service';
 import { AssignProviderDto } from './dto/assign-provider.dto';
+import { Public } from '../common/decorators/public.decorator';
 import { TenantRoles } from '../common/decorators/tenant-roles.decorator';
 import { TenantRolesGuard } from '../common/guards/tenant-roles.guard';
 import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
@@ -29,6 +30,17 @@ export class ServiceProvidersController {
   constructor(
     private readonly serviceProvidersService: ServiceProvidersService,
   ) {}
+
+  @Get('public')
+  @Public()
+  @ApiOperation({ summary: 'List providers for public booking widget' })
+  @ApiResponse({ status: 200, description: 'Public list of providers (no emails)' })
+  async findAllPublic(
+    @Param('tenantId', UuidValidationPipe) tenantId: string,
+    @Param('serviceId', UuidValidationPipe) serviceId: string,
+  ) {
+    return this.serviceProvidersService.listProvidersPublic(tenantId, serviceId);
+  }
 
   @Get()
   @TenantRoles('OWNER', 'ADMIN', 'STAFF')

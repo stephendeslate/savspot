@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
-import { ArrowLeft, ArrowRight, Eye, Loader2, RefreshCw, X } from 'lucide-react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { Eye, RefreshCw, X } from 'lucide-react';
 import { Button } from '@savspot/ui';
 import { FadeIn, StepTransition } from '@/components/ui/motion';
 import { BookingProgress } from './booking-progress';
@@ -13,7 +13,9 @@ import { AddonSelectionStep } from './addon-selection-step';
 import { PricingSummaryStep } from './pricing-summary-step';
 import { PaymentStep } from './payment-step';
 import { GuestInfoStep } from './guest-info-step';
+import { StaffSelectionStep } from './staff-selection-step';
 import { ConfirmationStep } from './confirmation-step';
+import { BookingPriceBar } from './booking-price-bar';
 import type {
   BookingSession,
   BookingSessionData,
@@ -45,7 +47,7 @@ export function BookingWizard({
   onExit,
   isPreview = false,
 }: BookingWizardProps) {
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [, setIsTransitioning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const currentStepIndex = session.currentStep;
@@ -102,6 +104,22 @@ export function BookingWizard({
   );
 
   const directionRef = useRef<'forward' | 'backward'>('forward');
+  const stepContainerRef = useRef<HTMLDivElement>(null);
+
+  // Focus step container on step change for screen reader announcement
+  useEffect(() => {
+    const el = stepContainerRef.current;
+    if (el) {
+      // Focus the first heading in the step, or the container itself
+      const heading = el.querySelector<HTMLElement>('h2, h3, [role="heading"]');
+      if (heading) {
+        heading.setAttribute('tabindex', '-1');
+        heading.focus({ preventScroll: true });
+      } else {
+        el.focus({ preventScroll: true });
+      }
+    }
+  }, [currentStepIndex]);
 
   const goToNextStep = useCallback(
     async (dataUpdates?: Partial<BookingSessionData>) => {
@@ -140,6 +158,17 @@ export function BookingWizard({
           />
         );
 
+      case 'STAFF_SELECTION':
+        return (
+          <StaffSelectionStep
+            tenantId={tenant.id}
+            serviceId={session.data.serviceId ?? session.serviceId ?? ''}
+            onSelect={async (staffData) => {
+              await goToNextStep(staffData);
+            }}
+          />
+        );
+
       case 'DATE_TIME_PICKER':
         return (
           <DateTimePickerStep
@@ -148,6 +177,11 @@ export function BookingWizard({
             sessionId={session.id}
             serviceId={session.data.serviceId ?? session.serviceId ?? ''}
             serviceDuration={session.data.serviceDuration ?? session.service?.durationMinutes ?? 60}
+            staffId={session.data.staffId}
+            peakHoursConfig={
+              tenant.services.find((s) => s.id === (session.data.serviceId ?? session.serviceId))
+                ?.peakHoursConfig
+            }
             onSlotReserved={async (slotData) => {
               await goToNextStep(slotData);
             }}
@@ -293,20 +327,11 @@ export function BookingWizard({
   }
 
   // -------------------------------------------------------------------------
-  // Determine whether to show navigation buttons
-  // Some steps handle their own navigation (auto-advance on selection)
+  // Price bar data
   // -------------------------------------------------------------------------
 
-  const showBottomNav =
-    currentStepType !== 'SERVICE_SELECTION' &&
-    currentStepType !== 'DATE_TIME_PICKER' &&
-    currentStepType !== 'GUEST_COUNT' &&
-    currentStepType !== 'QUESTIONNAIRE' &&
-    currentStepType !== 'ADD_ONS' &&
-    currentStepType !== 'PRICING_SUMMARY' &&
-    currentStepType !== 'CLIENT_INFO' &&
-    currentStepType !== 'PAYMENT' &&
-    currentStepType !== 'CONFIRMATION';
+  const serviceDuration =
+    session.data.serviceDuration ?? session.service?.durationMinutes ?? null;
 
   // -------------------------------------------------------------------------
   // Render
@@ -358,7 +383,7 @@ export function BookingWizard({
       )}
 
       {/* Step content */}
-      <div className="min-h-[300px]">
+      <div ref={stepContainerRef} className="min-h-[300px]" tabIndex={-1}>
         <StepTransition
           stepKey={String(steps[currentStepIndex] ?? currentStepIndex)}
           direction={directionRef.current}
@@ -367,29 +392,14 @@ export function BookingWizard({
         </StepTransition>
       </div>
 
-      {/* Bottom navigation (only for steps that don't self-navigate) */}
-      {showBottomNav && (
-        <div className="mt-6 flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={goToPrevStep}
-            disabled={isFirstStep || isTransitioning}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
-          <Button
-            onClick={() => goToNextStep()}
-            disabled={isTransitioning}
-          >
-            {isTransitioning ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <ArrowRight className="mr-2 h-4 w-4" />
-            )}
-            Next
-          </Button>
-        </div>
+      {/* Running price bar */}
+      {currentStepType && (
+        <BookingPriceBar
+          sessionData={session.data}
+          currency={session.data.serviceCurrency ?? tenant.currency}
+          currentStepType={currentStepType}
+          serviceDuration={serviceDuration}
+        />
       )}
     </div>
   );

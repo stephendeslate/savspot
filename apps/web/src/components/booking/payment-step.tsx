@@ -13,6 +13,7 @@ import { Lock, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@savspot/ui';
 import type { BookingSessionData } from './booking-types';
 import { API_URL } from './booking-types';
+import { formatPrice } from '@/lib/booking-format-utils';
 
 // ---------------------------------------------------------------------------
 // Stripe singleton (loaded once per page)
@@ -24,18 +25,6 @@ const stripePublishableKey =
 const stripePromise = stripePublishableKey
   ? loadStripe(stripePublishableKey)
   : null;
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function formatPrice(amount: number, currency: string): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
-}
 
 // ---------------------------------------------------------------------------
 // Props
@@ -129,7 +118,7 @@ function CheckoutForm({
       </Button>
 
       <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-        <Lock className="h-3 w-3" />
+        <Lock className="h-3 w-3" aria-hidden="true" />
         Secured by Stripe
       </div>
     </form>
@@ -288,8 +277,8 @@ export function PaymentStep({
           </p>
         </div>
 
-        <div className="flex flex-col items-center gap-4 rounded-lg border p-8">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="flex flex-col items-center gap-4 rounded-lg border p-8" role="status" aria-live="polite">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
           <p className="text-sm text-muted-foreground">
             Preparing payment form...
           </p>

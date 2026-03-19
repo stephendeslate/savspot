@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import {
   ArrowLeft,
   Calendar,
+  CalendarClock,
   Clock,
   CreditCard,
   Building2,
@@ -13,7 +14,7 @@ import {
   Phone,
   XCircle,
 } from 'lucide-react';
-import { Button, Badge, Card, CardContent, CardHeader, CardTitle, Separator, Skeleton, Textarea, Label, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@savspot/ui';
+import { Button, Badge, Card, CardContent, CardHeader, CardTitle, Separator, Skeleton, Textarea, Input, Label, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@savspot/ui';
 import { apiClient } from '@/lib/api-client';
 import {
   getStatusColor,
@@ -67,7 +68,8 @@ interface PortalBookingDetail {
   currency: string;
   notes: string | null;
   createdAt: string;
-  service: BookingService;
+  rescheduleCount?: number;
+  service: BookingService & { maxRescheduleCount?: number };
   business: BookingBusiness;
   payments: BookingPayment[];
   cancellationPolicy: CancellationPolicy | null;
@@ -90,6 +92,14 @@ export default function PortalBookingDetailPage() {
   const [cancelReason, setCancelReason] = useState('');
   const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+
+  // Reschedule dialog state
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleTime, setRescheduleTime] = useState('');
+  const [rescheduleReason, setRescheduleReason] = useState('');
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
+  const [rescheduleError, setRescheduleError] = useState<string | null>(null);
 
   const fetchBooking = useCallback(async () => {
     if (!bookingId) return;
@@ -136,8 +146,44 @@ export default function PortalBookingDetailPage() {
     }
   };
 
+  const handleReschedule = async () => {
+    if (!bookingId || !rescheduleDate || !rescheduleTime) return;
+    setRescheduleLoading(true);
+    setRescheduleError(null);
+
+    try {
+      // Build ISO start time from date + time inputs
+      const startTime = new Date(`${rescheduleDate}T${rescheduleTime}:00`).toISOString();
+      // Compute end time using service duration
+      const durationMs = (booking?.service.durationMinutes ?? 60) * 60_000;
+      const endTime = new Date(new Date(startTime).getTime() + durationMs).toISOString();
+
+      await apiClient.post(`/api/portal/bookings/${bookingId}/reschedule`, {
+        startTime,
+        endTime,
+        reason: rescheduleReason || undefined,
+      });
+      setRescheduleOpen(false);
+      setRescheduleDate('');
+      setRescheduleTime('');
+      setRescheduleReason('');
+      await fetchBooking();
+    } catch (err) {
+      setRescheduleError(
+        err instanceof Error ? err.message : 'Failed to reschedule booking',
+      );
+    } finally {
+      setRescheduleLoading(false);
+    }
+  };
+
   const canCancel =
     booking?.status === 'PENDING' || booking?.status === 'CONFIRMED';
+
+  const maxReschedules = booking?.service.maxRescheduleCount ?? 3;
+  const rescheduleCount = booking?.rescheduleCount ?? 0;
+  const canReschedule =
+    canCancel && rescheduleCount < maxReschedules;
 
   // ---------- Loading ----------
 
@@ -231,16 +277,27 @@ export default function PortalBookingDetailPage() {
             </p>
           </div>
         </div>
-        {canCancel && (
-          <Button
-            variant="outline"
-            className="text-destructive hover:text-destructive"
-            onClick={() => setCancelOpen(true)}
-          >
-            <XCircle className="mr-2 h-4 w-4" />
-            Cancel Booking
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {canReschedule && (
+            <Button
+              variant="outline"
+              onClick={() => setRescheduleOpen(true)}
+            >
+              <CalendarClock className="mr-2 h-4 w-4" />
+              Reschedule
+            </Button>
+          )}
+          {canCancel && (
+            <Button
+              variant="outline"
+              className="text-destructive hover:text-destructive"
+              onClick={() => setCancelOpen(true)}
+            >
+              <XCircle className="mr-2 h-4 w-4" />
+              Cancel Booking
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Main content */}
@@ -483,6 +540,85 @@ export default function PortalBookingDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Reschedule Dialog */}
+      <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reschedule Booking</DialogTitle>
+            <DialogDescription>
+              Choose a new date and time for your appointment.
+              {maxReschedules > 0 && (
+                <span className="mt-1 block text-xs">
+                  You can reschedule {maxReschedules - rescheduleCount} more time
+                  {maxReschedules - rescheduleCount !== 1 ? 's' : ''}.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="reschedule-date">New Date</Label>
+              <Input
+                id="reschedule-date"
+                type="date"
+                value={rescheduleDate}
+                onChange={(e) => setRescheduleDate(e.target.value)}
+                min={format(new Date(), 'yyyy-MM-dd')}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="reschedule-time">New Time</Label>
+              <Input
+                id="reschedule-time"
+                type="time"
+                value={rescheduleTime}
+                onChange={(e) => setRescheduleTime(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="reschedule-reason">
+                Reason (optional)
+              </Label>
+              <Textarea
+                id="reschedule-reason"
+                value={rescheduleReason}
+                onChange={(e) => setRescheduleReason(e.target.value)}
+                placeholder="Why are you rescheduling?"
+                rows={2}
+              />
+            </div>
+
+            {rescheduleError && (
+              <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                {rescheduleError}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRescheduleOpen(false);
+                setRescheduleError(null);
+              }}
+              disabled={rescheduleLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleReschedule}
+              disabled={rescheduleLoading || !rescheduleDate || !rescheduleTime}
+            >
+              {rescheduleLoading ? 'Rescheduling...' : 'Confirm Reschedule'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Cancel Dialog */}
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>

@@ -855,6 +855,7 @@ model Tenant {
   customDomain          CustomDomain?
   clientRecommendations ClientRecommendation[]
   partnerReferrals      PartnerReferral[]
+  waitlistEntries       WaitlistEntry[]
 
   @@index([category])
   @@map("tenants")
@@ -875,6 +876,8 @@ model User {
   timezone         String?
   mfaEnabled       Boolean      @default(false) @map("mfa_enabled")
   mfaSecret        String?      @map("mfa_secret")
+  bio              String?
+  title            String?      @db.VarChar(100)
   mfaRecoveryCodes Json?        @map("mfa_recovery_codes")
   createdAt        DateTime     @default(now()) @map("created_at")
   updatedAt        DateTime     @updatedAt @map("updated_at")
@@ -925,6 +928,8 @@ model User {
   clientRecommendations     ClientRecommendation[]
   partner                   Partner?
   venueStaffAssignments     VenueStaff[]
+  bookingsAsStaff           Booking[]                 @relation("BookingStaff")
+  waitlistAsStaff           WaitlistEntry[]           @relation("WaitlistStaff")
 
   @@map("users")
 }
@@ -1005,6 +1010,7 @@ model Booking {
   clientId               String              @map("client_id")
   serviceId              String              @map("service_id")
   venueId                String?             @map("venue_id")
+  staffId                String?             @map("staff_id")
   bookingFlowId          String?             @map("booking_flow_id")
   status                 BookingStatus
   startTime              DateTime            @map("start_time")
@@ -1038,6 +1044,7 @@ model Booking {
   client           User         @relation("BookingClient", fields: [clientId], references: [id])
   service          Service      @relation(fields: [serviceId], references: [id])
   venue            Venue?       @relation(fields: [venueId], references: [id])
+  staff            User?        @relation("BookingStaff", fields: [staffId], references: [id])
   bookingFlow      BookingFlow? @relation(fields: [bookingFlowId], references: [id])
   checkedInByUser  User?        @relation("BookingCheckedInBy", fields: [checkedInBy], references: [id])
   checkedOutByUser User?        @relation("BookingCheckedOutBy", fields: [checkedOutBy], references: [id])
@@ -1064,6 +1071,7 @@ model Booking {
   @@index([tenantId, startTime])
   @@index([tenantId, status])
   @@index([referralLinkId])
+  @@index([staffId])
   @@map("bookings")
 }
 
@@ -1093,6 +1101,7 @@ model DateReservation {
   sessionId    String                @map("session_id")
   venueId      String?               @map("venue_id")
   serviceId    String                @map("service_id")
+  staffId      String?               @map("staff_id")
   reservedDate DateTime              @map("reserved_date") @db.Date
   startTime    DateTime              @map("start_time")
   endTime      DateTime              @map("end_time")
@@ -1374,6 +1383,7 @@ model Service {
   approvalDeadlineHours Int?                     @map("approval_deadline_hours")
   images                Json?
   preferenceTemplate    Json?                    @map("preference_template")
+  peakHoursConfig       Json?                    @map("peak_hours_config")
   venueId               String?                  @map("venue_id")
   categoryId            String?                  @map("category_id")
   searchVector          Unsupported("tsvector")? @map("search_vector")
@@ -1398,6 +1408,7 @@ model Service {
   quoteLineItems         QuoteLineItem[]
   quoteOptionItems       QuoteOptionItem[]
   clientRecommendations  ClientRecommendation[]
+  waitlistEntries        WaitlistEntry[]
 
   @@index([tenantId])
   @@map("services")
@@ -3116,4 +3127,30 @@ model PartnerPayout {
 
   @@index([partnerId, status])
   @@map("partner_payouts")
+}
+
+model WaitlistEntry {
+  id                 String    @id @default(uuid())
+  tenantId           String    @map("tenant_id")
+  serviceId          String    @map("service_id")
+  staffId            String?   @map("staff_id")
+  clientEmail        String    @map("client_email") @db.VarChar(255)
+  clientName         String    @map("client_name") @db.VarChar(255)
+  preferredDate      DateTime? @map("preferred_date") @db.Date
+  preferredTimeStart String?   @map("preferred_time_start") @db.VarChar(5)
+  preferredTimeEnd   String?   @map("preferred_time_end") @db.VarChar(5)
+  status             String    @default("ACTIVE") @db.VarChar(20)
+  notifiedAt         DateTime? @map("notified_at")
+  expiresAt          DateTime? @map("expires_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id])
+  staff   User?   @relation("WaitlistStaff", fields: [staffId], references: [id])
+
+  @@index([tenantId])
+  @@index([serviceId, preferredDate, status])
+  @@map("waitlist_entries")
 }

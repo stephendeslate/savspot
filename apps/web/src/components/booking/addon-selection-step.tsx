@@ -2,20 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import { ArrowRight, ArrowLeft, Plus } from 'lucide-react';
-import { Button, Checkbox, Card, CardContent, CardHeader, CardTitle, CardDescription, Separator } from '@savspot/ui';
+import { Check } from 'lucide-react';
+import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription, Separator } from '@savspot/ui';
 import type { ServiceAddon } from './booking-types';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function formatPrice(amount: number, currency: string): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
-}
+import { formatPrice } from '@/lib/booking-format-utils';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -91,17 +81,24 @@ export function AddonSelectionStep({
                 key={addon.id}
                 type="button"
                 onClick={() => toggleAddon(addon.id)}
+                aria-pressed={isSelected}
+                aria-label={`${addon.name}, ${formatPrice(addon.price, currencyCode)}`}
                 className={`flex w-full items-start gap-3 rounded-lg border p-4 text-left transition-colors ${
                   isSelected
                     ? 'border-primary bg-primary/5'
                     : 'border-border hover:bg-muted/50'
                 }`}
               >
-                <Checkbox
-                  checked={isSelected}
-                  onCheckedChange={() => toggleAddon(addon.id)}
-                  className="mt-0.5"
-                />
+                <div
+                  className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
+                    isSelected
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-muted-foreground/30'
+                  }`}
+                  aria-hidden="true"
+                >
+                  {isSelected && <Check className="h-3 w-3" />}
+                </div>
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{addon.name}</span>

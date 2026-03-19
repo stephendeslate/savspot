@@ -170,7 +170,7 @@ describe('BookingFlowService', () => {
       expect(addonsStep?.active).toBe(true);
     });
 
-    it('should always include DATE_TIME_PICKER, CONTACT_INFO, PRICING_SUMMARY, PAYMENT, CONFIRMATION', async () => {
+    it('should always include DATE_TIME_PICKER, CLIENT_INFO, PRICING_SUMMARY, PAYMENT, CONFIRMATION', async () => {
       prisma.bookingFlow.findFirst.mockResolvedValue(makeFlow());
       prisma.service.findMany.mockResolvedValue([makeService()]);
       prisma.venue.count.mockResolvedValue(0);
@@ -179,7 +179,7 @@ describe('BookingFlowService', () => {
 
       const alwaysActive = [
         'DATE_TIME_PICKER',
-        'CONTACT_INFO',
+        'CLIENT_INFO',
         'PRICING_SUMMARY',
         'PAYMENT',
         'CONFIRMATION',

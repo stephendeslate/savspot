@@ -54,6 +54,26 @@ export class AvailabilityController {
       startDate: query.startDate,
       endDate: query.endDate,
       venueId: query.venueId,
+      staffId: query.staffId,
+    });
+  }
+
+  @Get('availability/next')
+  @Public()
+  @ApiOperation({ summary: 'Find the next date with available slots' })
+  @ApiResponse({ status: 200, description: 'Next available date and slots, or null' })
+  @ApiResponse({ status: 404, description: 'Service not found' })
+  async getNextAvailable(
+    @Param('tenantId') tenantId: string,
+    @Query('serviceId') serviceId: string,
+    @Query('venueId') venueId?: string,
+    @Query('staffId') staffId?: string,
+  ) {
+    return this.availabilityService.getNextAvailable({
+      tenantId,
+      serviceId,
+      venueId,
+      staffId,
     });
   }
 

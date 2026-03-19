@@ -2,25 +2,19 @@
 // Pure helper functions extracted from the booking page for testability.
 // ---------------------------------------------------------------------------
 
-export function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const remaining = minutes % 60;
-  if (remaining === 0) return `${hours}h`;
-  return `${hours}h ${remaining}min`;
-}
-
-export function formatPrice(amount: number, currency: string): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
-}
+export { formatDuration, formatPrice } from '@/lib/booking-format-utils';
 
 // ---------------------------------------------------------------------------
 // JSON-LD builder
 // ---------------------------------------------------------------------------
+
+export interface JsonLdService {
+  name: string;
+  description?: string | null;
+  basePrice: number;
+  currency: string;
+  durationMinutes?: number | null;
+}
 
 export interface JsonLdTenant {
   name: string;
@@ -29,12 +23,7 @@ export interface JsonLdTenant {
   contactEmail?: string | null;
   contactPhone?: string | null;
   logoUrl?: string | null;
-  services?: Array<{
-    name: string;
-    description?: string | null;
-    basePrice: number;
-    currency: string;
-  }>;
+  services?: JsonLdService[];
 }
 
 export function buildJsonLd(
@@ -72,20 +61,50 @@ export function buildJsonLd(
     jsonLd['image'] = tenant.logoUrl;
   }
 
+  // Build service offers with duration (ISO 8601) for agentic commerce
   if (tenant.services && tenant.services.length > 0) {
     jsonLd['hasOfferCatalog'] = {
       '@type': 'OfferCatalog',
       name: 'Services',
-      itemListElement: tenant.services.map((svc) => ({
-        '@type': 'Offer',
-        itemOffered: {
+      itemListElement: tenant.services.map((svc) => {
+        const service: Record<string, unknown> = {
           '@type': 'Service',
           name: svc.name,
-          ...(svc.description ? { description: svc.description } : {}),
-        },
-        price: svc.basePrice,
-        priceCurrency: svc.currency,
-      })),
+        };
+        if (svc.description) {
+          service['description'] = svc.description;
+        }
+        if (svc.durationMinutes) {
+          // ISO 8601 duration e.g. PT60M, PT1H30M
+          const hours = Math.floor(svc.durationMinutes / 60);
+          const mins = svc.durationMinutes % 60;
+          service['duration'] = `PT${hours > 0 ? `${hours}H` : ''}${mins > 0 ? `${mins}M` : ''}`;
+        }
+
+        const offer: Record<string, unknown> = {
+          '@type': 'Offer',
+          itemOffered: service,
+          price: svc.basePrice,
+          priceCurrency: svc.currency,
+          availability: 'https://schema.org/InStock',
+        };
+
+        return offer;
+      }),
+    };
+
+    // Top-level action for booking (agentic discovery)
+    jsonLd['potentialAction'] = {
+      '@type': 'ReserveAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${origin}/book/${slug}`,
+        actionPlatform: 'https://schema.org/DesktopWebPlatform',
+      },
+      result: {
+        '@type': 'Reservation',
+        name: `Booking at ${tenant.name}`,
+      },
     };
   }
 

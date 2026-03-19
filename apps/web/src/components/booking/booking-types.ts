@@ -16,6 +16,13 @@ export interface AgeTier {
   price: number;
 }
 
+export interface PeakHoursConfig {
+  peakDays: number[]; // day of week 0-6
+  peakTimeStart: string; // "17:00"
+  peakTimeEnd: string; // "21:00"
+  peakPriceMultiplier: number; // e.g. 1.25
+}
+
 export interface TenantService {
   id: string;
   name: string;
@@ -28,6 +35,7 @@ export interface TenantService {
   guestConfig: GuestConfig | null;
   addons?: ServiceAddon[];
   category?: { id: string; name: string } | null;
+  peakHoursConfig?: PeakHoursConfig | null;
 }
 
 export interface TenantData {
@@ -102,6 +110,7 @@ export interface ServiceAddon {
 
 export type BookingStepType =
   | 'SERVICE_SELECTION'
+  | 'STAFF_SELECTION'
   | 'VENUE_SELECTION'
   | 'DATE_TIME_PICKER'
   | 'GUEST_COUNT'
@@ -135,6 +144,9 @@ export interface BookingSessionData {
   questionnaireResponses?: Record<string, unknown>;
   selectedAddonIds?: string[];
   selectedAddons?: ServiceAddon[];
+  staffId?: string;
+  staffName?: string;
+  staffAvatarUrl?: string;
   [key: string]: unknown;
 }
 

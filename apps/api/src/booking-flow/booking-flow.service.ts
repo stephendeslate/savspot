@@ -14,7 +14,7 @@ interface ServiceForStepResolution {
   venueId: string | null;
   guestConfig: unknown;
   intakeFormConfig: unknown;
-  _count: { serviceAddons: number };
+  _count: { serviceAddons: number; serviceProviders: number };
 }
 
 @Injectable()
@@ -94,7 +94,10 @@ export class BookingFlowService {
         intakeFormConfig: true,
         basePrice: true,
         _count: {
-          select: { serviceAddons: { where: { isActive: true } } },
+          select: {
+            serviceAddons: { where: { isActive: true } },
+            serviceProviders: true,
+          },
         },
       },
     });
@@ -133,6 +136,16 @@ export class BookingFlowService {
       reason: services.length > 1 ? `${services.length} active services` : 'Only one service',
     });
 
+    const hasMultipleProviders = services.some((s) => s._count.serviceProviders > 1);
+    steps.push({
+      type: 'STAFF_SELECTION',
+      label: 'Choose Staff',
+      active: hasMultipleProviders,
+      reason: hasMultipleProviders
+        ? 'At least one service has multiple providers'
+        : 'No services have multiple providers',
+    });
+
     steps.push({
       type: 'VENUE_SELECTION',
       label: 'Select Venue',
@@ -168,7 +181,7 @@ export class BookingFlowService {
     });
 
     steps.push({ type: 'DATE_TIME_PICKER', label: 'Select Date & Time', active: true });
-    steps.push({ type: 'CONTACT_INFO', label: 'Contact Information', active: true });
+    steps.push({ type: 'CLIENT_INFO', label: 'Contact Information', active: true });
     steps.push({ type: 'PRICING_SUMMARY', label: 'Pricing Summary', active: true });
     steps.push({ type: 'PAYMENT', label: 'Payment', active: true, reason: 'If payment required' });
     steps.push({ type: 'CONFIRMATION', label: 'Confirmation', active: true });
@@ -186,6 +199,9 @@ export class BookingFlowService {
     if (totalServices > 1) {
       steps.push({ type: 'SERVICE_SELECTION', label: 'Select Service', active: true });
     }
+    if (service._count.serviceProviders > 1) {
+      steps.push({ type: 'STAFF_SELECTION', label: 'Choose Staff', active: true });
+    }
     if (service.venueId || venueCount > 0) {
       steps.push({ type: 'VENUE_SELECTION', label: 'Select Venue', active: true });
     }
@@ -200,7 +216,7 @@ export class BookingFlowService {
     }
 
     steps.push({ type: 'DATE_TIME_PICKER', label: 'Select Date & Time', active: true });
-    steps.push({ type: 'CONTACT_INFO', label: 'Contact Information', active: true });
+    steps.push({ type: 'CLIENT_INFO', label: 'Contact Information', active: true });
     steps.push({ type: 'PRICING_SUMMARY', label: 'Pricing Summary', active: true });
     steps.push({ type: 'PAYMENT', label: 'Payment', active: true });
     steps.push({ type: 'CONFIRMATION', label: 'Confirmation', active: true });

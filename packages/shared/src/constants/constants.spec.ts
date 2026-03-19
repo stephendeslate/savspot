@@ -7,9 +7,9 @@ import { BusinessCategory } from '../enums/tenant.enums.js';
 // BOOKING_STEPS
 // ---------------------------------------------------------------------------
 describe('BOOKING_STEPS', () => {
-  it('should define exactly 10 booking flow steps', () => {
+  it('should define exactly 12 booking flow steps', () => {
     const steps = Object.keys(BOOKING_STEPS);
-    expect(steps).toHaveLength(10);
+    expect(steps).toHaveLength(12);
   });
 
   it('should have keys that match their values (self-referential enum pattern)', () => {
