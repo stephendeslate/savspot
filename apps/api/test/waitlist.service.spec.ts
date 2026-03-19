@@ -299,7 +299,7 @@ describe('WaitlistService', () => {
 
       await service.markNotified('wl-001');
 
-      const expiresAt = capturedData.expiresAt as Date;
+      const expiresAt = capturedData['expiresAt'] as Date;
       const now = new Date();
       const diffMs = expiresAt.getTime() - now.getTime();
       const diffHours = diffMs / (1000 * 60 * 60);

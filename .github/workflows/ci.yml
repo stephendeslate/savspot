@@ -22,9 +22,24 @@ jobs:
         with:
           fetch-depth: 0
       - name: Check DCO sign-off
-        uses: githubtools/dco-check@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          FAILED=0
+          for SHA in $(git rev-list "$BASE_SHA".."$HEAD_SHA"); do
+            MSG=$(git log -1 --format='%B' "$SHA")
+            AUTHOR=$(git log -1 --format='%aN <%aE>' "$SHA")
+            if ! echo "$MSG" | grep -qiF "Signed-off-by: $AUTHOR"; then
+              echo "::error::Commit $SHA by $AUTHOR is missing DCO sign-off"
+              FAILED=1
+            fi
+          done
+          if [ "$FAILED" = "1" ]; then
+            echo "::error::One or more commits are missing a DCO Signed-off-by line."
+            echo "Fix with: git commit --amend -s"
+            exit 1
+          fi
+          echo "All commits have valid DCO sign-off."
 
   lint-typecheck:
     name: Lint & Typecheck

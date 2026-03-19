@@ -23,8 +23,14 @@ const payload: BookingCancelledPayload = {
   bookingId: 'booking-001',
   tenantId: 'tenant-001',
   serviceId: 'service-001',
+  clientId: 'client-001',
+  clientEmail: 'john@example.com',
+  clientName: 'John Doe',
   serviceName: 'Haircut',
   startTime: new Date('2026-03-25T10:00:00Z'),
+  endTime: new Date('2026-03-25T11:00:00Z'),
+  source: 'WEB',
+  cancellationReason: 'Schedule conflict',
 };
 
 // ---------------------------------------------------------------------------
