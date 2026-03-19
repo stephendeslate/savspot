@@ -49,7 +49,7 @@ test.describe('Bookings Management', () => {
     await expect(page.getByLabel(/status/i)).toBeVisible();
     await expect(page.getByLabel(/start date/i)).toBeVisible();
     await expect(page.getByLabel(/end date/i)).toBeVisible();
-    await expect(page.getByLabel(/search/i)).toBeVisible();
+    await expect(page.locator('#filter-search')).toBeVisible();
 
     // An "Apply" button should exist for the filters
     await expect(
