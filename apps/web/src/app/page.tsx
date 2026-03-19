@@ -223,6 +223,7 @@ export default function Home() {
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="GitHub"
             >
               <Github className="h-5 w-5" />
             </a>

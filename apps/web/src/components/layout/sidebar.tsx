@@ -148,7 +148,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
             <div key={section.label}>
               {sectionIndex > 0 && <Separator className="my-2" />}
               {!collapsed && (
-                <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   {section.label}
                 </p>
               )}
