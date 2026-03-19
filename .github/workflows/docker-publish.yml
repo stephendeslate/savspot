@@ -27,7 +27,7 @@ jobs:
           - image: savspot-web
             dockerfile: apps/web/Dockerfile
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
