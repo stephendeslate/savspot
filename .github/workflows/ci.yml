@@ -120,7 +120,7 @@ jobs:
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     if: github.event_name == 'pull_request'
     needs: [lint-typecheck, test]
     services:
@@ -168,6 +168,13 @@ jobs:
         env:
           NODE_OPTIONS: '--max-old-space-size=4096'
           NEXT_PUBLIC_API_URL: http://localhost:3001
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('apps/web/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps chromium
         working-directory: apps/web
