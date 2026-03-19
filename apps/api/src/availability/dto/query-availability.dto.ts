@@ -18,4 +18,9 @@ export class QueryAvailabilityDto {
   @IsUUID()
   @IsOptional()
   venueId?: string;
+
+  @ApiPropertyOptional({ description: 'Optional staff/provider ID filter' })
+  @IsUUID()
+  @IsOptional()
+  staffId?: string;
 }

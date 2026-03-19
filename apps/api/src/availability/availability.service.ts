@@ -14,6 +14,7 @@ interface QueryParams {
   startDate: string;
   endDate: string;
   venueId?: string;
+  staffId?: string;
 }
 
 interface CachedRule {
@@ -45,7 +46,7 @@ export class AvailabilityService {
    * 7. Return available slots
    */
   async getAvailableSlots(params: QueryParams): Promise<AvailableSlot[]> {
-    const { tenantId, serviceId, startDate, endDate, venueId } = params;
+    const { tenantId, serviceId, startDate, endDate, venueId, staffId } = params;
 
     // 1. Load service
     const service = await this.prisma.service.findFirst({
@@ -164,6 +165,7 @@ export class AvailabilityService {
         startTime: { lt: bookingRangeEnd },
         endTime: { gt: bookingRangeStart },
         ...(effectiveVenueId ? { venueId: effectiveVenueId } : {}),
+        ...(staffId ? { staffId } : {}),
       },
       select: { startTime: true, endTime: true },
     });
@@ -178,15 +180,15 @@ export class AvailabilityService {
         startTime: { lt: bookingRangeEnd },
         endTime: { gt: bookingRangeStart },
         ...(effectiveVenueId ? { venueId: effectiveVenueId } : {}),
+        ...(staffId ? { staffId } : {}),
       },
       select: { startTime: true, endTime: true },
     });
 
     // 5b. Load INBOUND calendar events (Layer 4 — external calendar blocks)
-    // Phase 1 simplification: INBOUND events block all services tenant-wide.
-    // Phase 2 (FR-CRM-30): scope to providers assigned to the requested service
-    // via service_providers join table + CalendarConnection.userId.
-    const calendarBlocks = await this.prisma.calendarEvent.findMany({
+    // When staffId is provided, scope to that staff's CalendarConnection only.
+    // Otherwise, INBOUND events block tenant-wide (conservative).
+    let calendarBlockWhere: Parameters<typeof this.prisma.calendarEvent.findMany>[0] = {
       where: {
         tenantId,
         direction: 'INBOUND',
@@ -194,7 +196,28 @@ export class AvailabilityService {
         endTime: { gt: bookingRangeStart },
       },
       select: { startTime: true, endTime: true },
-    });
+    };
+
+    if (staffId) {
+      // Scope to calendar events from this staff member's connected calendars
+      const staffConnections = await this.prisma.calendarConnection.findMany({
+        where: { userId: staffId },
+        select: { id: true },
+      });
+      const connectionIds = staffConnections.map((c) => c.id);
+      calendarBlockWhere = {
+        where: {
+          tenantId,
+          direction: 'INBOUND',
+          calendarConnectionId: { in: connectionIds },
+          startTime: { lt: bookingRangeEnd },
+          endTime: { gt: bookingRangeStart },
+        },
+        select: { startTime: true, endTime: true },
+      };
+    }
+
+    const calendarBlocks = await this.prisma.calendarEvent.findMany(calendarBlockWhere);
 
     // Combine bookings, reservations, and calendar blocks into a single conflict list
     const conflicts = [
@@ -254,6 +277,40 @@ export class AvailabilityService {
     });
 
     return filteredSlots;
+  }
+
+  /**
+   * Find the next date with available slots, scanning forward up to 90 days.
+   */
+  async getNextAvailable(params: {
+    tenantId: string;
+    serviceId: string;
+    venueId?: string;
+    staffId?: string;
+  }): Promise<{ date: string; slots: AvailableSlot[] } | null> {
+    const today = new Date();
+    const maxDays = 90;
+
+    for (let i = 0; i < maxDays; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(checkDate.getDate() + i);
+      const dateStr = checkDate.toISOString().split('T')[0] as string;
+
+      const slots = await this.getAvailableSlots({
+        tenantId: params.tenantId,
+        serviceId: params.serviceId,
+        startDate: dateStr,
+        endDate: dateStr,
+        venueId: params.venueId,
+        staffId: params.staffId,
+      });
+
+      if (slots.length > 0) {
+        return { date: dateStr, slots };
+      }
+    }
+
+    return null;
   }
 
   /**

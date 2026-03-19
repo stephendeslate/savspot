@@ -116,6 +116,7 @@ export class PublicBookingService {
               images: true,
               guestConfig: true,
               intakeFormConfig: true,
+              peakHoursConfig: true,
               categoryId: true,
               category: {
                 select: { id: true, name: true },
@@ -181,6 +182,7 @@ export class PublicBookingService {
           currency: true,
           pricingModel: true,
           images: true,
+          peakHoursConfig: true,
           categoryId: true,
           category: {
             select: { id: true, name: true },
@@ -268,6 +270,7 @@ export class PublicBookingService {
           guestConfig: true,
           depositConfig: true,
           intakeFormConfig: true,
+          peakHoursConfig: true,
           bufferBeforeMinutes: true,
           bufferAfterMinutes: true,
           cancellationPolicy: true,

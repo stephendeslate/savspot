@@ -4,50 +4,7 @@ import { useState, useMemo } from 'react';
 import { Clock, Users, CreditCard } from 'lucide-react';
 import { Button, Separator } from '@savspot/ui';
 import type { BookingSessionData } from './booking-types';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function formatPrice(amount: number, currency: string): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
-}
-
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const remaining = minutes % 60;
-  if (remaining === 0) return `${hours}h`;
-  return `${hours}h ${remaining}min`;
-}
-
-function formatTimeDisplay(time: string): string {
-  const [hoursStr, minutesStr] = time.split(':');
-  const hours = parseInt(hoursStr ?? '0', 10);
-  const minutes = minutesStr ?? '00';
-  const period = hours >= 12 ? 'PM' : 'AM';
-  const displayHour = hours % 12 || 12;
-  return `${displayHour}:${minutes} ${period}`;
-}
-
-function formatDate(dateStr: string): string {
-  const [year, month, day] = dateStr.split('-');
-  const date = new Date(
-    parseInt(year ?? '2026', 10),
-    parseInt(month ?? '1', 10) - 1,
-    parseInt(day ?? '1', 10),
-  );
-  return date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-}
+import { formatPrice, formatDuration, formatTimeDisplay, formatDate } from '@/lib/booking-format-utils';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -187,7 +144,7 @@ export function PricingSummaryStep({
 
           {sessionData.serviceDuration && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
+              <Clock className="h-4 w-4" aria-hidden="true" />
               {formatDuration(sessionData.serviceDuration)}
             </div>
           )}
@@ -205,7 +162,7 @@ export function PricingSummaryStep({
 
           {sessionData.guestCount && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Users className="h-4 w-4" />
+              <Users className="h-4 w-4" aria-hidden="true" />
               {sessionData.guestCount}{' '}
               {sessionData.guestCount === 1 ? 'guest' : 'guests'}
             </div>
@@ -241,7 +198,7 @@ export function PricingSummaryStep({
           {pricing.depositAmount && pricing.depositAmount < pricing.total && (
             <div className="mt-2 flex items-center justify-between text-sm">
               <span className="flex items-center gap-1.5 text-muted-foreground">
-                <CreditCard className="h-3.5 w-3.5" />
+                <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
                 Due now (deposit)
               </span>
               <span className="font-medium">

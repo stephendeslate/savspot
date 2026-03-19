@@ -171,6 +171,9 @@ export function QuestionnaireStep({
             value={String(values[field.id] ?? '')}
             onChange={(e) => updateField(field.id, e.target.value)}
             className={errorClass}
+            aria-required={field.required || undefined}
+            aria-invalid={!!fieldError || undefined}
+            aria-describedby={fieldError ? `q-${field.id}-error` : undefined}
           />
         );
 
@@ -182,6 +185,9 @@ export function QuestionnaireStep({
             value={String(values[field.id] ?? '')}
             onChange={(e) => updateField(field.id, e.target.value)}
             className={errorClass}
+            aria-required={field.required || undefined}
+            aria-invalid={!!fieldError || undefined}
+            aria-describedby={fieldError ? `q-${field.id}-error` : undefined}
           />
         );
 
@@ -255,6 +261,9 @@ export function QuestionnaireStep({
             className={errorClass}
             min={field.validation?.['min'] !== undefined ? Number(field.validation['min']) : undefined}
             max={field.validation?.['max'] !== undefined ? Number(field.validation['max']) : undefined}
+            aria-required={field.required || undefined}
+            aria-invalid={!!fieldError || undefined}
+            aria-describedby={fieldError ? `q-${field.id}-error` : undefined}
           />
         );
 
@@ -266,6 +275,9 @@ export function QuestionnaireStep({
             value={String(values[field.id] ?? '')}
             onChange={(e) => updateField(field.id, e.target.value)}
             className={errorClass}
+            aria-required={field.required || undefined}
+            aria-invalid={!!fieldError || undefined}
+            aria-describedby={fieldError ? `q-${field.id}-error` : undefined}
           />
         );
 
@@ -278,6 +290,9 @@ export function QuestionnaireStep({
             value={String(values[field.id] ?? '')}
             onChange={(e) => updateField(field.id, e.target.value)}
             className={errorClass}
+            aria-required={field.required || undefined}
+            aria-invalid={!!fieldError || undefined}
+            aria-describedby={fieldError ? `q-${field.id}-error` : undefined}
           />
         );
 
@@ -290,6 +305,9 @@ export function QuestionnaireStep({
             value={String(values[field.id] ?? '')}
             onChange={(e) => updateField(field.id, e.target.value)}
             className={errorClass}
+            aria-required={field.required || undefined}
+            aria-invalid={!!fieldError || undefined}
+            aria-describedby={fieldError ? `q-${field.id}-error` : undefined}
           />
         );
 
@@ -302,6 +320,9 @@ export function QuestionnaireStep({
             value={String(values[field.id] ?? '')}
             onChange={(e) => updateField(field.id, e.target.value)}
             className={errorClass}
+            aria-required={field.required || undefined}
+            aria-invalid={!!fieldError || undefined}
+            aria-describedby={fieldError ? `q-${field.id}-error` : undefined}
           />
         );
     }
@@ -331,13 +352,13 @@ export function QuestionnaireStep({
               <Label htmlFor={`q-${field.id}`}>
                 {field.label}
                 {field.required && (
-                  <span className="text-destructive"> *</span>
+                  <span className="text-destructive" aria-hidden="true"> *</span>
                 )}
               </Label>
             )}
             {renderField(field)}
             {errors[field.id] && (
-              <p className="text-sm text-destructive">{errors[field.id]}</p>
+              <p id={`q-${field.id}-error`} role="alert" className="text-sm text-destructive">{errors[field.id]}</p>
             )}
           </div>
         ))}

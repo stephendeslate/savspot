@@ -5,26 +5,7 @@ import Image from 'next/image';
 import { Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from '@savspot/ui';
 import type { TenantService, BookingSessionData } from './booking-types';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const remaining = minutes % 60;
-  if (remaining === 0) return `${hours}h`;
-  return `${hours}h ${remaining}min`;
-}
-
-function formatPrice(amount: number, currency: string): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
-}
+import { formatDuration, formatPrice } from '@/lib/booking-format-utils';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -81,12 +62,22 @@ export function ServiceSelectionStep({
           return (
             <Card
               key={service.id}
+              role="button"
+              tabIndex={selectingId && !isSelecting ? -1 : 0}
+              aria-label={`${service.name}, ${formatDuration(service.durationMinutes)}, ${formatPrice(service.basePrice, displayCurrency)}`}
+              aria-busy={isSelecting}
               className={`cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
                 isSelecting
                   ? 'border-primary ring-2 ring-primary/20'
                   : 'hover:border-primary/50'
               } ${selectingId && !isSelecting ? 'pointer-events-none opacity-50' : ''}`}
               onClick={() => !selectingId && handleSelect(service)}
+              onKeyDown={(e) => {
+                if ((e.key === 'Enter' || e.key === ' ') && !selectingId) {
+                  e.preventDefault();
+                  handleSelect(service);
+                }
+              }}
             >
               {service.imageUrl && (
                 <div className="relative h-32 w-full overflow-hidden rounded-t-lg">
@@ -116,7 +107,7 @@ export function ServiceSelectionStep({
               </CardHeader>
               <CardContent className="flex flex-wrap items-center gap-2 pt-0">
                 <Badge variant="secondary" className="text-xs font-medium">
-                  <Clock className="mr-1 h-3 w-3" />
+                  <Clock className="mr-1 h-3 w-3" aria-hidden="true" />
                   {formatDuration(service.durationMinutes)}
                 </Badge>
                 <Badge variant="outline" className="text-xs font-semibold">

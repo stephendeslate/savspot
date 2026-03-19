@@ -16,7 +16,7 @@ export function BookingProgress({
   return (
     <nav aria-label="Booking progress" className="mb-8">
       {/* Segmented progress bar */}
-      <div className="mb-3 flex gap-1.5">
+      <div className="mb-3 flex gap-1.5" role="progressbar" aria-valuenow={currentStepIndex + 1} aria-valuemin={1} aria-valuemax={steps.length} aria-label={`Step ${currentStepIndex + 1} of ${steps.length}: ${steps[currentStepIndex]?.label ?? ''}`}>
         {steps.map((step, index) => (
           <div
             key={step.type}
@@ -47,6 +47,7 @@ export function BookingProgress({
             <li
               key={step.type}
               className={cn('flex items-center', !isLast && 'flex-1')}
+              aria-current={isCurrent ? 'step' : undefined}
             >
               {/* Step circle + label */}
               <div className="flex flex-col items-center">
@@ -61,6 +62,7 @@ export function BookingProgress({
                       !isCurrent &&
                       'border-muted-foreground/30 bg-background text-muted-foreground/50',
                   )}
+                  aria-hidden="true"
                 >
                   {isCompleted ? (
                     <Check className="h-4 w-4" />

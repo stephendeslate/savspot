@@ -16,6 +16,7 @@ import { calculatePrice } from '../common/utils/pricing';
  */
 type BookingStepType =
   | 'SERVICE_SELECTION'
+  | 'STAFF_SELECTION'
   | 'VENUE_SELECTION'
   | 'GUEST_COUNT'
   | 'QUESTIONNAIRE'
@@ -330,6 +331,7 @@ export class BookingSessionsService {
     const guestCount = (sessionData['guestCount'] as number | undefined) ?? null;
     const notes = (sessionData['notes'] as string | undefined) ?? null;
     const referralLinkId = (sessionData['referralLinkId'] as string | undefined) ?? null;
+    const staffId = (sessionData['staffId'] as string | undefined) ?? null;
 
     // Calculate price based on pricing model
     const durationMinutes = (heldReservation.endTime.getTime() - heldReservation.startTime.getTime()) / 60000;
@@ -354,6 +356,7 @@ export class BookingSessionsService {
           clientId,
           serviceId: session.serviceId,
           venueId: heldReservation.venueId,
+          staffId,
           bookingFlowId: session.bookingFlowId,
           status: bookingStatus,
           startTime: heldReservation.startTime,
@@ -462,6 +465,7 @@ export class BookingSessionsService {
 
     // Load service if provided, to check its config
     let service: {
+      id: string;
       venueId: string | null;
       guestConfig: unknown;
       basePrice: { toNumber: () => number } | number;
@@ -471,8 +475,22 @@ export class BookingSessionsService {
     if (serviceId) {
       service = await this.prisma.service.findFirst({
         where: { id: serviceId, tenantId, isActive: true },
-        select: { venueId: true, guestConfig: true, basePrice: true, intakeFormConfig: true },
+        select: { id: true, venueId: true, guestConfig: true, basePrice: true, intakeFormConfig: true },
       });
+    }
+
+    // STAFF_SELECTION: when the service has more than one assigned provider
+    if (service) {
+      const providerCount = await this.prisma.serviceProvider.count({
+        where: { serviceId: service.id, tenantId },
+      });
+      if (providerCount > 1) {
+        steps.push({
+          type: 'STAFF_SELECTION',
+          label: 'Choose Staff',
+          order: order++,
+        });
+      }
     }
 
     // VENUE_SELECTION: if service has a venue or tenant has venues
@@ -718,6 +736,7 @@ export class BookingSessionsService {
         : Number(session.service.basePrice);
 
       const paymentReferralLinkId = (paymentSessionData['referralLinkId'] as string | undefined) ?? null;
+      const paymentStaffId = (paymentSessionData['staffId'] as string | undefined) ?? null;
 
       booking = await this.prisma.booking.create({
         data: {
@@ -725,6 +744,7 @@ export class BookingSessionsService {
           clientId,
           serviceId: session.serviceId,
           venueId: heldReservation.venueId,
+          staffId: paymentStaffId,
           bookingFlowId: session.bookingFlowId,
           status: 'PENDING',
           startTime: heldReservation.startTime,

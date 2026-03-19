@@ -23,6 +23,7 @@ interface TenantData {
 const DEFAULT_COLOR = '#6366f1';
 const DEFAULT_TEXT = 'Book Now';
 const BOOKING_BASE_URL = 'https://savspot.co/book';
+const EMBED_BASE_URL = 'https://savspot.co/embed/book';
 
 // ---------- Component ----------
 
@@ -38,7 +39,7 @@ export default function EmbedSettingsPage() {
   const [buttonColor, setButtonColor] = useState(DEFAULT_COLOR);
   const [buttonText, setButtonText] = useState(DEFAULT_TEXT);
   const [copied, setCopied] = useState(false);
-  const [embedType, setEmbedType] = useState<'link' | 'iframe'>('link');
+  const [embedType, setEmbedType] = useState<'link' | 'popup' | 'iframe'>('link');
 
   // Fetch tenant data
   useEffect(() => {
@@ -75,12 +76,24 @@ export default function EmbedSettingsPage() {
     if (!tenant?.slug) return '';
 
     const bookingUrl = `${BOOKING_BASE_URL}/${tenant.slug}`;
+    const embedUrl = `${EMBED_BASE_URL}/${tenant.slug}`;
 
     if (embedType === 'iframe') {
-      return `<iframe src="${bookingUrl}" width="100%" height="700" style="border:none; border-radius:8px;" title="Book an appointment"></iframe>`;
+      return `<iframe src="${embedUrl}" width="100%" height="700" style="border:none; border-radius:8px;" title="Book an appointment"></iframe>`;
     }
 
-    // Link / redirect mode (FR-EMB-4)
+    if (embedType === 'popup') {
+      return `<!-- SavSpot Booking Popup -->
+<button onclick="document.getElementById('savspot-modal').style.display='flex'" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 24px;font-size:15px;font-weight:600;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#fff;background-color:${buttonColor};border:none;border-radius:8px;cursor:pointer;line-height:1;box-shadow:0 1px 3px 0 rgba(0,0,0,0.1),0 1px 2px -1px rgba(0,0,0,0.1)">${buttonText}</button>
+<div id="savspot-modal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.5)" onclick="if(event.target===this)this.style.display='none'">
+  <div style="position:relative;width:90%;max-width:520px;height:85vh;background:#fff;border-radius:12px;overflow:hidden">
+    <button onclick="document.getElementById('savspot-modal').style.display='none'" style="position:absolute;top:8px;right:12px;z-index:1;background:none;border:none;font-size:24px;cursor:pointer;color:#666">&times;</button>
+    <iframe src="${embedUrl}" width="100%" height="100%" style="border:none" title="Book an appointment"></iframe>
+  </div>
+</div>`;
+    }
+
+    // Link / redirect mode
     return `<a href="${bookingUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 24px;font-size:15px;font-weight:600;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#fff;background-color:${buttonColor};border:none;border-radius:8px;text-decoration:none;cursor:pointer;line-height:1;box-shadow:0 1px 3px 0 rgba(0,0,0,0.1),0 1px 2px -1px rgba(0,0,0,0.1)">${buttonText}</a>`;
   }, [tenant?.slug, buttonColor, buttonText, embedType]);
 
@@ -183,7 +196,7 @@ export default function EmbedSettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Embed Type</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant={embedType === 'link' ? 'default' : 'outline'}
                 size="sm"
@@ -192,16 +205,23 @@ export default function EmbedSettingsPage() {
                 Link Button
               </Button>
               <Button
+                variant={embedType === 'popup' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setEmbedType('popup')}
+              >
+                Popup Modal
+              </Button>
+              <Button
                 variant={embedType === 'iframe' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setEmbedType('iframe')}
               >
-                Iframe
+                Inline Iframe
               </Button>
             </div>
           </div>
 
-          {embedType === 'link' && (
+          {(embedType === 'link' || embedType === 'popup') && (
           <>
           <div className="space-y-2">
             <Label htmlFor="buttonText">Button Text</Label>

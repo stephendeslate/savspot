@@ -89,6 +89,7 @@ export class BookingSessionsController {
         session_id: id,
         venue_id: dto.venueId ?? null,
         service_id: dto.serviceId,
+        staff_id: dto.staffId ?? null,
         reserved_date: new Date(dto.startTime),
         start_time: new Date(dto.startTime),
         end_time: new Date(dto.endTime),
@@ -105,6 +106,7 @@ export class BookingSessionsController {
       sessionId: id,
       serviceId: dto.serviceId,
       venueId: dto.venueId,
+      staffId: dto.staffId,
       startTime: new Date(dto.startTime),
       endTime: new Date(dto.endTime),
     });

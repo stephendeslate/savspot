@@ -85,6 +85,23 @@ export class ServiceProvidersService {
     return { message: 'Provider unassigned successfully' };
   }
 
+  /**
+   * List providers for public booking widget (no emails).
+   */
+  async listProvidersPublic(tenantId: string, serviceId: string) {
+    await this.ensureServiceExists(tenantId, serviceId);
+
+    return this.prisma.serviceProvider.findMany({
+      where: { tenantId, serviceId },
+      include: {
+        user: {
+          select: { id: true, name: true, avatarUrl: true, bio: true, title: true },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
   private async ensureServiceExists(tenantId: string, serviceId: string) {
     const service = await this.prisma.service.findFirst({
       where: { id: serviceId, tenantId },

@@ -4,18 +4,7 @@ import { useState, useMemo } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import { Button, Separator } from '@savspot/ui';
 import type { GuestConfig, BookingSessionData } from './booking-types';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function formatPrice(amount: number, currency: string): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
-}
+import { formatPrice } from '@/lib/booking-format-utils';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -51,7 +40,7 @@ function CounterControl({
   onChange: (v: number) => void;
 }) {
   return (
-    <div className="flex items-center justify-between py-3">
+    <div className="flex items-center justify-between py-3" role="group" aria-label={label}>
       <div>
         <p className="text-sm font-medium">{label}</p>
         {sublabel && (
@@ -62,21 +51,23 @@ function CounterControl({
         <Button
           variant="outline"
           size="sm"
-          className="h-8 w-8 p-0"
+          className="h-11 w-11 p-0"
           disabled={value <= min}
           onClick={() => onChange(Math.max(min, value - 1))}
+          aria-label={`Decrease ${label}`}
         >
-          <Minus className="h-3.5 w-3.5" />
+          <Minus className="h-4 w-4" />
         </Button>
-        <span className="w-8 text-center text-sm font-semibold">{value}</span>
+        <span className="w-8 text-center text-sm font-semibold" aria-live="polite" aria-atomic="true">{value}</span>
         <Button
           variant="outline"
           size="sm"
-          className="h-8 w-8 p-0"
+          className="h-11 w-11 p-0"
           disabled={value >= max}
           onClick={() => onChange(Math.min(max, value + 1))}
+          aria-label={`Increase ${label}`}
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="h-4 w-4" />
         </Button>
       </div>
     </div>

@@ -50,6 +50,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { ReferralsModule } from './referrals/referrals.module';
 import { CurrencyModule } from './currency/currency.module';
 import { DevicePushTokensModule } from './device-push-tokens/device-push-tokens.module';
+import { WaitlistModule } from './waitlist/waitlist.module';
 import { PosthogModule } from './posthog/posthog.module';
 import { CustomThrottlerGuard } from './common/guards/throttle.guard';
 import { CsrfGuard } from './common/guards/csrf.guard';
@@ -180,6 +181,7 @@ function getEeModules(): any[] {
     CurrencyModule,
     DevicePushTokensModule,
     PosthogModule,
+    WaitlistModule,
     // EE modules — conditionally loaded when @savspot/ee is installed
     ...getEeModules(),
   ],

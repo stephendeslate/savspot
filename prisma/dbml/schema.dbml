@@ -106,6 +106,7 @@ Table tenants {
   customDomain custom_domains
   clientRecommendations client_recommendations [not null]
   partnerReferrals partner_referrals [not null]
+  waitlistEntries waitlist_entries [not null]
 }
 
 Table users {
@@ -123,6 +124,8 @@ Table users {
   timezone String
   mfaEnabled Boolean [not null, default: false]
   mfaSecret String
+  bio String
+  title String
   mfaRecoveryCodes Json
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
@@ -169,6 +172,8 @@ Table users {
   clientRecommendations client_recommendations [not null]
   partner partners
   venueStaffAssignments venue_staff [not null]
+  bookingsAsStaff bookings [not null]
+  waitlistAsStaff waitlist_entries [not null]
 }
 
 Table tenant_memberships {
@@ -229,6 +234,7 @@ Table bookings {
   clientId String [not null]
   serviceId String [not null]
   venueId String
+  staffId String
   bookingFlowId String
   status BookingStatus [not null]
   startTime DateTime [not null]
@@ -260,6 +266,7 @@ Table bookings {
   client users [not null]
   service services [not null]
   venue venues
+  staff users
   bookingFlow booking_flows
   checkedInByUser users
   checkedOutByUser users
@@ -299,6 +306,7 @@ Table date_reservations {
   sessionId String [not null]
   venueId String
   serviceId String [not null]
+  staffId String
   reservedDate DateTime [not null]
   startTime DateTime [not null]
   endTime DateTime [not null]
@@ -506,6 +514,7 @@ Table services {
   approvalDeadlineHours Int
   images Json
   preferenceTemplate Json
+  peakHoursConfig Json
   venueId String
   categoryId String
   createdAt DateTime [default: `now()`, not null]
@@ -525,6 +534,7 @@ Table services {
   quoteLineItems quote_line_items [not null]
   quoteOptionItems quote_option_items [not null]
   clientRecommendations client_recommendations [not null]
+  waitlistEntries waitlist_entries [not null]
 }
 
 Table venues {
@@ -1785,6 +1795,26 @@ Table partner_payouts {
   partner partners [not null]
 }
 
+Table waitlist_entries {
+  id String [pk]
+  tenantId String [not null]
+  serviceId String [not null]
+  staffId String
+  clientEmail String [not null]
+  clientName String [not null]
+  preferredDate DateTime
+  preferredTimeStart String
+  preferredTimeEnd String
+  status String [not null, default: 'ACTIVE']
+  notifiedAt DateTime
+  expiresAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tenant tenants [not null]
+  service services [not null]
+  staff users
+}
+
 Enum BusinessCategory {
   VENUE
   SALON
@@ -2471,6 +2501,8 @@ Ref: bookings.serviceId > services.id
 
 Ref: bookings.venueId > venues.id
 
+Ref: bookings.staffId > users.id
+
 Ref: bookings.bookingFlowId > booking_flows.id
 
 Ref: bookings.checkedInBy > users.id
@@ -2790,3 +2822,9 @@ Ref: partner_referrals.partnerId > partners.id [delete: Cascade]
 Ref: partner_referrals.tenantId > tenants.id [delete: Cascade]
 
 Ref: partner_payouts.partnerId > partners.id [delete: Cascade]
+
+Ref: waitlist_entries.tenantId > tenants.id [delete: Cascade]
+
+Ref: waitlist_entries.serviceId > services.id
+
+Ref: waitlist_entries.staffId > users.id

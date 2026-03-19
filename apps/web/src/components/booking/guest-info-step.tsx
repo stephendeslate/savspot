@@ -61,10 +61,10 @@ export function GuestInfoStep({ sessionData, onContinue }: GuestInfoStepProps) {
         {/* Name field */}
         <div className="space-y-2">
           <Label htmlFor="guest-name">
-            Name <span className="text-destructive">*</span>
+            Name <span className="text-destructive" aria-hidden="true">*</span>
           </Label>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <Input
               id="guest-name"
               type="text"
@@ -75,20 +75,23 @@ export function GuestInfoStep({ sessionData, onContinue }: GuestInfoStepProps) {
                 if (errors['name']) setErrors((prev) => ({ ...prev, name: '' }));
               }}
               className={`pl-10 ${errors['name'] ? 'border-destructive' : ''}`}
+              aria-required="true"
+              aria-invalid={!!errors['name']}
+              aria-describedby={errors['name'] ? 'guest-name-error' : undefined}
             />
           </div>
           {errors['name'] && (
-            <p className="text-sm text-destructive">{errors['name']}</p>
+            <p id="guest-name-error" role="alert" className="text-sm text-destructive">{errors['name']}</p>
           )}
         </div>
 
         {/* Email field */}
         <div className="space-y-2">
           <Label htmlFor="guest-email">
-            Email <span className="text-destructive">*</span>
+            Email <span className="text-destructive" aria-hidden="true">*</span>
           </Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <Input
               id="guest-email"
               type="email"
@@ -99,10 +102,13 @@ export function GuestInfoStep({ sessionData, onContinue }: GuestInfoStepProps) {
                 if (errors['email']) setErrors((prev) => ({ ...prev, email: '' }));
               }}
               className={`pl-10 ${errors['email'] ? 'border-destructive' : ''}`}
+              aria-required="true"
+              aria-invalid={!!errors['email']}
+              aria-describedby={errors['email'] ? 'guest-email-error' : undefined}
             />
           </div>
           {errors['email'] && (
-            <p className="text-sm text-destructive">{errors['email']}</p>
+            <p id="guest-email-error" role="alert" className="text-sm text-destructive">{errors['email']}</p>
           )}
         </div>
 
@@ -110,7 +116,7 @@ export function GuestInfoStep({ sessionData, onContinue }: GuestInfoStepProps) {
         <div className="space-y-2">
           <Label htmlFor="guest-phone">Phone (optional)</Label>
           <div className="relative">
-            <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <Input
               id="guest-phone"
               type="tel"

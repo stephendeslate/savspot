@@ -11,6 +11,11 @@ export class ReserveSlotDto {
   @IsOptional()
   venueId?: string;
 
+  @ApiPropertyOptional({ description: 'Staff/provider ID' })
+  @IsUUID()
+  @IsOptional()
+  staffId?: string;
+
   @ApiProperty({
     example: '2026-03-15T10:00:00.000Z',
     description: 'Start time (ISO 8601)',

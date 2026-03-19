@@ -61,6 +61,9 @@ function makePrisma() {
     serviceAddon: {
       count: vi.fn().mockResolvedValue(0),
     },
+    serviceProvider: {
+      count: vi.fn().mockResolvedValue(0),
+    },
     tenant: {
       findUnique: vi.fn().mockResolvedValue({ paymentProviderOnboarded: false }),
     },
