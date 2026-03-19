@@ -58,9 +58,8 @@ test.describe('Public Booking Wizard', () => {
 
     expect(response.status()).toBe(201);
 
-    // After wizard starts, should show date/time or next step
-    const wizardStep = page.getByText(/select.*date|choose.*time|pick.*date|when|date.*time|available/i).first()
-      .or(page.getByRole('heading', { name: /date|time|schedule|when/i }));
+    // After wizard starts, should show date/time step heading (always visible on all viewports)
+    const wizardStep = page.getByRole('heading', { name: /pick a date|date.*time|schedule|when/i });
 
     await expect(wizardStep.first()).toBeVisible({ timeout: 15_000 });
   });

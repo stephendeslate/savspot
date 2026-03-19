@@ -325,16 +325,8 @@ export default function BookingsPage() {
                   {bookings.map((booking) => (
                     <TableRow
                       key={booking.id}
-                      role="button"
-                      tabIndex={0}
                       className="cursor-pointer"
                       onClick={() => router.push(`/bookings/${booking.id}`)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          router.push(`/bookings/${booking.id}`);
-                        }
-                      }}
                     >
                       <TableCell>
                         {booking.client ? (

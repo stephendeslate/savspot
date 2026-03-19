@@ -11,6 +11,28 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Onboarding Flow', () => {
+  // Onboarding is a protected page (requires session cookie for middleware)
+  // but the default test user is an OWNER who gets redirected to dashboard.
+  // Use a session cookie without real auth — useAuth() returns no user,
+  // so the wizard renders without the owner redirect.
+  test.use({
+    storageState: {
+      cookies: [
+        {
+          name: 'savspot_session',
+          value: 'true',
+          domain: 'localhost',
+          path: '/',
+          httpOnly: false,
+          secure: false,
+          sameSite: 'Lax' as const,
+          expires: -1,
+        },
+      ],
+      origins: [],
+    },
+  });
+
   test('onboarding page loads', async ({ page }) => {
     await page.goto('/onboarding');
     await page.waitForLoadState('networkidle');
