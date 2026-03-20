@@ -1,41 +1,41 @@
 # Assigning Staff to Services
 
-When your business has multiple team members, you can control which staff members are eligible to perform each service. This ensures clients are only offered time slots with qualified team members and keeps your schedule accurate.
+When your business has multiple team members, you can control which staff members (called "providers") are eligible to deliver each service.
 
-## How Staff Assignments Work
+## Accessing the Providers Page
 
-Each service can be linked to one or more team members. When a client books that service, SavSpot only shows available time slots for the assigned staff. If no staff are assigned, the service uses the business owner's availability by default.
+1. Navigate to **Services** (`/services`).
+2. Click on a service to open its detail page.
+3. Click **Manage Providers** (users icon) in the top right, or go directly to `/services/[id]/providers`.
 
-| Configuration | Booking Behavior |
-|---------------|-----------------|
-| No staff assigned | Uses business owner's availability |
-| One staff member assigned | Only that member's open slots are shown |
-| Multiple staff assigned | Slots from all assigned members are shown; client may choose or be auto-assigned |
+## Assigning a Provider
 
-## Assigning Staff to a Service
+1. Click **Assign Provider** (plus icon).
+2. A dialog shows available team members with their name, email, and role.
+3. Click **Assign** next to the team member you want to add.
 
-1. Navigate to **Services** and open the service you want to configure.
-2. Scroll to the **Assigned Staff** section.
-3. Select team members from the list of available staff.
-4. Save the service.
+If all team members are already assigned, the dialog shows "No available team members."
 
-You can assign or remove staff at any time. Changes take effect immediately for future bookings. Existing bookings are not affected.
+## Current Providers
 
-## Impact on Availability
+The page lists all assigned providers with:
 
-Staff assignments directly affect which time slots appear on your booking page. SavSpot calculates available slots by intersecting the service duration with each assigned staff member's availability rules.
+- Avatar (initials) + Name + Email
+- Role badge (Owner, Admin, or Staff)
+- **Remove** button (user-minus icon)
 
-For example, if a service is assigned to two staff members:
+## Removing a Provider
 
-- **Staff A** is available Monday through Friday, 9 AM to 5 PM.
-- **Staff B** is available Wednesday through Saturday, 10 AM to 6 PM.
+1. Click **Remove** on the provider you want to unassign.
+2. A confirmation dialog appears: "Are you sure you want to remove [name] from this service?"
+3. Click **Remove** to confirm.
 
-Clients booking this service see combined availability across both schedules. On Wednesday, slots from both staff members are offered.
+Changes take effect immediately for future bookings. Existing bookings are not affected.
 
-> **Tip:** Make sure each assigned staff member has their availability rules configured at `/settings/availability` before assigning them to services. Without availability rules, no slots will appear for that staff member.
+## Impact on the Booking Flow
 
-## Managing Team Workload
+When a service has multiple assigned providers, a **Provider Selection** step appears in the client booking flow. Clients can choose which provider they want. If only one provider is assigned, the step is skipped.
 
-Use staff assignments strategically to balance workload across your team. If one team member is overbooked, consider assigning additional staff to their busiest services.
+SavSpot calculates available time slots by checking each assigned provider's availability. Clients see combined availability across all providers.
 
-> **Tip:** Review staff-service assignments when onboarding a new team member. Adding them to existing services immediately expands your bookable capacity.
+> **Tip:** Make sure each assigned provider has availability rules configured at **Settings > Availability** (`/settings/availability`). Without availability rules, no slots will appear for that provider.

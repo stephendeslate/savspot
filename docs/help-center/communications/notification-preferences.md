@@ -1,49 +1,35 @@
 # Notification Preferences
 
-Control which notifications you receive and how they are delivered. SavSpot lets you customize notification settings per event type and delivery channel so you only get the alerts that matter to you.
+SavSpot has two separate notification settings pages: **tenant-level** (business-wide) and **per-user** (individual).
 
-## Accessing Notification Preferences
+## Tenant-Level Notifications
 
-Navigate to **Settings > Notification Preferences** (`/settings/notification-preferences`) to manage your notification settings. Each team member manages their own preferences independently.
+**Route:** `/settings/notification-preferences`
 
-## Notification Channels
+Controls which automated notifications your business sends to clients and staff. See [Automated Reminders](./automated-reminders.md) for details on the Email, Push, SMS, and Digest settings available here.
 
-SavSpot supports multiple delivery channels for notifications:
+## Per-User Notifications
 
-| Channel | Description |
-|---|---|
-| Email | Notifications delivered to your registered email address |
-| Push | Browser or mobile push notifications |
-| In-app | Notifications displayed in the SavSpot notification center |
+**Route:** `/settings/notifications`
 
-You can enable or disable each channel independently for every notification type.
+> **Note:** This page is restricted to **Admin** and **Owner** roles.
 
-## Per-Event Settings
+Controls how **you** receive notifications. Four notification categories are available, each with an **Email** toggle and a **Browser Push** toggle:
 
-Configure notifications individually for each event type:
+| Category | Description |
+|----------|-------------|
+| **Booking Notifications** | New bookings, cancellations, and reschedules |
+| **Payment Notifications** | Payment received, refunds, and failed charges |
+| **System Notifications** | Account updates, security alerts, and maintenance |
+| **Calendar Notifications** | Calendar sync status and conflict alerts |
 
-| Event | Description |
-|---|---|
-| New booking | A client books an appointment |
-| Booking cancelled | A client or team member cancels a booking |
-| Booking rescheduled | An appointment is moved to a new time |
-| New message | A client sends you a message |
-| Payment received | A payment is successfully processed |
-| Payment failed | A payment attempt was unsuccessful |
-| Invoice overdue | An invoice has passed its due date |
-| Team invitation accepted | An invited team member joins the workspace |
+An info banner notes that browser push notifications require your browser's permission to be granted.
 
-For each event, toggle the channels you want to receive notifications through.
+Click **Save Preferences** to apply changes.
 
-> **Tip:** At minimum, keep email notifications enabled for payment-related events. These are important for your financial records even if you prefer to manage day-to-day operations through in-app notifications.
+## How the Two Pages Relate
 
-## Configuring Your Preferences
+- **Tenant-level** (`/settings/notification-preferences`) — Determines what notifications your business sends (e.g., whether booking confirmation emails are sent at all).
+- **Per-user** (`/settings/notifications`) — Determines which of those notifications you personally receive and through which channel.
 
-1. Navigate to **Settings > Notification Preferences** (`/settings/notification-preferences`).
-2. Review the list of notification events.
-3. For each event, toggle the desired channels (Email, Push, In-app) on or off.
-4. Save your preferences.
-
-Changes take effect immediately for all future notifications.
-
-> **Tip:** If you find you are receiving too many notifications, start by disabling push notifications for lower-priority events and relying on in-app notifications instead. You can always check the notification center at your convenience.
+> **Tip:** At minimum, keep email notifications enabled for payment and booking events to stay informed about your business activity.

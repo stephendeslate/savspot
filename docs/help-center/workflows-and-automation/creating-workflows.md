@@ -1,47 +1,46 @@
 # Creating Workflows
 
-Build automated workflows to streamline your business operations. The workflow builder is available at **Settings > Workflows** (`/settings/workflows`).
+Automate actions based on booking events. Manage workflows at **Settings > Workflows** (`/settings/workflows`).
 
-## Workflow Builder Interface
+> **Note:** Workflows are restricted to **Admin** and **Owner** roles.
 
-The workflow builder uses a visual editor where you connect triggers to actions in a sequential flow. Each workflow starts with a trigger event and executes one or more actions when that event occurs.
-
-The builder has three main areas:
-
-| Area | Purpose |
-|------|---------|
-| Trigger panel | Select the event that starts the workflow |
-| Action list | Add and configure the actions to execute |
-| Settings sidebar | Name, description, and activation toggle |
-
-## Building a Workflow
+## Creating a Workflow
 
 1. Navigate to `/settings/workflows` and click **Create Workflow**.
-2. Give your workflow a descriptive name (e.g., "New Booking Follow-Up").
-3. Select a trigger from the trigger panel.
-4. Click **Add Action** to add your first action.
-5. Configure the action's settings (e.g., email template, delay time, webhook URL).
-6. Add additional actions if needed -- they execute in order from top to bottom.
-7. Click **Save** to store the workflow.
+2. Fill in the fields:
 
-## Naming and Organizing Workflows
+| Field | Description |
+|-------|-------------|
+| **Name** | Descriptive name (e.g., "Send confirmation email") |
+| **Trigger Event** | The event that starts the workflow (select from dropdown) |
+| **Active** | Toggle to enable or disable the workflow |
 
-Use clear, descriptive names that indicate what the workflow does. Good examples:
+3. Click **Create Workflow** to save.
 
-- "Send Reminder 24h Before Appointment"
-- "Thank You Email After First Booking"
-- "Notify Team on Cancellation"
+## Workflow Table
 
-> Tip: Add a brief description to each workflow explaining its purpose. This helps when you have many workflows and need to quickly identify what each one does.
+The workflows list shows all configured workflows:
 
-## Activating and Deactivating Workflows
+| Column | Description |
+|--------|-------------|
+| **Name** | Workflow name |
+| **Trigger Event** | The event that triggers this workflow |
+| **Actions** | Count badge showing number of configured actions |
+| **Status** | Active or Inactive badge (clickable to toggle) |
+| **Last Triggered** | When the workflow last ran |
+| **Actions** | Edit or Delete |
 
-New workflows are created in a **draft** state and do not run until activated.
+## Activating and Deactivating
 
-1. Open the workflow from your workflows list.
-2. Toggle the **Active** switch in the settings sidebar.
-3. Click **Save** to confirm.
+Click the **Active/Inactive** badge on any workflow to toggle it on or off. Active workflows run automatically when their trigger event occurs. Inactive workflows retain their configuration but do not execute.
 
-To temporarily stop a workflow without deleting it, toggle the switch back to inactive. The workflow retains all its configuration and can be reactivated at any time.
+## Editing and Deleting
 
-> Tip: Test your workflow with a sample booking before activating it to make sure the actions behave as expected.
+- **Edit** — Opens the workflow dialog to change the name, trigger, or active status.
+- **Delete** — Shows a confirmation dialog: "Are you sure you want to delete the workflow? This action cannot be undone."
+
+## Current Limitations
+
+The workflow form only configures **name**, **trigger event**, and **active status**. There is no visual workflow builder, no action configuration UI, no condition builder, and no wait/delay settings. The Actions count badge reflects actions configured through the API, not through the web interface.
+
+> **Tip:** Start with simple workflows for your most common events (e.g., Booking Created, Payment Received) and expand as your needs grow.

@@ -1,40 +1,49 @@
 # Add-Ons
 
-Add-ons let you offer optional extras that clients can include when booking a service. They are ideal for upselling premium features, extended time, or specialty materials without creating separate services for every combination.
+Add-ons let you offer optional extras that clients can include when booking a service. They are managed on a separate page per service.
 
-## What Are Add-Ons?
+## Accessing Add-Ons
 
-An add-on is an optional enhancement attached to a service. Clients see available add-ons during the booking flow and can select any combination before confirming. Common examples include:
-
-- **Extra time** -- extend a 60-minute session to 90 minutes
-- **Premium materials** -- upgrade to higher-quality products
-- **Additional participants** -- bring a guest to a group session
-- **Specialty treatments** -- add a specific technique or focus area
+1. Navigate to **Services** (`/services`).
+2. Click on a service to open its detail page.
+3. Click **Manage Add-ons** (package icon) in the top right, or go directly to `/services/[id]/addons`.
 
 ## Creating an Add-On
 
-1. Navigate to **Services** and open the service you want to enhance.
-2. Scroll to the **Add-Ons** section on the service detail page.
-3. Click **Add New Add-On**.
-4. Fill in the add-on details:
+1. Click **Create Add-on** (plus icon).
+2. Fill in the dialog fields:
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| **Name** | Yes | What the add-on is called (e.g., "Extra 30 Minutes"). |
-| **Description** | No | A short explanation shown to clients during booking. |
-| **Price** | Yes | The additional cost, in major currency units (e.g., `25.00`). |
-| **Duration** | No | Extra time added to the appointment, in minutes. |
+| Field | Required | Details |
+|-------|----------|---------|
+| **Name** | Yes | What the add-on is called (e.g., "Deep Conditioning Treatment") |
+| **Price ($)** | Yes | Additional cost in major currency units (e.g., 15.00). Minimum 0 |
+| **Duration in minutes** | No | Extra time added to the appointment. Leave empty if no extra time |
+| **Active** | — | Toggle switch, enabled by default |
 
-5. Click **Save** to attach the add-on to the service.
+3. Click **Create Add-on**.
+
+## Managing Add-Ons
+
+The add-ons page displays a table with the following columns:
+
+| Column | Description |
+|--------|-------------|
+| **Name** | Add-on name |
+| **Price** | Price in dollars |
+| **Duration** | Extra minutes, if set |
+| **Status** | Active (green badge) or Inactive (gray badge) |
+| **Actions** | Menu with Edit and Deactivate options |
+
+### Editing an Add-On
+
+Click the actions menu (three dots) on the add-on row and select **Edit**. Update the fields in the dialog and click **Update Add-on**.
+
+### Deactivating an Add-On
+
+Click the actions menu and select **Deactivate**. A confirmation dialog appears. Deactivated add-ons are no longer shown to clients during booking.
 
 ## How Add-Ons Appear in Booking
 
-When a client selects a service that has add-ons, an additional step appears in the booking flow. Each add-on is shown with its name, description, and price. Clients can select multiple add-ons. The total price and appointment duration update in real time as selections change.
+When a client selects a service that has active add-ons, an **Add-Ons** step appears in the booking flow. Each add-on shows its name and price. Clients can select multiple add-ons. The total price and appointment duration update based on selections.
 
 > **Tip:** Keep add-on names short and descriptive. Clients make quick decisions during booking, so clarity helps conversion.
-
-## Pricing and Duration Impact
-
-Add-on prices are summed with the base service price at checkout. If an add-on includes extra duration, the calendar blocks the additional time automatically. For example, a 60-minute service with a 30-minute add-on reserves a 90-minute slot.
-
-> **Tip:** Review your add-on offerings periodically. If a particular add-on is selected on most bookings, consider rolling it into the base service instead.

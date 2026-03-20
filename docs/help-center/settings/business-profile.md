@@ -1,36 +1,46 @@
 # Business Profile
 
-Your business profile is the foundation of your SavSpot account. It provides key information that appears on your booking page, email notifications, and client-facing communications.
+Your business profile contains the core information about your business. Edit it at **Settings > Profile** (`/settings/profile`).
 
-## Accessing Your Profile
-
-Navigate to **Settings > Profile** (`/settings/profile`) from the main navigation menu.
-
-## Editable Fields
+## Profile Fields
 
 | Field | Description | Required |
 |-------|-------------|----------|
-| Business Name | Your public-facing business name | Yes |
-| Address | Street address displayed on your booking page | No |
-| Phone Number | Contact phone number for client inquiries | No |
-| Email | Primary contact email for notifications and client replies | Yes |
-| Description | A short summary of your business and services | No |
-| Timezone | The timezone used for all scheduling and availability | Yes |
+| **Business Name** | Your public-facing business name | Yes |
+| **Description** | A short summary of your business and services | No |
+| **Logo URL** | URL to your business logo | No |
+| **Contact Email** | Primary contact email for notifications and client communication | No |
+| **Contact Phone** | Contact phone number for client inquiries | No |
+| **Timezone** | The timezone used for all scheduling and availability | Yes |
+| **Currency** | The currency used for pricing and payments | Yes |
 
-## Setting Your Business Hours
+## Timezone Options
 
-Business hours define when clients can book appointments. To configure them:
+SavSpot supports 13 timezones:
 
-1. Scroll to the **Business Hours** section on your profile page.
-2. Toggle each day of the week on or off.
-3. Set the opening and closing times for each active day.
-4. Add multiple time blocks per day if you have split hours (e.g., closed for lunch).
-5. Click **Save** to apply your changes.
+| Timezone | Label |
+|----------|-------|
+| America/New_York | Eastern Time (US) |
+| America/Chicago | Central Time (US) |
+| America/Denver | Mountain Time (US) |
+| America/Los_Angeles | Pacific Time (US) |
+| America/Anchorage | Alaska Time (US) |
+| Pacific/Honolulu | Hawaii Time (US) |
+| Europe/London | GMT (London) |
+| Europe/Paris | CET (Paris) |
+| Europe/Berlin | CET (Berlin) |
+| Asia/Tokyo | JST (Tokyo) |
+| Asia/Shanghai | CST (Shanghai) |
+| Asia/Kolkata | IST (Kolkata) |
+| Australia/Sydney | AEST (Sydney) |
 
-> Tip: Your timezone setting determines how business hours are displayed to clients. Make sure it matches your physical location to avoid scheduling confusion.
+## Currency Options
 
-## How Profile Information Is Used
+Nine currencies are supported: **USD**, **EUR**, **GBP**, **CAD**, **AUD**, **JPY**, **INR**, **BRL**, **MXN**.
 
-Your business name and description appear at the top of your public booking page. The email address is used as the reply-to address for automated booking confirmations and reminders. The phone number and address are displayed on the booking page footer so clients can reach you through other channels.
+## Important Notes
 
-> Tip: Keep your description concise -- one or two sentences that explain what you offer works best for the booking page header.
+- There is **no address field** on the business profile. Location information is managed per venue at **Settings > Venues** (`/settings/venues`).
+- **Business hours** are not configured here — set your availability at **Settings > Availability** (`/settings/availability`).
+
+> **Tip:** Your timezone setting determines how all times are displayed across the platform. Make sure it matches your operating location to avoid scheduling confusion.

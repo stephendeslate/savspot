@@ -1,49 +1,44 @@
 # Deposits and Prepayments
 
-Deposits allow you to collect a partial payment from clients when they book a service, with the remaining balance due at a later time. This helps reduce no-shows and secures commitment from clients.
+Deposits allow you to collect a partial payment at booking time, with the remaining balance due later. Deposits are configured **per service**, not as a global setting.
 
-## Setting Up Deposits
+## Configuring Deposits
 
-1. Navigate to **Settings > Payments** (`/settings/payments`).
-2. Enable the **Require Deposit** option.
-3. Choose a deposit type and amount.
-4. Save your changes.
+1. Navigate to **Services** (`/services`) and click on a service.
+2. In the service edit form, expand the **Advanced Settings** section.
+3. Configure the deposit settings:
 
-### Deposit Types
+3. In the **Deposit Config (JSON)** field, enter your deposit configuration:
 
-| Type | Description | Example |
-|---|---|---|
-| Fixed amount | A specific dollar amount collected upfront | $25.00 deposit on a $100.00 service |
-| Percentage | A percentage of the service total | 25% deposit on a $100.00 service = $25.00 |
+```json
+{"required": true, "type": "PERCENTAGE", "percentageOrCents": 50}
+```
 
-> **Tip:** A percentage-based deposit works well when your services vary in price, since the deposit amount scales automatically with the service cost.
+| Property | Description |
+|----------|-------------|
+| **required** | `true` to enable deposit collection |
+| **type** | `PERCENTAGE` (percentage of total) or `FIXED` (flat amount in cents) |
+| **percentageOrCents** | The percentage value or amount in cents |
 
-## When Deposits Are Charged
+4. Click **Create Service** or **Save** to apply.
 
-Deposits are charged at the time of booking confirmation. The flow works as follows:
+## How Deposits Work
 
-1. The client selects a service and time slot.
-2. At checkout, the deposit amount is displayed alongside the total service price.
-3. The client enters their payment details and confirms the booking.
-4. The deposit is charged immediately through Stripe.
-5. The remaining balance is collected according to your payment settings (at the appointment or via invoice).
+When a client books a service with a deposit configured:
 
-## Deposit Policies
+1. The **Payment** step in the booking flow shows the deposit amount (not the full price).
+2. The client pays only the deposit at booking time.
+3. The remaining balance is tracked on the invoice.
 
-Consider establishing clear deposit policies for your clients:
+## Example
 
-- **Cancellation window** -- Define how far in advance a client must cancel to receive a deposit refund.
-- **No-show policy** -- Specify whether deposits are forfeited if a client does not show up.
-- **Rescheduling** -- Decide if deposits transfer to a rescheduled appointment.
+For a $100 service with a 25% deposit:
 
-> **Tip:** Communicate your deposit policy clearly during the booking process. Clients are more likely to honor appointments when they understand the terms upfront.
+- **At booking:** Client pays $25
+- **Remaining balance:** $75 (tracked on the invoice)
 
-## Viewing Deposit Transactions
+## Services Without Deposits
 
-All deposit transactions appear in your **Invoices** section (`/invoices`). Each invoice shows:
+If no deposit is configured on a service, the client pays the **full amount** during the booking flow (when Stripe is connected and the price is greater than $0).
 
-- The deposit amount collected
-- The remaining balance
-- The payment status (partial or fully paid)
-
-You can also track deposit activity in your Stripe Dashboard for detailed transaction records and payout information.
+> **Tip:** Deposits work well for high-value services where you want to secure a commitment without requiring full upfront payment.

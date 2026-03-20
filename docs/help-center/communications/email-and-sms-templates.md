@@ -1,48 +1,67 @@
 # Email and SMS Templates
 
-Customize the automated messages SavSpot sends to your clients. Templates let you maintain a consistent brand voice across booking confirmations, reminders, follow-ups, and other communications.
+Customize the automated messages SavSpot sends to your clients. Manage templates at **Settings > Communications** (`/settings/communications`) under the **Templates** tab.
 
-## Managing Templates
+> **Note:** This page is restricted to **Admin** and **Owner** roles.
 
-Navigate to **Settings > Communications** (`/settings/communications`) to view and edit your message templates. Each template can be customized for both email and SMS channels.
+## Template List
 
-## Template Types
+The Templates tab shows all message templates in a table:
 
-SavSpot provides templates for common communication scenarios:
-
-| Template Type | When Sent | Default Behavior |
-|---|---|---|
-| Booking confirmation | When a client completes a booking | Automatically sent |
-| Booking reminder | Before a scheduled appointment | Sent based on reminder settings |
-| Cancellation notice | When a booking is cancelled | Automatically sent |
-| Follow-up | After a service is completed | Optional, must be enabled |
-| Invoice sent | When an invoice is emailed to a client | Automatically sent |
-| Payment receipt | When a payment is processed | Automatically sent |
+| Column | Description |
+|--------|-------------|
+| **Name** | Template name |
+| **Channel** | Delivery channel badge (Email, SMS, or Push) |
+| **Subject** | Email subject line |
+| **Status** | Active or Inactive badge |
+| **Created** | When the template was created |
 
 ## Template Variables
 
-Use template variables to personalize messages with dynamic content. Insert variables using curly brace syntax in your template text.
+Use template variables to personalize messages with dynamic content. Variables use **double curly braces with dot notation**: `{{variable.name}}`.
 
-| Variable | Description | Example Output |
-|---|---|---|
-| `{client_name}` | Client's full name | Jane Smith |
-| `{client_first_name}` | Client's first name | Jane |
-| `{service_name}` | Name of the booked service | Deep Tissue Massage |
-| `{date}` | Appointment date | March 15, 2026 |
-| `{time}` | Appointment time | 2:00 PM |
-| `{business_name}` | Your business name | Wellness Studio |
-| `{staff_name}` | Assigned staff member | Alex Johnson |
-| `{total}` | Total amount due or paid | $85.00 |
+Variables are organized into groups. Common variables include:
 
-> **Tip:** Preview your template after editing to verify that variables render correctly. A missing or misspelled variable will appear as raw text in the sent message.
+| Variable | Description |
+|----------|-------------|
+| `{{client.name}}` | Client's full name |
+| `{{client.firstName}}` | Client's first name |
+| `{{client.email}}` | Client's email address |
+| `{{booking.service}}` | Name of the booked service |
+| `{{booking.date}}` | Appointment date |
+| `{{booking.time}}` | Appointment time |
+| `{{booking.duration}}` | Service duration |
+| `{{business.name}}` | Your business name |
+| `{{business.phone}}` | Business phone number |
+| `{{business.email}}` | Business email |
+| `{{staff.name}}` | Assigned staff member |
+| `{{payment.amount}}` | Payment amount |
+| `{{payment.method}}` | Payment method |
 
-## Editing a Template
+## Composing Messages
 
-1. Go to **Settings > Communications** (`/settings/communications`).
-2. Select the template you want to customize.
-3. Edit the subject line (email only) and message body.
-4. Insert variables where you want dynamic content.
-5. Preview the template to check formatting.
-6. Save your changes.
+The **Compose** tab lets you send ad-hoc messages to individual clients:
 
-> **Tip:** Keep SMS templates concise. SMS messages have character limits, and longer messages may be split into multiple texts, which can increase costs.
+| Field | Description |
+|-------|-------------|
+| **Channel** | Email, SMS, or Push |
+| **Recipient** | Client ID or email address |
+| **Template** | Optionally pre-fill from a template |
+| **Subject** | Email subject (shown for Email channel only) |
+| **Message Body** | Message content |
+
+Click **Send Message** to deliver.
+
+## Delivery Log
+
+The **Delivery Log** tab shows sent message history (auto-refreshes every 30 seconds):
+
+| Column | Description |
+|--------|-------------|
+| **Channel** | Email, SMS, or Push |
+| **Recipient** | Delivery address |
+| **Subject** | Message subject |
+| **Status** | Sent (blue), Delivered (green), Failed (red), or Bounced (yellow) |
+| **Sent At** | Delivery timestamp |
+
+> **Tip:** Keep SMS templates concise. SMS messages have character limits, and longer messages may be split into multiple texts.

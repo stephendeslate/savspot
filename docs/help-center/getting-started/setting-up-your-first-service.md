@@ -1,49 +1,61 @@
 # Setting Up Your First Service
 
-Services are the foundation of your SavSpot booking system. Each service defines what clients can book, how long it takes, and what it costs. If you skipped service creation during onboarding, follow these steps to create your first service.
+Services are the foundation of your SavSpot booking page. Each service represents an offering that clients can book. This guide walks you through creating your first service.
 
-## Creating a New Service
+## Creating a Service
 
-1. Navigate to **Services** in the sidebar or go to `/services`
-2. Click **New Service** to open the service creation form at `/services/new`
-3. Fill in the service details (see below)
-4. Click **Save** to create the service
+1. Navigate to **Services** in the sidebar, or go directly to `/services`.
+2. Click **Add Service** in the top-right corner to go to `/services/new`.
+3. Fill in the form fields below.
+4. Click **Create Service** to save.
 
-## Service Form Fields
+## Basic Information
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| **Name** | Yes | The service name visible to clients (e.g., "60-Minute Massage") |
-| **Description** | No | A brief explanation of what the service includes |
-| **Duration** | Yes | How long the appointment takes in minutes |
-| **Price** | Yes | The cost of the service in your local currency |
-| **Category** | No | Group related services together (e.g., "Hair", "Nails") |
+| Field | Required | Details |
+|-------|----------|---------|
+| **Service Name** | Yes | The public-facing name (minimum 2 characters). Example: "60-Minute Massage" |
+| **Description** | No | A short summary shown to clients during booking |
+| **Duration (minutes)** | Yes | How long the service takes (5--480 minutes). Defaults to 60 |
+| **Base Price** | Yes | The cost of the service in major currency units (e.g., 50.00 for $50) |
+| **Currency** | Yes | USD, EUR, GBP, CAD, AUD, or JPY. Defaults to USD |
+| **Pricing Model** | Yes | How the service is priced (see below) |
+| **Confirmation Mode** | Yes | Auto-confirm or Manual Review |
 
-> **Tip:** Write descriptions from the client's perspective. Explain what they will experience, not internal process details.
+### Pricing Models
 
-## Assigning Staff
+| Model | Description |
+|-------|-------------|
+| **Fixed Price** | A single flat rate for the service |
+| **Hourly Rate** | Price calculated based on duration |
+| **Tiered Pricing** | Multiple price tiers configured via Tier Config in Advanced Settings |
+| **Free** | No charge for the service |
 
-If you have team members, you can assign which staff members are qualified to perform each service. Only assigned staff will appear as available when clients book that service.
+### Confirmation Modes
 
-1. Open the service you created
-2. Navigate to the **Staff** section
-3. Select the team members who can perform this service
-4. Save your changes
+| Mode | Behavior |
+|------|----------|
+| **Auto-confirm** | Bookings are immediately confirmed when created |
+| **Manual Review** | Bookings are created as PENDING until you manually confirm them |
 
-If you are a solo practitioner, you are automatically assigned to all services you create.
+## Advanced Settings
 
-## Pricing Models
+Click the **Advanced Settings** header to expand additional options:
 
-SavSpot supports different pricing configurations:
+| Field | Description |
+|-------|-------------|
+| **Buffer Before (minutes)** | Preparation time blocked before each booking. Prevents back-to-back scheduling |
+| **Buffer After (minutes)** | Cleanup time blocked after each booking |
+| **Guest Config (JSON)** | Configure guest booking options, e.g., `{"maxGuests": 5, "guestPriceCents": 2000}` |
+| **Tier Config (JSON)** | Define pricing tiers for tiered pricing model, e.g., `[{"name": "VIP", "priceCents": 10000}]` |
+| **Deposit Config (JSON)** | Set deposit requirements, e.g., `{"required": true, "percentageOrCents": 50, "type": "PERCENTAGE"}` |
+| **Cancellation Policy (JSON)** | Define cancellation terms, e.g., `{"freeCancellationHours": 24, "penaltyPercentage": 50}` |
 
-- **Fixed price** -- A single set price for the service
-- **Starting at** -- A base price with potential add-ons that increase the total
-- **Free** -- No charge for the service (useful for consultations)
+> **Tip:** Start with just the basic information. You can always edit the service later to add advanced settings, assign staff providers, or create add-ons.
 
-## Add-Ons
+## After Creating a Service
 
-After creating your base service, you can add optional extras that clients can select during booking. Add-ons have their own name, price, and duration that get added to the base service totals.
+Once created, you can:
 
-## Next Steps
-
-Once your service is created, it becomes available for booking. You can create a booking from the Dashboard or the Bookings page, or share your booking page link with clients.
+- **Assign providers** at `/services/[id]/providers` -- Link team members who can deliver the service
+- **Add add-ons** at `/services/[id]/addons` -- Create optional extras clients can select during booking
+- **Edit the service** at `/services/[id]` -- Update any field at any time

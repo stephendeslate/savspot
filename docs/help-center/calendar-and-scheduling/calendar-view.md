@@ -1,52 +1,69 @@
 # Calendar View
 
-The calendar is your central hub for managing appointments. It provides a visual overview of all bookings across your team, with options to drill into individual appointment details.
+The calendar provides a visual overview of all your bookings and blocked time. It is the most intuitive way to manage your daily schedule.
 
 ## Accessing the Calendar
 
-Navigate to **Calendar** in the sidebar, or go directly to `/calendar`. The calendar loads with today's date selected by default.
+Navigate to **Calendar** in the sidebar, or go directly to `/calendar`.
 
 ## View Modes
 
-SavSpot offers three view modes to match how you prefer to see your schedule:
+SavSpot offers four calendar views plus a list view:
 
-| View | Best For | Shows |
-|------|----------|-------|
-| **Daily** | Detailed appointment management | All time slots for a single day, hour by hour |
-| **Weekly** | Planning the upcoming week | Seven days side by side with bookings shown as blocks |
-| **Monthly** | High-level schedule overview | The full month with booking counts per day |
+| View | Best For |
+|------|----------|
+| **Month** | High-level schedule overview with booking counts per day |
+| **Week** | Planning the upcoming week — default view on desktop |
+| **Day** | Detailed hour-by-hour appointment management |
+| **Agenda** | Scrollable list of upcoming events — default view on mobile |
+| **List** | Grouped-by-date text list showing time, service, client, and status |
 
-Switch between views using the toggle buttons at the top of the calendar.
-
-## Navigating Between Dates
-
-- Use the **left and right arrows** next to the date header to move forward or backward by one day, week, or month depending on the active view.
-- Click **Today** to jump back to the current date.
-- Click any date in the monthly view to switch to the daily view for that date.
-
-## Viewing Booking Details
-
-Click on any booking block in the calendar to open a detail panel. The panel shows:
-
-- Client name and contact information
-- Service name and duration
-- Booking status (confirmed, pending, cancelled)
-- Any add-ons selected
-- Payment status
-
-From the detail panel, you can reschedule, cancel, or update the booking status.
+Switch between Calendar and List using the **List / Calendar** toggle in the top right. Within the calendar, switch between Month, Week, Day, and Agenda using the view buttons.
 
 ## Color Coding
 
-Bookings are color-coded by status so you can scan your schedule at a glance:
+Bookings are color-coded by status:
 
 | Color | Status |
 |-------|--------|
 | **Blue** | Confirmed |
-| **Yellow** | Pending |
-| **Gray** | Cancelled |
+| **Amber** | Pending |
+| **Purple** | In Progress |
 | **Green** | Completed |
+| **Red** | Cancelled (text appears with strikethrough) |
+| **Gray** | No Show |
 
-> **Tip:** Use the weekly view at the start of each day to review upcoming appointments and identify any gaps or conflicts in your schedule.
+Blocked time slots appear in light gray with a default cursor (not clickable).
 
-> **Tip:** If you manage a team, the calendar shows bookings for all staff members. Use staff filters to focus on a specific team member's schedule.
+A color legend is always visible below the view controls for reference.
+
+## Navigating Between Dates
+
+- Use the **left and right arrows** next to the date header to move forward or backward.
+- Click **Today** to jump back to the current date.
+- The calendar displays time slots from 7:00 AM to 9:00 PM with 15-minute intervals.
+
+## Viewing Booking Details
+
+Click on any booking event to open a popover with:
+
+- Service name and status badge
+- Client name and email
+- Date, time, duration, and source
+- Notes (if present)
+- **Action buttons** based on status (see [Booking Statuses](../booking-management/booking-statuses.md))
+
+## Drag-and-Drop Rescheduling
+
+You can reschedule bookings by dragging them to a new time slot or resizing them to change the duration. Only **Confirmed** and **Pending** bookings can be dragged.
+
+When you drop a booking on a new time:
+
+1. A confirmation dialog appears showing the old and new times.
+2. Click **Confirm** to reschedule or **Cancel** to revert.
+
+## Creating Bookings from the Calendar
+
+Click on any empty time slot to open the Walk-In dialog with the date and time pre-filled. See [Walk-In Bookings](../booking-management/walk-in-bookings.md) for details.
+
+> **Tip:** Use the Week view at the start of each day to review upcoming appointments and identify any gaps in your schedule.

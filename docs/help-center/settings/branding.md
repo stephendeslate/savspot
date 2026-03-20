@@ -1,44 +1,39 @@
 # Branding
 
-Customize the look and feel of your booking page and email notifications to match your brand identity. All branding options are managed from **Settings > Branding** (`/settings/branding`).
+Customize the appearance of your public booking page at **Settings > Branding** (`/settings/branding`).
 
-## Logo Upload
+## Branding Options
 
-Upload your business logo to display on your booking page and in email communications.
+The branding page has five configuration cards:
 
-1. Navigate to `/settings/branding`.
-2. Click the **Upload Logo** area or drag and drop your image file.
-3. Preview how the logo appears on your booking page.
-4. Click **Save** to apply.
+### Brand Color
 
-| Requirement | Details |
-|-------------|---------|
-| File formats | PNG, JPG, SVG |
-| Recommended size | 400x400px or larger |
-| Max file size | 2 MB |
+Set your primary brand color using the **color picker** or by entering a **hex code** directly. This color is applied to buttons, links, and accents on your booking page.
 
-> Tip: Use a square logo with a transparent background for the best results across your booking page and emails.
+### Logo
 
-## Brand Colors
+Upload your business logo. Click the upload area or drag and drop an image file. The logo appears on your booking page header.
 
-Set your primary and accent colors to style your booking page, buttons, and email templates.
+### Cover Photo
 
-1. Click the color swatch next to **Primary Color** to open the color picker.
-2. Enter a hex code or select a color visually.
-3. Repeat for the **Accent Color** field.
-4. Preview the changes in the live preview panel on the right.
-5. Click **Save** when you are satisfied.
+Upload a cover photo that displays at the top of your booking page. This gives clients a visual introduction to your business.
+
+### Booking Page Description
+
+A text area (up to 500 characters) for a short description of your business. This appears on your public booking page below the cover photo.
+
+### Business Category Label
+
+Customize the label used to categorize your business type on the booking page.
+
+## Previewing Your Booking Page
+
+Click the **Preview Booking Page** button to open your public booking page in a new tab. This lets you see how your branding changes look to clients.
+
+There is no inline preview panel — use the "Preview Booking Page" button to check your changes after saving.
 
 ## Where Branding Applies
 
-Your branding settings are applied across multiple touchpoints:
+Your brand color and logo are applied to your **public booking page** at `savspot.co/book/{your-slug}`.
 
-| Touchpoint | What is customized |
-|------------|--------------------|
-| Booking page | Logo, background color, button colors, fonts |
-| Confirmation emails | Logo in header, button colors |
-| Reminder emails | Logo in header, button colors |
-| Embed widget | Inherits brand colors and logo |
-| Client portal | Logo in navigation bar |
-
-> Tip: After saving your branding changes, open your booking page in a new tab to verify everything looks correct before sharing the link with clients.
+> **Tip:** After saving branding changes, click "Preview Booking Page" to verify everything looks correct before sharing the link with clients.

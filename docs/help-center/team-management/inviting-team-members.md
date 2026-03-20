@@ -4,42 +4,36 @@ Grow your team by inviting staff members to join your SavSpot workspace. Team me
 
 ## Sending an Invitation
 
-1. Navigate to **Settings > Team** (`/settings/team`).
-2. Click **Invite Team Member**.
-3. Enter the team member's email address.
-4. Select a role for the new member (**Admin** or **Staff**).
+1. Navigate to **Settings > Team** (`/settings/team`). This page requires the Admin role.
+2. Click **Invite Member** (plus icon).
+3. Enter the team member's **email address**.
+4. Select a **role**: Staff (default) or Admin.
 5. Click **Send Invitation**.
 
-The invited person will receive an email with instructions to join your workspace.
+The role help text explains: "Admins can manage team members and settings. Staff can manage bookings and services assigned to them."
 
-> **Tip:** You can invite multiple team members at once. Each invitation is sent individually, so you can assign different roles to each person.
+## Invitation Flow
 
-## Invitation Email Flow
+When you send an invitation:
 
-When you send an invitation, the following happens:
-
-1. The invitee receives an email with a personalized invitation link.
+1. The invitee receives an email with an invitation link.
 2. Clicking the link takes them to a registration page (or login, if they already have a SavSpot account).
 3. After completing registration, they are automatically added to your workspace with their assigned role.
-4. You will see their status change from **Pending** to **Active** on the Team settings page.
+4. Their status changes from **Pending** to active in the Team Members list.
 
-## Invitation Link Expiry
+## Invitation Status
 
-Invitation links are valid for a limited time to maintain security:
+Pending invitations appear in a separate **Pending Invitations** section on the Team page:
 
-| Detail | Value |
-|---|---|
-| Link validity | 7 days from the date sent |
-| Status while pending | Shown as "Pending" in the team list |
-| After expiry | Link becomes inactive; a new invitation must be sent |
+| Column | Description |
+|--------|-------------|
+| **Email** | Invitee's email address |
+| **Role** | Assigned role (Admin or Staff) |
+| **Status** | Pending (yellow badge) or Expired (red badge) |
+| **Actions** | Revoke button (trash icon) |
 
-## Re-sending Invitations
+## Revoking an Invitation
 
-If a team member did not receive the invitation or the link has expired:
+If you need to cancel a pending invitation, click the trash icon next to it. The invitation link becomes invalid immediately.
 
-1. Go to **Settings > Team** (`/settings/team`).
-2. Find the pending invitation in the team list.
-3. Click the **Resend** button next to their name.
-4. A fresh invitation email is sent with a new link and a reset expiry window.
-
-> **Tip:** Ask the invitee to check their spam or junk folder if they report not receiving the email. Adding SavSpot's email address to their contacts can help prevent future delivery issues.
+> **Tip:** If an invitation has expired, revoke it and send a new one. Ask the invitee to check their spam folder if they report not receiving the email.

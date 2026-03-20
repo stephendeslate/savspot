@@ -1,34 +1,50 @@
 # Creating Services
 
-Services are the foundation of your SavSpot booking page. Each service represents an offering that clients can book, such as a haircut, consultation, or training session. This guide walks you through creating your first service.
+Services are the foundation of your SavSpot booking page. Each service represents an offering that clients can book.
 
 ## Getting Started
 
-1. Navigate to **Services** in the sidebar, or go directly to `/services`.
-2. Click the **New Service** button in the top-right corner. This takes you to `/services/new`.
-3. Fill in the service details using the form fields described below.
-4. Click **Save** to publish the service to your booking page.
+1. Navigate to **Services** (`/services`).
+2. Click **Add Service** (plus icon) in the top right. This takes you to `/services/new`.
+3. Fill in the form fields described below.
+4. Click **Create Service**.
 
-## Service Form Fields
+## Basic Information
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| **Name** | Yes | The public-facing name of the service (e.g., "60-Minute Massage"). |
-| **Description** | No | A short summary shown to clients during booking. Supports basic formatting. |
-| **Duration** | Yes | How long the service takes, in minutes. Choose from preset increments or enter a custom value. |
-| **Buffer Time** | No | Minutes of padding added before or after each booking. Use this for cleanup, preparation, or travel between appointments. |
-| **Max Capacity** | No | The maximum number of clients who can book the same time slot. Defaults to 1 for one-on-one services. Set higher for group classes or workshops. |
-| **Price** | No | The cost of the service. See [Pricing Models](./pricing-models.md) for details on different pricing options. |
-| **Category** | No | Assign the service to a category for organization. See [Service Categories](./service-categories.md). |
+| Field | Required | Details |
+|-------|----------|---------|
+| **Service Name** | Yes | The public-facing name (minimum 2 characters). Example: "60-Minute Massage" |
+| **Description** | No | A short summary shown to clients during booking |
+| **Duration (minutes)** | Yes | How long the service takes (5–480 minutes). Defaults to 60 |
+| **Base Price** | Yes | The cost in major currency units (e.g., 50.00 for $50) |
+| **Currency** | Yes | USD, EUR, GBP, CAD, AUD, or JPY |
+| **Pricing Model** | Yes | How the service is priced (see [Pricing Models](./pricing-models.md)) |
+| **Confirmation Mode** | Yes | Auto-confirm or Manual Review (see [Confirmation Modes](../booking-management/confirmation-modes.md)) |
 
-## Buffer Time Explained
+## Advanced Settings
 
-Buffer time prevents back-to-back bookings. For example, a 60-minute service with a 15-minute buffer will block out 75 minutes total on your calendar. This gives you time to reset between clients without manually adjusting your availability.
+Click the **Advanced Settings** header to expand additional options:
 
-> **Tip:** If your service requires setup before the client arrives, use buffer time rather than inflating the service duration. This keeps the client-facing duration accurate while protecting your schedule.
+| Field | Description |
+|-------|-------------|
+| **Buffer Before (minutes)** | Preparation time blocked before each booking |
+| **Buffer After (minutes)** | Cleanup time blocked after each booking |
+| **Guest Config (JSON)** | Configure guest options, e.g., `{"maxGuests": 5, "guestPriceCents": 2000}` |
+| **Tier Config (JSON)** | Define tiers for tiered pricing, e.g., `[{"name": "VIP", "priceCents": 10000}]` |
+| **Deposit Config (JSON)** | Set deposit requirements, e.g., `{"required": true, "percentageOrCents": 50, "type": "PERCENTAGE"}` |
+| **Cancellation Policy (JSON)** | Define cancellation terms, e.g., `{"freeCancellationHours": 24, "penaltyPercentage": 50}` |
 
-## Group Services
+> **Tip:** Start with just the basic information. You can always edit the service later to add advanced settings.
 
-Setting **Max Capacity** above 1 turns the service into a group booking. Multiple clients can book the same time slot until the capacity is reached. The calendar shows how many spots remain for each slot.
+## After Creating a Service
 
-> **Tip:** Start with a single service and refine the details after your first few bookings. You can always edit a service later from the service detail page.
+Once created, you can:
+
+- **Assign providers** — Click **Manage Providers** on the service detail page to link team members who can deliver the service
+- **Add add-ons** — Click **Manage Add-ons** to create optional extras clients can select during booking
+- **Edit the service** — Click on the service in the list to update any field
+- **Deactivate** — Click the Deactivate button to hide the service from your booking page
+
+## Service List
+
+The services page at `/services` shows all your services in a table with columns: Name, Duration, Price, Status, and Actions (Edit, Deactivate). Complexity badges appear under the service name to indicate features like Hourly, Tiered, Custom, Groups, Deposit, or Form.

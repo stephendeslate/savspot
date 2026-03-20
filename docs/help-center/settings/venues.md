@@ -2,42 +2,50 @@
 
 Manage multiple business locations from a single SavSpot account. Venues are configured at **Settings > Venues** (`/settings/venues`).
 
+> **Note:** Multi-location support requires a **Team** or **Business** subscription tier.
+
 ## Adding a Venue
 
 1. Navigate to `/settings/venues` and click **Add Venue**.
-2. Enter the venue name (e.g., "Downtown Studio", "North Side Office").
-3. Fill in the address, phone number, and email for the location.
-4. Set the venue's business hours.
-5. Assign services that are available at this venue.
-6. Click **Save** to create the venue.
+2. Fill in the venue details:
 
-## Venue-Specific Settings
+| Field | Description |
+|-------|-------------|
+| **Name** | Venue name (e.g., "Downtown Studio", "North Side Office") |
+| **Address** | Street address (optional) |
+| **City** | City (optional) |
+| **Country** | Country (optional) |
 
-Each venue can have its own configuration independent of your other locations.
+3. Click **Add Venue** to create the venue.
 
-| Setting | Description |
-|---------|-------------|
-| Business Hours | Operating hours specific to this location |
-| Services | Which services are offered at this venue |
-| Team Members | Staff assigned to this venue |
-| Address | Physical address displayed on the booking page |
-| Contact Info | Phone and email for this location |
-| Timezone | Timezone for this venue if different from your primary location |
+## Assigning Staff to a Venue
 
-## Switching Between Venues
+Each venue can have team members assigned to it. On the venue detail page, you can assign and remove staff members who work at that location.
 
-Use the venue selector in the top navigation bar to switch your active venue. The dashboard, calendar, and booking views update to show data for the selected venue.
+## Venue Analytics
 
-> Tip: The venue selector is available on every page so you can quickly switch context without navigating back to settings.
+Click the analytics action on a venue to view a summary dialog showing:
 
-## How Venues Appear to Clients
+- **Total Bookings** at this venue
+- **Revenue** generated at this venue
+- **Utilization** metrics
 
-When you have multiple venues, your booking page displays a venue selection step at the beginning of the booking flow. Clients choose their preferred location before selecting a service and time slot.
+## Managing Venues
 
-If a service is only available at one venue, clients are automatically directed to that venue without an extra selection step.
+From the venues list you can:
 
-## Removing a Venue
+- **Toggle Active/Inactive** — click the venue row to expand it; the Active/Inactive badge indicates its current state
+- **View Analytics** — click the chart icon to see the venue's performance summary
+- **Manage Staff** — expand a venue to see assigned staff, add new staff, or remove existing assignments
 
-To remove a venue, navigate to `/settings/venues`, select the venue, and click **Delete**. Existing bookings at the venue are preserved in your history, but no new bookings can be created for a deleted venue.
+## Current Limitations
 
-> Tip: If a venue is temporarily closed, deactivate it instead of deleting it. Deactivated venues are hidden from the booking page but retain all their configuration for when you reopen.
+The following venue settings are **not yet available**:
+
+- Phone or email per venue
+- Timezone per venue
+- Business hours per venue
+- Service assignment per venue
+- Venue selector in the navigation bar
+
+> **Tip:** If a venue is temporarily closed, deactivate it using the Active toggle rather than deleting it. This preserves the venue's configuration for when you reopen.

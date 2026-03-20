@@ -1,46 +1,32 @@
 # Consent Management
 
-Manage how your business collects, records, and respects client consent for communications.
+SavSpot provides a consent API for managing user consent preferences. There is currently no admin-side consent management UI — consent is managed through the user-scoped API.
 
-## Consent on Booking Forms
-
-SavSpot allows you to add consent checkboxes to your booking form so clients can opt in to communications at the time of booking.
-
-To configure consent checkboxes:
-
-1. Go to **Settings > Booking Page > Consent Options**.
-2. Enable the consent types you want to collect.
-3. Customize the checkbox label text for each type.
-4. Click **Save**.
-
-## Types of Consent
+## How Consent Works
 
 SavSpot distinguishes between two categories of communication:
 
 | Type | Description | Consent Required |
 |------|-------------|-----------------|
-| **Transactional** | Booking confirmations, reminders, cancellation notices, and receipts. | No — these are necessary for service delivery and are sent regardless of marketing consent. |
-| **Marketing** | Promotions, newsletters, special offers, and re-engagement messages. | Yes — clients must explicitly opt in before receiving marketing communications. |
+| **Transactional** | Booking confirmations, reminders, cancellation notices, and receipts | No — necessary for service delivery |
+| **Marketing** | Promotions, newsletters, special offers, and re-engagement messages | Yes — clients must explicitly opt in |
 
-## Viewing Consent Records
+## Client Consent Controls
 
-Every consent action is recorded with a timestamp and source. To view a client's consent history:
+Clients manage their own consent through the **Client Portal**:
 
-1. Go to **Clients** and open the client's profile.
-2. Click the **Consent** tab.
-3. Review the consent log showing each opt-in, opt-out, and the date it occurred.
+- **Portal > Settings** (`/portal/settings`) — Clients can view and manage their account settings and privacy preferences.
+- **Data export** — Clients can request a copy of their personal data.
+- **Account deletion** — Clients can permanently delete their account.
 
-This log serves as your auditable proof of consent for regulatory compliance.
+## Consent API
 
-## Withdrawal of Consent
+The consent API is available at `/api/users/me/consents` and allows programmatic management of consent preferences. This is a user-scoped endpoint — each user manages their own consent records.
 
-Clients can withdraw their marketing consent at any time through:
+## Current Limitations
 
-- **Unsubscribe link** — Included automatically in every marketing email sent through SavSpot.
-- **Client request** — If a client contacts you directly, update their consent status from their profile by unchecking the marketing consent checkbox under the **Consent** tab.
+- There is **no admin-side consent collection UI** (no Settings > Booking Page consent checkboxes).
+- There is **no consent tab** on client profiles.
+- Consent management is handled through the API and client portal, not through the admin dashboard.
 
-When consent is withdrawn, SavSpot immediately stops all marketing communications to that client. Transactional messages related to active bookings continue as normal.
-
-## Best Practices
-
-> **Tip:** Keep consent checkbox labels clear and specific. Instead of "I agree to receive communications," use "I would like to receive promotional offers and updates by email." Specific language builds trust and satisfies regulatory requirements.
+> **Tip:** Transactional messages related to active bookings are always sent regardless of marketing consent status, as they are necessary for service delivery.

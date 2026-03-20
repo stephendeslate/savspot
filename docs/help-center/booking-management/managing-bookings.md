@@ -1,50 +1,53 @@
 # Managing Bookings
 
-The Bookings page at `/bookings` is your central hub for viewing, filtering, and managing all appointments. It provides a comprehensive list view with tools to find and act on any booking.
+The Bookings page at `/bookings` is your central hub for viewing, filtering, and managing all appointments.
 
-## Viewing the Booking List
+## Booking List
 
-The bookings list displays all appointments in reverse chronological order. Each row shows:
+The bookings table displays all appointments with the following columns:
 
-- Client name
-- Service name
-- Date and time
-- Duration
-- Status (color-coded badge)
-- Price
+| Column | Description | Visibility |
+|--------|-------------|------------|
+| **Client** | Client name and email (or "Walk-in" / "Guest" if no client linked) | Always |
+| **Service** | Service name | Always |
+| **Date/Time** | Formatted as "Jan 1, 2026 2:00 PM" | Hidden below 640px |
+| **Status** | Color-coded badge (see [Booking Statuses](./booking-statuses.md)) | Always |
+| **Amount** | Total amount in the booking's currency | Hidden below 768px |
+| **Source** | How the booking was created (Walk-In, Direct, Widget, etc.) | Hidden below 1024px |
+| **Actions** | Eye icon to view booking detail | Always |
 
-Click any booking row to open its detail view with full information and available actions.
+Click any row to open the booking detail at `/bookings/{id}`.
 
 ## Filtering Bookings
 
-Use the filter controls at the top of the page to narrow down the list:
+Use the filter controls to narrow down the list:
 
-| Filter | Options | Use Case |
-|--------|---------|----------|
-| **Status** | PENDING, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW | Find bookings in a specific state |
-| **Date Range** | Start and end date pickers | View bookings for a specific period |
-| **Service** | Dropdown of your services | See all bookings for one service |
+| Filter | Options |
+|--------|---------|
+| **Status** | All Statuses, Pending, Confirmed, In Progress, Completed, Cancelled, No Show |
+| **Start Date** | Date picker |
+| **End Date** | Date picker |
+| **Search** | Client name or email (300ms debounce) |
 
-Filters can be combined. For example, filter by PENDING status and this week's date range to see bookings that still need confirmation.
+Click **Apply** to update the results. On mobile, tap the **Filters** button to reveal the filter panel.
 
-> **Tip:** Use the status filter to review all PENDING bookings at the start of your day and confirm or follow up on each one.
+> **Tip:** Filter by Pending status at the start of your day to review bookings that need confirmation.
 
-## Searching Bookings
+## Pagination
 
-The search bar lets you find bookings by client name or email. Type at least two characters to see matching results. Search works across all statuses and dates.
+The bookings list shows 20 items per page. Use the **Previous** and **Next** buttons to navigate between pages. The current page and total pages are displayed between the buttons.
 
 ## Booking Detail View
 
-Clicking a booking opens its detail view, where you can:
+Clicking a booking (or the eye icon) opens its detail view, where you can:
 
-- View all booking information (client, service, date, time, notes)
-- Change the booking status
-- Edit the appointment date or time
-- Add or update notes
-- Cancel the booking
+- View all booking information (client, service, date, time, amount, source, notes)
+- See the booking's status history timeline
+- Change the booking status using the available action buttons
+- View payment information
 
-## Bulk Actions
+## Empty State
 
-When managing multiple bookings, you can select several entries and apply actions in bulk, such as confirming all pending bookings for the day.
+If you have no bookings yet, the page displays an empty state with an **Add a walk-in** button to create your first booking.
 
-> **Tip:** Pair the Bookings page with the Calendar view at `/calendar` for a visual representation of your schedule. The calendar shows the same data in daily, weekly, or monthly formats.
+> **Tip:** Pair the Bookings page with the Calendar view at `/calendar` for a visual representation of your schedule. The calendar shows the same bookings in day, week, month, or agenda format.

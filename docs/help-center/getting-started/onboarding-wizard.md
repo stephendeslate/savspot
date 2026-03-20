@@ -1,44 +1,45 @@
 # Onboarding Wizard
 
-The onboarding wizard at `/onboarding` guides you through setting up your business on SavSpot. It runs once after account creation and configures your workspace with sensible defaults based on your answers.
+The onboarding wizard at `/onboarding` guides you through setting up your business in three steps. It appears automatically when you log in without an existing business.
 
-## Wizard Steps
+## Step 1: Business Type
 
-### Step 1: Business Name
+Choose the category that best describes your business. This selection determines the default services, availability rules, and workflows that SavSpot pre-configures for you.
 
-Enter the name of your business as you want it displayed to clients. This appears on your booking page, emails, and invoices.
+| Type | Description |
+|------|-------------|
+| **Venue** | Event spaces, conference rooms, coworking |
+| **Salon** | Hair, nails, beauty, spa services |
+| **Studio** | Photography, recording, art studios |
+| **Fitness** | Gyms, yoga, personal training |
+| **Professional** | Consulting, coaching, tutoring |
+| **Other** | Any other service business |
 
-### Step 2: Business Type
+Select a card and click **Next** to continue.
 
-Select the category that best describes your business. SavSpot uses this to pre-configure default settings, service templates, and scheduling presets. See [Business Types](./business-types.md) for the full list.
+## Step 2: Business Profile
 
-### Step 3: Timezone
+Fill in your business details. You can change any of these later in **Settings > Business Profile**.
 
-Choose the timezone where your business operates. All booking times, availability windows, and calendar displays use this timezone. You can change it later in Settings.
+| Field | Required | Details |
+|-------|----------|---------|
+| **Business Name** | Yes | The public name for your business (minimum 2 characters) |
+| **Description** | No | A short summary shown to clients |
+| **Timezone** | Yes | Auto-detected from your browser. 13 options available (US timezones, GMT, CET, JST, CST, IST, AEST) |
+| **Country** | Yes | 10 countries available (US, CA, GB, AU, DE, FR, JP, IN, BR, MX) |
+| **Currency** | Yes | 9 options: USD, EUR, GBP, CAD, AUD, JPY, INR, BRL, MXN. Defaults to USD |
+| **Contact Email** | No | Public contact email for your business |
+| **Contact Phone** | No | Public phone number for your business |
 
-> **Tip:** Setting the correct timezone is critical. Client-facing booking pages display times in your business timezone, so an incorrect setting will cause confusion.
+Click **Next** to proceed to the review step, or **Back** to change your business type.
 
-### Step 4: First Service
+## Step 3: Review & Create
 
-Create your first bookable service by entering:
+Review your selections before creating your business. The page displays a summary of your chosen business type and all profile fields.
 
-- **Service name** -- What clients will see when booking
-- **Duration** -- How long the appointment takes
-- **Price** -- The cost for this service
+- Click **Back** to make changes
+- Click **Create Business** to finalize
 
-You can add more services and configure advanced options like add-ons and categories later from the Services page.
+After creation, SavSpot automatically applies the business preset for your selected type (default services, availability rules, and workflows). You are then redirected to the dashboard.
 
-### Step 5: Availability
-
-Set your standard business hours. Define which days of the week you accept bookings and the start and end times for each day. This becomes your default availability schedule.
-
-## After Onboarding
-
-Once you complete the wizard, you arrive at your dashboard at `/dashboard`. From there you can:
-
-- Create additional services at `/services`
-- Invite team members at `/settings/team`
-- Customize your branding at `/settings/branding`
-- Start accepting bookings
-
-> **Tip:** The onboarding wizard is a one-time setup. All values you enter can be modified later through the Settings pages, so do not worry about getting everything perfect on the first pass.
+> **Tip:** Your progress is saved in your browser. If you close the tab and return later, the wizard picks up where you left off. Use the **Start Over** button (visible on steps 2 and 3) to reset and begin again.

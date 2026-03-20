@@ -1,49 +1,35 @@
 # E-Signatures
 
-SavSpot includes built-in electronic signature support so your clients can sign contracts without printing, scanning, or mailing documents. The entire process happens online and is tracked for your records.
+SavSpot supports sending contracts to clients for signing. The signing process happens outside the admin dashboard — clients receive a link to review and sign contracts.
 
-## Electronic Signature Workflow
+## How Contract Signing Works
 
-The e-signature process follows these steps:
+1. **Create** a contract at `/contracts` (from scratch or using a template).
+2. **Send** the contract to the client using the Send action (available for Draft contracts).
+3. The client receives the contract and can review and sign it externally.
+4. Once signed, the contract status changes to **Signed** and the signed date is recorded.
 
-1. **Create** — You create a contract (from a template or from scratch) and finalize the terms.
-2. **Send** — You send the contract to the client for signing. They receive an email with a secure link.
-3. **Review** — The client opens the link and reviews the full contract.
-4. **Sign** — The client draws or types their signature and submits it.
-5. **Confirm** — Both you and the client receive a confirmation email with the signed contract.
+## Contract Statuses
 
-## How Clients Sign Contracts
+| Status | Meaning |
+|--------|---------|
+| **Draft** | Contract created, not yet sent |
+| **Sent** | Contract delivered to the client for signing |
+| **Signed** | Client has signed the contract |
+| **Voided** | Contract cancelled |
 
-When a client clicks the signing link in their email, they are taken to a secure page where they can:
+## Viewing Signed Contracts
 
-1. Read the full contract text.
-2. Scroll through all sections and terms.
-3. Enter their full legal name.
-4. Draw their signature using a mouse or touchscreen, or type it to generate a styled signature.
-5. Click **Sign Contract** to finalize.
+From the **Contracts** page (`/contracts`):
 
-> **Tip:** Let clients know to expect the signing email so it does not end up in their spam folder. Including a heads-up during your conversation goes a long way.
+- Filter by **Signed** status to see all completed contracts.
+- Each signed contract shows the **Signed Date** column.
+- Click a contract to view its details.
 
-## Signature Verification
+## Current Limitations
 
-Each signed contract includes verification details to ensure authenticity:
+- There is **no in-app signing interface** — the signing experience for clients happens outside the SavSpot admin dashboard.
+- There is **no signature drawing or typing UI** within the web app.
+- There is **no PDF download** of signed contracts from the contracts page.
 
-| Detail | Description |
-|--------|-------------|
-| Signer name | The full name entered by the signer |
-| Signer email | The email address the contract was sent to |
-| IP address | The IP address used at the time of signing |
-| Timestamp | The exact date and time the signature was submitted (UTC) |
-| Document hash | A unique hash of the contract content at the time of signing |
-
-## Signed Contract Storage and Access
-
-All signed contracts are stored securely in your SavSpot account. To access them:
-
-1. Navigate to `/contracts`.
-2. Filter by status to show **Signed** contracts.
-3. Click on any contract to view the full document, signature details, and a downloadable PDF.
-
-Signed contracts are retained for the lifetime of your account. You can download a PDF copy at any time for your own records or to share with the client.
-
-> **Tip:** Download and archive signed contracts periodically as part of your business record-keeping practices.
+> **Tip:** Let clients know to expect a contract email so it doesn't end up in their spam folder. A quick heads-up during your conversation helps ensure a smooth signing process.

@@ -1,49 +1,30 @@
 # KPIs and Metrics
 
-The Dashboard displays key performance indicators that help you track your business health at a glance. These metrics update in real time as bookings and payments are processed.
+The Dashboard displays four stat cards that give you a real-time snapshot of your business activity. These update automatically as bookings and payments are processed.
 
-## Available Metrics
+## Stat Cards
 
-| Metric | Description | Calculation |
-|--------|-------------|-------------|
-| **Total Bookings** | Number of bookings in the selected period | Count of all bookings created |
-| **Revenue** | Total income from completed bookings | Sum of payments for COMPLETED bookings |
-| **Client Count** | Number of unique clients served | Distinct clients with at least one booking |
-| **Completion Rate** | Percentage of bookings that were completed | COMPLETED bookings / (COMPLETED + CANCELLED + NO_SHOW) |
+| Metric | What It Shows | How It Is Calculated |
+|--------|---------------|----------------------|
+| **Today's Bookings** | Appointments today | Count of bookings with a start time matching today's date, excluding cancelled bookings |
+| **Revenue (Month)** | Income this month | Total revenue from payment stats for the current month, displayed in your business currency |
+| **New Clients** | Recent clients | Count of unique client IDs from bookings in the past 7 days |
+| **Pending Actions** | Items needing attention | Count of bookings with PENDING status that are awaiting your confirmation |
 
-## Time Period Filters
+## Important Notes
 
-You can view metrics across different time ranges to spot trends:
+- **No time period filters** -- The dashboard stat cards show fixed time ranges (today, this month, this week). For configurable date ranges and more detailed analytics, use the **Analytics** page at `/analytics`.
+- **Revenue** uses the payment stats API, which reflects actual payment data rather than booking prices.
+- **New Clients** is based on unique client IDs across recent bookings, not new account registrations.
+- **Pending Actions** highlights bookings using the Manual Review confirmation mode that need your attention.
 
-- **Today** -- Current day activity
-- **This Week** -- Monday through Sunday of the current week
-- **This Month** -- First through last day of the current month
-- **Custom Range** -- Select specific start and end dates
+## Using the Metrics
 
-> **Tip:** Compare weekly metrics over several weeks to identify your busiest days and plan staffing accordingly.
+The stat cards are designed for a quick daily check-in:
 
-## Understanding Your Metrics
+- A high **Pending Actions** count means you have bookings waiting for confirmation -- navigate to **Bookings** (`/bookings`) and filter by PENDING status to review them.
+- Track **Today's Bookings** to see your daily workload at a glance.
+- Monitor **Revenue (Month)** to compare against your targets.
+- Watch **New Clients** to gauge marketing effectiveness.
 
-### Total Bookings
-
-This counts all bookings regardless of status. A high booking count with a low completion rate may indicate issues with no-shows or cancellations that need attention.
-
-### Revenue
-
-Revenue reflects only completed and paid bookings. Pending or cancelled bookings are not included. This gives you an accurate picture of actual income rather than projected income.
-
-### Client Count
-
-Tracks unique clients, not total visits. A client who books three times in a month counts as one. Compare this against total bookings to understand your repeat booking rate.
-
-### Completion Rate
-
-Your completion rate is the percentage of finalized bookings that resulted in a completed appointment. A healthy completion rate for most service businesses is above 85%.
-
-| Rate | Interpretation |
-|------|----------------|
-| 90%+ | Excellent -- very few cancellations or no-shows |
-| 80-89% | Good -- some cancellations, consider reminder strategies |
-| Below 80% | Needs attention -- review cancellation policies and reminder settings |
-
-> **Tip:** If your completion rate is below 80%, enable automated booking reminders to reduce no-shows. See [Reminders and Confirmations](../booking-management/reminders-and-confirmations.md).
+> **Tip:** For detailed breakdowns, charts, and staff performance metrics, visit the **Analytics** page (`/analytics`).

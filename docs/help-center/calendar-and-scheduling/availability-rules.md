@@ -1,46 +1,49 @@
 # Availability Rules
 
-Availability rules define when clients can book appointments with your business. By setting your regular working hours, you ensure that only valid time slots appear on your booking page.
+Availability rules define your weekly working hours. Clients can only book appointments during the time slots you configure here.
 
-## Setting Up Availability
+## Accessing Availability Settings
 
-1. Navigate to **Settings** in the sidebar.
-2. Select **Availability**, or go directly to `/settings/availability`.
-3. Configure your hours for each day of the week.
-4. Click **Save**.
+Navigate to **Settings > Availability** (`/settings/availability`). This page requires the Admin role.
+
+## Adding a Rule
+
+1. Click **Add Rule** (plus icon) at the top of the page.
+2. Fill in the form:
+
+| Field | Details |
+|-------|---------|
+| **Day of Week** | Select from Sunday through Saturday |
+| **Start Time** | When your availability begins (defaults to 9:00 AM) |
+| **End Time** | When your availability ends (defaults to 5:00 PM) |
+
+3. Click **Add** to save the rule.
+
+Each rule creates a time block for one day of the week. To set up a full work week, add one rule per working day.
 
 ## Weekly Schedule
 
-The availability editor shows all seven days of the week. For each day, you can:
+Your current rules are listed under **Weekly Schedule**, sorted by day of week and then by start time. Each rule displays:
 
-- **Enable or disable** the day. Disabled days show no available slots.
-- **Set start and end times** for your working hours.
-- **Add multiple time blocks** per day to create gaps (e.g., a lunch break).
-
-| Day Configuration | Result |
-|-------------------|--------|
-| Enabled, 9:00 AM - 5:00 PM | Full-day availability |
-| Enabled, 9:00 AM - 12:00 PM and 1:00 PM - 5:00 PM | Available with a lunch break |
-| Disabled | No bookings accepted |
+| Column | Description |
+|--------|-------------|
+| **Day** | Day of the week |
+| **Start Time** | Displayed in 12-hour format (e.g., "9:00 AM") |
+| **End Time** | Displayed in 12-hour format (e.g., "5:00 PM") |
+| **Status** | Toggle between Active (green) and Inactive (gray) — click to switch |
+| **Actions** | Delete button (trash icon) |
 
 ## Adding Breaks
 
-To add a break during the day:
+To create a lunch break or other gap, add two rules for the same day:
 
-1. Click **Add Time Block** on the relevant day.
-2. Set the first block to end when your break starts (e.g., 9:00 AM - 12:00 PM).
-3. Set the second block to start when your break ends (e.g., 1:00 PM - 5:00 PM).
+1. First rule: 9:00 AM to 12:00 PM
+2. Second rule: 1:00 PM to 5:00 PM
 
-The gap between blocks is automatically treated as unavailable time.
-
-> **Tip:** If you take the same lunch break every day, set it up once and apply it across all working days to save time.
-
-## Per-Staff Availability
-
-If your business has multiple team members, each staff member can set their own availability rules. This allows different schedules for different roles. Staff availability is configured from the same `/settings/availability` page by selecting the team member from the staff dropdown.
+The gap between the two rules is automatically treated as unavailable time.
 
 ## How Availability Affects Booking
 
-SavSpot combines your availability rules with service duration and buffer time to calculate bookable slots. A 60-minute service with a 15-minute buffer requires a 75-minute window. If your availability ends at 5:00 PM, the last bookable slot for that service starts at 3:45 PM.
+SavSpot combines your availability rules with service duration and buffer times to calculate bookable slots. A 60-minute service with a 15-minute buffer after requires a 75-minute window. If your availability ends at 5:00 PM, the last bookable slot for that service starts at 3:45 PM.
 
-> **Tip:** After setting your availability, preview your booking page to confirm the time slots look correct from a client's perspective.
+> **Tip:** After setting your availability, preview your booking page to confirm the time slots look correct from a client's perspective. Use the **Preview Booking Page** button on the Branding settings page (`/settings/branding`).

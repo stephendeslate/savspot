@@ -1,61 +1,45 @@
 # Invoices
 
-SavSpot lets you create and send professional invoices to your clients. Use invoices to bill for services rendered, track payment status, and maintain financial records for your business.
+The Invoices page at `/invoices` provides a read-only view of all invoices generated through your bookings and payments.
 
-## Creating an Invoice
+## Viewing Invoices
 
-1. Navigate to **Invoices** (`/invoices`).
-2. Click **Create Invoice**.
-3. Select the client from your client list.
-4. Add line items with descriptions, quantities, and prices.
-5. Apply any applicable tax rates.
-6. Review the totals and save the invoice.
+Navigate to **Invoices** in the sidebar, or go directly to `/invoices`.
 
-> **Tip:** Invoices created from completed bookings will automatically populate with the service details and pricing.
+### Filters
 
-## Invoice Fields
+| Filter | Description |
+|--------|-------------|
+| **Status** | Filter by invoice status (All, Draft, Sent, Paid, Overdue, Void) |
+| **Search** | Search by client name or email |
 
-Each invoice includes the following information:
+### Invoice Table
 
-| Field | Description |
-|---|---|
-| Invoice number | Auto-generated unique identifier |
-| Client | The client being billed |
-| Line items | Individual services or products with quantity and price |
-| Subtotal | Sum of all line items before tax |
-| Tax | Calculated from applied tax rates |
-| Total | Final amount due including tax |
-| Due date | When payment is expected |
-| Notes | Optional notes or terms for the client |
+| Column | Description |
+|--------|-------------|
+| **Invoice #** | Unique invoice number |
+| **Client** | Client name |
+| **Amount** | Invoice total |
+| **Status** | Color-coded status badge |
+| **Due Date** | Payment due date |
+| **Created** | When the invoice was created |
 
-## Sending Invoices
-
-Once an invoice is ready, you can send it directly to your client:
-
-1. Open the invoice from the **Invoices** page.
-2. Click **Send Invoice**.
-3. The client receives an email with the invoice details and a link to pay online.
-
-Clients can view and pay the invoice through a secure payment page powered by Stripe.
+Results are paginated at 20 invoices per page.
 
 ## Invoice Statuses
 
-Invoices progress through the following statuses:
-
 | Status | Description |
-|---|---|
-| **Draft** | Invoice is being prepared and has not been sent |
-| **Sent** | Invoice has been emailed to the client |
-| **Paid** | Client has completed payment |
-| **Overdue** | Payment due date has passed without payment |
+|--------|-------------|
+| **Draft** | Invoice created but not yet sent |
+| **Sent** | Invoice sent to the client |
+| **Paid** | Payment received in full |
+| **Overdue** | Past due date without full payment |
+| **Void** | Invoice cancelled and no longer valid |
 
-> **Tip:** Keep an eye on overdue invoices and follow up promptly. You can re-send an invoice reminder directly from the invoice detail page.
+## Current Limitations
 
-## Managing Invoices
+The Invoices page is a **read-only monitoring view**. Invoices are automatically generated when bookings with payments are created. You cannot create, send, edit, void, or download invoices from this page.
 
-From the **Invoices** page you can:
+To manage invoices and issue refunds, use the **Stripe Dashboard** (accessible from Settings > Payments > **Open Stripe Dashboard**).
 
-- Filter invoices by status, client, or date range
-- View payment history for each invoice
-- Download invoices as PDF for your records
-- Void an invoice that is no longer needed
+> **Tip:** Check the Invoices page regularly to monitor overdue payments and follow up with clients as needed.

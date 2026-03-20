@@ -1,44 +1,38 @@
 # Roles and Permissions
 
-SavSpot uses a role-based access control system to manage what each team member can see and do within your workspace. Understanding the role hierarchy helps you assign the right level of access to each person on your team.
+SavSpot uses a role-based access control system to manage what each team member can see and do. Roles follow a strict hierarchy: **Owner > Admin > Staff**.
 
-## Role Hierarchy
+## Role Descriptions
 
-Roles follow a strict hierarchy: **Owner > Admin > Staff**. Each role inherits the permissions of the roles below it, with additional capabilities at each level.
-
-- **Owner** -- Full control over the workspace, including billing, account deletion, and all administrative functions. There is one Owner per workspace.
-- **Admin** -- Can manage team members, services, settings, and client data. Cannot access billing or delete the workspace.
-- **Staff** -- Can view and manage their own bookings, communicate with clients, and update their profile and availability.
+- **Owner** — Full control over the workspace, including billing, subscription management, and all administrative functions. There is one Owner per workspace.
+- **Admin** — Can manage team members, services, settings, and client data. Cannot access billing or delete the workspace. Pages like Team, Service Categories, Branding, Calendar Settings, and Analytics require Admin access.
+- **Staff** — Can view and manage bookings and services assigned to them. Cannot access admin-level settings or team management.
 
 ## Permissions by Role
 
 | Permission | Owner | Admin | Staff |
-|---|---|---|---|
-| View own bookings | Yes | Yes | Yes |
-| Manage own availability | Yes | Yes | Yes |
-| Message clients | Yes | Yes | Yes |
-| View all bookings | Yes | Yes | No |
-| Create and edit services | Yes | Yes | No |
-| Manage clients | Yes | Yes | No |
+|------------|-------|-------|-------|
+| View and manage bookings | Yes | Yes | Yes |
+| View calendar | Yes | Yes | Yes |
+| Create walk-in bookings | Yes | Yes | Yes |
+| View client directory | Yes | Yes | Yes |
+| Manage services | Yes | Yes | No |
+| Manage service categories | Yes | Yes | No |
+| Manage team members | Yes | Yes | No |
 | Invite team members | Yes | Yes | No |
-| Remove team members | Yes | Yes | No |
-| Change member roles | Yes | Yes | No |
-| Configure payment settings | Yes | Yes | No |
-| Configure tax rates | Yes | Yes | No |
-| Manage communications settings | Yes | Yes | No |
-| Access billing and subscription | Yes | No | No |
+| Configure settings (branding, availability, notifications) | Yes | Yes | No |
+| Access analytics and insights | Yes | Yes | No |
+| Manage billing and subscription | Yes | No | No |
 | Transfer ownership | Yes | No | No |
-| Delete workspace | Yes | No | No |
-
-> **Tip:** Follow the principle of least privilege. Assign the Staff role to team members who only need to manage their own schedule and client interactions. Promote to Admin only when broader management access is required.
 
 ## Changing Roles
 
-Only Owners and Admins can change a team member's role. To update a role:
+Only Owners and Admins can change a team member's role:
 
 1. Navigate to **Settings > Team** (`/settings/team`).
 2. Find the team member in the list.
-3. Select the new role from the dropdown.
-4. Save the change.
+3. Use the role dropdown to select **Admin** or **Staff**.
 
-> **Tip:** The Owner role cannot be assigned through the role dropdown. Ownership must be transferred explicitly through the account settings, and only the current Owner can initiate a transfer.
+The Owner role cannot be assigned through the dropdown.
+
+> **Tip:** Follow the principle of least privilege. Assign the Staff role to team members who only need to manage their own schedule. Promote to Admin only when broader management access is required.

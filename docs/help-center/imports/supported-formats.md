@@ -1,55 +1,40 @@
 # Supported Formats
 
-Prepare your data files correctly to ensure a smooth import into SavSpot.
+SavSpot supports importing data in two formats.
 
 ## Accepted File Formats
 
-| Format | Extension | Notes |
-|--------|-----------|-------|
-| **CSV** | `.csv` | Comma-separated values. Must use UTF-8 encoding. |
-| **Excel** | `.xlsx` | Microsoft Excel format. Only the first sheet is read. |
+| Format | Description |
+|--------|-------------|
+| **CSV** | Comma-separated values with a header row. Must use UTF-8 encoding. |
+| **JSON** | JSON array of records. Each record is an object with field names as keys. |
 
-## File Requirements
+> **Note:** XLSX (Excel) format is **not supported**. Convert Excel files to CSV before importing.
 
-- **Encoding** — Files must be saved with UTF-8 encoding. Non-UTF-8 files may produce garbled characters for names with accents or special characters.
-- **Size limit** — Maximum file size is 10MB per upload. For larger datasets, split your file into multiple parts and import them sequentially.
-- **Header row** — The first row of your file must contain column headers. SavSpot uses these headers to suggest field mappings during the import process.
+## Format Details
 
-## Column Requirements by Data Type
+### CSV
 
-### Clients
+- First row must contain column headers.
+- Use UTF-8 encoding to avoid issues with special characters.
+- Fields containing commas should be enclosed in double quotes.
 
-| Column | Required | Format | Example |
-|--------|----------|--------|---------|
-| `email` | Yes | Valid email address | `jane@example.com` |
-| `first_name` | Yes | Text | `Jane` |
-| `last_name` | Yes | Text | `Smith` |
-| `phone` | No | E.164 or local format | `+15551234567` |
-| `notes` | No | Text | `Prefers afternoon appointments` |
+### JSON
 
-### Services
+- File must contain a JSON array of objects.
+- Each object represents one record.
+- Field names should match the expected import fields.
 
-| Column | Required | Format | Example |
-|--------|----------|--------|---------|
-| `name` | Yes | Text | `Haircut` |
-| `duration` | Yes | Minutes (integer) | `30` |
-| `price` | Yes | Decimal (major units) | `45.00` |
-| `description` | No | Text | `Standard haircut and styling` |
-| `category` | No | Text | `Hair` |
+Example:
+```json
+[
+  { "email": "jane@example.com", "first_name": "Jane", "last_name": "Smith" },
+  { "email": "john@example.com", "first_name": "John", "last_name": "Doe" }
+]
+```
 
-### Bookings
+## Current Limitations
 
-| Column | Required | Format | Example |
-|--------|----------|--------|---------|
-| `client_email` | Yes | Valid email (must match existing client) | `jane@example.com` |
-| `service_name` | Yes | Text (must match existing service) | `Haircut` |
-| `date` | Yes | `YYYY-MM-DD` | `2026-03-15` |
-| `time` | Yes | `HH:MM` (24-hour) | `14:30` |
-| `status` | No | `confirmed`, `completed`, `cancelled` | `completed` |
-| `notes` | No | Text | `Arrived 5 minutes early` |
+There is no file upload interface in the web app. Import jobs are initiated through the API, and the Imports page (`/imports`) provides a read-only view of job status and results.
 
-## Template Downloads
-
-SavSpot provides pre-formatted template files for each data type. Download them from the **Imports** page by clicking **Download Template** next to the data type you want to import. Templates include the correct headers and a sample row to guide formatting.
-
-> **Tip:** Open your CSV in a plain text editor before importing to verify the encoding is UTF-8. Spreadsheet applications sometimes save CSV files in a different encoding by default.
+> **Tip:** If you're migrating from another platform, export your data as CSV and use the API to create an import job. See [API Keys](../settings/api-keys.md) for API access details.
