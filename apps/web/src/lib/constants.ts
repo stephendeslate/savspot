@@ -55,6 +55,9 @@ export const ROUTES = {
   SETTINGS_NOTIFICATION_PREFERENCES: '/settings/notification-preferences',
   SETTINGS_VOICE: '/settings/voice',
 
+  // Help
+  HELP: '/help',
+
   // Additional Features
   IMPORTS: '/imports',
   MESSAGES: '/messages',

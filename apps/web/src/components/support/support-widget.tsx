@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { HelpCircle } from 'lucide-react';
+import Link from 'next/link';
+import { HelpCircle, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@savspot/ui';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Separator } from '@savspot/ui';
+import { ROUTES } from '@/lib/constants';
 import { TicketForm } from './ticket-form';
 
 export function SupportWidget() {
@@ -32,6 +34,15 @@ export function SupportWidget() {
               Describe your issue and we will get back to you as soon as possible.
             </DialogDescription>
           </DialogHeader>
+          <Link
+            href={ROUTES.HELP}
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-colors hover:bg-secondary"
+          >
+            <BookOpen className="h-4 w-4 text-primary" />
+            Browse Help Center
+          </Link>
+          <Separator />
           <TicketForm onSuccess={() => {
             // Keep dialog open so user sees the success message
           }} />

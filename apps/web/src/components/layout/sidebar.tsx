@@ -10,6 +10,7 @@ import {
   FileCheck,
   FileText,
   LayoutDashboard,
+  HelpCircle,
   Lightbulb,
   MessageSquare,
   ScrollText,
@@ -74,6 +75,7 @@ const NAV_SECTIONS: NavSection[] = [
       { name: 'Imports', href: ROUTES.IMPORTS, icon: Upload },
       { name: 'Insights', href: ROUTES.INSIGHTS, icon: Lightbulb },
       { name: 'Settings', href: ROUTES.SETTINGS, icon: Settings },
+      { name: 'Help Center', href: ROUTES.HELP, icon: HelpCircle },
     ],
   },
 ];
