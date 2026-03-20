@@ -1,47 +1,51 @@
 # Service Categories
 
-Service categories help you organize your offerings into logical groups. When clients visit your booking page, categories provide structure so they can quickly find the service they need.
+Service categories help you organize your offerings into logical groups. When clients visit your booking page, services are grouped under their assigned categories.
 
-## Why Use Categories?
+## Accessing Categories
 
-Without categories, all services appear in a single flat list. As your service menu grows, this becomes harder to navigate. Categories let you group related services together. For example, a salon might use categories like "Haircuts," "Coloring," and "Treatments."
+Navigate to **Settings > Service Categories** (`/settings/service-categories`). This page requires the Admin role.
 
 ## Creating a Category
 
-1. Navigate to **Settings** in the sidebar.
-2. Select **Service Categories**, or go directly to `/settings/service-categories`.
-3. Click **Add Category**.
-4. Enter a category name and optional description.
-5. Click **Save**.
+1. Click **Add Category** (plus icon).
+2. Fill in the dialog fields:
 
-## Editing and Reordering Categories
+| Field | Required | Details |
+|-------|----------|---------|
+| **Name** | Yes | Category name (e.g., "Hair Services") |
+| **Description** | No | Brief description (e.g., "Cuts, coloring, and styling") |
+| **Sort Order** | No | Numeric value to control display order (e.g., 1, 2, 3). Lower numbers appear first |
 
-From the `/settings/service-categories` page, you can:
+3. Click **Create**.
 
-- **Rename** a category by clicking on its name.
-- **Reorder** categories by dragging them into your preferred display order.
-- **Delete** a category. Services in a deleted category become uncategorized but are not removed.
+## Managing Categories
 
-> **Tip:** Plan your category structure before creating services. It is easier to assign services to categories during creation than to reorganize them later.
+The categories page displays a table with the following columns:
+
+| Column | Description |
+|--------|-------------|
+| **Name** | Category name |
+| **Description** | Category description |
+| **Services** | Number of services assigned to this category |
+| **Sort Order** | Display order value |
+| **Created** | Date the category was created |
+| **Actions** | Menu with Edit and Delete options |
+
+### Editing a Category
+
+Click the actions menu (three dots) and select **Edit**. Update the fields and click **Update**.
+
+### Deleting a Category
+
+Click the actions menu and select **Delete**. If the category has services assigned, a warning appears: "This category has X service(s) assigned. They will become uncategorized." If no services are assigned: "This action cannot be undone."
 
 ## Assigning Services to Categories
 
-You can assign a category when creating or editing a service:
+Categories are assigned when creating or editing a service. In the service form's Advanced Settings, select a category from the **Category** dropdown. Each service belongs to at most one category.
 
-1. Open the service editor (from `/services/new` or an existing service).
-2. Select a category from the **Category** dropdown.
-3. Save the service.
+## How Categories Display
 
-Each service belongs to at most one category. Services without a category appear in an "Other" or uncategorized section on the booking page.
-
-## How Categories Display on the Booking Page
-
-On your public booking page, categories appear as section headers or filter tabs depending on your theme. Clients can browse by category or view all services at once. The display order matches the order you set on the categories settings page.
-
-| Scenario | Booking Page Behavior |
-|----------|----------------------|
-| No categories created | All services in a single list |
-| Some services uncategorized | Uncategorized services appear at the end |
-| Categories reordered | Booking page reflects the new order immediately |
+On your public booking page, services are grouped under their category headers. The display order matches the sort order you configured. Services without a category appear in an uncategorized section.
 
 > **Tip:** Use clear, client-friendly category names. Internal jargon may confuse visitors unfamiliar with your business.

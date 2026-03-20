@@ -1,37 +1,59 @@
 # Client Booking Experience
 
-This article describes the booking flow from your client's perspective when they book through the portal at `/portal/bookings`.
+This article describes the booking flow from your client's perspective when they book through your public booking page or manage appointments in the client portal.
 
-## Step-by-Step Booking Flow
+## Booking Through the Public Page
 
-1. **Select a venue** -- If your business has multiple locations, the client chooses their preferred venue first. This step is skipped for single-venue businesses.
-2. **Choose a service** -- The client browses your service catalog and selects the service they want. Service descriptions, durations, and prices are displayed.
-3. **Pick a date** -- A calendar view shows available dates. Days with no availability are grayed out.
-4. **Select a time slot** -- Available time slots for the chosen date are displayed. Slots are based on your business hours, service duration, and existing bookings.
-5. **Enter details** -- The client provides their name, email, phone number, and any additional information your service requires.
-6. **Apply a discount** -- If the client has a discount code, they can enter it here to see the adjusted price.
-7. **Confirm and pay** -- The client reviews their booking summary and completes payment if required. For free services or pay-later configurations, this step confirms without payment.
+When a client visits your booking page at `savspot.co/book/{your-slug}`, they are guided through a dynamic set of steps. The steps shown depend on the service selected:
 
-## What Clients See During Booking
+| Step | When It Appears |
+|------|-----------------|
+| **Service Selection** | Always — services grouped by category |
+| **Provider Selection** | When the service has multiple providers |
+| **Venue Selection** | Placeholder — coming soon |
+| **Date & Time** | Always — shows available slots |
+| **Guest Details** | When guest config is enabled |
+| **Add-Ons** | When the service has active add-ons |
+| **Intake Form** | When the service has an intake form |
+| **Client Details** | Always — name, email, phone |
+| **Payment** | When the service has a price > 0 and Stripe is connected |
+| **Review** | Always — booking summary |
+| **Confirmation** | Always — success page |
 
-| Element | Description |
-|---------|-------------|
-| Service card | Name, description, duration, and price |
-| Availability calendar | Monthly view with available dates highlighted |
-| Time slot list | Available start times for the selected date |
-| Booking summary | Service, date, time, duration, and total price |
-| Payment form | Secure card input powered by Stripe |
+A simple service might show only 5–6 steps, while a fully configured service could show all 11.
 
-## After Booking
+## Managing Bookings in the Portal
 
-Once a booking is confirmed, the client receives:
+From **My Bookings** (`/portal/bookings`), clients can:
 
-- An on-screen confirmation with the booking details.
-- A confirmation email with the date, time, venue, and a link to manage the booking.
-- Automated reminders based on your workflow configuration.
+- **Filter** by status: All Bookings, Upcoming, Completed, or Cancelled
+- **View details** by clicking on a booking
+- **Reschedule** an upcoming booking (Pending or Confirmed status) by selecting a new date and time
+- **Cancel** a booking with an optional reason
 
-> Tip: The booking flow is fully responsive and works on mobile devices. Clients can book from their phone just as easily as from a desktop browser.
+### Reschedule Limits
 
-## Managing Bookings
+Clients can reschedule a limited number of times per booking (default: 3). The reschedule dialog shows how many reschedules remain.
 
-From `/portal/bookings`, clients can view their upcoming and past appointments. For upcoming bookings, they can reschedule or cancel according to your cancellation policy. Cancelled bookings display the cancellation reason and any refund information.
+### Cancellation Policy
+
+When cancelling, the dialog displays the applicable cancellation policy:
+
+| Policy | Display | Meaning |
+|--------|---------|---------|
+| **Free cancellation** | Green banner | No charge |
+| **Late cancellation fee** | Yellow banner | A fee amount is shown |
+| **No refund** | Red banner | Full amount retained |
+
+## Booking Detail View
+
+The booking detail page shows:
+
+- **Service name** and status badge
+- **Booking details**: Date, time range, duration, total amount, booked-on date
+- **Business contact**: Name, email (clickable), phone (clickable)
+- **Status history**: Timeline of state transitions with timestamps
+- **Payment info**: Total amount with per-payment breakdown (status, amount, method)
+- **Notes** (if present)
+
+> **Tip:** The booking flow is fully responsive and works on mobile devices. Clients can book from their phone just as easily as from a desktop browser.

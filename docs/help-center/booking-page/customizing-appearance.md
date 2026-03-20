@@ -1,39 +1,56 @@
 # Customizing Appearance
 
-Brand your booking page to match your business identity using SavSpot's appearance settings.
+Brand your booking page to match your business identity using SavSpot's branding settings.
 
 ## Accessing Branding Settings
 
-1. Go to **Settings > Branding** (`/settings/branding`) in your dashboard.
-2. Make your changes using the options described below.
-3. Use the live preview panel to see changes in real time.
-4. Click **Save** when you are satisfied with the result.
+Navigate to **Settings > Branding** (`/settings/branding`). This page requires the Admin role.
 
 ## Branding Options
 
-| Setting | Description |
-|---------|-------------|
-| **Logo** | Upload your business logo (PNG, JPG, or SVG, max 2MB). Displayed at the top of your booking page. |
-| **Primary color** | The main accent color used for buttons, links, and highlights. Enter a hex code or use the color picker. |
-| **Background color** | The page background color. Use a light color for readability. |
-| **Welcome message** | A short message displayed at the top of your booking page, below the logo. Use it to greet clients or highlight promotions. |
+The branding page has five configuration cards:
 
-## Service Display Options
+### Brand Color
 
-You can control how services appear on your booking page:
+Choose a primary color for your booking page buttons and accents.
 
-- **Card layout** — Each service is displayed as a card with its name, description, duration, and price. Best for businesses with fewer than ten services.
-- **List layout** — Services are shown in a compact list. Better for businesses with many service options.
-- **Category grouping** — When enabled, services are organized under their assigned categories with collapsible sections.
+- Use the **color picker** to select visually, or type a hex code directly (e.g., `#6366f1`).
+- A preview shows a color swatch and a styled "Book Now" button using your selected color.
+- Default color: `#6366f1` (indigo).
 
-To change the layout, go to **Settings > Branding** and scroll to the **Service Display** section.
+### Logo
 
-## Preview Before Publishing
+Upload your business logo displayed on the booking page header.
 
-The branding settings page includes a live preview that updates as you make changes. The preview shows how your booking page will appear on both desktop and mobile screen sizes.
+- Click **Upload Logo** to select an image file.
+- Recommended: Square image, at least 200x200px. PNG or JPG.
+- Click the X button to remove the current logo.
 
-1. Toggle between **Desktop** and **Mobile** views using the buttons above the preview panel.
-2. Review the full booking flow by clicking through the preview steps.
-3. Only click **Save** when you are ready to publish the changes to your live booking page.
+### Cover Photo
 
-> **Tip:** Choose a primary color with sufficient contrast against white text to ensure buttons and links remain easy to read. A contrast ratio of at least 4.5:1 is recommended for accessibility.
+A banner image displayed at the top of your booking page.
+
+- Click **Upload Cover Photo** to select an image file.
+- Recommended: 1200x400px or wider. PNG or JPG.
+- Click the X button to remove the current cover photo.
+
+### Booking Page Description
+
+A custom message shown to clients on your public booking page.
+
+- Textarea with a maximum of 500 characters.
+- Use it to describe your business, specialties, or what clients should expect.
+
+### Business Category Label
+
+Customize how your business type appears on your booking page.
+
+- Enter a custom label (max 50 characters), or leave blank to use the default based on your business category.
+- Default labels: "Venue / Event Space", "Salon / Barbershop", "Studio", "Fitness / Wellness", "Professional Services", or "Other".
+
+## Saving and Previewing
+
+- Click **Save Changes** at the bottom to apply your branding.
+- Click **Preview Booking Page** to open your public booking page (`/book/{your-slug}`) in a new tab and see how clients will experience it.
+
+> **Tip:** Choose a brand color with sufficient contrast against white text to ensure buttons remain easy to read. A contrast ratio of at least 4.5:1 is recommended for accessibility.

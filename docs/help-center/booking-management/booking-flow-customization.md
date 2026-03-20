@@ -1,60 +1,41 @@
 # Booking Flow Customization
 
-SavSpot allows you to customize the client-facing booking experience. The booking flow determines what steps and fields clients see when they schedule an appointment through your public booking page.
+The Booking Flow page shows which steps clients encounter when booking through your public booking page. This page is read-only — the steps are determined automatically based on your service configuration.
 
-## Accessing Flow Settings
+## Accessing the Booking Flow
 
-1. Navigate to **Settings** in the sidebar
-2. Select **Booking Flow** or go directly to `/settings/booking-flow`
+Navigate to **Settings > Booking Flow** (`/settings/booking-flow`) to see the current step configuration.
 
-## Configurable Steps
+## How Steps Are Determined
 
-The booking flow is composed of steps that clients move through sequentially. You can control which steps appear and what information is collected at each stage.
+The booking flow is dynamic. SavSpot resolves which steps to show for each booking session based on the service the client selects. Up to 11 steps can appear:
 
-### Service Selection
+| Step | When It Appears |
+|------|-----------------|
+| **Service Selection** | Always |
+| **Provider Selection** | When the service has multiple assigned providers |
+| **Venue Selection** | Placeholder — coming soon |
+| **Date & Time** | Always |
+| **Guest Details** | When the service has guest config enabled |
+| **Add-Ons** | When the service has active add-ons |
+| **Intake Form** | When the service has an intake form configured |
+| **Client Details** | Always (name, email, phone) |
+| **Payment** | When the service has a price greater than zero and Stripe is connected |
+| **Review** | Always |
+| **Confirmation** | Always |
 
-Clients choose from your active services. You can control:
+## What You See on This Page
 
-- Whether to show service descriptions
-- Whether to display prices
-- Whether to show estimated durations
-- How services are grouped (by category or flat list)
+The Booking Flow page displays which steps are currently active and links to the relevant configuration pages where you can change the underlying settings. For example:
 
-### Client Information
+- To add providers to a service, go to **Services > [Service] > Providers** (`/services/[id]/providers`)
+- To configure add-ons, go to **Services > [Service] > Add-Ons** (`/services/[id]/addons`)
+- To set up payments, go to **Settings > Payments** (`/settings/payments`)
 
-Configure which fields are required, optional, or hidden:
+> **Tip:** The fewer steps in your booking flow, the higher your conversion rate. Only enable features (add-ons, intake forms, guest config) when they add genuine value to the booking experience.
 
-| Field | Options | Default |
-|-------|---------|---------|
-| **Name** | Required (always) | Required |
-| **Email** | Required / Optional | Required |
-| **Phone** | Required / Optional / Hidden | Optional |
-| **Notes** | Shown / Hidden | Shown |
+## Per-Service Differences
 
-> **Tip:** Requiring a phone number enables SMS reminders, which significantly reduce no-show rates. Consider making it required if no-shows are a concern.
+Because steps are resolved per service, different services can have different booking flows. A simple service with fixed pricing and no add-ons might show only 5 steps, while a complex service with providers, add-ons, and an intake form could show all 11.
 
-### Date and Time Selection
-
-Control how availability is presented to clients:
-
-- Calendar view or list view for available dates
-- Number of days shown in advance
-- Slot display format (exact times or time ranges)
-
-### Confirmation
-
-Customize the final step where clients review and confirm their booking:
-
-- Show a booking summary with all selected details
-- Display cancellation policy text
-- Include terms and conditions acceptance
-
-## Preview Your Booking Flow
-
-After making changes, use the preview function to see exactly what your clients experience. This shows the booking flow as it appears on your public booking page without creating a real booking.
-
-> **Tip:** Keep the booking flow as short as possible. Every additional required field increases the chance that a client abandons the booking process. Only collect information you genuinely need.
-
-## Per-Service Overrides
-
-Some booking flow settings can be overridden on a per-service basis. For example, a consultation service might require a notes field while a standard haircut does not. Configure these overrides in the individual service settings.
+You can review how each service's booking flow looks by visiting your public booking page and selecting different services.

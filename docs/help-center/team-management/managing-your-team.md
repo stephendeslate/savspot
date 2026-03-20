@@ -1,53 +1,44 @@
 # Managing Your Team
 
-The Team settings page gives you a centralized view of everyone in your workspace. From here you can manage roles, update profiles, and handle team member access.
+The Team page gives you a centralized view of everyone in your workspace. From here you can manage roles, view pending invitations, and remove team members.
 
-## Viewing the Team List
+## Accessing the Team Page
 
-Navigate to **Settings > Team** (`/settings/team`) to see all current and pending team members. The list displays:
+Navigate to **Settings > Team** (`/settings/team`). This page requires the Admin role.
+
+## Team Members
+
+The team members table displays:
 
 | Column | Description |
-|---|---|
-| Name | Team member's full name |
-| Email | Their registered email address |
-| Role | Current role (Owner, Admin, or Staff) |
-| Status | Active, Pending (invitation sent), or Inactive |
-| Joined | Date the member joined your workspace |
-
-You can search and filter the list by role or status to quickly find specific team members.
+|--------|-------------|
+| **Name** | Team member's full name. Shows "(you)" next to your own name |
+| **Email** | Their registered email address |
+| **Role** | Current role badge: Owner (purple), Admin (blue), or Staff (gray) |
+| **Actions** | Remove button (trash icon) |
 
 ## Updating Member Roles
 
 To change a team member's role:
 
-1. Find the member on the Team settings page.
-2. Click on their name or the edit icon to open their profile.
-3. Select a new role from the role dropdown.
-4. Save your changes.
+1. Find the member in the Team Members table.
+2. Click the role dropdown next to their name.
+3. Select the new role: **Admin** or **Staff**.
 
-Role changes take effect immediately. The team member will have access to their new permissions the next time they load a page.
-
-> **Tip:** Before promoting someone to Admin, make sure they understand the additional capabilities they will have, including access to all bookings, client data, and business settings.
+Role changes take effect immediately. You cannot change the Owner's role, and you cannot change your own role.
 
 ## Removing Team Members
 
-If a team member leaves your business or no longer needs access:
+1. Click the trash icon next to the member you want to remove.
+2. A confirmation dialog appears: "Are you sure you want to remove [name] from your team? They will lose access to your business immediately."
+3. Click **Remove Member** to confirm.
 
-1. Navigate to **Settings > Team** (`/settings/team`).
-2. Find the member you want to remove.
-3. Click **Remove** and confirm the action.
-4. The member immediately loses access to the workspace.
+You cannot remove the workspace Owner or yourself. Removed members' historical data (past bookings) is retained.
 
-Removed members' historical data (past bookings, messages) is retained for your records. Only their active access is revoked.
+## Pending Invitations
 
-> **Tip:** You cannot remove the workspace Owner. To remove an Owner, ownership must first be transferred to another Admin.
+Pending invitations appear in a separate section below the team members table with columns: Email, Role, Status, and Actions (revoke).
 
-## Team Member Profiles and Availability
+See [Inviting Team Members](./inviting-team-members.md) for details on sending and managing invitations.
 
-Each team member has a profile that clients may see when booking:
-
-- **Display name** -- The name shown to clients
-- **Bio** -- A short description of the team member's expertise
-- **Availability** -- Working hours and days the member is available for bookings
-
-Team members can update their own profile and availability settings. Admins and Owners can also edit these on behalf of any team member from the Team settings page.
+> **Tip:** Before promoting someone to Admin, make sure they understand the additional capabilities, including access to all bookings, client data, and business settings.

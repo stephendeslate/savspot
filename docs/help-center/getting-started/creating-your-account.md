@@ -1,45 +1,39 @@
 # Creating Your Account
 
-Getting started with SavSpot takes just a few minutes. Visit `/register` to create your account using either email or Google authentication.
+Sign up for SavSpot to start managing your service business. You can create an account using email or a social provider.
 
 ## Sign-Up Options
 
-### Email Registration
+SavSpot offers three ways to create an account:
 
-1. Navigate to `/register`
-2. Fill in the registration form:
-   - **Full Name** -- Your first and last name
-   - **Email Address** -- A valid email you have access to
-   - **Password** -- Must meet minimum security requirements
-3. Click **Create Account**
-4. Check your inbox for the verification email
-5. Click the verification link to activate your account
+- **Google** -- Click **Sign up with Google** and authorize with your Google account
+- **Apple** -- Click **Sign up with Apple** and authorize with your Apple ID
+- **Email** -- Fill out the registration form below the social buttons
 
-### Google OAuth
+## Email Registration
 
-1. Navigate to `/register`
-2. Click **Continue with Google**
-3. Select your Google account and authorize SavSpot
-4. Your account is created and verified automatically
+Navigate to `/register` and fill in the following fields:
 
-> **Tip:** Google OAuth skips the email verification step entirely, making it the fastest way to get started.
+| Field | Required | Details |
+|-------|----------|---------|
+| **First Name** | Yes | Your given name |
+| **Last Name** | Yes | Your family name |
+| **Email** | Yes | Must be unique across SavSpot |
+| **Business Name** | No | Optional -- you can set this during onboarding instead |
+| **Password** | Yes | Minimum 8 characters, must include at least one uppercase letter, one lowercase letter, and one number |
+| **Confirm Password** | Yes | Must match the password field |
 
-## Email Verification
+Click **Create account** to register. After successful registration, you are redirected to the dashboard.
 
-If you registered with email, you must verify your address before accessing the platform. The verification email is sent immediately after registration.
-
-| Situation | Action |
-|-----------|--------|
-| Email not received | Check your spam/junk folder, then request a new verification email |
-| Link expired | Request a new verification email from the login page |
-| Wrong email used | Register again with the correct email address |
+> **Tip:** If an account already exists with your email address, you will see an error message. Use the **Sign in** link at the bottom of the page instead, or use **Forgot password** to recover access.
 
 ## After Registration
 
-Once your account is verified, you will be directed to the onboarding wizard. This guided setup walks you through configuring your business name, type, timezone, first service, and availability.
+Once your account is created, you land on the dashboard. If you have not yet set up a business, you will see a prompt to **Complete Onboarding**. See [Onboarding Wizard](./onboarding-wizard.md) for the next steps.
 
-> **Tip:** Have your business details ready before starting registration -- you will move directly into onboarding after verifying your email.
+## Other Auth Pages
 
-## Account Security
-
-SavSpot stores passwords using industry-standard hashing. We recommend using a unique password that you do not reuse across other services.
+- **Forgot Password** (`/forgot-password`) -- Request a password reset email
+- **Reset Password** (`/reset-password`) -- Set a new password from the reset link
+- **Verify Email** (`/verify-email`) -- Confirm your email address
+- **Accept Invitation** (`/accept-invitation`) -- Join an existing team via an invitation link

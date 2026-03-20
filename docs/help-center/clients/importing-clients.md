@@ -1,55 +1,51 @@
 # Importing Clients
 
-If you are migrating from another booking system or have an existing client list, you can bulk import clients from a CSV file. This saves you from adding each client manually.
+The Imports page at `/imports` provides a read-only view of data import jobs. It shows the status and results of import operations.
 
-## Preparing Your CSV File
+## Viewing Import Jobs
 
-Your CSV file must include a header row with column names. SavSpot uses the headers to map each column to the correct client field.
+Navigate to **Imports** in the sidebar, or go directly to `/imports`.
 
-### Required Fields
+### Status Tabs
 
-| Column Header | Description |
-|---------------|-------------|
-| **name** | Client's full name. Can be a single column or split into `first_name` and `last_name`. |
-| **email** | Client's email address. Must be unique across your client directory. |
+Filter import jobs by status using the tabs at the top:
 
-### Optional Fields
+| Tab | Description |
+|-----|-------------|
+| **All** | All import jobs |
+| **Pending** | Jobs waiting to be processed |
+| **Processing** | Jobs currently being processed |
+| **Completed** | Successfully finished jobs |
+| **Failed** | Jobs that encountered errors |
 
-| Column Header | Description |
-|---------------|-------------|
-| **phone** | Phone number in any format. SavSpot normalizes formatting on import. |
-| **notes** | A note to attach to the client's profile. |
+### Import Job Table
 
-### Example CSV
+| Column | Description |
+|--------|-------------|
+| **Import Type** | The type of data being imported |
+| **Source Platform** | Where the data came from |
+| **Status** | Status badge (Pending/Processing/Completed/Failed) |
+| **Records** | Processed count / Total count (e.g., "45 / 50") |
+| **Errors** | Number of errors (red text if > 0) |
+| **Date** | When the import was created |
 
-```
-name,email,phone,notes
-Jane Smith,jane@example.com,555-0101,Prefers afternoon appointments
-Alex Johnson,alex@example.com,555-0102,
-Maria Garcia,maria@example.com,,Referred by Jane Smith
-```
+Click any row to expand a detail panel showing progress information.
 
-## Importing the File
+### Error Reports
 
-1. Navigate to **Imports**, or go directly to `/imports`.
-2. Click **Import Clients**.
-3. Select your CSV file or drag it into the upload area.
-4. Review the column mapping. SavSpot auto-detects columns based on header names. Adjust any incorrect mappings manually.
-5. Click **Start Import**.
+If an import has errors, click **View Errors** to open the error report dialog. Each error shows the row number, field name, and error message.
 
-SavSpot processes the file and displays a summary when complete, including how many clients were created, skipped, or flagged with errors.
+## Supported Formats
 
-## Handling Duplicates
+SavSpot supports importing data in two formats:
 
-SavSpot checks for duplicate clients by email address during import. If a row in your CSV matches an existing client's email, that row is skipped. The import summary lists all skipped rows so you can review them.
+| Format | Description |
+|--------|-------------|
+| **CSV** | Comma-separated values with a header row |
+| **JSON** | JSON array of records |
 
-| Scenario | Result |
-|----------|--------|
-| New email address | Client created |
-| Email matches existing client | Row skipped, listed in summary |
-| Missing email | Row rejected with error |
-| Invalid email format | Row rejected with error |
+## Current Limitations
 
-> **Tip:** Clean your CSV before importing. Remove duplicate rows and fix formatting issues to minimize skipped records and errors.
+The Imports page is currently a read-only monitoring view for tracking import job status. Import jobs are initiated through the API or other integration channels rather than through a file upload interface on this page.
 
-> **Tip:** Run a small test import with 5-10 rows first to verify that your column mapping is correct before importing your full client list.
+> **Tip:** If you need to import client data, contact support or use the API to create an import job. See [API Keys](../settings/api-keys.md) for information on API access.

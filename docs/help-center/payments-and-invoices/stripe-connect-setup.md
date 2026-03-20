@@ -1,54 +1,43 @@
 # Stripe Connect Setup
 
-SavSpot uses Stripe Connect Express to process payments on behalf of your business. This guide walks you through connecting your Stripe account so you can start accepting payments from clients.
+SavSpot uses **Stripe Connect Express** to process payments. This guide walks you through connecting your Stripe account.
 
-## Prerequisites
+## Connection States
 
-Before you begin, make sure you have:
+Your Stripe integration can be in one of three states:
 
-- An active SavSpot account with the **Owner** or **Admin** role
-- Your business details (legal name, address, tax ID)
-- A bank account for receiving payouts
+| State | What You See |
+|-------|-------------|
+| **Not Connected** | A "Connect with Stripe" button and description of the payment feature |
+| **Incomplete** | A "Complete Setup" button — you started onboarding but haven't finished |
+| **Connected** | A green "Connected" badge, account status indicators, and management options |
 
-## Connecting Your Stripe Account
+## Connecting Your Account
 
 1. Navigate to **Settings > Payments** (`/settings/payments`).
 2. Click **Connect with Stripe**.
-3. You will be redirected to the Stripe Connect Express onboarding flow.
-4. Fill in your business information, including legal entity type, address, and tax identification number.
-5. Provide your bank account details for payouts.
-6. Review and accept the Stripe terms of service.
-7. Once complete, you will be redirected back to SavSpot.
+3. You'll be redirected to Stripe's onboarding flow to:
+   - Verify your identity
+   - Provide your business details
+   - Add a bank account for payouts
+4. After completing the Stripe flow, you're redirected back to SavSpot.
 
-> **Tip:** Have your business documents ready before starting. The onboarding flow cannot be saved as a draft, though you can resume an incomplete onboarding later.
+If you leave the onboarding flow before finishing, click **Complete Setup** to resume where you left off.
 
-## Verification Requirements
+## Once Connected
 
-Stripe may require additional verification depending on your business type and location. Common requirements include:
+When your Stripe account is active, the Payments settings page shows:
 
-| Document | When Required |
-|---|---|
-| Government-issued ID | All accounts |
-| Proof of address | Some regions |
-| Business registration | Registered businesses |
-| Tax ID (EIN/SSN) | US-based accounts |
+- **Connected** badge (green)
+- **Account Status** indicators: Details Submitted, Charges Enabled, Payouts Enabled
+- **Open Stripe Dashboard** button — access your full Stripe account for payout management, refunds, and dispute handling
 
-Stripe will notify you via email if additional documents are needed. You can upload them directly through the Stripe dashboard.
+## Processing Fees
 
-## Managing Your Connection
+SavSpot charges a **1% processing fee** on each transaction in addition to Stripe's standard processing fees. This fee is automatically deducted from each payment.
 
-After connecting, the Payments settings page will display:
+## Disconnecting
 
-- **Connection status** -- whether your account is active and verified
-- **Stripe Dashboard link** -- direct access to your Stripe Express dashboard for viewing payouts, balance, and transaction history
-- **Disconnect option** -- remove the Stripe connection (requires Owner role)
+To disconnect your Stripe account, contact SavSpot support. Disconnecting is not available as a self-service action to prevent accidental disruption of active payment processing.
 
-> **Tip:** Visit your Stripe Dashboard regularly to review payout schedules and ensure your bank account details are current.
-
-## Troubleshooting
-
-If your connection fails or verification is pending:
-
-1. Check your email for messages from Stripe requesting additional information.
-2. Return to `/settings/payments` and click **Resume Setup** to complete any missing steps.
-3. Contact SavSpot support if the issue persists after providing all requested documents.
+> **Tip:** Complete the Stripe onboarding in one session if possible. If you need to pause, you can always return and click "Complete Setup" to finish.

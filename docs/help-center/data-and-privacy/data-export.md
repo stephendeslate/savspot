@@ -1,45 +1,33 @@
 # Data Export
 
-Export your business data from SavSpot for reporting, backups, or migration purposes.
+Clients can export a copy of their personal data through the **Client Portal**. There is no admin-side data export page in the dashboard.
 
-## What You Can Export
+## Client Data Export
 
-SavSpot supports exporting the following data types:
+Clients can request a data export from **Portal > Settings** (`/portal/settings`):
 
-| Data Type | Includes |
-|-----------|----------|
-| **Bookings** | Date, time, service, client name, status, payment amount, notes. |
-| **Clients** | Name, email, phone, total bookings, last visit, consent status. |
-| **Payments** | Amount, date, payment method, associated booking, refund status. |
-| **Services** | Name, description, duration, price, category, active status. |
+1. Navigate to the **Settings** page in the client portal.
+2. Under the **Data & Privacy** section, click **Export My Data**.
+3. A confirmation message appears: "Data export requested successfully. You will receive an email with a download link once your data is ready."
 
-## Export Formats
+The export generates a JSON archive containing all personal data associated with the client, including:
 
-You can export data in two formats:
+- Profile information
+- Booking history
+- Payment records
 
-- **CSV** — Compatible with spreadsheet applications like Excel, Google Sheets, and Numbers. Best for quick analysis and reporting.
-- **JSON** — Structured format suitable for developers, integrations, and data migration to other platforms.
+## Admin Data Access
 
-## How to Export
+As a business owner or admin, you can view client data through:
 
-1. Go to **Settings > Data Export** in your dashboard.
-2. Select the data type you want to export.
-3. Choose a date range (for bookings and payments) or export all records.
-4. Select your preferred format (CSV or JSON).
-5. Click **Export** to generate and download the file.
+- **Client Profiles** (`/clients/{id}`) — View booking history, payment history, and contact details for individual clients.
+- **Analytics** (`/analytics`) — View aggregated business metrics.
+- **Stripe Dashboard** — Access detailed payment and transaction data via Settings > Payments > **Open Stripe Dashboard**.
 
-The export is generated in the background. For large datasets, you will receive an email notification with a download link when the file is ready.
+## Current Limitations
 
-## Scheduled Exports
+- There is **no Settings > Data Export** page in the admin dashboard.
+- There are **no scheduled exports** or bulk data export features.
+- Data export is a client-facing feature accessed through the portal, not an admin tool.
 
-You can configure automatic recurring exports:
-
-1. Go to **Settings > Data Export > Scheduled Exports**.
-2. Click **Add Schedule**.
-3. Select the data type, format, and frequency (daily, weekly, or monthly).
-4. Enter the email address where export files should be delivered.
-5. Click **Save Schedule**.
-
-Scheduled exports run at the start of each period and include all records from the previous period.
-
-> **Tip:** Use scheduled weekly CSV exports of bookings and payments to keep your accounting records up to date without manual effort.
+> **Tip:** If you need to provide client data for regulatory purposes, the client can initiate an export themselves through the portal, or you can use the API to access the data programmatically.

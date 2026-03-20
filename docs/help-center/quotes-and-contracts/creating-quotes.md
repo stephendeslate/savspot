@@ -1,50 +1,57 @@
 # Creating Quotes
 
-Quotes let you provide clients with a detailed breakdown of services and pricing before they commit. SavSpot makes it easy to create, send, and track quotes from a single page.
+Quotes let you provide clients with a detailed breakdown of services and pricing before they commit. Manage quotes at `/quotes`.
 
 ## Creating a New Quote
 
-1. Navigate to `/quotes` and click **New Quote**.
-2. Select an existing client or enter a new client's name and email.
-3. Add line items for each service or product included in the quote.
-4. Set a validity period for the quote.
-5. Add any notes or special terms.
-6. Save as a draft or send immediately.
-
-## Quote Fields
-
-Each quote includes the following fields:
+1. Navigate to **Quotes** (`/quotes`) and click **Create Quote**.
+2. Fill in the quote details:
 
 | Field | Description |
 |-------|-------------|
-| Client | The client receiving the quote |
-| Line items | Individual services or products with descriptions and prices |
-| Subtotal | Automatically calculated sum of all line items |
-| Tax | Optional tax amount or percentage |
-| Total | Final amount including tax |
-| Validity period | Number of days the quote remains valid |
-| Notes | Additional context or terms for the client |
+| **Client Email** | Email address of the client receiving the quote |
+| **Valid Until** | Expiration date for the quote |
+| **Line Items** | One or more items with Description, Quantity, and Unit Price |
 
-## Sending Quotes to Clients
-
-When you send a quote, the client receives an email with a link to view the full quote. From there, they can accept or decline it directly. You can also copy the quote link and share it manually.
+3. Click **Add Line Item** to add additional items. Each line item shows a calculated total (Qty × Unit Price).
+4. A running total is displayed at the bottom.
+5. Click **Create Quote** to save.
 
 ## Quote Statuses
 
-Quotes move through the following statuses:
+| Status | Badge Color | Meaning |
+|--------|-------------|---------|
+| **Draft** | Gray | Created but not yet sent |
+| **Sent** | Blue | Delivered to the client |
+| **Accepted** | Green | Client approved the quote |
+| **Rejected** | Red | Client declined the quote |
+| **Expired** | Gray (muted) | Validity period passed without response |
+| **Voided** | — | Quote cancelled by you |
 
-| Status | Meaning |
-|--------|---------|
-| Draft | Created but not yet sent to the client |
-| Sent | Delivered to the client, awaiting their response |
-| Accepted | Client has approved the quote |
-| Declined | Client has declined the quote |
-| Expired | The validity period has passed without a response |
+## Quote Table
 
-> **Tip:** Set a reasonable validity period, typically 14 to 30 days. This creates urgency without pressuring the client, and ensures your pricing stays current.
+The quotes list shows all quotes with these columns:
 
-## Converting Quotes to Bookings
+| Column | Description |
+|--------|-------------|
+| **Quote #** | Unique quote number |
+| **Client** | Client name and email |
+| **Total** | Quote total amount |
+| **Status** | Status badge |
+| **Valid Until** | Expiration date |
+| **Created** | Creation date |
+| **Actions** | Edit, Send, or Void |
 
-Once a client accepts a quote, you can convert it directly into a booking. The service details and pricing carry over automatically, saving you from re-entering information.
+## Available Actions
 
-> **Tip:** Review declined quotes periodically to identify patterns. If clients consistently decline certain services or price points, consider adjusting your offerings.
+| Action | When Available |
+|--------|---------------|
+| **Edit** | Any status |
+| **Send** | Draft status only |
+| **Void** | Any status |
+
+## Current Limitations
+
+There is **no convert-to-booking** feature. Accepted quotes cannot be automatically converted into bookings.
+
+> **Tip:** Set a reasonable validity period (14–30 days) to create urgency without pressuring the client.

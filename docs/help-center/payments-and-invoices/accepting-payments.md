@@ -1,42 +1,44 @@
 # Accepting Payments
 
-SavSpot handles payment processing through Stripe Connect, allowing you to collect payments from clients seamlessly during the booking process or after a service is completed.
+SavSpot uses **Stripe Connect** to process payments for your bookings. Once connected, clients can pay by card during the booking flow.
 
 ## How Payments Work
 
-When a client makes a payment through SavSpot, the transaction flows through Stripe Connect Express using destination charges. The payment is collected from the client, SavSpot's platform fee is deducted automatically, and the remaining amount is deposited into your connected Stripe account.
+SavSpot uses Stripe's **destination charges** model:
 
-All prices in SavSpot are stored and displayed in major currency units (dollars, euros, etc.). Conversion to the smallest currency unit (cents) happens only at the Stripe processing boundary, ensuring consistent and accurate pricing throughout the platform.
+1. The client pays during the booking flow (if the service has a price > $0).
+2. Stripe processes the payment and deposits funds into your connected Stripe account.
+3. SavSpot applies a **1% processing fee** on each transaction (in addition to Stripe's standard fees).
 
-## Payment Collection Options
+## Setting Up Payments
 
-You can configure when payments are collected for your services:
+To accept payments, you need to connect a Stripe account:
 
-| Option | Description |
-|---|---|
-| Pay at booking | Client pays the full amount when confirming their booking |
-| Pay after service | Payment is collected after the service is delivered |
-| Deposit at booking | A partial payment is collected upfront, with the balance due later |
+1. Navigate to **Settings > Payments** (`/settings/payments`).
+2. Click **Connect with Stripe**.
+3. Complete the Stripe onboarding flow (identity verification, bank account, etc.).
 
-Configure your default payment collection method in **Settings > Payments** (`/settings/payments`).
+See [Stripe Connect Setup](./stripe-connect-setup.md) for the full connection walkthrough.
 
-## Supported Payment Methods
+## When Clients Pay
 
-SavSpot supports the payment methods available through your Stripe account, which typically include:
+Clients are prompted to pay during the booking flow when:
 
-- Credit and debit cards (Visa, Mastercard, American Express, Discover)
-- Digital wallets (Apple Pay, Google Pay) where available
-- Bank transfers (availability varies by region)
+- The selected service has a **price greater than $0**
+- Your Stripe account is **connected and active**
 
-> **Tip:** The available payment methods depend on your Stripe account configuration and your client's location. Visit your Stripe Dashboard to enable or disable specific payment methods.
+If either condition is not met, the payment step is skipped and the booking is created without payment.
 
-## Payment Confirmation
+## Deposit Payments
 
-When a payment is successfully processed:
+You can require a deposit instead of full payment at booking time. Deposits are configured **per service** in the service's Advanced Settings section, not as a global payment setting.
 
-1. The client receives an email confirmation with a receipt.
-2. The booking status is updated to reflect the payment.
-3. The transaction appears in your **Invoices** section (`/invoices`).
-4. Funds are deposited to your bank account according to your Stripe payout schedule.
+See [Deposits and Prepayments](./deposits-and-prepayments.md) for details.
 
-> **Tip:** If a payment fails, the client is prompted to retry with a different payment method. You will be notified of any failed payment attempts.
+## Viewing Payment Activity
+
+- **Invoices** (`/invoices`) — View all invoices and their statuses
+- **Client Profiles** (`/clients/{id}`) — See a client's payment history
+- **Stripe Dashboard** — Access your full Stripe account from Settings > Payments by clicking **Open Stripe Dashboard**
+
+> **Tip:** Encourage clients to pay during the booking flow to reduce no-shows and simplify your accounting.

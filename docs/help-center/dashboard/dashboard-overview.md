@@ -1,47 +1,43 @@
 # Dashboard Overview
 
-The Dashboard at `/dashboard` is the first page you see after logging in. It provides a real-time snapshot of your business activity and serves as the starting point for common tasks.
+The Dashboard at `/dashboard` is the first page you see after logging in. It provides a snapshot of your business activity and serves as the starting point for common tasks.
 
-## Page Layout
+## Stat Cards
 
-The dashboard is organized into several sections, each designed to surface the most relevant information at a glance.
+The dashboard displays four key metric cards at the top:
 
-### Today's Schedule
+| Card | Value | Description |
+|------|-------|-------------|
+| **Today's Bookings** | Count | Non-cancelled appointments scheduled for today |
+| **Revenue (Month)** | Currency amount | Total revenue for the current month |
+| **New Clients** | Count | Unique clients from bookings in the past 7 days |
+| **Pending Actions** | Count | Bookings with PENDING status awaiting confirmation |
 
-The top section displays your appointments for the current day in chronological order. Each entry shows:
+Each card shows the metric value, an icon, and a brief description. Cards use a colored left border for visual distinction.
 
-- Client name
-- Service booked
-- Appointment time and duration
-- Current booking status (color-coded)
+## Recommended Next Steps
 
-This gives you an immediate view of what your day looks like without navigating to the full calendar.
+If your business setup is incomplete, a **Recommended Next Steps** section appears below the stat cards. This section is conditional -- it only shows when setup actions remain:
 
-### Upcoming Bookings
+| Condition | Recommended Action | Link |
+|-----------|--------------------|------|
+| No services created | Add your first service | `/services/new` |
+| No availability rules | Set your availability | `/settings/availability` |
+| Stripe not connected | Connect Stripe | `/settings/payments` |
+| Google Calendar not connected | Connect Google Calendar | `/settings/calendar` |
 
-Below the daily schedule, you will find your upcoming bookings for the next several days. This section helps you prepare for what is ahead and identify any gaps in your schedule.
+Once all setup steps are complete, this section disappears automatically.
 
-### Recent Activity
+## Quick Actions
 
-The activity feed shows the latest actions in your account, including:
+Three quick action cards are always visible at the bottom:
 
-- New bookings created
-- Booking status changes
-- New client registrations
-- Payment events
+| Action | Description | Destination |
+|--------|-------------|-------------|
+| **Add Service** | Create a new bookable service | `/services/new` |
+| **Manage Availability** | Update your working hours | `/settings/availability` |
+| **View Calendar** | See your upcoming schedule | `/calendar` |
 
-> **Tip:** Use the activity feed to quickly catch up on what happened since your last login, especially if multiple team members manage bookings.
+## No-Tenant State
 
-### Key Metrics
-
-A summary bar displays your most important business KPIs at a glance. See [KPIs and Metrics](./kpis-and-metrics.md) for details on each metric and how they are calculated.
-
-### Quick Actions
-
-Frequently used actions are accessible directly from the dashboard without navigating to other pages. See [Quick Actions](./quick-actions.md) for the full list.
-
-## Customization
-
-The dashboard layout is designed to prioritize the information most service businesses need daily. The metrics and activity sections update in real time as bookings and payments are processed.
-
-> **Tip:** Bookmark `/dashboard` as your browser home page for SavSpot so you always land on your daily overview when opening the app.
+If you have not created a business yet, the dashboard shows a welcome message with a **Complete Onboarding** button that links to `/onboarding`.

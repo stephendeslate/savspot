@@ -6,34 +6,40 @@ The client portal is a self-service area where your clients can manage their boo
 
 Clients can access the portal in several ways:
 
-1. **Direct link** -- Share your portal URL with clients directly.
-2. **Booking confirmation email** -- Each confirmation email includes a link to the portal.
-3. **Your website** -- Add a "My Bookings" link to your site that points to the portal.
+1. **Direct link** — Share your portal URL with clients directly.
+2. **Booking confirmation email** — Each confirmation email includes a link to the portal.
+3. **Your website** — Add a "My Bookings" link to your site that points to the portal.
 
-Clients log in using the email address associated with their bookings. A one-time verification code is sent to their email for secure, passwordless authentication.
+## Portal Dashboard
 
-## Portal Features
+When clients log in, they see a welcome page with:
 
-| Feature | Description | Path |
-|---------|-------------|------|
-| Book an Appointment | Browse services and schedule a new booking | `/portal/bookings` |
-| Upcoming Bookings | View and manage scheduled appointments | `/portal/bookings` |
-| Booking History | Review past completed and cancelled bookings | `/portal/bookings` |
-| Payment History | View transactions and download receipts | `/portal/payments` |
-| Profile | Update personal information and contact details | `/portal/profile` |
-| Settings | Manage notification preferences | `/portal/settings` |
+- **Stat cards**: Total Bookings (all time) and Upcoming Bookings (next 7 days)
+- **Upcoming Bookings**: A list of appointments in the next 7 days with a "View all" link
+- **Recent Activity**: The last 5 payments with a "View all" link
+
+## Portal Pages
+
+| Page | Path | Description |
+|------|------|-------------|
+| **Dashboard** | `/portal` | Welcome page with stats and upcoming appointments |
+| **My Bookings** | `/portal/bookings` | View, filter, reschedule, and cancel appointments |
+| **Payments** | `/portal/payments` | View invoices and payment history |
+| **Profile** | `/portal/profile` | Update first name, last name, email, and phone number |
+| **Settings** | `/portal/settings` | Export personal data or delete account |
 
 ## What Clients Can Do
 
 From the portal, clients can independently:
 
-- **Book** new appointments by selecting a service, date, and time slot.
-- **Reschedule** upcoming bookings to a different date or time.
-- **Cancel** bookings according to your cancellation policy.
-- **Pay** for services online using a saved or new payment method.
-- **Download receipts** for completed payments.
-- **Update** their name, phone number, and email address.
+- **View** upcoming and past bookings, filtered by status
+- **Reschedule** upcoming bookings to a different date and time (with reschedule limits)
+- **Cancel** bookings with the applicable cancellation policy displayed
+- **View** invoices and payment details
+- **Update** their personal information (name, email, phone)
+- **Export** a copy of all their personal data (GDPR compliance)
+- **Delete** their account permanently
 
-> Tip: The client portal inherits your branding settings, so it matches the look and feel of your booking page. Clients experience a consistent, professional interface throughout.
+See [Client Booking Experience](./client-booking-experience.md) for the full booking flow and [Payment History](./payment-history.md) for the payment view.
 
-> Tip: Encourage clients to use the portal for rescheduling and cancellations to reduce back-and-forth messages and free up your time.
+> **Tip:** Encourage clients to use the portal for rescheduling and cancellations to reduce back-and-forth messages and free up your time.

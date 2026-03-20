@@ -1,48 +1,52 @@
 # Creating Bookings
 
-Bookings are the core of your SavSpot workflow. You can create bookings from the Bookings page at `/bookings` or from the Dashboard quick actions.
+Bookings in SavSpot can be created in two ways: walk-in bookings that you create on behalf of clients, and self-service bookings that clients make through your public booking page.
 
-## Step-by-Step Booking Creation
+## Walk-In Bookings (Staff-Created)
 
-1. Navigate to **Bookings** in the sidebar or go to `/bookings`
-2. Click **New Booking** to open the creation flow
+The walk-in method is the primary way to create bookings from the management interface.
 
-### Select a Service
+### From the Bookings Page
 
-Choose from your list of active services. Each service displays its name, duration, and price. If a service has add-ons, you can select optional extras at this step.
+1. Navigate to **Bookings** (`/bookings`).
+2. Click the **Walk-In** button (user-plus icon) in the top right.
+3. Fill in the walk-in dialog (see [Walk-In Bookings](./walk-in-bookings.md) for field details).
+4. Click **Create Booking**.
 
-### Select a Client
+### From the Calendar
 
-Search for an existing client by typing their name or email. If the client is new, click **Create Client** to add them inline without leaving the booking flow.
+1. Navigate to **Calendar** (`/calendar`).
+2. Click on an empty time slot.
+3. The Walk-In dialog opens with the date and time pre-filled.
+4. Select a service and fill in optional details.
+5. Click **Create Booking**.
 
-| Field | Required | Notes |
-|-------|----------|-------|
-| Client name | Yes | First and last name |
-| Email | Yes | Used for confirmations and reminders |
-| Phone | No | Used for SMS reminders if enabled |
+The new booking appears in your bookings list and calendar immediately.
 
-### Choose Date and Time
+## Client Self-Service
 
-Pick a date from the calendar. Available time slots appear based on:
+Clients book through your public booking page at `savspot.co/book/{your-slug}`. The booking page walks them through a dynamic set of steps based on your service configuration. See [Public Booking Page](../booking-page/public-booking-page.md) for details.
 
-- Your configured business hours
-- Existing bookings that would conflict
-- Staff availability (if multiple team members)
+To share your booking page:
 
-Only open slots are shown -- you cannot double-book a time slot.
+1. Navigate to **Settings > Embed Widget** (`/settings/embed`).
+2. Copy the booking page URL, or generate an embed code for your website.
 
-### Add Notes
+## After Creating a Booking
 
-Optionally add notes to the booking. These are visible only to you and your team, not to the client. Use notes for special requests, preparation reminders, or client preferences.
+The booking's initial status depends on the service's confirmation mode:
 
-### Review and Confirm
+- **Auto-confirm** — Booking starts as **Confirmed**
+- **Manual Review** — Booking starts as **Pending** until you confirm it
 
-A booking summary displays all selected details. Review the service, client, date, time, duration, and price before clicking **Confirm**.
+See [Confirmation Modes](./confirmation-modes.md) for details.
 
-> **Tip:** If you need to change anything before confirming, use the back navigation to return to any previous step without losing your selections.
+## Viewing Your Bookings
 
-## Booking Confirmation
+After creating a booking, you can find it in several places:
 
-After confirmation, the booking is created and appears on your calendar and bookings list. Depending on your confirmation mode, the booking starts as either PENDING or CONFIRMED. See [Confirmation Modes](./confirmation-modes.md) for details.
+- **Bookings page** (`/bookings`) — Full list with filters and search
+- **Calendar** (`/calendar`) — Visual schedule in day, week, month, or agenda view
+- **Dashboard** (`/dashboard`) — Today's bookings count appears in the stat cards
 
-An automated confirmation email is sent to the client if email notifications are enabled.
+> **Tip:** Walk-in bookings are useful for phone bookings, same-day appointments, and clients who prefer not to book online.

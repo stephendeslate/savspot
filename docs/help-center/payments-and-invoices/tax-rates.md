@@ -1,47 +1,44 @@
 # Tax Rates
 
-SavSpot allows you to configure tax rates that are applied to your services and displayed on invoices. Set up your tax rates to ensure accurate billing and compliance with local tax regulations.
+Tax rates allow you to apply taxes to your services and invoices. Manage your tax rates at **Settings > Tax Rates** (`/settings/tax-rates`).
 
-## Configuring Tax Rates
+## Creating a Tax Rate
 
 1. Navigate to **Settings > Tax Rates** (`/settings/tax-rates`).
 2. Click **Add Tax Rate**.
-3. Enter the tax details:
-   - **Name** -- A descriptive label (e.g., "Sales Tax", "VAT", "GST")
-   - **Rate** -- The percentage to apply (e.g., 8.25)
-   - **Description** -- Optional notes about when this tax applies
-4. Save the tax rate.
+3. Fill in the fields:
 
-> **Tip:** Create separate tax rates for different jurisdictions or tax types rather than combining them into a single rate. This provides clearer breakdowns on invoices.
+| Field | Description |
+|-------|-------------|
+| **Name** | Display name for the tax (e.g., "Sales Tax", "VAT") |
+| **Rate (%)** | Tax percentage (e.g., 8.5) |
+| **Region** | Geographic region where the tax applies |
+| **Tax-inclusive pricing** | When enabled, the tax is included in the displayed price rather than added on top |
+| **Default tax rate** | When enabled, this tax rate is automatically applied to new services |
 
-## Applying Taxes to Services
+4. Click **Create** (or **Update** when editing an existing rate).
 
-Once tax rates are configured, you can apply them to your services:
+## Managing Tax Rates
 
-1. When creating or editing a service, select the applicable tax rate(s).
-2. The tax will be calculated automatically based on the service price.
-3. Clients see the tax amount as a separate line item during checkout.
+The tax rates table shows all configured rates:
 
-You can also apply tax rates when creating invoices manually by selecting the appropriate rate for each line item.
+| Column | Description |
+|--------|-------------|
+| **Name** | Tax rate name |
+| **Rate** | Percentage |
+| **Region** | Applied region |
+| **Inclusive** | Whether the tax is included in prices |
+| **Default** | Whether it's the default rate |
+| **Status** | Active or Inactive |
+| **Actions** | Edit or Deactivate |
 
-## Tax Display on Invoices
+## Tax-Inclusive vs. Tax-Exclusive
 
-Invoices show tax information in a clear, itemized format:
+- **Tax-exclusive** (default): Tax is added on top of the service price. A $100 service with 10% tax charges $110.
+- **Tax-inclusive**: Tax is included in the displayed price. A $100 service with 10% tax means $90.91 + $9.09 tax.
 
-| Invoice Section | What Is Displayed |
-|---|---|
-| Line items | Individual service prices (before tax) |
-| Subtotal | Sum of all line items |
-| Tax line(s) | Each applied tax rate with name and calculated amount |
-| Total | Final amount including all taxes |
+## Default Tax Rate
 
-If multiple tax rates apply to a single invoice, each tax is listed separately so clients can see the exact breakdown.
+Mark a tax rate as **Default** to have it automatically applied to new services. You can override the tax rate on individual services as needed.
 
-## Multiple Tax Rates
-
-Some businesses need to collect more than one type of tax. SavSpot supports applying multiple tax rates to the same service or invoice:
-
-- **Compound taxes** -- Taxes calculated on top of other taxes (e.g., provincial + federal)
-- **Independent taxes** -- Multiple taxes calculated on the base price independently
-
-> **Tip:** Check with your local tax authority to determine whether your taxes should be compounded or applied independently. Incorrect tax configuration can lead to compliance issues.
+> **Tip:** Check your local tax regulations to determine whether you need tax-inclusive or tax-exclusive pricing, and set your rates accordingly.

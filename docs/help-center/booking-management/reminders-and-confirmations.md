@@ -1,61 +1,59 @@
 # Reminders and Confirmations
 
-Automated reminders and confirmations help reduce no-shows and keep clients informed about their upcoming appointments. SavSpot sends notifications via email and optionally via SMS.
+SavSpot has two levels of notification configuration: tenant-level settings that control what notifications your business sends, and per-user settings that control how individual team members receive alerts.
 
-## Confirmation Emails
+## Tenant Notification Settings
 
-When a booking is created or confirmed, SavSpot automatically sends a confirmation email to the client. The confirmation includes:
+Navigate to **Settings > Notification Preferences** (`/settings/notification-preferences`) to configure what notifications your business sends.
 
-- Service name and description
-- Appointment date and time (displayed in your business timezone)
-- Duration and price
-- Your business name and contact information
-- A link to manage or cancel the booking
+### Email Notifications
 
-> **Tip:** Confirmation emails are sent for all bookings unless you disable them in Settings. Even walk-in clients receive a confirmation if their email is on file.
+| Toggle | Description |
+|--------|-------------|
+| **Booking Confirmation** | Send an email when a new booking is confirmed |
+| **Booking Reminder** | Send upcoming booking reminders to clients |
+| **Booking Cancellation** | Send an email when a booking is cancelled |
+| **Payment Received** | Send an email when a payment is processed |
+| **Review Received** | Send an email when a client leaves a review |
 
-## Booking Reminders
+### Push Notifications
 
-Reminders are sent before the appointment to reduce the chance of no-shows. You can configure multiple reminder intervals.
+| Toggle | Description |
+|--------|-------------|
+| **New Booking** | Push alert for new bookings |
+| **Cancellation** | Push alert for cancellations |
+| **Payment** | Push alert for payments |
 
-### Reminder Timing Options
+### SMS Notifications
 
-| Timing | Best For |
-|--------|----------|
-| **24 hours before** | Standard reminder for most businesses |
-| **2 hours before** | Same-day reinforcement |
-| **48 hours before** | Services requiring advance preparation |
+| Toggle | Description |
+|--------|-------------|
+| **SMS Reminder** | Send SMS reminders to clients before appointments |
 
-You can enable multiple reminders for the same booking. For example, send one reminder 48 hours before and another 2 hours before.
+### Digest Settings
 
-### Reminder Channels
+Instead of receiving individual notifications, you can bundle them into a periodic summary:
 
-| Channel | Requirements | Notes |
-|---------|-------------|-------|
-| **Email** | Client email address on file | Included by default |
-| **SMS** | Client phone number on file, SMS feature enabled | Optional, requires configuration |
+1. Enable the **Enable Digest** toggle.
+2. Choose a **Frequency**: Daily or Weekly.
+3. Set the delivery **Time** (defaults to 9:00 AM).
+4. If Weekly, select the **Day of Week**.
 
-## Configuring Reminders
+## Per-User Notification Preferences
 
-1. Navigate to **Settings** in the sidebar
-2. Select the notification or reminders section
-3. Enable or disable each reminder interval
-4. Choose which channels to use (email, SMS, or both)
-5. Save your changes
+Navigate to **Settings > Notifications** (`/settings/notifications`) to configure how you personally receive alerts. Each team member can set their own preferences.
 
-## Reminder Content
+Four notification categories are available, each with **Email** and **Browser Push** toggles:
 
-Reminder messages include the essential booking details: service, date, time, and location. They also include a link for the client to confirm, reschedule, or cancel their appointment.
+| Category | Description |
+|----------|-------------|
+| **Booking Notifications** | New bookings, cancellations, and reschedules |
+| **Payment Notifications** | Payment received, refunds, and failed charges |
+| **System Notifications** | Account updates, security alerts, and maintenance |
+| **Calendar Notifications** | Calendar sync status and conflict alerts |
 
-> **Tip:** SMS reminders have the highest open rate and are the most effective way to reduce no-shows. If your business struggles with no-shows, enabling SMS reminders is the single most impactful change you can make.
+> **Tip:** Browser push notifications require your browser's permission. You will be prompted when you enable push for the first time.
 
-## Status-Based Notifications
+## How They Work Together
 
-SavSpot sends different notifications depending on the booking status:
-
-| Event | Notification Sent |
-|-------|-------------------|
-| Booking created | Confirmation email |
-| Booking confirmed (from PENDING) | Confirmation email |
-| Upcoming appointment | Reminder (email/SMS) |
-| Booking cancelled | Cancellation notice |
+Tenant-level settings control **what** notifications are sent (e.g., whether confirmation emails go out at all). Per-user settings control **how** each team member receives those notifications (email vs. browser push for each category).

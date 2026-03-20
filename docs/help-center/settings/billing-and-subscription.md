@@ -1,50 +1,47 @@
 # Billing and Subscription
 
-Manage your SavSpot subscription, payment methods, and invoices at **Settings > Billing** (`/settings/billing`).
+Manage your SavSpot subscription at **Settings > Billing** (`/settings/billing`).
 
 ## Plan Tiers
 
-| Feature | Starter | Pro | Enterprise |
-|---------|---------|-----|------------|
-| Bookings per month | 50 | Unlimited | Unlimited |
-| Team members | 1 | 5 | Unlimited |
-| Venues | 1 | 3 | Unlimited |
-| Custom domain | No | Yes | Yes |
-| API access | No | Yes | Yes |
-| Priority support | No | No | Yes |
-| Custom integrations | No | No | Yes |
+SavSpot offers three subscription tiers:
 
-## Upgrading Your Plan
+The Plan Limits card on the billing page shows your current usage across these dimensions:
 
-1. Navigate to `/settings/billing`.
-2. Click **Change Plan**.
-3. Select the plan you want to upgrade to.
-4. Review the price difference and confirm.
-5. Your new features are available immediately.
+| Feature | Description |
+|---------|-------------|
+| **Staff Members** | Number of team members allowed |
+| **Bookings / Month** | Monthly booking limit |
+| **SMS Allocation** | SMS credits per month |
+| **Client Management** | Basic or Full |
+| **Analytics** | Level of analytics access |
+| **Team Management** | Whether team features are available |
+| **Multi-Location** | Whether venue management is available |
+| **Custom Templates** | Whether custom email/SMS templates are available |
+| **Processing Fee** | 1% on all transactions |
 
-When upgrading mid-billing cycle, you are charged a prorated amount for the remainder of the current period.
+## Billing Cycle
 
-## Downgrading Your Plan
+Toggle between **Monthly** and **Yearly** billing at the top of the billing page. Yearly billing offers a discount compared to monthly pricing.
 
-1. Navigate to `/settings/billing` and click **Change Plan**.
-2. Select the lower-tier plan.
-3. Review which features will be removed and confirm.
-4. The downgrade takes effect at the end of your current billing cycle.
+## Managing Your Subscription
 
-> Tip: Before downgrading, check that your current usage fits within the lower plan's limits. For example, if you have 3 venues on the Pro plan, you will need to remove venues before switching to Starter.
+From the billing page you can:
 
-## Payment Methods
+- **View your current plan** and its limits
+- **Manage Billing** — Opens the Stripe billing portal where you can update your payment method, view invoices, and change your plan
+- **Plan Limits** card — Shows current usage against your plan's limits (team members, SMS credits, etc.)
 
-Add or update your payment method from the billing page:
+Plan upgrades and downgrades, payment method changes, and invoice history are all managed through the **Stripe billing portal** (accessed via the "Manage Billing" button).
 
-1. Click **Payment Method** in the billing section.
-2. Enter your credit or debit card details.
-3. Click **Save** to update.
+## Plan Limits
 
-SavSpot processes payments securely through Stripe. Card details are never stored on SavSpot servers.
+The **Plan Limits** card on the billing page shows your current usage:
 
-## Invoices
+- Team members used vs. allowed
+- SMS credits used vs. monthly allocation
+- Feature availability based on your tier
 
-View and download invoices for all past payments from the **Invoice History** section on the billing page. Each invoice includes the billing period, plan name, amount charged, and payment date. Click **Download** next to any invoice to save a PDF copy.
+When you approach or exceed a limit, consider upgrading to the next tier.
 
-> Tip: If you need invoices sent to a different email address (e.g., your accounting department), update the billing email in the payment method section.
+> **Tip:** Review your plan limits periodically to ensure your subscription matches your business needs. Upgrading unlocks features like multi-location support, advanced analytics, and higher SMS limits.

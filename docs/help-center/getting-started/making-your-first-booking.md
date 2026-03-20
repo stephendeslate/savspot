@@ -1,56 +1,38 @@
 # Making Your First Booking
 
-Once you have at least one service set up, you can create your first booking. Bookings can be created from the Dashboard quick actions or directly from the Bookings page at `/bookings`.
+Once you have at least one service set up, you can create your first booking. SavSpot supports walk-in bookings from the management interface and client self-service through your public booking page.
 
-## Creating a Booking from the Dashboard
+## Walk-In Booking
 
-1. Navigate to `/dashboard`
-2. Click **New Booking** in the quick actions area
-3. Follow the booking creation flow (see steps below)
+The walk-in method is designed for bookings you create on behalf of a client who is present or has contacted you directly.
 
-## Creating a Booking from the Bookings Page
+1. Navigate to **Bookings** in the sidebar (`/bookings`).
+2. Click the **Walk-In** button.
+3. Fill in the walk-in booking dialog fields.
+4. Submit the booking.
 
-1. Navigate to **Bookings** in the sidebar or go to `/bookings`
-2. Click **New Booking**
-3. Follow the booking creation flow
+The new booking appears in your bookings list and calendar immediately.
 
-## Booking Creation Flow
+> **Tip:** Walk-in bookings are useful for phone bookings, same-day appointments, and clients who prefer not to book online.
 
-### Step 1: Select a Service
+## Client Self-Service
 
-Choose the service the client is booking from your available services list. The duration and price will populate automatically.
+Clients can book through your public booking page at `savspot.co/book/{your-slug}`. The booking page walks them through a dynamic set of steps based on your service configuration (service selection, date/time, contact details, payment, and confirmation).
 
-### Step 2: Select a Client
+To share your booking page:
 
-Search for an existing client by name or email, or create a new client on the spot by entering their details.
+1. Navigate to **Settings > Embed Widget** (`/settings/embed`).
+2. Copy the booking page URL, or generate an embed code for your website.
+3. Share the link with clients via email, social media, or your website.
 
-> **Tip:** Creating a client during booking automatically saves them to your client directory at `/clients` for future bookings.
+See [Public Booking Page](../booking-page/public-booking-page.md) for details on the client booking experience.
 
-### Step 3: Choose Date and Time
+## Viewing Your Booking
 
-Select the appointment date from the calendar picker. Available time slots are shown based on your configured availability and existing bookings. Slots that conflict with other appointments are automatically excluded.
+After creating a booking, you can find it in several places:
 
-### Step 4: Add Notes (Optional)
+- **Bookings page** (`/bookings`) -- Full list with filters and search
+- **Calendar** (`/calendar`) -- Visual schedule in day, week, month, or agenda view
+- **Dashboard** (`/dashboard`) -- Today's bookings count appears in the stat cards
 
-Include any relevant notes about the booking -- client preferences, special requests, or internal reminders.
-
-### Step 5: Confirm
-
-Review the booking summary showing the client, service, date, time, duration, and price. Click **Confirm** to create the booking.
-
-## After Booking Creation
-
-The new booking appears on your:
-
-- **Dashboard** in the today's schedule section (if booked for today)
-- **Bookings** page in the booking list
-- **Calendar** at the selected date and time
-
-The booking is created with a **PENDING** status by default. Depending on your confirmation mode settings, it may automatically move to **CONFIRMED**. See [Confirmation Modes](../booking-management/confirmation-modes.md) for details.
-
-| Status | Meaning |
-|--------|---------|
-| PENDING | Awaiting confirmation |
-| CONFIRMED | Appointment is confirmed and scheduled |
-
-> **Tip:** You can also create walk-in bookings for clients who arrive without an appointment. See [Walk-In Bookings](../booking-management/walk-in-bookings.md).
+The booking starts as **PENDING** or **CONFIRMED** depending on the service's confirmation mode. See [Confirmation Modes](../booking-management/confirmation-modes.md) for details.

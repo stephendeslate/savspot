@@ -1,34 +1,30 @@
 # Business Types
 
-SavSpot supports a range of service business types. Selecting your business type during onboarding configures default presets -- including scheduling intervals, service templates, and display options -- so your workspace is ready to use with minimal setup.
+When you create your SavSpot business during onboarding, you select a business type. This determines the default services, availability rules, and workflows that are pre-configured for you.
 
-## Supported Types
+## Available Types
 
-| Business Type | Description | Typical Services |
-|--------------|-------------|------------------|
-| **Salon** | Hair salons, barbershops, and beauty services | Haircut, color, styling, treatments |
-| **Spa** | Day spas, wellness centers, and massage studios | Massage, facial, body treatment, wellness package |
-| **Consulting** | Professional services, coaching, and advisory | Strategy session, consultation, review meeting |
-| **Fitness Studio** | Gyms, personal training, and fitness classes | Personal training, group class, assessment |
-| **Photography** | Photographers, videographers, and creative studios | Portrait session, event coverage, editing package |
-| **General Services** | Any service business not covered by other types | Custom services based on your business |
+| Type | Description | Example Defaults |
+|------|-------------|------------------|
+| **Venue** | Event spaces, conference rooms, coworking | Longer-duration services, 7-day availability, higher price points |
+| **Salon** | Hair, nails, beauty, spa services | Shorter-duration services, standard business hours |
+| **Studio** | Photography, recording, art studios | Session-based services, flexible scheduling |
+| **Fitness** | Gyms, yoga, personal training | Class and session formats, recurring availability |
+| **Professional** | Consulting, coaching, tutoring | Weekday-only availability by default, consultation-style services |
+| **Other** | Any other service business | General-purpose defaults |
 
-## How Business Type Affects Your Setup
+## What Gets Pre-Configured
 
-When you select a business type during onboarding, SavSpot applies one-time presets that influence:
+When you select a business type and complete onboarding, SavSpot applies a **business preset** that creates:
 
-- **Scheduling defaults** -- Appointment slot intervals and buffer times appropriate for your industry
-- **Service templates** -- Suggested service names, durations, and pricing structures
-- **Booking flow** -- Default fields and steps shown to clients during the booking process
+- **Default services** -- A starter set of services with appropriate durations, prices, and naming for your industry
+- **Availability rules** -- Working hours suited to your business type (e.g., venues get 7-day availability; professional services get weekday-only)
+- **Workflows** -- Automated actions triggered by booking events (e.g., confirmation emails, follow-up reminders)
 
-> **Tip:** Presets are applied once during onboarding and are not enforced afterwards. You can fully customize all settings regardless of the business type you selected.
-
-## Choosing the Right Type
-
-If your business spans multiple categories, choose the type that best represents your primary service offering. For example, a wellness center offering both massage and fitness classes might choose **Spa** if massage is the core offering.
-
-If none of the specific types fit, select **General Services**. This provides a neutral configuration without industry-specific assumptions.
+These are starting points only. You can edit, delete, or add to all of them after onboarding.
 
 ## Changing Your Business Type
 
-Your business type is set during onboarding and is used only to apply initial presets. Since the presets are one-time configurations, changing your business type after onboarding does not reset your existing settings. You can adjust any individual setting through the Settings pages at `/settings`.
+The business type is set during onboarding and determines the initial preset applied. The category is stored on your tenant record but does not restrict which features you can use. All SavSpot features are available regardless of business type.
+
+> **Tip:** Choose the type that most closely matches your business. If none fits well, select **Other** for general-purpose defaults. You can customize everything afterward.

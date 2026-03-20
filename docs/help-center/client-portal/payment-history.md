@@ -1,49 +1,40 @@
 # Payment History
 
-Clients can view a complete record of their transactions at `/portal/payments`. The payment history page provides transparency into all payments made through SavSpot.
+Clients can view their invoices and payment history at `/portal/payments`. This page provides transparency into all transactions made through SavSpot.
 
-## Viewing Payments
+## Viewing Invoices
 
-The payment history page displays a list of all transactions in reverse chronological order, with the most recent payment at the top.
+The payment history page displays invoices with pagination (10 per page).
 
-Each entry in the list shows:
+### Desktop View
 
-| Field | Description |
-|-------|-------------|
-| Date | When the payment was processed |
-| Service | The service associated with the payment |
-| Amount | The total amount charged |
-| Status | Current payment status |
-| Receipt | Link to download a PDF receipt |
+| Column | Description |
+|--------|-------------|
+| **Invoice** | Invoice number |
+| **Business** | Business name |
+| **Date** | Invoice date |
+| **Amount** | Total invoice amount |
+| **Status** | Invoice status badge |
+| **Details** | Expand button showing payment count |
 
-## Payment Statuses
+Click the details button (credit card icon) to expand the row and see individual payments associated with that invoice. Each expanded payment row shows: payment type, date, amount, and payment status badge.
 
-| Status | Meaning |
-|--------|---------|
-| Completed | Payment was successfully processed |
-| Pending | Payment is being processed or awaiting confirmation |
-| Refunded | A full refund has been issued to the client |
-| Partially Refunded | A partial refund has been issued |
-| Failed | Payment attempt was unsuccessful |
+### Mobile View
 
-## Transaction Details
+Invoices appear as tappable cards showing: invoice number, business name, date, amount, and status. Tap a card to expand the **Payment History** section showing individual payments.
 
-Click on any payment entry to view the full transaction details, including:
+## Invoice Statuses
 
-- **Booking information** -- Service name, date, time, and venue.
-- **Payment breakdown** -- Subtotal, discount applied (if any), and total charged.
-- **Payment method** -- Last four digits of the card used.
-- **Refund details** -- If applicable, the refund amount, date, and reason.
+Invoices may display the following statuses as color-coded badges:
 
-## Downloading Receipts
+- **Draft**
+- **Sent**
+- **Paid**
+- **Overdue**
+- **Void**
 
-Each completed payment has a downloadable PDF receipt. To download:
+## Empty State
 
-1. Navigate to `/portal/payments`.
-2. Find the payment in the list.
-3. Click the **Download** icon or link next to the entry.
-4. The receipt opens in a new tab or downloads as a PDF file.
+If the client has no invoices yet, the page shows: "No invoices yet. Your invoices and payment history will appear here after your first booking payment."
 
-Receipts include your business name, logo, the client's name, service details, amount paid, and the transaction date.
-
-> Tip: Receipts are available immediately after a payment is processed. If a client needs a receipt for a past payment, they can find it in their payment history at any time without contacting you.
+> **Tip:** Clients can access their payment history at any time through the portal without needing to contact your business.

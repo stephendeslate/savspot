@@ -1,50 +1,55 @@
 # Booking Statuses
 
-Every booking in SavSpot has a status that indicates where it is in its lifecycle. Statuses are displayed as color-coded badges throughout the interface, making it easy to identify booking states at a glance.
+Every booking in SavSpot has a status that indicates where it is in its lifecycle. Statuses are displayed as color-coded badges throughout the interface.
 
 ## Status Definitions
 
-| Status | Color | Description |
-|--------|-------|-------------|
-| **PENDING** | Yellow | Booking has been created but not yet confirmed |
-| **CONFIRMED** | Blue | Booking is confirmed and the appointment is scheduled |
-| **COMPLETED** | Green | The appointment took place and is finished |
-| **CANCELLED** | Red | The booking was cancelled before the appointment |
-| **NO_SHOW** | Gray | The client did not arrive for their scheduled appointment |
+| Status | Badge Color | Description |
+|--------|-------------|-------------|
+| **Pending** | Amber | Booking has been created but not yet confirmed. Requires manual review |
+| **Confirmed** | Blue | Booking is confirmed and the appointment is scheduled |
+| **In Progress** | Purple | The appointment is currently underway |
+| **Completed** | Green | The appointment took place and is finished |
+| **Cancelled** | Red | The booking was cancelled (text appears with strikethrough on the calendar) |
+| **No Show** | Gray | The client did not arrive for their scheduled appointment |
 
 ## Status Transitions
 
-Bookings follow a defined flow from creation to resolution. The diagram below shows valid transitions:
+Bookings follow a defined flow from creation to resolution:
 
 ```
-PENDING ──> CONFIRMED ──> COMPLETED
-   │            │
-   │            ├──> NO_SHOW
+PENDING ──> CONFIRMED ──> IN PROGRESS ──> COMPLETED
+   │            │              │
+   │            ├──> NO SHOW   └──> CANCELLED
    │            │
    └──> CANCELLED
-            │
-            └──> (from CONFIRMED)
 ```
 
 ### Allowed Transitions
 
-| From | To | When |
-|------|----|------|
-| PENDING | CONFIRMED | You or the system confirms the booking |
-| PENDING | CANCELLED | You or the client cancels before confirmation |
-| CONFIRMED | COMPLETED | The appointment is finished |
-| CONFIRMED | CANCELLED | You or the client cancels the appointment |
-| CONFIRMED | NO_SHOW | The client did not arrive at the scheduled time |
+| From | To | How |
+|------|----|-----|
+| Pending | Confirmed | Click **Confirm** on the booking or calendar popover |
+| Pending | Cancelled | Click **Cancel** from the booking detail or calendar popover |
+| Confirmed | In Progress | Click **Mark Arrived** on the calendar popover |
+| Confirmed | Completed | Click **Mark Completed** on the calendar popover |
+| Confirmed | No Show | Click **No Show** on the calendar popover |
+| Confirmed | Cancelled | Click **Cancel** from the booking detail or calendar popover |
+| In Progress | Completed | Click **Mark Completed** on the calendar popover |
+| In Progress | Cancelled | Click **Cancel** from the calendar popover |
 
-> **Tip:** Bookings cannot move backward in the flow. A COMPLETED or CANCELLED booking cannot return to CONFIRMED or PENDING.
+### Terminal Statuses
+
+**Completed**, **Cancelled**, and **No Show** are terminal — no further actions are available on these bookings. They cannot move backward in the flow.
 
 ## Automatic Status Changes
 
-Depending on your configuration, some status changes happen automatically:
+- **Auto-confirm** — Services configured with Auto-confirm skip PENDING and are immediately set to CONFIRMED. See [Confirmation Modes](./confirmation-modes.md).
+- **Walk-in bookings** — Walk-in bookings start as CONFIRMED by default.
 
-- **Auto-confirm** -- New bookings skip PENDING and are immediately set to CONFIRMED. See [Confirmation Modes](./confirmation-modes.md).
-- **Reminders** -- Automated reminders are sent based on status. CONFIRMED bookings receive appointment reminders; PENDING bookings receive confirmation nudges.
+## Where Statuses Appear
 
-## Status in Reports
-
-Your dashboard metrics use statuses to calculate KPIs. The completion rate, for example, is based on the ratio of COMPLETED bookings to all finalized bookings (COMPLETED + CANCELLED + NO_SHOW).
+- **Bookings page** (`/bookings`) — Status badge in the table
+- **Calendar** (`/calendar`) — Color-coded event blocks with a legend
+- **Booking detail** — Status badge in the header with available action buttons
+- **Client portal** — Clients see their booking statuses in **My Bookings**

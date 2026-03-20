@@ -1,36 +1,54 @@
 # Importing Data
 
-Bring your existing client lists, services, and booking history into SavSpot using the import tool.
+The Imports page at `/imports` provides a read-only view of data import jobs. It shows the status and results of import operations.
 
-## Supported Data Types
+## Viewing Import Jobs
 
-You can import the following types of data:
+Navigate to **Imports** in the sidebar, or go directly to `/imports`.
 
-| Data Type | What Gets Imported |
-|-----------|--------------------|
-| **Clients** | Name, email, phone number, and custom fields. |
-| **Services** | Name, description, duration, price, and category. |
-| **Bookings** | Date, time, service, client, status, and notes (requires matching clients and services). |
+### Status Tabs
 
-## Step-by-Step Import Process
+Filter import jobs by status using the tabs at the top:
 
-1. **Navigate to imports** — Go to **Imports** (`/imports`) in your dashboard.
-2. **Select data type** — Choose what you are importing (clients, services, or bookings).
-3. **Upload your file** — Drag and drop or click to select a CSV or XLSX file from your computer.
-4. **Map columns** — SavSpot reads your file headers and asks you to map each column to a SavSpot field. Common column names are matched automatically; adjust any that were not detected correctly.
-5. **Preview** — Review the first 10 rows of mapped data. SavSpot highlights any rows with validation errors (missing required fields, invalid formats).
-6. **Confirm** — Click **Start Import** to process the file. A progress bar shows the import status.
+| Tab | Description |
+|-----|-------------|
+| **All** | All import jobs |
+| **Pending** | Jobs waiting to be processed |
+| **Processing** | Jobs currently being processed |
+| **Completed** | Successfully finished jobs |
+| **Failed** | Jobs that encountered errors |
 
-When the import finishes, you will see a summary showing the number of records created, skipped, and failed.
+### Import Job Table
 
-## Handling Errors
+| Column | Description |
+|--------|-------------|
+| **Import Type** | The type of data being imported |
+| **Source Platform** | Where the data came from |
+| **Status** | Status badge (Pending/Processing/Completed/Failed) |
+| **Records** | Processed count / Total count (e.g., "45 / 50") |
+| **Errors** | Number of errors (red if > 0) |
+| **Date** | When the import was created |
+| **Actions** | View errors (if any) |
 
-If rows fail validation during import:
+Results are paginated at 20 jobs per page.
 
-- **Missing required fields** — The row is skipped. Add the missing data to your file and re-import only the failed rows.
-- **Duplicate records** — Clients with matching email addresses are flagged as duplicates. You can choose to skip duplicates or update existing records with the new data.
-- **Invalid format** — Values that do not match the expected format (such as a non-numeric price) are highlighted in the preview step so you can correct them before confirming.
+### Job Detail Panel
 
-After import, download the error report from the import summary to see exactly which rows failed and why.
+Click any row to expand a detail panel showing:
 
-> **Tip:** Import clients first, then services, then bookings. Booking imports rely on matching client emails and service names, so those records must exist before bookings can be linked correctly.
+- Import type and source platform
+- Current status
+- Start time
+- Progress bar (processed records / total records)
+- Completion date (if finished)
+- **View Errors** button (if errors exist)
+
+### Error Reports
+
+If an import has errors, click **View Errors** to open the error report dialog. Each error shows the row number, field name badge, and error message.
+
+## Current Limitations
+
+The Imports page is a **read-only monitoring view**. There is no file upload interface — import jobs are initiated through the API or other integration channels.
+
+> **Tip:** If you need to import client data, use the API to create an import job. See [API Keys](../settings/api-keys.md) for information on API access.

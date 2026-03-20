@@ -1,54 +1,44 @@
 # Managing Reviews
 
-Reviews are a powerful way to build trust with potential clients. SavSpot gives you full control over collecting, moderating, and displaying client feedback from a single dashboard.
+View and respond to client feedback at **Reviews** (`/reviews`).
 
-## Viewing Reviews
+## Stats Cards
 
-Navigate to `/reviews` to access your reviews dashboard. All reviews submitted by clients appear here in reverse chronological order, with the most recent reviews at the top.
+Three metric cards are displayed at the top:
 
-Each review displays:
+| Card | Description |
+|------|-------------|
+| **Average Rating** | Overall average star rating across all reviews |
+| **Total Reviews** | Total number of reviews received |
+| **5-Star Reviews** | Count of reviews with a 5-star rating |
 
-| Field | Description |
-|-------|-------------|
-| Client name | The name of the client who left the review |
-| Rating | A 1 to 5 star rating |
-| Review text | The client's written feedback |
-| Service | The service the review is associated with |
-| Date | When the review was submitted |
-| Status | Current moderation status of the review |
+## Review Cards
 
-## Review Statuses
+Reviews are displayed as a vertical list of cards (not a table). Each review card shows:
 
-Every review has a status that determines its visibility:
+- **Star rating** (1–5 filled stars)
+- **Client name** and **service name**
+- **Date** the review was submitted
+- **Comment** text (if the client included one)
+- **Reply** section — if you've already replied, your response is shown in an indented block with the reply date. If not, a "Reply" button is displayed.
 
-| Status | Meaning |
-|--------|---------|
-| Pending | Newly submitted, awaiting your moderation |
-| Approved | Visible on your public booking page |
-| Hidden | Reviewed by you but not displayed publicly |
+## Replying to Reviews
 
-## Filtering and Sorting
+1. Click the **Reply** button on a review card.
+2. A dialog appears with a text area: "Write your reply..."
+3. A note states: "Your reply will be visible to the client and other visitors."
+4. Click **Submit Reply** to post your response.
 
-Use the filter controls at the top of the reviews page to narrow down your view:
+Replies are public — there is no private reply option.
 
-1. **By rating** — Select a specific star rating to see only reviews with that score.
-2. **By status** — Filter by pending, approved, or hidden reviews.
-3. **By date range** — Focus on reviews from a specific time period.
-4. **By service** — View reviews for a particular service you offer.
+## Pagination
 
-## Moderating Reviews
+Reviews are paginated with Previous/Next navigation.
 
-To moderate a review:
+## Current Limitations
 
-1. Open the review from your dashboard.
-2. Read the client's feedback and rating.
-3. Choose to approve or hide the review.
-4. Optionally, add a public response before changing the status.
+- There are **no filters** (no rating filter, no status filter, no date range filter).
+- There is **no moderation workflow** — reviews are displayed directly without an approval step.
+- There are no Pending/Approved/Hidden statuses for reviews.
 
-> **Tip:** Review pending reviews regularly. Prompt moderation shows clients that you value their feedback and keeps your public profile current.
-
-## Displaying Reviews on Your Booking Page
-
-Approved reviews automatically appear on your public booking page, helping potential clients make informed decisions. Reviews are displayed with the client's name, star rating, and written feedback.
-
-> **Tip:** A mix of detailed, genuine reviews builds more trust than a wall of five-star ratings with no text. Encourage clients to share specifics about their experience.
+> **Tip:** Respond to reviews promptly and professionally. Even acknowledging negative feedback shows potential clients that you care about the experience you provide.
