@@ -8,8 +8,8 @@
     "prebuild": "node scripts/generate-help-content.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "typecheck": "tsc --noEmit",
+    "lint": "node scripts/generate-help-content.mjs && eslint \"src/**/*.{ts,tsx}\"",
+    "typecheck": "node scripts/generate-help-content.mjs && tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "clean": "rm -rf .next out"
