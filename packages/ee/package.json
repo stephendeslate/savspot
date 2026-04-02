@@ -19,9 +19,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@nestjs/common": "^11.0.0",
+    "@nestjs/common": "^11.1.17",
     "@nestjs/config": "^4.0.0",
-    "@nestjs/core": "^11.0.0",
+    "@nestjs/core": "^11.1.17",
     "reflect-metadata": "^0.2.0"
   },
   "devDependencies": {
@@ -29,7 +29,7 @@
     "vitest": "^3.0.0"
   },
   "peerDependencies": {
-    "@nestjs/common": "^11.0.0",
-    "@nestjs/core": "^11.0.0"
+    "@nestjs/common": "^11.1.17",
+    "@nestjs/core": "^11.1.17"
   }
 }
