@@ -29,6 +29,13 @@ export class CalendarSyncHandler {
   async handle(job: Job<CalendarSyncJobData>): Promise<void> {
     const { connectionId, tenantId, manual, triggeredBy } = job.data;
 
+    if (!connectionId || !tenantId) {
+      this.logger.warn(
+        `Skipping ${job.name}: missing ${!connectionId ? 'connectionId' : 'tenantId'} — job should be enqueued per-connection`,
+      );
+      return;
+    }
+
     this.logger.log(
       `Starting calendar sync for connection ${connectionId} (tenant: ${tenantId}, trigger: ${triggeredBy || (manual ? 'manual' : 'scheduled')})`,
     );
