@@ -12,7 +12,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiExcludeEndpoint } from '@nestjs/
 import { Throttle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
-import { Prisma } from '../../../../prisma/generated/prisma';
+import { PaymentStatus, Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { Public } from '../common/decorators/public.decorator';
 import { PaymentsService } from './payments.service';
@@ -203,32 +203,48 @@ export class StripeWebhookController {
           this.logger.log(
             `Dispute created for payment intent: ${disputePaymentIntentId}`,
           );
-          const disputedPayment = await this.prisma.payment.findFirst({
-            where: { providerTransactionId: disputePaymentIntentId },
+          await this.prisma.$transaction(async (tx) => {
+            const rows = await tx.$queryRaw<
+              Array<{ id: string; status: string; tenant_id: string }>
+            >`
+              SELECT id, status, tenant_id FROM "payments"
+              WHERE "provider_transaction_id" = ${disputePaymentIntentId}
+              FOR UPDATE
+            `;
+            const locked = rows[0];
+            if (!locked) {
+              this.logger.warn(
+                `Payment not found for disputed payment intent: ${disputePaymentIntentId}`,
+              );
+              return;
+            }
+            // Only move into DISPUTED from a state where a dispute makes
+            // sense. If the payment is already REFUNDED/FAILED/CANCELLED,
+            // disputing it is informational — we log but don't overwrite.
+            if (
+              locked.status !== 'SUCCEEDED' &&
+              locked.status !== 'PARTIALLY_REFUNDED'
+            ) {
+              this.logger.warn(
+                `Payment ${locked.id} in status ${locked.status} — dispute.created logged but state not changed`,
+              );
+              return;
+            }
+            await tx.payment.update({
+              where: { id: locked.id },
+              data: { status: 'DISPUTED' },
+            });
+            await tx.paymentStateHistory.create({
+              data: {
+                paymentId: locked.id,
+                tenantId: locked.tenant_id,
+                fromState: locked.status as PaymentStatus,
+                toState: 'DISPUTED',
+                triggeredBy: 'WEBHOOK',
+                reason: `Stripe dispute created (${(obj['reason'] as string | undefined) ?? 'no reason provided'})`,
+              },
+            });
           });
-          if (disputedPayment) {
-            const previousStatus = disputedPayment.status;
-            await this.prisma.$transaction([
-              this.prisma.payment.update({
-                where: { id: disputedPayment.id },
-                data: { status: 'DISPUTED' },
-              }),
-              this.prisma.paymentStateHistory.create({
-                data: {
-                  paymentId: disputedPayment.id,
-                  tenantId: disputedPayment.tenantId,
-                  fromState: previousStatus,
-                  toState: 'DISPUTED',
-                  triggeredBy: 'WEBHOOK',
-                  reason: `Stripe dispute created (${obj['reason'] as string | undefined ?? 'no reason provided'})`,
-                },
-              }),
-            ]);
-          } else {
-            this.logger.warn(
-              `Payment not found for disputed payment intent: ${disputePaymentIntentId}`,
-            );
-          }
         }
         break;
       }
@@ -242,43 +258,47 @@ export class StripeWebhookController {
           this.logger.log(
             `Dispute closed (${disputeStatus}) for payment intent: ${closedDisputePaymentIntentId}`,
           );
-          const closedDisputePayment = await this.prisma.payment.findFirst({
-            where: { providerTransactionId: closedDisputePaymentIntentId },
-          });
-          if (closedDisputePayment) {
+          await this.prisma.$transaction(async (tx) => {
+            const rows = await tx.$queryRaw<
+              Array<{ id: string; status: string; tenant_id: string }>
+            >`
+              SELECT id, status, tenant_id FROM "payments"
+              WHERE "provider_transaction_id" = ${closedDisputePaymentIntentId}
+              FOR UPDATE
+            `;
+            const locked = rows[0];
+            if (!locked) {
+              this.logger.warn(
+                `Payment not found for closed dispute payment intent: ${closedDisputePaymentIntentId}`,
+              );
+              return;
+            }
             // Only transition out of DISPUTED. If the payment moved to
             // REFUNDED/PARTIALLY_REFUNDED while the dispute was open (admin
             // refunded manually, or dispute.created arrived late), don't
             // overwrite that terminal state.
-            if (closedDisputePayment.status !== 'DISPUTED') {
+            if (locked.status !== 'DISPUTED') {
               this.logger.log(
-                `Payment ${closedDisputePayment.id} no longer DISPUTED (status=${closedDisputePayment.status}) — ignoring dispute.closed`,
+                `Payment ${locked.id} no longer DISPUTED (status=${locked.status}) — ignoring dispute.closed`,
               );
-              break;
+              return;
             }
-            const previousStatus = closedDisputePayment.status;
             const newStatus = disputeStatus === 'won' ? 'SUCCEEDED' : 'REFUNDED';
-            await this.prisma.$transaction([
-              this.prisma.payment.update({
-                where: { id: closedDisputePayment.id },
-                data: { status: newStatus },
-              }),
-              this.prisma.paymentStateHistory.create({
-                data: {
-                  paymentId: closedDisputePayment.id,
-                  tenantId: closedDisputePayment.tenantId,
-                  fromState: previousStatus,
-                  toState: newStatus,
-                  triggeredBy: 'WEBHOOK',
-                  reason: `Stripe dispute closed with status: ${disputeStatus}`,
-                },
-              }),
-            ]);
-          } else {
-            this.logger.warn(
-              `Payment not found for closed dispute payment intent: ${closedDisputePaymentIntentId}`,
-            );
-          }
+            await tx.payment.update({
+              where: { id: locked.id },
+              data: { status: newStatus },
+            });
+            await tx.paymentStateHistory.create({
+              data: {
+                paymentId: locked.id,
+                tenantId: locked.tenant_id,
+                fromState: 'DISPUTED',
+                toState: newStatus,
+                triggeredBy: 'WEBHOOK',
+                reason: `Stripe dispute closed with status: ${disputeStatus}`,
+              },
+            });
+          });
         }
         break;
       }

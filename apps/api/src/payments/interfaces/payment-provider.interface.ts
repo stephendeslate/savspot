@@ -20,6 +20,11 @@ export interface CreateRefundParams {
   amount?: number; // partial refund amount, omit for full
   reason?: string;
   tenantId?: string; // used by circuit breaker for per-tenant scoping
+  // When true, refund the platform application fee along with the charge.
+  // Stripe refunds the ENTIRE application fee regardless of partial amount,
+  // so callers should only set this on full refunds to avoid losing the
+  // platform fee on a partial. Default false.
+  refundApplicationFee?: boolean;
 }
 
 export interface RefundResult {

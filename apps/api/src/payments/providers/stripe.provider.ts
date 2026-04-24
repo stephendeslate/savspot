@@ -237,10 +237,12 @@ export class StripeProvider implements PaymentProviderInterface {
     const refundParams: Stripe.RefundCreateParams = {
       payment_intent: params.paymentIntentId,
       // Destination charges: reverse the transfer so the refund comes out of
-      // the connected account, not the platform balance. Refund the platform
-      // fee proportionally so we don't eat it on full refunds.
+      // the connected account, not the platform balance.
       reverse_transfer: true,
-      refund_application_fee: true,
+      // refund_application_fee applies to the ENTIRE platform fee, not a
+      // proportional share, so only set it on full refunds. Caller is
+      // responsible for computing this flag based on cumulative refund total.
+      refund_application_fee: params.refundApplicationFee ?? false,
     };
 
     if (params.amount !== undefined) {
@@ -285,11 +287,13 @@ export class StripeProvider implements PaymentProviderInterface {
   async listRefunds(paymentIntentId: string): Promise<RefundResult[]> {
     const stripe = this.ensureStripe();
     try {
-      const refunds = await stripe.refunds.list({
-        payment_intent: paymentIntentId,
-        limit: 100,
-      });
-      return refunds.data.map((r) => ({
+      // Use autoPagingToArray so payments with >100 refunds (rare but
+      // possible with micro-refunds) are fully enumerated. A bounded limit
+      // still applies so a pathological input cannot exhaust memory.
+      const refunds = await stripe.refunds
+        .list({ payment_intent: paymentIntentId })
+        .autoPagingToArray({ limit: 10_000 });
+      return refunds.map((r) => ({
         id: r.id,
         amount: r.amount,
         status: r.status ?? 'pending',

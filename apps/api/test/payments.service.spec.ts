@@ -377,49 +377,69 @@ describe('PaymentsService', () => {
   // -----------------------------------------------------------------------
 
   describe('processRefund', () => {
+    // Phase-1 (pre-Stripe) read now uses payment.findFirst; phase-4
+    // (post-Stripe) update uses $queryRaw FOR UPDATE + payment.update.
+    const mockPhase4Lock = (currentStatus: string) => {
+      prisma.$queryRaw.mockResolvedValue([{ status: currentStatus }]);
+    };
+
     it('should throw NotFoundException when payment not found', async () => {
-      prisma.$queryRaw.mockResolvedValue([]);
+      prisma.payment.findFirst.mockResolvedValue(null);
       await expect(service.processRefund(TENANT_ID, 'bad-id')).rejects.toThrow(NotFoundException);
     });
 
     it('should throw BadRequestException for non-SUCCEEDED payment', async () => {
-      prisma.$queryRaw.mockResolvedValue([{ id: PAYMENT_ID, status: 'PENDING', provider_transaction_id: null, amount: '50.00' }]);
+      prisma.payment.findFirst.mockResolvedValue({
+        id: PAYMENT_ID, status: 'PENDING',
+        providerTransactionId: null, amount: '50.00',
+      });
       await expect(service.processRefund(TENANT_ID, PAYMENT_ID)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when no provider transaction ID', async () => {
-      prisma.$queryRaw.mockResolvedValue([{ id: PAYMENT_ID, status: 'SUCCEEDED', provider_transaction_id: null, amount: '50.00' }]);
+      prisma.payment.findFirst.mockResolvedValue({
+        id: PAYMENT_ID, status: 'SUCCEEDED',
+        providerTransactionId: null, amount: '50.00',
+      });
       await expect(service.processRefund(TENANT_ID, PAYMENT_ID)).rejects.toThrow(BadRequestException);
     });
 
     it('should set REFUNDED for full refund', async () => {
       // Payment is $50. No amount passed → full refund (5000 cents).
-      prisma.$queryRaw.mockResolvedValue([{
+      prisma.payment.findFirst.mockResolvedValue({
         id: PAYMENT_ID, status: 'SUCCEEDED',
-        provider_transaction_id: STRIPE_PI_ID, amount: '50.00',
-      }]);
+        providerTransactionId: STRIPE_PI_ID, amount: '50.00',
+      });
       stripe.createRefund.mockResolvedValue({ id: 're_1', amount: 5000, status: 'succeeded' });
+      mockPhase4Lock('SUCCEEDED');
       prisma.payment.update.mockResolvedValue({});
       prisma.paymentStateHistory.create.mockResolvedValue({});
 
       const result = await service.processRefund(TENANT_ID, PAYMENT_ID);
       expect(result.refundId).toBe('re_1');
+      expect(stripe.createRefund).toHaveBeenCalledWith(
+        expect.objectContaining({ refundApplicationFee: true }),
+      );
       expect(prisma.payment.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: { status: 'REFUNDED' } }),
       );
     });
 
-    it('should set PARTIALLY_REFUNDED for partial refund', async () => {
-      // Payment is $50. Refund $20 (partial).
-      prisma.$queryRaw.mockResolvedValue([{
+    it('should set PARTIALLY_REFUNDED for partial refund and NOT refund app fee', async () => {
+      // Payment is $50. Refund $20 (partial) → platform fee stays intact.
+      prisma.payment.findFirst.mockResolvedValue({
         id: PAYMENT_ID, status: 'SUCCEEDED',
-        provider_transaction_id: STRIPE_PI_ID, amount: '50.00',
-      }]);
+        providerTransactionId: STRIPE_PI_ID, amount: '50.00',
+      });
       stripe.createRefund.mockResolvedValue({ id: 're_2', amount: 2000, status: 'succeeded' });
+      mockPhase4Lock('SUCCEEDED');
       prisma.payment.update.mockResolvedValue({});
       prisma.paymentStateHistory.create.mockResolvedValue({});
 
       await service.processRefund(TENANT_ID, PAYMENT_ID, 20);
+      expect(stripe.createRefund).toHaveBeenCalledWith(
+        expect.objectContaining({ refundApplicationFee: false }),
+      );
       expect(prisma.payment.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: { status: 'PARTIALLY_REFUNDED' } }),
       );
@@ -427,10 +447,10 @@ describe('PaymentsService', () => {
 
     it('should reject second refund that would exceed original amount', async () => {
       // $50 payment, $40 already refunded, attempting another $20 = $60 total
-      prisma.$queryRaw.mockResolvedValue([{
+      prisma.payment.findFirst.mockResolvedValue({
         id: PAYMENT_ID, status: 'PARTIALLY_REFUNDED',
-        provider_transaction_id: STRIPE_PI_ID, amount: '50.00',
-      }]);
+        providerTransactionId: STRIPE_PI_ID, amount: '50.00',
+      });
       stripe.listRefunds.mockResolvedValue([
         { id: 're_prior', amount: 4000, status: 'succeeded' },
       ]);

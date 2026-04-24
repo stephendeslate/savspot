@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ServiceUnavailableException,
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -21,12 +22,13 @@ export class StripeConnectService {
   /**
    * Validate that a client-supplied URL belongs to the configured web origin.
    * Prevents an attacker from steering the Stripe return_url to an
-   * arbitrary domain.
+   * arbitrary domain or port.
    */
   private validateReturnUrl(returnUrl: string): string {
     const webUrl = this.configService.get<string>('WEB_URL');
     if (!webUrl) {
-      throw new BadRequestException(
+      // Missing WEB_URL is server misconfiguration — not a client error.
+      throw new ServiceUnavailableException(
         'WEB_URL is not configured — cannot validate return URL',
       );
     }
@@ -40,11 +42,20 @@ export class StripeConnectService {
       throw new BadRequestException('Invalid return URL');
     }
 
-    // Compare origin (scheme+host+port). Allow both apex and www of the
-    // configured host.
-    const host = allowed.hostname.replace(/^www\./, '');
-    const parsedHost = parsed.hostname.replace(/^www\./, '');
-    if (parsed.protocol !== allowed.protocol || parsedHost !== host) {
+    // Compare protocol + host (hostname + port). `port` is checked here
+    // because `URL.host` includes port only when explicit; we normalize by
+    // comparing (hostname, port) pairs separately. Allow both apex and www.
+    const normalize = (u: URL) => ({
+      hostname: u.hostname.replace(/^www\./, ''),
+      port: u.port || (u.protocol === 'https:' ? '443' : '80'),
+    });
+    const allowedNorm = normalize(allowed);
+    const parsedNorm = normalize(parsed);
+    if (
+      parsed.protocol !== allowed.protocol ||
+      parsedNorm.hostname !== allowedNorm.hostname ||
+      parsedNorm.port !== allowedNorm.port
+    ) {
       throw new BadRequestException(
         `Return URL must be on ${allowed.origin}`,
       );
