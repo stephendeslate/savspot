@@ -48,4 +48,5 @@ export interface PaymentProviderInterface {
   createPaymentIntent(params: CreatePaymentIntentParams): Promise<PaymentIntentResult>;
   cancelPaymentIntent(intentId: string): Promise<void>;
   createRefund(params: CreateRefundParams): Promise<RefundResult>;
+  listRefunds(paymentIntentId: string): Promise<RefundResult[]>;
 }

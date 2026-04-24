@@ -58,9 +58,14 @@ export class OfflineProvider implements PaymentProviderInterface {
     );
   }
 
-  async createRefund(_params: CreateRefundParams): Promise<RefundResult> {  
+  async createRefund(_params: CreateRefundParams): Promise<RefundResult> {
     throw new BadRequestException(
       'Offline payment provider does not support this operation',
     );
+  }
+
+  async listRefunds(_paymentIntentId: string): Promise<RefundResult[]> {
+    // Offline payments cannot have electronic refunds; return empty.
+    return [];
   }
 }

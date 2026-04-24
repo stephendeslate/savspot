@@ -69,4 +69,9 @@ export class GcashProvider implements PaymentProviderInterface {
     this.ensureEnabled();
     throw new NotImplementedException('GCash provider is not yet implemented. Use Stripe or Offline.');
   }
+
+  async listRefunds(_paymentIntentId: string): Promise<RefundResult[]> {
+    this.ensureEnabled();
+    throw new NotImplementedException('gcash provider is not yet implemented. Use Stripe or Offline.');
+  }
 }
