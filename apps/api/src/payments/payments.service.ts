@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { BookingSource, BookingStatus, Prisma } from '../../../../prisma/generated/prisma';
+import { BookingSource, BookingStatus, PaymentStatus, Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeProvider } from './providers/stripe.provider';
 import { EventsService } from '../events/events.service';
@@ -221,9 +221,26 @@ export class PaymentsService {
       ? referralCommissionCents / 100
       : null;
 
-    // Total platform fee = processing fee + referral commission
-    const totalPlatformFee =
+    // Total platform fee = processing fee + referral commission.
+    // Cap at chargeAmountCents - 1 so the connected account always receives
+    // at least 1 cent. Stripe permits application_fee == charge (0 to the
+    // connected account), but we enforce a minimum payout as a business
+    // invariant. Capping also prevents Stripe from outright rejecting the
+    // intent when the uncapped fee would exceed the charge (can happen on
+    // deposit payments where referral commission is calculated on the full
+    // booking total but deducted from a smaller deposit charge).
+    const uncappedPlatformFee =
       processingFeeCents + (referralCommissionCents ?? 0);
+    const maxAllowedFee = Math.max(0, chargeAmountCents - 1);
+    const totalPlatformFee = Math.min(uncappedPlatformFee, maxAllowedFee);
+
+    if (uncappedPlatformFee > maxAllowedFee) {
+      this.logger.warn(
+        `Platform fee capped for booking ${bookingId}: ` +
+          `uncapped=${uncappedPlatformFee} cents, capped=${totalPlatformFee} cents ` +
+          `(charge=${chargeAmountCents}, processing=${processingFeeCents}, referral=${referralCommissionCents ?? 0})`,
+      );
+    }
 
     // Create Stripe PaymentIntent
     const intentResult = await this.stripeProvider.createPaymentIntent({
@@ -426,35 +443,80 @@ export class PaymentsService {
    * Handle a failed payment from Stripe webhook.
    */
   async handlePaymentFailure(providerPaymentId: string, reason?: string) {
-    const payment = await this.prisma.payment.findFirst({
-      where: { providerTransactionId: providerPaymentId },
-    });
+    // Row-lock + terminal-state guard, mirroring handlePaymentSuccess.
+    // Stripe does NOT guarantee event ordering — payment_intent.succeeded and
+    // payment_intent.payment_failed can arrive near-simultaneously. Without
+    // this guard, a failure event arriving after a success would silently
+    // overwrite SUCCEEDED with FAILED, losing the booking confirmation.
+    const payment = await this.prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<
+        Array<{
+          id: string;
+          status: string;
+          tenant_id: string;
+          booking_id: string;
+          amount: string;
+          currency: string;
+        }>
+      >`
+        SELECT id, status, tenant_id, booking_id, amount, currency FROM "payments"
+        WHERE "provider_transaction_id" = ${providerPaymentId}
+        FOR UPDATE
+      `;
 
-    if (!payment) {
-      this.logger.warn(
-        `Payment not found for provider ID: ${providerPaymentId}`,
-      );
-      return;
-    }
+      const locked = rows[0];
+      if (!locked) {
+        this.logger.warn(
+          `Payment not found for provider ID: ${providerPaymentId}`,
+        );
+        return null;
+      }
 
-    const previousStatus = payment.status;
+      // Terminal-state guard: never overwrite a payment already in a final
+      // state. Prevents out-of-order webhook delivery from inverting status.
+      // DISPUTED is included because disputes are managed by the dispute
+      // lifecycle handlers — a late payment_failed event should not stomp it.
+      if (
+        locked.status === 'SUCCEEDED' ||
+        locked.status === 'REFUNDED' ||
+        locked.status === 'PARTIALLY_REFUNDED' ||
+        locked.status === 'FAILED' ||
+        locked.status === 'DISPUTED'
+      ) {
+        this.logger.log(
+          `Payment ${locked.id} already in terminal state ${locked.status} — ignoring failure event`,
+        );
+        return null;
+      }
 
-    await this.prisma.$transaction([
-      this.prisma.payment.update({
-        where: { id: payment.id },
+      const previousStatus = locked.status as PaymentStatus;
+
+      await tx.payment.update({
+        where: { id: locked.id },
         data: { status: 'FAILED' },
-      }),
-      this.prisma.paymentStateHistory.create({
+      });
+
+      await tx.paymentStateHistory.create({
         data: {
-          paymentId: payment.id,
-          tenantId: payment.tenantId,
+          paymentId: locked.id,
+          tenantId: locked.tenant_id,
           fromState: previousStatus,
           toState: 'FAILED',
           triggeredBy: 'WEBHOOK',
           reason: reason ?? 'Payment failed via Stripe webhook',
         },
-      }),
-    ]);
+      });
+
+      return {
+        id: locked.id,
+        tenantId: locked.tenant_id,
+        bookingId: locked.booking_id,
+        amount: Number(locked.amount),
+        currency: locked.currency,
+      };
+    });
+
+    if (!payment) return;
 
     // Load booking details for event payload
     const failedBooking = await this.prisma.booking.findFirst({
@@ -470,7 +532,7 @@ export class PaymentsService {
         tenantId: payment.tenantId,
         bookingId: payment.bookingId,
         paymentId: payment.id,
-        amount: payment.amount.toNumber(),
+        amount: payment.amount,
         currency: payment.currency,
         clientId: failedBooking.clientId,
         clientName: failedBooking.client?.name ?? '',
@@ -484,72 +546,135 @@ export class PaymentsService {
 
   /**
    * Process a refund for a payment.
+   *
+   * Stripe API calls (listRefunds, createRefund) are made OUTSIDE the
+   * Prisma interactive transaction. Holding a FOR UPDATE lock while making
+   * HTTP calls risks: (1) hitting Prisma's 5s transaction timeout mid-Stripe
+   * call, rolling back local state while Stripe's refund has already landed,
+   * leaving an orphaned Stripe refund with no corresponding DB record;
+   * (2) blocking other refund attempts on the same payment for the full
+   * Stripe round-trip. We trade that correctness cost for an optimistic
+   * pre-check — Stripe itself is the final safety net for over-refund.
    */
   async processRefund(tenantId: string, paymentId: string, amount?: number) {
-    const result = await this.prisma.$transaction(async (tx) => {
-      // Lock the payment row to prevent TOCTOU double-refund
-      const payments = await tx.$queryRaw<
-        Array<{
-          id: string;
-          status: string;
-          provider_transaction_id: string | null;
-          amount: number;
-        }>
-      >`
-        SELECT id, status, provider_transaction_id, amount FROM "payments"
-        WHERE id = ${paymentId}::uuid AND tenant_id = ${tenantId}::uuid
-        FOR UPDATE
-      `;
+    // Phase 1: short read (no lock) to validate state and fetch identifiers.
+    // Rejecting here lets us fail fast without ever calling Stripe.
+    const payment = await this.prisma.payment.findFirst({
+      where: { id: paymentId, tenantId },
+      select: {
+        id: true,
+        status: true,
+        providerTransactionId: true,
+        amount: true,
+      },
+    });
 
-      const lockedPayment = payments[0];
+    if (!payment) {
+      throw new NotFoundException('Payment not found');
+    }
+    if (
+      payment.status !== 'SUCCEEDED' &&
+      payment.status !== 'PARTIALLY_REFUNDED'
+    ) {
+      throw new BadRequestException(
+        `Cannot refund payment in status ${payment.status}`,
+      );
+    }
+    if (!payment.providerTransactionId) {
+      throw new BadRequestException(
+        'Payment has no provider transaction ID — cannot refund',
+      );
+    }
 
-      if (!lockedPayment) {
-        throw new NotFoundException('Payment not found');
-      }
+    const paymentAmountCents = Math.round(Number(payment.amount) * 100);
+    const requestedAmountCents = amount ? Math.round(amount * 100) : undefined;
 
-      if (lockedPayment.status !== 'SUCCEEDED') {
-        throw new BadRequestException('Can only refund succeeded payments');
-      }
+    // Phase 2: query Stripe for cumulative refunded amount (source of truth).
+    // OUTSIDE the transaction — see method-level comment.
+    // Pending refunds are included in the sum: a pending refund that later
+    // fails would overstate cumulative and block a follow-up refund, but
+    // the reverse (excluding pending that later succeed) would ALLOW
+    // over-refund. Blocking is the safer failure mode.
+    const priorRefunds = await this.stripeProvider.listRefunds(
+      payment.providerTransactionId,
+    );
+    const priorRefundedCents = priorRefunds
+      .filter((r) => r.status !== 'failed' && r.status !== 'canceled')
+      .reduce((sum, r) => sum + r.amount, 0);
 
-      if (!lockedPayment.provider_transaction_id) {
-        throw new BadRequestException(
-          'Payment has no provider transaction ID — cannot refund',
+    const newRefundCents =
+      requestedAmountCents ?? paymentAmountCents - priorRefundedCents;
+
+    if (newRefundCents <= 0) {
+      throw new BadRequestException('Payment already fully refunded');
+    }
+
+    if (priorRefundedCents + newRefundCents > paymentAmountCents) {
+      throw new BadRequestException(
+        `Refund would exceed original amount (requested ${newRefundCents} cents, ` +
+          `${priorRefundedCents} cents already refunded, original ${paymentAmountCents} cents)`,
+      );
+    }
+
+    // Phase 3: create the refund on Stripe. OUTSIDE the transaction.
+    // If two concurrent refund attempts slip through the optimistic check,
+    // Stripe's own validation rejects any that would over-refund.
+    const willBeFullRefund =
+      priorRefundedCents + newRefundCents >= paymentAmountCents;
+    const refundResult = await this.stripeProvider.createRefund({
+      paymentIntentId: payment.providerTransactionId,
+      amount: newRefundCents,
+      reason: 'requested_by_customer',
+      tenantId,
+      refundApplicationFee: willBeFullRefund,
+    });
+
+    // Phase 4: short transaction to update local status. Lock + re-check
+    // serializes concurrent completions; if another refund raced ahead and
+    // already flipped to REFUNDED, we log and skip the redundant update.
+    const totalRefundedCents = priorRefundedCents + refundResult.amount;
+    const isFullRefund = totalRefundedCents >= paymentAmountCents;
+    const newStatus = isFullRefund ? 'REFUNDED' : 'PARTIALLY_REFUNDED';
+
+    await this.prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<
+        Array<{ status: string }>
+      >`SELECT status FROM "payments" WHERE id = ${paymentId}::uuid FOR UPDATE`;
+      const currentStatus = rows[0]?.status as PaymentStatus | undefined;
+      if (!currentStatus) return;
+
+      // If the current state is already terminal in a way the new refund
+      // wouldn't change (e.g. REFUNDED and we're PARTIALLY_REFUNDED), skip.
+      if (currentStatus === 'REFUNDED') {
+        this.logger.log(
+          `Payment ${paymentId} already REFUNDED — refund ${refundResult.id} recorded in state history only`,
         );
+      } else {
+        await tx.payment.update({
+          where: { id: paymentId },
+          data: { status: newStatus },
+        });
       }
-
-      const refundResult = await this.stripeProvider.createRefund({
-        paymentIntentId: lockedPayment.provider_transaction_id,
-        amount: amount ? Math.round(amount * 100) : undefined,
-        reason: 'requested_by_customer',
-        tenantId,
-      });
-
-      const paymentAmount = Number(lockedPayment.amount);
-      const isFullRefund = !amount || amount >= paymentAmount;
-      const newStatus = isFullRefund ? 'REFUNDED' : 'PARTIALLY_REFUNDED';
-
-      await tx.payment.update({
-        where: { id: lockedPayment.id },
-        data: { status: newStatus },
-      });
 
       await tx.paymentStateHistory.create({
         data: {
-          paymentId: lockedPayment.id,
+          paymentId,
           tenantId,
-          fromState: 'SUCCEEDED',
+          fromState: currentStatus,
           toState: newStatus,
           triggeredBy: 'ADMIN',
           reason: `Refund processed: ${refundResult.id}`,
           metadata: {
             refundId: refundResult.id,
             refundAmount: refundResult.amount,
+            priorRefundedCents,
+            totalRefundedCents,
           } as Prisma.InputJsonValue,
         },
       });
-
-      return refundResult;
     });
+
+    const result = refundResult;
 
     this.logger.log(
       `Refund ${result.id} processed for payment ${paymentId}`,

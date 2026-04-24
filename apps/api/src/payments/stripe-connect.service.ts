@@ -2,8 +2,10 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ServiceUnavailableException,
   Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeProvider } from './providers/stripe.provider';
 
@@ -14,7 +16,53 @@ export class StripeConnectService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly stripeProvider: StripeProvider,
+    private readonly configService: ConfigService,
   ) {}
+
+  /**
+   * Validate that a client-supplied URL belongs to the configured web origin.
+   * Prevents an attacker from steering the Stripe return_url to an
+   * arbitrary domain or port.
+   */
+  private validateReturnUrl(returnUrl: string): string {
+    const webUrl = this.configService.get<string>('WEB_URL');
+    if (!webUrl) {
+      // Missing WEB_URL is server misconfiguration — not a client error.
+      throw new ServiceUnavailableException(
+        'WEB_URL is not configured — cannot validate return URL',
+      );
+    }
+
+    let parsed: URL;
+    let allowed: URL;
+    try {
+      parsed = new URL(returnUrl);
+      allowed = new URL(webUrl);
+    } catch {
+      throw new BadRequestException('Invalid return URL');
+    }
+
+    // Compare protocol + host (hostname + port). `port` is checked here
+    // because `URL.host` includes port only when explicit; we normalize by
+    // comparing (hostname, port) pairs separately. Allow both apex and www.
+    const normalize = (u: URL) => ({
+      hostname: u.hostname.replace(/^www\./, ''),
+      port: u.port || (u.protocol === 'https:' ? '443' : '80'),
+    });
+    const allowedNorm = normalize(allowed);
+    const parsedNorm = normalize(parsed);
+    if (
+      parsed.protocol !== allowed.protocol ||
+      parsedNorm.hostname !== allowedNorm.hostname ||
+      parsedNorm.port !== allowedNorm.port
+    ) {
+      throw new BadRequestException(
+        `Return URL must be on ${allowed.origin}`,
+      );
+    }
+
+    return returnUrl;
+  }
 
   /**
    * Create a Stripe Connect Express account for a tenant.
@@ -51,14 +99,30 @@ export class StripeConnectService {
       country,
     );
 
-    // Update tenant with the new account ID
-    await this.prisma.tenant.update({
-      where: { id: tenantId },
+    // Optimistic update: only claim the tenant row if paymentProviderAccountId
+    // is still null. If two concurrent "Connect" clicks both created Stripe
+    // accounts, the second updateMany returns count=0 and we know this one
+    // is orphaned — recoverable by checking the tenant's current account ID.
+    const updateResult = await this.prisma.tenant.updateMany({
+      where: { id: tenantId, paymentProviderAccountId: null },
       data: {
         paymentProvider: 'STRIPE',
         paymentProviderAccountId: account.accountId,
       },
     });
+
+    if (updateResult.count === 0) {
+      // Another concurrent request won the race. Log the orphan so it can be
+      // cleaned up in the Stripe Dashboard (we cannot safely delete it here
+      // — it may have already had PII submitted).
+      this.logger.warn(
+        `Race detected on tenant ${tenantId} Stripe account creation. ` +
+          `Orphaned account ${account.accountId} left in Stripe — manual cleanup required.`,
+      );
+      throw new BadRequestException(
+        'Tenant already has a connected payment account',
+      );
+    }
 
     this.logger.log(
       `Stripe Connect account created for tenant ${tenantId}: ${account.accountId}`,
@@ -74,6 +138,11 @@ export class StripeConnectService {
    * Get a Stripe onboarding link for the tenant's connected account.
    */
   async getOnboardingLink(tenantId: string, returnUrl: string) {
+    // Reject any return URL not on the configured web origin before handing
+    // it to Stripe, so the Stripe redirect can't be used to bounce the user
+    // to an attacker-controlled domain.
+    const safeReturnUrl = this.validateReturnUrl(returnUrl);
+
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       select: { paymentProviderAccountId: true },
@@ -89,11 +158,11 @@ export class StripeConnectService {
       );
     }
 
-    const refreshUrl = `${returnUrl}?refresh=true`;
+    const refreshUrl = `${safeReturnUrl}?refresh=true`;
     const url = await this.stripeProvider.getOnboardingLink(
       tenant.paymentProviderAccountId,
       refreshUrl,
-      returnUrl,
+      safeReturnUrl,
     );
 
     return { url };

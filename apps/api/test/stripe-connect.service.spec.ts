@@ -15,6 +15,7 @@ function makePrisma() {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
     },
   };
 }
@@ -36,11 +37,21 @@ describe('StripeConnectService', () => {
   let service: StripeConnectService;
   let prisma: ReturnType<typeof makePrisma>;
   let stripeProvider: ReturnType<typeof makeStripeProvider>;
+  let configService: { get: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     prisma = makePrisma();
     stripeProvider = makeStripeProvider();
-    service = new StripeConnectService(prisma as never, stripeProvider as never);
+    configService = {
+      get: vi.fn((key: string) =>
+        key === 'WEB_URL' ? 'https://app.savspot.com' : undefined,
+      ),
+    };
+    service = new StripeConnectService(
+      prisma as never,
+      stripeProvider as never,
+      configService as never,
+    );
   });
 
   // -------------------------------------------------------------------------
@@ -58,7 +69,7 @@ describe('StripeConnectService', () => {
         accountId: ACCOUNT_ID,
         onboardingComplete: false,
       });
-      prisma.tenant.update.mockResolvedValue({});
+      prisma.tenant.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await service.createAccount(TENANT_ID, 'owner@example.com', 'US');
 
@@ -70,8 +81,8 @@ describe('StripeConnectService', () => {
         'owner@example.com',
         'US',
       );
-      expect(prisma.tenant.update).toHaveBeenCalledWith({
-        where: { id: TENANT_ID },
+      expect(prisma.tenant.updateMany).toHaveBeenCalledWith({
+        where: { id: TENANT_ID, paymentProviderAccountId: null },
         data: {
           paymentProvider: 'STRIPE',
           paymentProviderAccountId: ACCOUNT_ID,
@@ -89,7 +100,7 @@ describe('StripeConnectService', () => {
         accountId: ACCOUNT_ID,
         onboardingComplete: false,
       });
-      prisma.tenant.update.mockResolvedValue({});
+      prisma.tenant.updateMany.mockResolvedValue({ count: 1 });
 
       await service.createAccount(TENANT_ID, '', 'US');
 
@@ -162,7 +173,7 @@ describe('StripeConnectService', () => {
       prisma.tenant.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.getOnboardingLink(TENANT_ID, 'https://example.com'),
+        service.getOnboardingLink(TENANT_ID, 'https://app.savspot.com'),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -172,7 +183,7 @@ describe('StripeConnectService', () => {
       });
 
       await expect(
-        service.getOnboardingLink(TENANT_ID, 'https://example.com'),
+        service.getOnboardingLink(TENANT_ID, 'https://app.savspot.com'),
       ).rejects.toThrow(BadRequestException);
     });
   });

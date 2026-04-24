@@ -8,9 +8,11 @@ import { StripeWebhookController } from '@/payments/stripe-webhook.controller';
 function makePrisma() {
   return {
     paymentWebhookLog: {
-      findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+    },
+    webhookDeadLetter: {
+      create: vi.fn(),
     },
   };
 }
@@ -66,7 +68,6 @@ describe('StripeWebhookController — idempotency', () => {
   });
 
   it('should process a new webhook event', async () => {
-    prisma.paymentWebhookLog.findUnique.mockResolvedValue(null);
     prisma.paymentWebhookLog.create.mockResolvedValue({
       id: 'log-1',
       eventId: fakeEvent.id,
@@ -80,9 +81,6 @@ describe('StripeWebhookController — idempotency', () => {
     const result = await controller.handleWebhook(fakeRequest, 'sig_test');
 
     expect(result).toEqual({ received: true });
-    expect(prisma.paymentWebhookLog.findUnique).toHaveBeenCalledWith({
-      where: { eventId: 'evt_test_123' },
-    });
     expect(prisma.paymentWebhookLog.create).toHaveBeenCalled();
     expect(paymentsService.handlePaymentSuccess).toHaveBeenCalledWith('pi_abc');
     expect(prisma.paymentWebhookLog.update).toHaveBeenCalledWith({
@@ -91,39 +89,35 @@ describe('StripeWebhookController — idempotency', () => {
     });
   });
 
-  it('should skip processing when a duplicate event is received', async () => {
-    prisma.paymentWebhookLog.findUnique.mockResolvedValue({
-      id: 'log-existing',
-      eventId: fakeEvent.id,
-      processed: true,
-    });
+  it('should skip processing when a duplicate event is received (P2002 on insert)', async () => {
+    // Simulate unique-constraint race: the log row for this event already
+    // exists. The insert throws P2002 and the controller short-circuits
+    // without invoking handlers or creating a dead letter entry.
+    const p2002 = Object.assign(
+      new Error('Unique constraint failed on the fields: (`event_id`)'),
+      { code: 'P2002' },
+    );
+    prisma.paymentWebhookLog.create.mockRejectedValue(p2002);
 
     const result = await controller.handleWebhook(fakeRequest, 'sig_test');
 
     expect(result).toEqual({ received: true });
-    expect(prisma.paymentWebhookLog.findUnique).toHaveBeenCalledWith({
-      where: { eventId: 'evt_test_123' },
-    });
-    // Should NOT create a new log or process the event
-    expect(prisma.paymentWebhookLog.create).not.toHaveBeenCalled();
+    expect(prisma.paymentWebhookLog.create).toHaveBeenCalledTimes(1);
     expect(paymentsService.handlePaymentSuccess).not.toHaveBeenCalled();
     expect(prisma.paymentWebhookLog.update).not.toHaveBeenCalled();
+    // CRITICAL: a duplicate must NOT be recorded as a dead letter.
+    expect(prisma.webhookDeadLetter.create).not.toHaveBeenCalled();
   });
 
-  it('should return early without routing when event already exists even if previously errored', async () => {
-    prisma.paymentWebhookLog.findUnique.mockResolvedValue({
-      id: 'log-existing',
-      eventId: fakeEvent.id,
-      processed: false,
-      processingError: 'previous error',
-    });
+  it('should rethrow non-P2002 errors from the log insert', async () => {
+    // A generic DB error (not a unique-constraint collision) must propagate
+    // so Stripe retries and we don't silently drop the event.
+    const otherError = new Error('connection refused');
+    prisma.paymentWebhookLog.create.mockRejectedValue(otherError);
 
-    const result = await controller.handleWebhook(fakeRequest, 'sig_test');
-
-    expect(result).toEqual({ received: true });
-    // Even if the previous attempt had an error, we still skip re-processing
-    // (retries should be handled by a separate retry mechanism, not Stripe re-delivery)
-    expect(prisma.paymentWebhookLog.create).not.toHaveBeenCalled();
+    await expect(
+      controller.handleWebhook(fakeRequest, 'sig_test'),
+    ).rejects.toThrow('connection refused');
     expect(paymentsService.handlePaymentSuccess).not.toHaveBeenCalled();
   });
 });

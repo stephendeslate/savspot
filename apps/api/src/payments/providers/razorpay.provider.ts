@@ -69,4 +69,9 @@ export class RazorpayProvider implements PaymentProviderInterface {
     this.ensureEnabled();
     throw new NotImplementedException('Razorpay provider is not yet implemented. Use Stripe or Offline.');
   }
+
+  async listRefunds(_paymentIntentId: string): Promise<RefundResult[]> {
+    this.ensureEnabled();
+    throw new NotImplementedException('razorpay provider is not yet implemented. Use Stripe or Offline.');
+  }
 }

@@ -69,4 +69,9 @@ export class DlocalProvider implements PaymentProviderInterface {
     this.ensureEnabled();
     throw new NotImplementedException('dLocal provider is not yet implemented. Use Stripe or Offline.');
   }
+
+  async listRefunds(_paymentIntentId: string): Promise<RefundResult[]> {
+    this.ensureEnabled();
+    throw new NotImplementedException('dlocal provider is not yet implemented. Use Stripe or Offline.');
+  }
 }

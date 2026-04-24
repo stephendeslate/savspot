@@ -69,4 +69,9 @@ export class MollieProvider implements PaymentProviderInterface {
     this.ensureEnabled();
     throw new NotImplementedException('Mollie provider is not yet implemented. Use Stripe or Offline.');
   }
+
+  async listRefunds(_paymentIntentId: string): Promise<RefundResult[]> {
+    this.ensureEnabled();
+    throw new NotImplementedException('mollie provider is not yet implemented. Use Stripe or Offline.');
+  }
 }

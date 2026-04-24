@@ -31,7 +31,10 @@ export class StripeProvider implements PaymentProviderInterface {
     const secretKey = this.configService.get<string>('stripe.secretKey');
 
     if (secretKey) {
-      this.stripe = new Stripe(secretKey);
+      // Pin API version so SDK upgrades cannot silently change response shapes
+      // or webhook event formats in production. Matches the version baked
+      // into stripe@20.4.0.
+      this.stripe = new Stripe(secretKey, { apiVersion: '2026-02-25.clover' });
       this.logger.log('Stripe provider initialized');
     } else {
       this.logger.warn(
@@ -42,7 +45,7 @@ export class StripeProvider implements PaymentProviderInterface {
 
   private ensureStripe(): Stripe {
     if (!this.stripe) {
-      throw new BadRequestException(
+      throw new ServiceUnavailableException(
         'Stripe is not configured. Please set STRIPE_SECRET_KEY.',
       );
     }
@@ -233,6 +236,13 @@ export class StripeProvider implements PaymentProviderInterface {
 
     const refundParams: Stripe.RefundCreateParams = {
       payment_intent: params.paymentIntentId,
+      // Destination charges: reverse the transfer so the refund comes out of
+      // the connected account, not the platform balance.
+      reverse_transfer: true,
+      // refund_application_fee applies to the ENTIRE platform fee, not a
+      // proportional share, so only set it on full refunds. Caller is
+      // responsible for computing this flag based on cumulative refund total.
+      refund_application_fee: params.refundApplicationFee ?? false,
     };
 
     if (params.amount !== undefined) {
@@ -265,6 +275,30 @@ export class StripeProvider implements PaymentProviderInterface {
       if (tenantId && this.isCircuitBreakerError(error)) {
         await this.circuitBreaker.recordFailure(scopeKey, tenantId);
       }
+      this.handleStripeError(error);
+    }
+  }
+
+  /**
+   * List all refunds for a PaymentIntent.
+   * Used to compute cumulative refunded amount before accepting a new refund,
+   * so partial refunds can be accumulated without over-refunding.
+   */
+  async listRefunds(paymentIntentId: string): Promise<RefundResult[]> {
+    const stripe = this.ensureStripe();
+    try {
+      // Use autoPagingToArray so payments with >100 refunds (rare but
+      // possible with micro-refunds) are fully enumerated. A bounded limit
+      // still applies so a pathological input cannot exhaust memory.
+      const refunds = await stripe.refunds
+        .list({ payment_intent: paymentIntentId })
+        .autoPagingToArray({ limit: 10_000 });
+      return refunds.map((r) => ({
+        id: r.id,
+        amount: r.amount,
+        status: r.status ?? 'pending',
+      }));
+    } catch (error) {
       this.handleStripeError(error);
     }
   }

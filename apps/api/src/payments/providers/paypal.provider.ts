@@ -69,4 +69,9 @@ export class PaypalProvider implements PaymentProviderInterface {
     this.ensureEnabled();
     throw new NotImplementedException('PayPal provider is not yet implemented. Use Stripe or Offline.');
   }
+
+  async listRefunds(_paymentIntentId: string): Promise<RefundResult[]> {
+    this.ensureEnabled();
+    throw new NotImplementedException('paypal provider is not yet implemented. Use Stripe or Offline.');
+  }
 }
