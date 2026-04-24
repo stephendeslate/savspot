@@ -225,6 +225,8 @@ export class StripeConnectService {
         payoutsEnabled: false,
         detailsSubmitted: false,
         onboarded: false,
+        restricted: false,
+        requirements: null,
       };
     }
 
@@ -242,13 +244,57 @@ export class StripeConnectService {
       this.logger.log(`Tenant ${tenantId} Stripe onboarding completed`);
     }
 
+    // "Restricted" = Stripe has deferred or disabled charges pending more
+    // info from the tenant. Surface this to the UI so they can be prompted
+    // back into the onboarding flow rather than silently failing payments.
+    const restricted =
+      !!status.requirements &&
+      (status.requirements.pastDue.length > 0 ||
+        status.requirements.currentlyDue.length > 0 ||
+        status.requirements.disabledReason !== null);
+
     return {
       accountId: status.accountId,
       chargesEnabled: status.chargesEnabled,
       payoutsEnabled: status.payoutsEnabled,
       detailsSubmitted: status.detailsSubmitted,
       onboarded: status.chargesEnabled,
+      restricted,
+      requirements: status.requirements ?? null,
     };
+  }
+
+  /**
+   * Handle account.application.deauthorized webhook event.
+   * Fires when a tenant disconnects the SavSpot platform from their Stripe
+   * dashboard. Clears the stored account reference so the tenant returns to
+   * the "not connected" state in the UI and can re-onboard if they change
+   * their mind. Historical payments remain queryable via providerTransactionId.
+   */
+  async handleAccountDeauthorized(accountId: string) {
+    const tenant = await this.prisma.tenant.findFirst({
+      where: { paymentProviderAccountId: accountId },
+      select: { id: true, paymentProviderOnboarded: true },
+    });
+
+    if (!tenant) {
+      this.logger.warn(
+        `No tenant found for deauthorized Stripe account ${accountId} — ignoring`,
+      );
+      return;
+    }
+
+    await this.prisma.tenant.update({
+      where: { id: tenant.id },
+      data: {
+        paymentProviderAccountId: null,
+        paymentProviderOnboarded: false,
+      },
+    });
+
+    this.logger.warn(
+      `Tenant ${tenant.id} deauthorized Stripe account ${accountId} — cleared to allow re-onboarding`,
+    );
   }
 
   /**

@@ -152,11 +152,19 @@ export class StripeProvider implements PaymentProviderInterface {
     try {
       const account = await stripe.accounts.retrieve(accountId);
 
+      const requirements = account.requirements;
       return {
         accountId: account.id,
         chargesEnabled: account.charges_enabled ?? false,
         payoutsEnabled: account.payouts_enabled ?? false,
         detailsSubmitted: account.details_submitted ?? false,
+        requirements: requirements
+          ? {
+              currentlyDue: requirements.currently_due ?? [],
+              pastDue: requirements.past_due ?? [],
+              disabledReason: requirements.disabled_reason ?? null,
+            }
+          : undefined,
       };
     } catch (error) {
       this.handleStripeError(error);
@@ -189,6 +197,10 @@ export class StripeProvider implements PaymentProviderInterface {
 
     if (params.customerId) {
       intentParams.customer = params.customerId;
+    }
+
+    if (params.setupFutureUsage) {
+      intentParams.setup_future_usage = params.setupFutureUsage;
     }
 
     try {
@@ -275,6 +287,53 @@ export class StripeProvider implements PaymentProviderInterface {
       if (tenantId && this.isCircuitBreakerError(error)) {
         await this.circuitBreaker.recordFailure(scopeKey, tenantId);
       }
+      this.handleStripeError(error);
+    }
+  }
+
+  /**
+   * Find or create a Stripe Customer for a (tenant, client) pair.
+   * Customer lives on the PLATFORM account (not the connected account) so
+   * saved payment methods work across destination charges. Tenant isolation
+   * is enforced by storing the returned ID scoped to (tenantId, clientId).
+   */
+  async getOrCreateCustomer(params: {
+    existingCustomerId: string | null;
+    email: string;
+    name?: string;
+    metadata: Record<string, string>;
+  }): Promise<string> {
+    const stripe = this.ensureStripe();
+
+    if (params.existingCustomerId) {
+      try {
+        const customer = await stripe.customers.retrieve(
+          params.existingCustomerId,
+        );
+        // Stripe returns a DeletedCustomer stub if the Customer was deleted.
+        if (!customer.deleted) {
+          return customer.id;
+        }
+        // Fall through to re-create a new Customer below.
+      } catch (error) {
+        // If the stored ID is invalid (e.g. test-mode leftover in live),
+        // don't fail the booking — just create a new one.
+        this.logger.warn(
+          `Stored Stripe customer ${params.existingCustomerId} unusable, creating new: ${
+            error instanceof Error ? error.message : 'unknown'
+          }`,
+        );
+      }
+    }
+
+    try {
+      const customer = await stripe.customers.create({
+        email: params.email,
+        name: params.name,
+        metadata: params.metadata,
+      });
+      return customer.id;
+    } catch (error) {
       this.handleStripeError(error);
     }
   }

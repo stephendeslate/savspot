@@ -150,7 +150,9 @@ export class PaymentsService {
     bookingId: string,
     sessionId: string,
   ) {
-    // Load the booking with service (including depositConfig) and tenant info
+    // Load the booking with service (including depositConfig) and tenant info.
+    // `client` is included so we can find-or-create a Stripe Customer with
+    // their email for saved-card support on future bookings.
     const booking = await this.prisma.booking.findFirst({
       where: { id: bookingId, tenantId },
       include: {
@@ -166,6 +168,9 @@ export class PaymentsService {
             paymentProviderAccountId: true,
             paymentProviderOnboarded: true,
           },
+        },
+        client: {
+          select: { id: true, email: true, name: true },
         },
       },
     });
@@ -242,12 +247,45 @@ export class PaymentsService {
       );
     }
 
+    // Find-or-create a Stripe Customer so the payment method gets saved for
+    // future bookings (setup_future_usage='off_session'). Scoped per
+    // (tenant, client) via ClientProfile — two tenants with the same client
+    // email get separate Customers, preserving tenant isolation of cards.
+    // If the client has no email, skip saved-card support for this charge.
+    let stripeCustomerId: string | undefined;
+    if (booking.client?.email) {
+      const profile = await this.prisma.clientProfile.upsert({
+        where: { tenantId_clientId: { tenantId, clientId: booking.clientId } },
+        create: { tenantId, clientId: booking.clientId },
+        update: {},
+        select: { id: true, stripeCustomerId: true },
+      });
+      const customerId = await this.stripeProvider.getOrCreateCustomer({
+        existingCustomerId: profile.stripeCustomerId,
+        email: booking.client.email,
+        name: booking.client.name ?? undefined,
+        metadata: {
+          tenantId,
+          clientId: booking.clientId,
+        },
+      });
+      if (customerId !== profile.stripeCustomerId) {
+        await this.prisma.clientProfile.update({
+          where: { id: profile.id },
+          data: { stripeCustomerId: customerId },
+        });
+      }
+      stripeCustomerId = customerId;
+    }
+
     // Create Stripe PaymentIntent
     const intentResult = await this.stripeProvider.createPaymentIntent({
       amount: chargeAmountCents,
       currency: booking.currency.toLowerCase(),
       connectedAccountId: booking.tenant.paymentProviderAccountId,
       platformFeeAmount: totalPlatformFee,
+      customerId: stripeCustomerId,
+      setupFutureUsage: stripeCustomerId ? 'off_session' : undefined,
       metadata: {
         tenantId,
         bookingId,
@@ -542,6 +580,31 @@ export class PaymentsService {
     }
 
     this.logger.log(`Payment ${payment.id} failed: ${reason ?? 'unknown'}`);
+  }
+
+  /**
+   * Handle a canceled PaymentIntent from Stripe webhook.
+   *
+   * Semantically distinct from payment_failed (which means the attempt was
+   * made and declined): cancellation means the intent was abandoned before
+   * completion — typically because our own booking session expired and the
+   * retry-failed-payments processor called cancelPaymentIntent, or because
+   * the customer never returned to the checkout page within Stripe's own
+   * timeout window. Without this handler the Payment row stays PENDING
+   * forever and pollutes admin views and retry queues.
+   *
+   * PaymentStatus enum has no CANCELLED today, so we route to FAILED with
+   * an explicit reason. If this distinction becomes important we can add
+   * CANCELLED via migration later — in both Prisma and @savspot/shared.
+   */
+  async handlePaymentCancellation(
+    providerPaymentId: string,
+    reason?: string,
+  ) {
+    await this.handlePaymentFailure(
+      providerPaymentId,
+      reason ?? 'Payment canceled (PaymentIntent canceled)',
+    );
   }
 
   /**

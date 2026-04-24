@@ -5,6 +5,11 @@ export interface CreatePaymentIntentParams {
   platformFeeAmount: number;
   metadata: Record<string, string>;
   customerId?: string;
+  // When set, Stripe saves the payment method to the customer for reuse.
+  // 'off_session' = suitable for merchant-initiated future charges;
+  // 'on_session' = only reusable when the customer is present. Booking
+  // flows use 'off_session' so clients can re-book with 1-click.
+  setupFutureUsage?: 'on_session' | 'off_session';
 }
 
 export interface PaymentIntentResult {
@@ -43,6 +48,15 @@ export interface AccountStatus {
   chargesEnabled: boolean;
   payoutsEnabled: boolean;
   detailsSubmitted: boolean;
+  // Stripe may mark a connected account as restricted after onboarding if
+  // additional verification is needed (e.g. document expired, new
+  // regulatory requirement). When set, the tenant should be prompted to
+  // revisit the Stripe onboarding link to provide the missing info.
+  requirements?: {
+    currentlyDue: string[];
+    pastDue: string[];
+    disabledReason: string | null;
+  };
 }
 
 export interface PaymentProviderInterface {

@@ -1129,6 +1129,7 @@ Table client_profiles {
   internalRating Int
   optimalReminderLeadHours Decimal
   rebookingIntervalDays Int
+  stripeCustomerId String
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
   tenant tenants [not null]

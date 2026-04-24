@@ -24,6 +24,12 @@ interface ConnectStatus {
   payoutsEnabled: boolean;
   detailsSubmitted: boolean;
   onboarded: boolean;
+  restricted: boolean;
+  requirements: {
+    currentlyDue: string[];
+    pastDue: string[];
+    disabledReason: string | null;
+  } | null;
 }
 
 // ---------- Component ----------
@@ -58,6 +64,8 @@ export default function PaymentsSettingsPage() {
           payoutsEnabled: false,
           detailsSubmitted: false,
           onboarded: false,
+          restricted: false,
+          requirements: null,
         });
         // Only show error for non-404 issues
         if (err instanceof Error && !err.message.includes('404')) {
@@ -135,7 +143,10 @@ export default function PaymentsSettingsPage() {
   const isNotConnected = !status?.accountId;
   const isPartiallyConnected =
     status?.accountId && !status.onboarded;
-  const isFullyConnected = status?.onboarded;
+  const isFullyConnected = status?.onboarded && !status?.restricted;
+  // Restricted = onboarded once, but Stripe needs more info before charges
+  // can continue. Surface as an actionable warning, not as "fully connected".
+  const isRestricted = status?.onboarded && status?.restricted;
 
   // ---------- Loading ----------
 
@@ -262,6 +273,87 @@ export default function PaymentsSettingsPage() {
                 A 1% processing fee applies to all transactions processed
                 through SavSpot, in addition to standard Stripe fees.
               </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Restricted — onboarded once, but Stripe needs additional info now */}
+      {isRestricted && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-base">Stripe Account</CardTitle>
+              <Badge className="bg-red-100 text-red-800">
+                Action Required
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="mt-0.5 h-5 w-5 text-red-600" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">
+                    Stripe needs more information to continue processing payments.
+                  </p>
+                  {status?.requirements?.disabledReason && (
+                    <p className="text-xs text-muted-foreground">
+                      Reason: {status.requirements.disabledReason.replace(/_/g, ' ')}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {(status?.requirements?.pastDue?.length ?? 0) +
+                (status?.requirements?.currentlyDue?.length ?? 0) >
+                0 && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">Missing information</h4>
+                    <ul className="space-y-1 text-xs text-muted-foreground">
+                      {status?.requirements?.pastDue.map((field) => (
+                        <li key={`past-${field}`} className="flex items-center gap-2">
+                          <AlertCircle className="h-3 w-3 text-red-600" />
+                          <span className="font-medium text-red-700">
+                            {field.replace(/_/g, ' ')}
+                          </span>
+                          <span>(past due)</span>
+                        </li>
+                      ))}
+                      {status?.requirements?.currentlyDue
+                        .filter((f) => !status?.requirements?.pastDue.includes(f))
+                        .map((field) => (
+                          <li key={`due-${field}`} className="flex items-center gap-2">
+                            <AlertCircle className="h-3 w-3 text-yellow-600" />
+                            <span>{field.replace(/_/g, ' ')}</span>
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                </>
+              )}
+
+              <Separator />
+
+              <Button
+                onClick={handleConnect}
+                disabled={connectLoading}
+                className="w-full sm:w-auto"
+              >
+                {connectLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Redirecting to Stripe...
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Update Information
+                  </>
+                )}
+              </Button>
             </div>
           </CardContent>
         </Card>

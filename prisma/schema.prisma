@@ -2206,6 +2206,10 @@ model ClientProfile {
   internalRating           Int?     @map("internal_rating")
   optimalReminderLeadHours Decimal? @map("optimal_reminder_lead_hours") @db.Decimal(5, 2)
   rebookingIntervalDays    Int?     @map("rebooking_interval_days")
+  // Stripe Customer ID on the platform account. Scoped to (tenantId, clientId)
+  // so each tenant's clients get their own Customer — preserves tenant
+  // isolation for saved payment methods across connected accounts.
+  stripeCustomerId         String?  @map("stripe_customer_id")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 

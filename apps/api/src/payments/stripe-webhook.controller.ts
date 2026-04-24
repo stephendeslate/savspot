@@ -161,7 +161,11 @@ export class StripeWebhookController {
   /**
    * Route a Stripe event to the appropriate handler.
    */
-  private async routeEvent(event: { type: string; data: { object: unknown } }) {
+  private async routeEvent(event: {
+    type: string;
+    account?: string;
+    data: { object: unknown };
+  }) {
     const obj = event.data.object as Record<string, unknown>;
 
     switch (event.type) {
@@ -188,10 +192,35 @@ export class StripeWebhookController {
         break;
       }
 
+      case 'payment_intent.canceled': {
+        const paymentIntentId = obj['id'] as string;
+        const cancellationReason =
+          (obj['cancellation_reason'] as string | undefined) ?? 'canceled';
+        this.logger.log(
+          `Payment intent canceled: ${paymentIntentId} — ${cancellationReason}`,
+        );
+        await this.paymentsService.handlePaymentCancellation(
+          paymentIntentId,
+          `PaymentIntent canceled: ${cancellationReason}`,
+        );
+        break;
+      }
+
       case 'account.updated': {
         const accountId = obj['id'] as string;
         this.logger.log(`Account updated: ${accountId}`);
         await this.stripeConnectService.handleAccountUpdate(accountId);
+        break;
+      }
+
+      case 'account.application.deauthorized': {
+        // When a tenant disconnects the SavSpot platform from their Stripe
+        // dashboard, Stripe fires this event on the CONNECTED account stream.
+        // The connected account ID is in event.account, not event.data.object.
+        // Fall back to the object id for robustness.
+        const accountId = event.account ?? (obj['id'] as string);
+        this.logger.warn(`Account deauthorized: ${accountId}`);
+        await this.stripeConnectService.handleAccountDeauthorized(accountId);
         break;
       }
 
