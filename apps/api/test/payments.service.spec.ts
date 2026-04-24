@@ -47,10 +47,15 @@ function makeConfig() {
 }
 
 function makeStripe() {
-  return {
+  const stripe = {
     createPaymentIntent: vi.fn(),
     createRefund: vi.fn(),
+    listRefunds: vi.fn(),
   };
+  // Default: no prior refunds. Tests that exercise cumulative-refund logic
+  // can override this per case.
+  stripe.listRefunds.mockResolvedValue([]);
+  return stripe;
 }
 
 function makeEvents() {
@@ -312,17 +317,25 @@ describe('PaymentsService', () => {
 
   describe('handlePaymentFailure', () => {
     it('should return early when payment not found', async () => {
-      prisma.payment.findFirst.mockResolvedValue(null);
+      prisma.$queryRaw.mockResolvedValue([]);
       await service.handlePaymentFailure('pi_unknown');
       expect(prisma.payment.update).not.toHaveBeenCalled();
     });
 
     it('should update status to FAILED and record reason', async () => {
-      prisma.payment.findFirst.mockResolvedValue({
-        id: PAYMENT_ID, tenantId: TENANT_ID, status: 'PENDING',
-      });
+      prisma.$queryRaw.mockResolvedValue([
+        {
+          id: PAYMENT_ID,
+          status: 'PENDING',
+          tenant_id: TENANT_ID,
+          booking_id: BOOKING_ID,
+          amount: '50.00',
+          currency: 'USD',
+        },
+      ]);
       prisma.payment.update.mockResolvedValue({});
       prisma.paymentStateHistory.create.mockResolvedValue({});
+      prisma.booking.findFirst.mockResolvedValue(null);
 
       await service.handlePaymentFailure(STRIPE_PI_ID, 'Card declined');
 
@@ -339,6 +352,24 @@ describe('PaymentsService', () => {
         }),
       );
     });
+
+    it('should NOT overwrite a SUCCEEDED payment (out-of-order event)', async () => {
+      prisma.$queryRaw.mockResolvedValue([
+        {
+          id: PAYMENT_ID,
+          status: 'SUCCEEDED',
+          tenant_id: TENANT_ID,
+          booking_id: BOOKING_ID,
+          amount: '50.00',
+          currency: 'USD',
+        },
+      ]);
+
+      await service.handlePaymentFailure(STRIPE_PI_ID, 'Late failure event');
+
+      expect(prisma.payment.update).not.toHaveBeenCalled();
+      expect(prisma.paymentStateHistory.create).not.toHaveBeenCalled();
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -352,19 +383,20 @@ describe('PaymentsService', () => {
     });
 
     it('should throw BadRequestException for non-SUCCEEDED payment', async () => {
-      prisma.$queryRaw.mockResolvedValue([{ id: PAYMENT_ID, status: 'PENDING', provider_transaction_id: null, amount: 5000 }]);
+      prisma.$queryRaw.mockResolvedValue([{ id: PAYMENT_ID, status: 'PENDING', provider_transaction_id: null, amount: '50.00' }]);
       await expect(service.processRefund(TENANT_ID, PAYMENT_ID)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when no provider transaction ID', async () => {
-      prisma.$queryRaw.mockResolvedValue([{ id: PAYMENT_ID, status: 'SUCCEEDED', provider_transaction_id: null, amount: 5000 }]);
+      prisma.$queryRaw.mockResolvedValue([{ id: PAYMENT_ID, status: 'SUCCEEDED', provider_transaction_id: null, amount: '50.00' }]);
       await expect(service.processRefund(TENANT_ID, PAYMENT_ID)).rejects.toThrow(BadRequestException);
     });
 
     it('should set REFUNDED for full refund', async () => {
+      // Payment is $50. No amount passed → full refund (5000 cents).
       prisma.$queryRaw.mockResolvedValue([{
         id: PAYMENT_ID, status: 'SUCCEEDED',
-        provider_transaction_id: STRIPE_PI_ID, amount: 5000,
+        provider_transaction_id: STRIPE_PI_ID, amount: '50.00',
       }]);
       stripe.createRefund.mockResolvedValue({ id: 're_1', amount: 5000, status: 'succeeded' });
       prisma.payment.update.mockResolvedValue({});
@@ -378,18 +410,35 @@ describe('PaymentsService', () => {
     });
 
     it('should set PARTIALLY_REFUNDED for partial refund', async () => {
+      // Payment is $50. Refund $20 (partial).
       prisma.$queryRaw.mockResolvedValue([{
         id: PAYMENT_ID, status: 'SUCCEEDED',
-        provider_transaction_id: STRIPE_PI_ID, amount: 5000,
+        provider_transaction_id: STRIPE_PI_ID, amount: '50.00',
       }]);
       stripe.createRefund.mockResolvedValue({ id: 're_2', amount: 2000, status: 'succeeded' });
       prisma.payment.update.mockResolvedValue({});
       prisma.paymentStateHistory.create.mockResolvedValue({});
 
-      await service.processRefund(TENANT_ID, PAYMENT_ID, 2000);
+      await service.processRefund(TENANT_ID, PAYMENT_ID, 20);
       expect(prisma.payment.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: { status: 'PARTIALLY_REFUNDED' } }),
       );
+    });
+
+    it('should reject second refund that would exceed original amount', async () => {
+      // $50 payment, $40 already refunded, attempting another $20 = $60 total
+      prisma.$queryRaw.mockResolvedValue([{
+        id: PAYMENT_ID, status: 'PARTIALLY_REFUNDED',
+        provider_transaction_id: STRIPE_PI_ID, amount: '50.00',
+      }]);
+      stripe.listRefunds.mockResolvedValue([
+        { id: 're_prior', amount: 4000, status: 'succeeded' },
+      ]);
+
+      await expect(
+        service.processRefund(TENANT_ID, PAYMENT_ID, 20),
+      ).rejects.toThrow(BadRequestException);
+      expect(stripe.createRefund).not.toHaveBeenCalled();
     });
   });
 
