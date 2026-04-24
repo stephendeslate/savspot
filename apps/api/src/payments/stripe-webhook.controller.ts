@@ -93,24 +93,35 @@ export class StripeWebhookController {
       }
     }
 
-    // Idempotency check: skip if this event was already processed
-    const existingLog = await this.prisma.paymentWebhookLog.findUnique({
-      where: { eventId: event.id },
-    });
-
-    if (existingLog) {
-      this.logger.log(
-        `Duplicate webhook event ${event.id} (${event.type}) — skipping`,
+    // Idempotency: insert the log row first, relying on the unique
+    // constraint on event_id as the arbiter between concurrent deliveries.
+    // This closes the TOCTOU gap where two simultaneous deliveries of the
+    // same event could both pass a findUnique check before either inserts.
+    let logEntry;
+    try {
+      logEntry = await this.logWebhookEvent(
+        event.type,
+        event.id,
+        event.data.object as unknown as Record<string, unknown>,
       );
-      return { received: true };
+    } catch (err) {
+      // P2002 = unique constraint violation on event_id → another delivery
+      // of this event already started processing. Safe to skip without
+      // polluting the dead letter table. Duck-type on `code` so this works
+      // regardless of how Prisma's error constructor is loaded at runtime.
+      if (
+        err !== null &&
+        typeof err === 'object' &&
+        'code' in err &&
+        (err as { code: unknown }).code === 'P2002'
+      ) {
+        this.logger.log(
+          `Duplicate webhook event ${event.id} (${event.type}) — skipping`,
+        );
+        return { received: true };
+      }
+      throw err;
     }
-
-    // Log the webhook event
-    const logEntry = await this.logWebhookEvent(
-      event.type,
-      event.id,
-      event.data.object as unknown as Record<string, unknown>,
-    );
 
     try {
       await this.routeEvent(event);
@@ -235,6 +246,16 @@ export class StripeWebhookController {
             where: { providerTransactionId: closedDisputePaymentIntentId },
           });
           if (closedDisputePayment) {
+            // Only transition out of DISPUTED. If the payment moved to
+            // REFUNDED/PARTIALLY_REFUNDED while the dispute was open (admin
+            // refunded manually, or dispute.created arrived late), don't
+            // overwrite that terminal state.
+            if (closedDisputePayment.status !== 'DISPUTED') {
+              this.logger.log(
+                `Payment ${closedDisputePayment.id} no longer DISPUTED (status=${closedDisputePayment.status}) — ignoring dispute.closed`,
+              );
+              break;
+            }
             const previousStatus = closedDisputePayment.status;
             const newStatus = disputeStatus === 'won' ? 'SUCCEEDED' : 'REFUNDED';
             await this.prisma.$transaction([
