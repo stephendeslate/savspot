@@ -101,7 +101,8 @@ export class JobSchedulerService implements OnModuleInit {
       { queue: this.paymentsQueue, name: JOB_ENFORCE_PAYMENT_DEADLINES, pattern: CRON_DAILY_6AM_UTC },
       { queue: this.paymentsQueue, name: JOB_RETRY_FAILED_PAYMENTS, pattern: CRON_EVERY_30_MIN },
       // Calendar queue
-      { queue: this.calendarQueue, name: JOB_CALENDAR_TWO_WAY_SYNC, pattern: CRON_EVERY_15_MIN },
+      // Note: JOB_CALENDAR_TWO_WAY_SYNC is per-connection (enqueued with { connectionId, tenantId }).
+      // Periodic sweeps go through JOB_CALENDAR_SYNC_FALLBACK below, which iterates active connections.
       { queue: this.calendarQueue, name: JOB_CALENDAR_TOKEN_REFRESH, pattern: CRON_HOURLY },
       // Communications queue
       { queue: this.commsQueue, name: JOB_SEND_BOOKING_REMINDERS, pattern: CRON_EVERY_15_MIN },
@@ -140,6 +141,29 @@ export class JobSchedulerService implements OnModuleInit {
       // Partners queue
       { queue: this.partnersQueue, name: JOB_PARTNER_PAYOUT_BATCH, pattern: CRON_FIRST_OF_MONTH },
     ];
+
+    // Clean up stale repeatables left over from previous code versions.
+    // JOB_CALENDAR_TWO_WAY_SYNC was incorrectly registered as a parameterless
+    // repeatable with empty payload, causing the handler to run with undefined
+    // connectionId every 15 minutes. It is now per-connection only; sweeps go
+    // through JOB_CALENDAR_SYNC_FALLBACK.
+    const staleRepeatables: Array<{ queue: Queue; name: string }> = [
+      { queue: this.calendarQueue, name: JOB_CALENDAR_TWO_WAY_SYNC },
+    ];
+
+    for (const { queue, name } of staleRepeatables) {
+      try {
+        const existing = await queue.getRepeatableJobs();
+        for (const job of existing) {
+          if (job.name === name) {
+            await queue.removeRepeatableByKey(job.key);
+            this.logger.log(`Removed stale repeatable: ${name} (${job.key})`);
+          }
+        }
+      } catch (error) {
+        this.logger.error(`Failed to clean stale repeatable ${name}: ${error}`);
+      }
+    }
 
     for (const { queue, name, pattern } of schedules) {
       try {

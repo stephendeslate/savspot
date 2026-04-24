@@ -4,8 +4,8 @@ import {
   Prisma,
 } from '../../../../../prisma/generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateTemplateDto } from '../dto/create-template.dto';
-import { UpdateTemplateDto } from '../dto/update-template.dto';
+import { CreateWorkflowTemplateDto } from '../dto/create-template.dto';
+import { UpdateWorkflowTemplateDto } from '../dto/update-template.dto';
 
 @Injectable()
 export class TemplateService {
@@ -52,7 +52,7 @@ export class TemplateService {
     };
   }
 
-  async create(tenantId: string, dto: CreateTemplateDto) {
+  async create(tenantId: string, dto: CreateWorkflowTemplateDto) {
     const template = await this.prisma.workflowTemplate.create({
       data: {
         tenantId,
@@ -88,7 +88,7 @@ export class TemplateService {
     return template;
   }
 
-  async update(id: string, dto: UpdateTemplateDto) {
+  async update(id: string, dto: UpdateWorkflowTemplateDto) {
     await this.findOne(id);
 
     const data: Prisma.WorkflowTemplateUpdateInput = {};
