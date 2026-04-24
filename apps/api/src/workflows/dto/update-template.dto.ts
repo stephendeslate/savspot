@@ -1,7 +1,7 @@
 import { IsString, IsOptional, IsBoolean } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
-export class UpdateTemplateDto {
+export class UpdateWorkflowTemplateDto {
   @ApiPropertyOptional({ example: 'Updated Template Name' })
   @IsString()
   @IsOptional()

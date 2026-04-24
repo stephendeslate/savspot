@@ -22,7 +22,7 @@ const TRIGGER_EVENTS = [
   'INVOICE_OVERDUE',
 ] as const;
 
-export class CreateTemplateDto {
+export class CreateWorkflowTemplateDto {
   @ApiProperty({ example: 'New Client Onboarding' })
   @IsString()
   name!: string;

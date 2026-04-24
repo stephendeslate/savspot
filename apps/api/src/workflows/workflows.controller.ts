@@ -24,8 +24,8 @@ import { UuidValidationPipe } from '../common/pipes/uuid-validation.pipe';
 import { TemplateService } from './services/template.service';
 import { StageService } from './services/stage.service';
 import { ExecutionService } from './services/execution.service';
-import { CreateTemplateDto } from './dto/create-template.dto';
-import { UpdateTemplateDto } from './dto/update-template.dto';
+import { CreateWorkflowTemplateDto } from './dto/create-template.dto';
+import { UpdateWorkflowTemplateDto } from './dto/update-template.dto';
 import { CreateStageDto } from './dto/create-stage.dto';
 import { UpdateStageDto } from './dto/update-stage.dto';
 import { CreateBookingOverrideDto } from './dto/booking-override.dto';
@@ -70,7 +70,7 @@ export class WorkflowsController {
   @ApiResponse({ status: 201, description: 'Template created' })
   async createTemplate(
     @Param('tenantId', UuidValidationPipe) tenantId: string,
-    @Body() dto: CreateTemplateDto,
+    @Body() dto: CreateWorkflowTemplateDto,
   ) {
     return this.templateService.create(tenantId, dto);
   }
@@ -92,7 +92,7 @@ export class WorkflowsController {
   @ApiResponse({ status: 200, description: 'Template updated' })
   async updateTemplate(
     @Param('id', UuidValidationPipe) id: string,
-    @Body() dto: UpdateTemplateDto,
+    @Body() dto: UpdateWorkflowTemplateDto,
   ) {
     return this.templateService.update(id, dto);
   }
