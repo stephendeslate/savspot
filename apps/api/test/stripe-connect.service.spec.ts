@@ -260,6 +260,8 @@ describe('StripeConnectService', () => {
         payoutsEnabled: false,
         detailsSubmitted: false,
         onboarded: false,
+        restricted: false,
+        requirements: null,
       });
       expect(stripeProvider.getAccountStatus).not.toHaveBeenCalled();
     });
@@ -284,6 +286,35 @@ describe('StripeConnectService', () => {
         payoutsEnabled: true,
         detailsSubmitted: true,
         onboarded: true,
+        restricted: false,
+        requirements: null,
+      });
+    });
+
+    it('should flag restricted when requirements are outstanding', async () => {
+      prisma.tenant.findUnique.mockResolvedValue({
+        paymentProviderAccountId: ACCOUNT_ID,
+        paymentProviderOnboarded: true,
+      });
+      stripeProvider.getAccountStatus.mockResolvedValue({
+        accountId: ACCOUNT_ID,
+        chargesEnabled: true,
+        payoutsEnabled: true,
+        detailsSubmitted: true,
+        requirements: {
+          currentlyDue: ['individual.id_number'],
+          pastDue: [],
+          disabledReason: null,
+        },
+      });
+
+      const result = await service.getStatus(TENANT_ID);
+
+      expect(result.restricted).toBe(true);
+      expect(result.requirements).toEqual({
+        currentlyDue: ['individual.id_number'],
+        pastDue: [],
+        disabledReason: null,
       });
     });
 
