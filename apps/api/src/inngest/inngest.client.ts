@@ -14,6 +14,11 @@ type Events = {
   // Phase 4a — sample event for the ping function (used by health checks
   // against Inngest connectivity; no business meaning).
   'system/ping': { data: { source: string } };
+
+  // Phase 4h — imports queue. Event name follows the JobDispatcher convention
+  // `${queueName}/${jobName}`. Dispatched by ImportsService.create() when a
+  // tenant uploads a new import job.
+  'imports/processImport': { data: { importJobId: string; tenantId: string } };
 };
 
 export const inngest = new Inngest({

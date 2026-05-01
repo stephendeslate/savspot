@@ -6,6 +6,7 @@ import { Public } from '@/common/decorators/public.decorator';
 import { CurrencyService } from '@/currency/currency.service';
 import { CustomDomainsService } from '@/custom-domains/custom-domains.service';
 import { DirectoryListingService } from '@/directory/directory-listing.service';
+import { ImportsService } from '@/imports/imports.service';
 import { PartnerPayoutService } from '@/partners/partner-payout.service';
 import { inngest } from './inngest.client';
 import { ping } from './functions/ping.function';
@@ -15,6 +16,7 @@ import { createDnsVerifyFunction } from './functions/custom-domains/dns-verify.f
 import { createSslRenewFunction } from './functions/custom-domains/ssl-renew.function';
 import { createDirectoryListingRefreshFunction } from './functions/directory/listing-refresh.function';
 import { directorySitemapGenerate } from './functions/directory/sitemap-generate.function';
+import { createProcessImportFunction } from './functions/imports/process-import.function';
 import { createPartnerPayoutBatchFunction } from './functions/partners/payout-batch.function';
 
 /**
@@ -45,6 +47,7 @@ export class InngestController {
     private readonly directoryListingService: DirectoryListingService,
     private readonly partnerPayoutService: PartnerPayoutService,
     private readonly customDomainsService: CustomDomainsService,
+    private readonly importsService: ImportsService,
   ) {
     this.handler = serve({
       client: inngest,
@@ -57,6 +60,7 @@ export class InngestController {
         createDnsVerifyFunction(this.customDomainsService),
         createSslRenewFunction(this.customDomainsService),
         createCustomDomainsHealthCheckFunction(this.customDomainsService),
+        createProcessImportFunction(this.importsService),
       ],
     });
   }
