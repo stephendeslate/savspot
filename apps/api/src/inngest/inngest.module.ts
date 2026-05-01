@@ -5,6 +5,7 @@ import { DirectoryModule } from '../directory/directory.module';
 import { ImportsModule } from '../imports/imports.module';
 import { PartnersModule } from '../partners/partners.module';
 import { PlatformMetricsModule } from '../platform-metrics/platform-metrics.module';
+import { VoiceModule } from '../voice/voice.module';
 import { InngestController } from './inngest.controller';
 import { inngest } from './inngest.client';
 
@@ -17,13 +18,14 @@ export const INNGEST_CLIENT = 'INNGEST_CLIENT';
     // factory is imported here. Phase 4d: CurrencyModule. Phase 4e:
     // DirectoryModule. Phase 4f: PartnersModule. Phase 4g:
     // CustomDomainsModule. Phase 4h: ImportsModule. Phase 4i:
-    // PlatformMetricsModule.
+    // PlatformMetricsModule. Phase 4j: VoiceModule.
     CurrencyModule,
     DirectoryModule,
     PartnersModule,
     CustomDomainsModule,
     ImportsModule,
     PlatformMetricsModule,
+    VoiceModule,
   ],
   controllers: [InngestController],
   providers: [

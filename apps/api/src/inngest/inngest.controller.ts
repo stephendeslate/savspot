@@ -9,6 +9,7 @@ import { DirectoryListingService } from '@/directory/directory-listing.service';
 import { ImportsService } from '@/imports/imports.service';
 import { PartnerPayoutService } from '@/partners/partner-payout.service';
 import { PlatformMetricsService } from '@/platform-metrics/platform-metrics.service';
+import { VoiceCallEventsService } from '@/voice/services/voice-call-events.service';
 import { inngest } from './inngest.client';
 import { ping } from './functions/ping.function';
 import { createRefreshRatesFunction } from './functions/currency-refresh/refresh-rates.function';
@@ -20,6 +21,8 @@ import { directorySitemapGenerate } from './functions/directory/sitemap-generate
 import { createProcessImportFunction } from './functions/imports/process-import.function';
 import { createPartnerPayoutBatchFunction } from './functions/partners/payout-batch.function';
 import { createComputePlatformMetricsFunction } from './functions/platform-metrics/compute-platform-metrics.function';
+import { createPostCallActionsFunction } from './functions/voice-calls/post-call-actions.function';
+import { createProcessTranscriptFunction } from './functions/voice-calls/process-transcript.function';
 
 /**
  * Serves Inngest's webhook endpoint at /inngest. Inngest cloud:
@@ -51,6 +54,7 @@ export class InngestController {
     private readonly customDomainsService: CustomDomainsService,
     private readonly importsService: ImportsService,
     private readonly platformMetricsService: PlatformMetricsService,
+    private readonly voiceCallEventsService: VoiceCallEventsService,
   ) {
     this.handler = serve({
       client: inngest,
@@ -65,6 +69,8 @@ export class InngestController {
         createCustomDomainsHealthCheckFunction(this.customDomainsService),
         createProcessImportFunction(this.importsService),
         createComputePlatformMetricsFunction(this.platformMetricsService),
+        createProcessTranscriptFunction(this.voiceCallEventsService),
+        createPostCallActionsFunction(this.voiceCallEventsService),
       ],
     });
   }

@@ -7,6 +7,7 @@ import { VoiceController } from './voice.controller';
 import { VoiceService } from './services/voice.service';
 import { VoiceAiService } from './services/voice-ai.service';
 import { VoiceTelephonyService } from './services/voice-telephony.service';
+import { VoiceCallEventsService } from './services/voice-call-events.service';
 import { VoiceCallDispatcher } from './processors/voice-call.processor';
 
 @Module({
@@ -20,8 +21,9 @@ import { VoiceCallDispatcher } from './processors/voice-call.processor';
     VoiceService,
     VoiceAiService,
     VoiceTelephonyService,
+    VoiceCallEventsService,
     VoiceCallDispatcher,
   ],
-  exports: [VoiceService],
+  exports: [VoiceService, VoiceCallEventsService],
 })
 export class VoiceModule {}
