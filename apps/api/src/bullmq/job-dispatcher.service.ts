@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { JobsOptions, Queue } from 'bullmq';
+import type { Inngest } from 'inngest';
 import {
   ALL_QUEUES,
   QUEUE_ACCOUNTING,
@@ -67,7 +68,7 @@ export class JobDispatcher {
     @InjectQueue(QUEUE_DIRECTORY) directoryQueue: Queue,
     @InjectQueue(QUEUE_CUSTOM_DOMAINS) customDomainsQueue: Queue,
     @InjectQueue(QUEUE_PARTNERS) partnersQueue: Queue,
-    @Optional() @Inject('INNGEST_CLIENT') private readonly inngestClient?: unknown,
+    @Optional() @Inject('INNGEST_CLIENT') private readonly inngestClient?: Inngest,
   ) {
     this.queues = {
       [QUEUE_BOOKINGS]: bookingsQueue,
@@ -101,12 +102,8 @@ export class JobDispatcher {
   ): Promise<void> {
     const provider = this.providerFor(queueName);
     if (provider === 'inngest') {
-      // Phase 4c+ wires this up. Until then, any queue with the flag set to
-      // `inngest` raises loudly so misconfiguration is obvious.
-      throw new Error(
-        `Inngest backend for queue "${queueName}" is not yet implemented. ` +
-          `Unset QUEUE_${this.envSuffix(queueName)}_PROVIDER or set it to "bullmq".`,
-      );
+      await this.dispatchToInngest(queueName, jobName, data, options);
+      return;
     }
     const queue = this.queueOrThrow(queueName);
     await queue.add(jobName, data, options);
@@ -122,9 +119,10 @@ export class JobDispatcher {
   ): Promise<void> {
     const provider = this.providerFor(queueName);
     if (provider === 'inngest') {
-      throw new Error(
-        `Inngest backend for queue "${queueName}" is not yet implemented.`,
-      );
+      // Inngest's send() accepts an array — one round trip for the whole bulk.
+      const events = jobs.map((j) => this.toEvent(queueName, j.name, j.data, j.opts));
+      await this.inngestSendOrThrow(queueName, events);
+      return;
     }
     const queue = this.queueOrThrow(queueName);
     await queue.addBulk(jobs);
@@ -161,5 +159,62 @@ export class JobDispatcher {
 
   private envSuffix(queueName: string): string {
     return queueName.toUpperCase().replace(/-/g, '_');
+  }
+
+  /**
+   * Map (queue, jobName, data, options) → Inngest event payload.
+   *
+   * Event name convention: `${queue}/${jobName}` so each BullMQ pair produces
+   * a stable, predictable Inngest event name. The payload is the BullMQ job
+   * data verbatim; processors that previously read `job.data` now read
+   * `event.data` inside their Inngest function — same shape.
+   *
+   * BullMQ options that have an Inngest equivalent are translated:
+   *   - delay  → ts (absolute future timestamp)
+   * Options without an Inngest equivalent (attempts, backoff, repeat) are
+   * controlled at function-definition time on the Inngest side; passing them
+   * through dispatch is a no-op.
+   */
+  private toEvent(
+    queueName: string,
+    jobName: string,
+    data: unknown,
+    options?: JobsOptions,
+  ): { name: string; data: unknown; ts?: number } {
+    const event: { name: string; data: unknown; ts?: number } = {
+      name: `${queueName}/${jobName}`,
+      data,
+    };
+    if (options?.delay && Number.isFinite(options.delay)) {
+      event.ts = Date.now() + Number(options.delay);
+    }
+    return event;
+  }
+
+  private async dispatchToInngest(
+    queueName: string,
+    jobName: string,
+    data: unknown,
+    options: JobsOptions | undefined,
+  ): Promise<void> {
+    const event = this.toEvent(queueName, jobName, data, options);
+    await this.inngestSendOrThrow(queueName, [event]);
+  }
+
+  private async inngestSendOrThrow(
+    queueName: string,
+    events: Array<{ name: string; data: unknown; ts?: number }>,
+  ): Promise<void> {
+    if (!this.inngestClient) {
+      throw new Error(
+        `Inngest client is not available — set QUEUE_${this.envSuffix(queueName)}_PROVIDER=bullmq or wire up INNGEST_CLIENT.`,
+      );
+    }
+    // The Inngest SDK accepts a single event or an array; we always pass an array
+    // so the call shape stays identical for dispatch() and dispatchBulk().
+    await this.inngestClient.send(events as never);
+    this.logger.debug(
+      `Dispatched ${events.length} event(s) to Inngest for queue "${queueName}"`,
+    );
   }
 }

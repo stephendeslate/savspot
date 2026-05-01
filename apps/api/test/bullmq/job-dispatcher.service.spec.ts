@@ -21,9 +21,16 @@ function makeConfig(overrides: Record<string, string | undefined> = {}) {
   };
 }
 
+function makeInngest() {
+  return {
+    send: vi.fn().mockResolvedValue({ ids: ['evt-1'] }),
+  };
+}
+
 function buildDispatcher(
   config: ReturnType<typeof makeConfig>,
   queueOverrides: Partial<Record<string, ReturnType<typeof makeQueue>>> = {},
+  inngest?: ReturnType<typeof makeInngest>,
 ) {
   const queues = Object.fromEntries(
     ALL_QUEUES.map((name) => [name, queueOverrides[name] ?? makeQueue()]),
@@ -50,8 +57,10 @@ function buildDispatcher(
       queues['directory'] as never,
       queues['custom-domains'] as never,
       queues['partners'] as never,
+      inngest as never,
     ),
     queues,
+    inngest,
   };
 }
 
@@ -98,14 +107,55 @@ describe('JobDispatcher', () => {
       ).rejects.toThrow(/Unknown queue/);
     });
 
-    it('rejects when the per-queue flag is set to inngest (Phase 4c+ only)', async () => {
+    it('routes to Inngest when the per-queue flag is set to inngest', async () => {
+      const inngest = makeInngest();
       const { dispatcher } = buildDispatcher(
         makeConfig({ QUEUE_PAYMENTS_PROVIDER: 'inngest' }),
+        {},
+        inngest,
+      );
+
+      await dispatcher.dispatch(QUEUE_PAYMENTS, 'processRefund', {
+        paymentId: 'p-1',
+      });
+
+      expect(inngest.send).toHaveBeenCalledWith([
+        { name: 'payments/processRefund', data: { paymentId: 'p-1' } },
+      ]);
+    });
+
+    it('translates BullMQ delay option into an Inngest ts (future timestamp)', async () => {
+      const inngest = makeInngest();
+      const { dispatcher } = buildDispatcher(
+        makeConfig({ QUEUE_PAYMENTS_PROVIDER: 'inngest' }),
+        {},
+        inngest,
+      );
+
+      const before = Date.now();
+      await dispatcher.dispatch(
+        QUEUE_PAYMENTS,
+        'processRefund',
+        { paymentId: 'p-1' },
+        { delay: 60_000 },
+      );
+      const after = Date.now();
+
+      const call = inngest.send.mock.calls[0]![0] as Array<{ ts: number }>;
+      const ts = call[0]!.ts;
+      expect(ts).toBeGreaterThanOrEqual(before + 60_000);
+      expect(ts).toBeLessThanOrEqual(after + 60_000);
+    });
+
+    it('throws when inngest flag is set but no Inngest client is wired', async () => {
+      const { dispatcher } = buildDispatcher(
+        makeConfig({ QUEUE_PAYMENTS_PROVIDER: 'inngest' }),
+        // no inngest mock provided → constructor receives undefined
       );
 
       await expect(
         dispatcher.dispatch(QUEUE_PAYMENTS, 'processRefund', { paymentId: 'p-1' }),
-      ).rejects.toThrow(/Inngest backend.*not yet implemented/);
+      ).rejects.toThrow(/Inngest client is not available/);
     });
 
     it('treats unknown flag values as bullmq', async () => {
@@ -133,6 +183,25 @@ describe('JobDispatcher', () => {
       expect(queues[QUEUE_PAYMENTS]?.addBulk).toHaveBeenCalledWith([
         { name: 'a', data: { x: 1 } },
         { name: 'b', data: { x: 2 } },
+      ]);
+    });
+
+    it('routes bulk dispatch to Inngest when the queue flag is set', async () => {
+      const inngest = makeInngest();
+      const { dispatcher } = buildDispatcher(
+        makeConfig({ QUEUE_PAYMENTS_PROVIDER: 'inngest' }),
+        {},
+        inngest,
+      );
+
+      await dispatcher.dispatchBulk(QUEUE_PAYMENTS, [
+        { name: 'a', data: { x: 1 } },
+        { name: 'b', data: { x: 2 } },
+      ]);
+
+      expect(inngest.send).toHaveBeenCalledWith([
+        { name: 'payments/a', data: { x: 1 } },
+        { name: 'payments/b', data: { x: 2 } },
       ]);
     });
   });
