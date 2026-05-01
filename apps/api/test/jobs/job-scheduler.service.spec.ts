@@ -6,7 +6,13 @@ import { JobSchedulerService } from '@/jobs/job-scheduler.service';
 // ---------------------------------------------------------------------------
 
 function makeQueue() {
-  return { add: vi.fn().mockResolvedValue(undefined) };
+  return {
+    add: vi.fn().mockResolvedValue(undefined),
+    // staleRepeatables cleanup path uses getRepeatableJobs +
+    // removeRepeatableByKey; default to empty so cleanup is a no-op.
+    getRepeatableJobs: vi.fn().mockResolvedValue([]),
+    removeRepeatableByKey: vi.fn().mockResolvedValue(undefined),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -46,12 +52,20 @@ describe('JobSchedulerService', () => {
   });
 
   describe('onModuleInit', () => {
-    it('should register all repeating jobs across all queues', async () => {
+    it('should register all repeating jobs across BullMQ-active queues', async () => {
       await service.onModuleInit();
 
-      // All queues should have had add() called
-      for (const queue of Object.values(queues)) {
-        expect(queue.add).toHaveBeenCalled();
+      // Queues still on BullMQ should have add() called for their schedules.
+      // Queues fully migrated to Inngest (directory, partners) have no
+      // schedules registered here — they're only listed in staleRepeatables
+      // so any leftover Redis repeatables are removed at startup.
+      const inngestMigrated = new Set(['directory', 'partners']);
+      for (const [name, queue] of Object.entries(queues)) {
+        if (inngestMigrated.has(name)) {
+          expect(queue.add).not.toHaveBeenCalled();
+        } else {
+          expect(queue.add).toHaveBeenCalled();
+        }
       }
     });
 
@@ -99,12 +113,31 @@ describe('JobSchedulerService', () => {
       expect(queues['payments']!.add).toHaveBeenCalled();
     });
 
-    it('should register partner payout job on partners queue', async () => {
+    it('should not register partner payout on the BullMQ partners queue (migrated to Inngest)', async () => {
       await service.onModuleInit();
 
-      const partnerCalls = queues['partners']!.add.mock.calls;
-      expect(partnerCalls.length).toBeGreaterThanOrEqual(1);
-      expect(partnerCalls[0]![0]).toBe('partnerPayoutBatch');
+      // Phase 4f migrated partner payout to Inngest. The BullMQ partners
+      // queue must not receive any add() calls so it cannot dual-fire with
+      // the Inngest cron on the 1st of each month.
+      expect(queues['partners']!.add).not.toHaveBeenCalled();
+    });
+
+    it('should remove stale BullMQ repeatables for queues migrated to Inngest', async () => {
+      const directoryListing = {
+        key: 'directoryListingRefresh::::0 5 * * *',
+        name: 'directoryListingRefresh',
+      };
+      const partnerPayout = {
+        key: 'partnerPayoutBatch::::0 0 1 * *',
+        name: 'partnerPayoutBatch',
+      };
+      queues['directory']!.getRepeatableJobs.mockResolvedValueOnce([directoryListing]);
+      queues['partners']!.getRepeatableJobs.mockResolvedValueOnce([partnerPayout]);
+
+      await service.onModuleInit();
+
+      expect(queues['directory']!.removeRepeatableByKey).toHaveBeenCalledWith(directoryListing.key);
+      expect(queues['partners']!.removeRepeatableByKey).toHaveBeenCalledWith(partnerPayout.key);
     });
   });
 });

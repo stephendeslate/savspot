@@ -59,7 +59,6 @@ import {
   CRON_DAILY_8AM_UTC,
   CRON_MONDAY_8AM_UTC,
   CRON_SUNDAY_2AM_UTC,
-  CRON_FIRST_OF_MONTH,
 } from '../bullmq/queue.constants';
 
 /**
@@ -122,9 +121,7 @@ export class JobSchedulerService implements OnModuleInit {
       { queue: this.commsQueue, name: JOB_COMPUTE_CLIENT_INSIGHTS, pattern: CRON_DAILY_3AM_UTC },
       // Platform Metrics queue
       { queue: this.platformMetricsQueue, name: JOB_COMPUTE_PLATFORM_METRICS, pattern: CRON_DAILY_3AM_UTC },
-      // Directory queue
-      { queue: this.directoryQueue, name: JOB_DIRECTORY_LISTING_REFRESH, pattern: CRON_DAILY_5AM_UTC },
-      { queue: this.directoryQueue, name: JOB_DIRECTORY_SITEMAP_GENERATE, pattern: CRON_DAILY_6AM_UTC },
+      // Directory queue — migrated to Inngest (Phase 4e). Cleaned up below.
       // Custom Domains queue
       { queue: this.customDomainsQueue, name: JOB_CUSTOM_DOMAIN_DNS_VERIFY, pattern: CRON_EVERY_15_MIN },
       { queue: this.customDomainsQueue, name: JOB_CUSTOM_DOMAIN_SSL_RENEW, pattern: CRON_DAILY_4AM_UTC },
@@ -138,17 +135,26 @@ export class JobSchedulerService implements OnModuleInit {
       { queue: this.aiOperationsQueue, name: JOB_RECOMMENDATION_CLIENT_PREFERENCE, pattern: CRON_DAILY_4AM_UTC },
       { queue: this.aiOperationsQueue, name: JOB_CHURN_RISK_COMPUTE, pattern: CRON_DAILY_5AM_UTC },
       { queue: this.aiOperationsQueue, name: JOB_RECOMMENDATION_CLEANUP, pattern: CRON_SUNDAY_2AM_UTC },
-      // Partners queue
-      { queue: this.partnersQueue, name: JOB_PARTNER_PAYOUT_BATCH, pattern: CRON_FIRST_OF_MONTH },
+      // Partners queue — migrated to Inngest (Phase 4f). Cleaned up below.
     ];
 
-    // Clean up stale repeatables left over from previous code versions.
-    // JOB_CALENDAR_TWO_WAY_SYNC was incorrectly registered as a parameterless
-    // repeatable with empty payload, causing the handler to run with undefined
-    // connectionId every 15 minutes. It is now per-connection only; sweeps go
-    // through JOB_CALENDAR_SYNC_FALLBACK.
+    // Clean up stale repeatables left over from previous code versions or
+    // queues that have been migrated to Inngest. Removing them from Redis
+    // stops the BullMQ worker from continuing to fire them after the cron
+    // entry above is gone.
+    //
+    // - JOB_CALENDAR_TWO_WAY_SYNC: incorrectly registered as a parameterless
+    //   repeatable with empty payload; per-connection now (sweeps via
+    //   JOB_CALENDAR_SYNC_FALLBACK).
+    // - JOB_DIRECTORY_*: migrated to Inngest (Phase 4e).
+    // - JOB_PARTNER_PAYOUT_BATCH: migrated to Inngest (Phase 4f); must be
+    //   removed before the next monthly tick (2026-06-01) to avoid a
+    //   concurrent BullMQ + Inngest run racing on payout creation.
     const staleRepeatables: Array<{ queue: Queue; name: string }> = [
       { queue: this.calendarQueue, name: JOB_CALENDAR_TWO_WAY_SYNC },
+      { queue: this.directoryQueue, name: JOB_DIRECTORY_LISTING_REFRESH },
+      { queue: this.directoryQueue, name: JOB_DIRECTORY_SITEMAP_GENERATE },
+      { queue: this.partnersQueue, name: JOB_PARTNER_PAYOUT_BATCH },
     ];
 
     for (const { queue, name } of staleRepeatables) {
