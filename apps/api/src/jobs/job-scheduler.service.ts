@@ -50,7 +50,6 @@ import {
   CRON_EVERY_5_MIN,
   CRON_EVERY_15_MIN,
   CRON_EVERY_30_MIN,
-  CRON_EVERY_6_HOURS,
   CRON_HOURLY,
   CRON_DAILY_3AM_UTC,
   CRON_DAILY_4AM_UTC,
@@ -122,10 +121,7 @@ export class JobSchedulerService implements OnModuleInit {
       // Platform Metrics queue
       { queue: this.platformMetricsQueue, name: JOB_COMPUTE_PLATFORM_METRICS, pattern: CRON_DAILY_3AM_UTC },
       // Directory queue — migrated to Inngest (Phase 4e). Cleaned up below.
-      // Custom Domains queue
-      { queue: this.customDomainsQueue, name: JOB_CUSTOM_DOMAIN_DNS_VERIFY, pattern: CRON_EVERY_15_MIN },
-      { queue: this.customDomainsQueue, name: JOB_CUSTOM_DOMAIN_SSL_RENEW, pattern: CRON_DAILY_4AM_UTC },
-      { queue: this.customDomainsQueue, name: JOB_CUSTOM_DOMAIN_HEALTH_CHECK, pattern: CRON_EVERY_6_HOURS },
+      // Custom Domains queue — migrated to Inngest (Phase 4g). Cleaned up below.
       // Calendar queue — Phase 4 additions
       { queue: this.calendarQueue, name: JOB_CALENDAR_WEBHOOK_RENEW_GOOGLE, pattern: CRON_DAILY_3AM_UTC },
       { queue: this.calendarQueue, name: JOB_CALENDAR_WEBHOOK_RENEW_OUTLOOK, pattern: CRON_DAILY_3AM_UTC },
@@ -150,11 +146,15 @@ export class JobSchedulerService implements OnModuleInit {
     // - JOB_PARTNER_PAYOUT_BATCH: migrated to Inngest (Phase 4f); must be
     //   removed before the next monthly tick (2026-06-01) to avoid a
     //   concurrent BullMQ + Inngest run racing on payout creation.
+    // - JOB_CUSTOM_DOMAIN_*: migrated to Inngest (Phase 4g).
     const staleRepeatables: Array<{ queue: Queue; name: string }> = [
       { queue: this.calendarQueue, name: JOB_CALENDAR_TWO_WAY_SYNC },
       { queue: this.directoryQueue, name: JOB_DIRECTORY_LISTING_REFRESH },
       { queue: this.directoryQueue, name: JOB_DIRECTORY_SITEMAP_GENERATE },
       { queue: this.partnersQueue, name: JOB_PARTNER_PAYOUT_BATCH },
+      { queue: this.customDomainsQueue, name: JOB_CUSTOM_DOMAIN_DNS_VERIFY },
+      { queue: this.customDomainsQueue, name: JOB_CUSTOM_DOMAIN_SSL_RENEW },
+      { queue: this.customDomainsQueue, name: JOB_CUSTOM_DOMAIN_HEALTH_CHECK },
     ];
 
     for (const { queue, name } of staleRepeatables) {
