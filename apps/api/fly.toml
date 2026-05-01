@@ -10,7 +10,11 @@ kill_timeout = "30s"
 
 [deploy]
   strategy = "rolling"
-  release_command = "./prisma/node_modules/.bin/prisma migrate deploy --schema /app/prisma/schema.prisma"
+  # DIRECT_URL defaults to DATABASE_URL when not explicitly set as a Fly secret.
+  # This lets existing Fly Postgres deployments keep using a single connection
+  # string while the Supabase migration is in flight; Supabase's two-URL pattern
+  # is wired up by setting DIRECT_URL to the direct (port 5432) host.
+  release_command = "/bin/sh -c 'DIRECT_URL=\"${DIRECT_URL:-$DATABASE_URL}\" exec ./prisma/node_modules/.bin/prisma migrate deploy --schema /app/prisma/schema.prisma'"
 
 [env]
   NODE_ENV = "production"
