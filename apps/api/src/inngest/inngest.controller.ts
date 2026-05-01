@@ -3,8 +3,10 @@ import { ApiExcludeController } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { serve } from 'inngest/express';
 import { Public } from '@/common/decorators/public.decorator';
+import { CurrencyService } from '@/currency/currency.service';
 import { inngest } from './inngest.client';
 import { ping } from './functions/ping.function';
+import { createRefreshRatesFunction } from './functions/currency-refresh/refresh-rates.function';
 
 /**
  * Serves Inngest's webhook endpoint at /inngest. Inngest cloud:
@@ -17,19 +19,27 @@ import { ping } from './functions/ping.function';
  * this path before the controller (current api uses default Express JSON
  * parsing globally; the Inngest serve handler accepts a parsed body and
  * verifies signatures from headers).
+ *
+ * Function registration: Inngest functions that need NestJS-injected services
+ * are produced by closure factories (`create*Function(service)`) that capture
+ * the service via DI in this controller's constructor. Static, dependency-free
+ * functions (e.g. `ping`) are imported and registered directly.
  */
 @ApiExcludeController()
 @Public()
 @Controller('inngest')
 export class InngestController {
-  private readonly handler = serve({
-    client: inngest,
-    functions: [
-      // Phase 4a — only the connectivity-probe function is registered.
-      // Subsequent phases append real ported BullMQ processors here.
-      ping,
-    ],
-  });
+  private readonly handler: ReturnType<typeof serve>;
+
+  constructor(private readonly currencyService: CurrencyService) {
+    this.handler = serve({
+      client: inngest,
+      functions: [
+        ping,
+        createRefreshRatesFunction(this.currencyService),
+      ],
+    });
+  }
 
   @All()
   handle(@Req() req: Request, @Res() res: Response): unknown {
