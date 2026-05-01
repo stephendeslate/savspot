@@ -2,6 +2,7 @@ import { All, Controller, Req, Res } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { serve } from 'inngest/express';
+import { Public } from '@/common/decorators/public.decorator';
 import { inngest } from './inngest.client';
 import { ping } from './functions/ping.function';
 
@@ -18,6 +19,7 @@ import { ping } from './functions/ping.function';
  * verifies signatures from headers).
  */
 @ApiExcludeController()
+@Public()
 @Controller('inngest')
 export class InngestController {
   private readonly handler = serve({
