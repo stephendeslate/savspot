@@ -64,6 +64,8 @@ import {
   googleConfig,
   resendConfig,
   r2Config,
+  supabaseConfig,
+  storageConfig,
   stripeConfig,
   smsConfig,
   twilioConfig,
@@ -116,7 +118,7 @@ function getEeModules(): any[] {
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
-      load: [appConfig, jwtConfig, googleConfig, resendConfig, r2Config, stripeConfig, smsConfig, twilioConfig, plivoConfig, googleCalendarConfig, microsoftCalendarConfig, vapidConfig, posthogConfig],
+      load: [appConfig, jwtConfig, googleConfig, resendConfig, r2Config, supabaseConfig, storageConfig, stripeConfig, smsConfig, twilioConfig, plivoConfig, googleCalendarConfig, microsoftCalendarConfig, vapidConfig, posthogConfig],
     }),
     SentryModule.forRoot(),
     LoggerModule.forRoot({

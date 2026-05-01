@@ -35,6 +35,10 @@ kill_timeout = "30s"
   #   R2_SECRET_ACCESS_KEY
   #   R2_BUCKET_NAME
   #   R2_PUBLIC_URL
+  #   STORAGE_PROVIDER          (r2 | supabase — Phase 3 cutover)
+  #   SUPABASE_URL              (Phase 3 storage migration)
+  #   SUPABASE_SERVICE_ROLE_KEY (Phase 3 storage migration)
+  #   SUPABASE_STORAGE_BUCKET   (Phase 3 storage migration)
   #   STRIPE_SECRET_KEY
   #   STRIPE_PUBLISHABLE_KEY
   #   STRIPE_WEBHOOK_SECRET

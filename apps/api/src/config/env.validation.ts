@@ -89,6 +89,25 @@ export const envSchema = z.object({
     .string()
     .optional(),
 
+  // ---- Supabase (managed Postgres + Storage + Auth — see Phase 3 of the migration) ----
+  SUPABASE_URL: z
+    .string()
+    .url()
+    .optional(),
+
+  SUPABASE_SERVICE_ROLE_KEY: z
+    .string()
+    .optional(),
+
+  SUPABASE_STORAGE_BUCKET: z
+    .string()
+    .default('savspot-uploads'),
+
+  // ---- Storage provider selection (r2 = current, supabase = post-Phase-3 cutover) ----
+  STORAGE_PROVIDER: z
+    .enum(['r2', 'supabase'])
+    .default('r2'),
+
   // ---- Stripe (payments) ----
   STRIPE_SECRET_KEY: z
     .string()
