@@ -59,7 +59,6 @@ import {
   CRON_DAILY_8AM_UTC,
   CRON_MONDAY_8AM_UTC,
   CRON_SUNDAY_2AM_UTC,
-  CRON_FIRST_OF_MONTH,
 } from '../bullmq/queue.constants';
 
 /**
@@ -136,8 +135,7 @@ export class JobSchedulerService implements OnModuleInit {
       { queue: this.aiOperationsQueue, name: JOB_RECOMMENDATION_CLIENT_PREFERENCE, pattern: CRON_DAILY_4AM_UTC },
       { queue: this.aiOperationsQueue, name: JOB_CHURN_RISK_COMPUTE, pattern: CRON_DAILY_5AM_UTC },
       { queue: this.aiOperationsQueue, name: JOB_RECOMMENDATION_CLEANUP, pattern: CRON_SUNDAY_2AM_UTC },
-      // Partners queue
-      { queue: this.partnersQueue, name: JOB_PARTNER_PAYOUT_BATCH, pattern: CRON_FIRST_OF_MONTH },
+      // Partners queue — migrated to Inngest (Phase 4f). Cleaned up below.
     ];
 
     // Clean up stale repeatables left over from previous code versions or
@@ -149,10 +147,14 @@ export class JobSchedulerService implements OnModuleInit {
     //   repeatable with empty payload; per-connection now (sweeps via
     //   JOB_CALENDAR_SYNC_FALLBACK).
     // - JOB_DIRECTORY_*: migrated to Inngest (Phase 4e).
+    // - JOB_PARTNER_PAYOUT_BATCH: migrated to Inngest (Phase 4f); must be
+    //   removed before the next monthly tick (2026-06-01) to avoid a
+    //   concurrent BullMQ + Inngest run racing on payout creation.
     const staleRepeatables: Array<{ queue: Queue; name: string }> = [
       { queue: this.calendarQueue, name: JOB_CALENDAR_TWO_WAY_SYNC },
       { queue: this.directoryQueue, name: JOB_DIRECTORY_LISTING_REFRESH },
       { queue: this.directoryQueue, name: JOB_DIRECTORY_SITEMAP_GENERATE },
+      { queue: this.partnersQueue, name: JOB_PARTNER_PAYOUT_BATCH },
     ];
 
     for (const { queue, name } of staleRepeatables) {
