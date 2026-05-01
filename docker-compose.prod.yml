@@ -50,11 +50,15 @@ services:
     command: >
       sh -c "
         cd /app &&
+        export DIRECT_URL=\"${DIRECT_URL:-$$DATABASE_URL}\" &&
         npx --prefix prisma prisma migrate deploy &&
         echo '✓ Migrations complete'
       "
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-savspot}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-savspot}?schema=public
+      # DIRECT_URL is defaulted to DATABASE_URL inside the container if unset.
+      # Override with a separate Supabase-style direct URL for hosted deployments.
+      DIRECT_URL: ${DIRECT_URL:-}
     depends_on:
       postgres:
         condition: service_healthy
