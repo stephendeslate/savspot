@@ -11,6 +11,6 @@ import { PartnersProcessor } from './partners.processor';
   imports: [BullModule.registerQueue({ name: QUEUE_PARTNERS })],
   controllers: [PartnersController, PartnersAdminController],
   providers: [PartnersService, PartnerPayoutService, PartnersProcessor],
-  exports: [PartnersService],
+  exports: [PartnersService, PartnerPayoutService],
 })
 export class PartnersModule {}

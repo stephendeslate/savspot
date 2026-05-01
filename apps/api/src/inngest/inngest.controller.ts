@@ -5,11 +5,13 @@ import { serve } from 'inngest/express';
 import { Public } from '@/common/decorators/public.decorator';
 import { CurrencyService } from '@/currency/currency.service';
 import { DirectoryListingService } from '@/directory/directory-listing.service';
+import { PartnerPayoutService } from '@/partners/partner-payout.service';
 import { inngest } from './inngest.client';
 import { ping } from './functions/ping.function';
 import { createRefreshRatesFunction } from './functions/currency-refresh/refresh-rates.function';
 import { createDirectoryListingRefreshFunction } from './functions/directory/listing-refresh.function';
 import { directorySitemapGenerate } from './functions/directory/sitemap-generate.function';
+import { createPartnerPayoutBatchFunction } from './functions/partners/payout-batch.function';
 
 /**
  * Serves Inngest's webhook endpoint at /inngest. Inngest cloud:
@@ -37,6 +39,7 @@ export class InngestController {
   constructor(
     private readonly currencyService: CurrencyService,
     private readonly directoryListingService: DirectoryListingService,
+    private readonly partnerPayoutService: PartnerPayoutService,
   ) {
     this.handler = serve({
       client: inngest,
@@ -45,6 +48,7 @@ export class InngestController {
         createRefreshRatesFunction(this.currencyService),
         createDirectoryListingRefreshFunction(this.directoryListingService),
         directorySitemapGenerate,
+        createPartnerPayoutBatchFunction(this.partnerPayoutService),
       ],
     });
   }
