@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common';
+import { AccountingModule } from '../accounting/accounting.module';
 import { CurrencyModule } from '../currency/currency.module';
 import { CustomDomainsModule } from '../custom-domains/custom-domains.module';
 import { DirectoryModule } from '../directory/directory.module';
@@ -18,7 +19,8 @@ export const INNGEST_CLIENT = 'INNGEST_CLIENT';
     // factory is imported here. Phase 4d: CurrencyModule. Phase 4e:
     // DirectoryModule. Phase 4f: PartnersModule. Phase 4g:
     // CustomDomainsModule. Phase 4h: ImportsModule. Phase 4i:
-    // PlatformMetricsModule. Phase 4j: VoiceModule.
+    // PlatformMetricsModule. Phase 4j: VoiceModule. Phase 4k:
+    // AccountingModule.
     CurrencyModule,
     DirectoryModule,
     PartnersModule,
@@ -26,6 +28,7 @@ export const INNGEST_CLIENT = 'INNGEST_CLIENT';
     ImportsModule,
     PlatformMetricsModule,
     VoiceModule,
+    AccountingModule,
   ],
   controllers: [InngestController],
   providers: [

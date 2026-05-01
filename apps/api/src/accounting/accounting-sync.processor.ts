@@ -1,9 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { AccountingService } from './accounting.service';
 
-interface AccountingSyncJobData {
+export interface AccountingSyncJobData {
   connectionId: string;
   tenantId: string;
   fullSync?: boolean;
@@ -18,8 +17,8 @@ export class AccountingSyncInvoicesHandler {
     private readonly accountingService: AccountingService,
   ) {}
 
-  async handle(job: Job<AccountingSyncJobData>): Promise<void> {
-    const { connectionId, tenantId } = job.data;
+  async handle(data: AccountingSyncJobData): Promise<void> {
+    const { connectionId, tenantId } = data;
     this.logger.log(`Starting invoice sync for connection ${connectionId} (tenant: ${tenantId})`);
 
     try {
@@ -125,8 +124,8 @@ export class AccountingSyncPaymentsHandler {
     private readonly accountingService: AccountingService,
   ) {}
 
-  async handle(job: Job<AccountingSyncJobData>): Promise<void> {
-    const { connectionId, tenantId } = job.data;
+  async handle(data: AccountingSyncJobData): Promise<void> {
+    const { connectionId, tenantId } = data;
     this.logger.log(`Starting payment sync for connection ${connectionId} (tenant: ${tenantId})`);
 
     try {
@@ -204,7 +203,7 @@ export class AccountingSyncPaymentsHandler {
   }
 }
 
-interface AccountingSyncSingleInvoiceJobData {
+export interface AccountingSyncSingleInvoiceJobData {
   connectionId: string;
   tenantId: string;
   invoiceId: string;
@@ -219,8 +218,8 @@ export class AccountingSyncSingleInvoiceHandler {
     private readonly accountingService: AccountingService,
   ) {}
 
-  async handle(job: Job<AccountingSyncSingleInvoiceJobData>): Promise<void> {
-    const { connectionId, tenantId, invoiceId } = job.data;
+  async handle(data: AccountingSyncSingleInvoiceJobData): Promise<void> {
+    const { connectionId, tenantId, invoiceId } = data;
     this.logger.log(`Starting single invoice sync for invoice ${invoiceId} (connection: ${connectionId}, tenant: ${tenantId})`);
 
     try {
@@ -317,8 +316,8 @@ export class AccountingSyncClientsHandler {
     private readonly accountingService: AccountingService,
   ) {}
 
-  async handle(job: Job<AccountingSyncJobData>): Promise<void> {
-    const { connectionId, tenantId } = job.data;
+  async handle(data: AccountingSyncJobData): Promise<void> {
+    const { connectionId, tenantId } = data;
     this.logger.log(`Starting client sync for connection ${connectionId} (tenant: ${tenantId})`);
 
     try {

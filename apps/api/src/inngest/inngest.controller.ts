@@ -3,6 +3,12 @@ import { ApiExcludeController } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { serve } from 'inngest/express';
 import { Public } from '@/common/decorators/public.decorator';
+import {
+  AccountingSyncClientsHandler,
+  AccountingSyncInvoicesHandler,
+  AccountingSyncPaymentsHandler,
+  AccountingSyncSingleInvoiceHandler,
+} from '@/accounting/accounting-sync.processor';
 import { CurrencyService } from '@/currency/currency.service';
 import { CustomDomainsService } from '@/custom-domains/custom-domains.service';
 import { DirectoryListingService } from '@/directory/directory-listing.service';
@@ -21,6 +27,12 @@ import { directorySitemapGenerate } from './functions/directory/sitemap-generate
 import { createProcessImportFunction } from './functions/imports/process-import.function';
 import { createPartnerPayoutBatchFunction } from './functions/partners/payout-batch.function';
 import { createComputePlatformMetricsFunction } from './functions/platform-metrics/compute-platform-metrics.function';
+import {
+  createAccountingSyncClientsFunction,
+  createAccountingSyncInvoicesFunction,
+  createAccountingSyncPaymentsFunction,
+  createAccountingSyncSingleInvoiceFunction,
+} from './functions/accounting/sync.functions';
 import { createPostCallActionsFunction } from './functions/voice-calls/post-call-actions.function';
 import { createProcessTranscriptFunction } from './functions/voice-calls/process-transcript.function';
 
@@ -55,6 +67,10 @@ export class InngestController {
     private readonly importsService: ImportsService,
     private readonly platformMetricsService: PlatformMetricsService,
     private readonly voiceCallEventsService: VoiceCallEventsService,
+    private readonly accountingSyncInvoicesHandler: AccountingSyncInvoicesHandler,
+    private readonly accountingSyncPaymentsHandler: AccountingSyncPaymentsHandler,
+    private readonly accountingSyncClientsHandler: AccountingSyncClientsHandler,
+    private readonly accountingSyncSingleInvoiceHandler: AccountingSyncSingleInvoiceHandler,
   ) {
     this.handler = serve({
       client: inngest,
@@ -71,6 +87,10 @@ export class InngestController {
         createComputePlatformMetricsFunction(this.platformMetricsService),
         createProcessTranscriptFunction(this.voiceCallEventsService),
         createPostCallActionsFunction(this.voiceCallEventsService),
+        createAccountingSyncInvoicesFunction(this.accountingSyncInvoicesHandler),
+        createAccountingSyncPaymentsFunction(this.accountingSyncPaymentsHandler),
+        createAccountingSyncClientsFunction(this.accountingSyncClientsHandler),
+        createAccountingSyncSingleInvoiceFunction(this.accountingSyncSingleInvoiceHandler),
       ],
     });
   }

@@ -34,30 +34,33 @@ describe('AccountingSyncDispatcher', () => {
   });
 
   it('routes accountingSyncInvoices to invoices handler', async () => {
-    const job = makeJob('accountingSyncInvoices', { connectionId: 'c1' });
+    const data = { connectionId: 'c1' };
+    const job = makeJob('accountingSyncInvoices', data);
 
     await dispatcher.process(job);
 
-    expect(invoicesHandler.handle).toHaveBeenCalledWith(job);
+    expect(invoicesHandler.handle).toHaveBeenCalledWith(data);
     expect(paymentsHandler.handle).not.toHaveBeenCalled();
     expect(clientsHandler.handle).not.toHaveBeenCalled();
   });
 
   it('routes accountingSyncPayments to payments handler', async () => {
-    const job = makeJob('accountingSyncPayments', { connectionId: 'c1' });
+    const data = { connectionId: 'c1' };
+    const job = makeJob('accountingSyncPayments', data);
 
     await dispatcher.process(job);
 
-    expect(paymentsHandler.handle).toHaveBeenCalledWith(job);
+    expect(paymentsHandler.handle).toHaveBeenCalledWith(data);
     expect(invoicesHandler.handle).not.toHaveBeenCalled();
   });
 
   it('routes accountingSyncClients to clients handler', async () => {
-    const job = makeJob('accountingSyncClients', { connectionId: 'c1' });
+    const data = { connectionId: 'c1' };
+    const job = makeJob('accountingSyncClients', data);
 
     await dispatcher.process(job);
 
-    expect(clientsHandler.handle).toHaveBeenCalledWith(job);
+    expect(clientsHandler.handle).toHaveBeenCalledWith(data);
     expect(invoicesHandler.handle).not.toHaveBeenCalled();
   });
 
