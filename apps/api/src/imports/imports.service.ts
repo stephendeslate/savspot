@@ -3,10 +3,9 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
-import { Queue } from 'bullmq';
-import { InjectQueue } from '@nestjs/bullmq';
 import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
+import { JobDispatcher } from '../bullmq/job-dispatcher.service';
 import { QUEUE_IMPORTS, JOB_PROCESS_IMPORT } from '../bullmq/queue.constants';
 import { CreateImportDto } from './dto/create-import.dto';
 import { ListImportsDto } from './dto/list-imports.dto';
@@ -26,7 +25,7 @@ export class ImportsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    @InjectQueue(QUEUE_IMPORTS) private readonly importQueue: Queue,
+    private readonly dispatcher: JobDispatcher,
   ) {}
 
   async create(
@@ -47,7 +46,7 @@ export class ImportsService {
       },
     });
 
-    await this.importQueue.add(JOB_PROCESS_IMPORT, {
+    await this.dispatcher.dispatch(QUEUE_IMPORTS, JOB_PROCESS_IMPORT, {
       importJobId: importJob.id,
       tenantId,
     });
