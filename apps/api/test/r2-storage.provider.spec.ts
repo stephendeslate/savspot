@@ -1,9 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { UploadService } from '@/upload/upload.service';
-
-// ---------------------------------------------------------------------------
-// Mocks
-// ---------------------------------------------------------------------------
+import { R2StorageProvider } from '@/upload/r2-storage.provider';
 
 const mockGetSignedUrl = vi.fn().mockResolvedValue('https://signed-url.example.com');
 
@@ -20,10 +16,6 @@ vi.mock('uuid', () => ({
   v4: () => 'fixed-uuid-1234',
 }));
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 function makeConfigService(overrides: Record<string, string | undefined> = {}) {
   const config: Record<string, string | undefined> = {
     R2_ACCOUNT_ID: 'test-account-id',
@@ -39,22 +31,18 @@ function makeConfigService(overrides: Record<string, string | undefined> = {}) {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Suite
-// ---------------------------------------------------------------------------
-
-describe('UploadService', () => {
+describe('R2StorageProvider', () => {
   describe('getPresignedUploadUrl', () => {
-    it('should throw when R2 is not configured', async () => {
+    it('throws when R2 is not configured', async () => {
       const configService = makeConfigService({
         R2_ACCOUNT_ID: undefined,
         R2_ACCESS_KEY_ID: undefined,
         R2_SECRET_ACCESS_KEY: undefined,
       });
-      const service = new UploadService(configService as never);
+      const provider = new R2StorageProvider(configService as never);
 
       await expect(
-        service.getPresignedUploadUrl({
+        provider.getPresignedUploadUrl({
           tenantId: 'tenant-001',
           fileName: 'photo.jpg',
           contentType: 'image/jpeg',
@@ -62,11 +50,11 @@ describe('UploadService', () => {
       ).rejects.toThrow('Upload service is not configured');
     });
 
-    it('should return uploadUrl, publicUrl, and key', async () => {
+    it('returns uploadUrl, publicUrl, and key', async () => {
       const configService = makeConfigService();
-      const service = new UploadService(configService as never);
+      const provider = new R2StorageProvider(configService as never);
 
-      const result = await service.getPresignedUploadUrl({
+      const result = await provider.getPresignedUploadUrl({
         tenantId: 'tenant-001',
         fileName: 'photo.jpg',
         contentType: 'image/jpeg',
@@ -79,11 +67,11 @@ describe('UploadService', () => {
       );
     });
 
-    it('should sanitize file names by removing special characters', async () => {
+    it('sanitizes file names by removing special characters', async () => {
       const configService = makeConfigService();
-      const service = new UploadService(configService as never);
+      const provider = new R2StorageProvider(configService as never);
 
-      const result = await service.getPresignedUploadUrl({
+      const result = await provider.getPresignedUploadUrl({
         tenantId: 'tenant-001',
         fileName: 'My Photo (2).jpg',
         contentType: 'image/jpeg',
@@ -94,11 +82,11 @@ describe('UploadService', () => {
       );
     });
 
-    it('should fall back to r2.dev URL when R2_PUBLIC_URL is empty', async () => {
+    it('falls back to r2.dev URL when R2_PUBLIC_URL is empty', async () => {
       const configService = makeConfigService({ R2_PUBLIC_URL: undefined });
-      const service = new UploadService(configService as never);
+      const provider = new R2StorageProvider(configService as never);
 
-      const result = await service.getPresignedUploadUrl({
+      const result = await provider.getPresignedUploadUrl({
         tenantId: 'tenant-001',
         fileName: 'photo.jpg',
         contentType: 'image/jpeg',

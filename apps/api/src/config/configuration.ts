@@ -36,6 +36,16 @@ export const r2Config = registerAs('r2', () => ({
   publicUrl: process.env['R2_PUBLIC_URL'],
 }));
 
+export const supabaseConfig = registerAs('supabase', () => ({
+  url: process.env['SUPABASE_URL'],
+  serviceRoleKey: process.env['SUPABASE_SERVICE_ROLE_KEY'],
+  storageBucket: process.env['SUPABASE_STORAGE_BUCKET'] || 'savspot-uploads',
+}));
+
+export const storageConfig = registerAs('storage', () => ({
+  provider: process.env['STORAGE_PROVIDER'] || 'r2',
+}));
+
 export const stripeConfig = registerAs('stripe', () => ({
   secretKey: process.env['STRIPE_SECRET_KEY'],
   publishableKey: process.env['STRIPE_PUBLISHABLE_KEY'],
