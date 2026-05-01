@@ -46,6 +46,11 @@ export const storageConfig = registerAs('storage', () => ({
   provider: process.env['STORAGE_PROVIDER'] || 'r2',
 }));
 
+export const inngestConfig = registerAs('inngest', () => ({
+  eventKey: process.env['INNGEST_EVENT_KEY'],
+  signingKey: process.env['INNGEST_SIGNING_KEY'],
+}));
+
 export const stripeConfig = registerAs('stripe', () => ({
   secretKey: process.env['STRIPE_SECRET_KEY'],
   publishableKey: process.env['STRIPE_PUBLISHABLE_KEY'],

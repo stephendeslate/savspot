@@ -108,6 +108,18 @@ export const envSchema = z.object({
     .enum(['r2', 'supabase'])
     .default('r2'),
 
+  // ---- Inngest (BullMQ → Inngest migration, Phase 4) ----
+  // Both keys are issued by Inngest (or by the Vercel marketplace integration
+  // that provisions the Inngest account). EVENT_KEY authorizes inngest.send()
+  // calls; SIGNING_KEY verifies inbound webhook requests at /inngest.
+  INNGEST_EVENT_KEY: z
+    .string()
+    .optional(),
+
+  INNGEST_SIGNING_KEY: z
+    .string()
+    .optional(),
+
   // ---- Stripe (payments) ----
   STRIPE_SECRET_KEY: z
     .string()

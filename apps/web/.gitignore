@@ -1,2 +1,3 @@
 .vercel
 src/generated/
+.env*.local

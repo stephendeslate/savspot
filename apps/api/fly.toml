@@ -39,6 +39,8 @@ kill_timeout = "30s"
   #   SUPABASE_URL              (Phase 3 storage migration)
   #   SUPABASE_SERVICE_ROLE_KEY (Phase 3 storage migration)
   #   SUPABASE_STORAGE_BUCKET   (Phase 3 storage migration)
+  #   INNGEST_EVENT_KEY         (Phase 4 BullMQ → Inngest migration)
+  #   INNGEST_SIGNING_KEY       (Phase 4 BullMQ → Inngest migration)
   #   STRIPE_SECRET_KEY
   #   STRIPE_PUBLISHABLE_KEY
   #   STRIPE_WEBHOOK_SECRET
