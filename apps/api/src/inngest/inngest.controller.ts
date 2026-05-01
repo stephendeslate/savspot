@@ -4,11 +4,15 @@ import { Request, Response } from 'express';
 import { serve } from 'inngest/express';
 import { Public } from '@/common/decorators/public.decorator';
 import { CurrencyService } from '@/currency/currency.service';
+import { CustomDomainsService } from '@/custom-domains/custom-domains.service';
 import { DirectoryListingService } from '@/directory/directory-listing.service';
 import { PartnerPayoutService } from '@/partners/partner-payout.service';
 import { inngest } from './inngest.client';
 import { ping } from './functions/ping.function';
 import { createRefreshRatesFunction } from './functions/currency-refresh/refresh-rates.function';
+import { createCustomDomainsHealthCheckFunction } from './functions/custom-domains/health-check.function';
+import { createDnsVerifyFunction } from './functions/custom-domains/dns-verify.function';
+import { createSslRenewFunction } from './functions/custom-domains/ssl-renew.function';
 import { createDirectoryListingRefreshFunction } from './functions/directory/listing-refresh.function';
 import { directorySitemapGenerate } from './functions/directory/sitemap-generate.function';
 import { createPartnerPayoutBatchFunction } from './functions/partners/payout-batch.function';
@@ -40,6 +44,7 @@ export class InngestController {
     private readonly currencyService: CurrencyService,
     private readonly directoryListingService: DirectoryListingService,
     private readonly partnerPayoutService: PartnerPayoutService,
+    private readonly customDomainsService: CustomDomainsService,
   ) {
     this.handler = serve({
       client: inngest,
@@ -49,6 +54,9 @@ export class InngestController {
         createDirectoryListingRefreshFunction(this.directoryListingService),
         directorySitemapGenerate,
         createPartnerPayoutBatchFunction(this.partnerPayoutService),
+        createDnsVerifyFunction(this.customDomainsService),
+        createSslRenewFunction(this.customDomainsService),
+        createCustomDomainsHealthCheckFunction(this.customDomainsService),
       ],
     });
   }

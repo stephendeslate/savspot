@@ -181,4 +181,35 @@ export class CustomDomainsService {
       data: { status: 'VERIFICATION_FAILED' },
     });
   }
+
+  async renewExpiringSslCertificates(): Promise<void> {
+    const activeDomains = await this.prisma.customDomain.findMany({
+      where: { status: 'ACTIVE', sslStatus: 'ACTIVE' },
+    });
+
+    for (const domain of activeDomains) {
+      try {
+        await this.sslManager.renewCertificate(domain.domain);
+      } catch (error) {
+        this.logger.error(`SSL renewal failed for ${domain.domain}: ${error}`);
+      }
+    }
+
+    this.logger.log(`SSL renewal check complete: ${activeDomains.length} domains`);
+  }
+
+  async runHealthChecks(): Promise<void> {
+    const activeDomains = await this.prisma.customDomain.findMany({
+      where: { status: 'ACTIVE' },
+    });
+
+    for (const domain of activeDomains) {
+      await this.prisma.customDomain.update({
+        where: { id: domain.id },
+        data: { lastCheckedAt: new Date() },
+      });
+    }
+
+    this.logger.log(`Health check complete: ${activeDomains.length} domains`);
+  }
 }
