@@ -4,9 +4,12 @@ import { Request, Response } from 'express';
 import { serve } from 'inngest/express';
 import { Public } from '@/common/decorators/public.decorator';
 import { CurrencyService } from '@/currency/currency.service';
+import { DirectoryListingService } from '@/directory/directory-listing.service';
 import { inngest } from './inngest.client';
 import { ping } from './functions/ping.function';
 import { createRefreshRatesFunction } from './functions/currency-refresh/refresh-rates.function';
+import { createDirectoryListingRefreshFunction } from './functions/directory/listing-refresh.function';
+import { directorySitemapGenerate } from './functions/directory/sitemap-generate.function';
 
 /**
  * Serves Inngest's webhook endpoint at /inngest. Inngest cloud:
@@ -31,12 +34,17 @@ import { createRefreshRatesFunction } from './functions/currency-refresh/refresh
 export class InngestController {
   private readonly handler: ReturnType<typeof serve>;
 
-  constructor(private readonly currencyService: CurrencyService) {
+  constructor(
+    private readonly currencyService: CurrencyService,
+    private readonly directoryListingService: DirectoryListingService,
+  ) {
     this.handler = serve({
       client: inngest,
       functions: [
         ping,
         createRefreshRatesFunction(this.currencyService),
+        createDirectoryListingRefreshFunction(this.directoryListingService),
+        directorySitemapGenerate,
       ],
     });
   }
