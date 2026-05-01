@@ -26,6 +26,12 @@ import {
     AccountingSyncClientsHandler,
     AccountingSyncSingleInvoiceHandler,
   ],
-  exports: [AccountingService],
+  exports: [
+    AccountingService,
+    AccountingSyncInvoicesHandler,
+    AccountingSyncPaymentsHandler,
+    AccountingSyncClientsHandler,
+    AccountingSyncSingleInvoiceHandler,
+  ],
 })
 export class AccountingModule {}

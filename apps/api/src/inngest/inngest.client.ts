@@ -33,6 +33,23 @@ type Events = {
   'voice-calls/postCallActions': {
     data: { callLogId: string; tenantId: string; bookingId?: string };
   };
+
+  // Phase 4k — accounting queue. One event per BullMQ job:
+  // - accountingSyncInvoices/Payments/Clients: connection-wide bulk sync
+  //   (last 50 records each), tenant + connectionId in the payload.
+  // - accountingSyncSingleInvoice: targeted sync for one invoice.
+  'accounting/accountingSyncInvoices': {
+    data: { connectionId: string; tenantId: string; fullSync?: boolean };
+  };
+  'accounting/accountingSyncPayments': {
+    data: { connectionId: string; tenantId: string; fullSync?: boolean };
+  };
+  'accounting/accountingSyncClients': {
+    data: { connectionId: string; tenantId: string; fullSync?: boolean };
+  };
+  'accounting/accountingSyncSingleInvoice': {
+    data: { connectionId: string; tenantId: string; invoiceId: string };
+  };
 };
 
 export const inngest = new Inngest({

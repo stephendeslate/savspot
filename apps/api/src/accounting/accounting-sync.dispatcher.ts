@@ -13,6 +13,8 @@ import {
   AccountingSyncPaymentsHandler,
   AccountingSyncClientsHandler,
   AccountingSyncSingleInvoiceHandler,
+  AccountingSyncJobData,
+  AccountingSyncSingleInvoiceJobData,
 } from './accounting-sync.processor';
 
 @Processor(QUEUE_ACCOUNTING)
@@ -31,13 +33,21 @@ export class AccountingSyncDispatcher extends WorkerHost {
   async process(job: Job): Promise<void> {
     switch (job.name) {
       case JOB_ACCOUNTING_SYNC_INVOICES:
-        return this.invoicesHandler.handle(job);
+        return this.invoicesHandler.handle(
+          (job as Job<AccountingSyncJobData>).data,
+        );
       case JOB_ACCOUNTING_SYNC_PAYMENTS:
-        return this.paymentsHandler.handle(job);
+        return this.paymentsHandler.handle(
+          (job as Job<AccountingSyncJobData>).data,
+        );
       case JOB_ACCOUNTING_SYNC_CLIENTS:
-        return this.clientsHandler.handle(job);
+        return this.clientsHandler.handle(
+          (job as Job<AccountingSyncJobData>).data,
+        );
       case JOB_ACCOUNTING_SYNC_SINGLE_INVOICE:
-        return this.singleInvoiceHandler.handle(job);
+        return this.singleInvoiceHandler.handle(
+          (job as Job<AccountingSyncSingleInvoiceJobData>).data,
+        );
       default:
         this.logger.warn(`Unknown accounting sync job name: ${job.name}`);
     }
