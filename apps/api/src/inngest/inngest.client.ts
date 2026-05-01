@@ -19,6 +19,20 @@ type Events = {
   // `${queueName}/${jobName}`. Dispatched by ImportsService.create() when a
   // tenant uploads a new import job.
   'imports/processImport': { data: { importJobId: string; tenantId: string } };
+
+  // Phase 4j — voice-calls queue. processTranscript stores a transcript row
+  // after a call ends; postCallActions runs the follow-up workflow when a
+  // voice call resulted in a booking.
+  'voice-calls/processTranscript': {
+    data: {
+      callLogId: string;
+      tenantId: string;
+      transcript: Array<{ role: string; text: string }>;
+    };
+  };
+  'voice-calls/postCallActions': {
+    data: { callLogId: string; tenantId: string; bookingId?: string };
+  };
 };
 
 export const inngest = new Inngest({
