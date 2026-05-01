@@ -4,6 +4,7 @@ import { CustomDomainsModule } from '../custom-domains/custom-domains.module';
 import { DirectoryModule } from '../directory/directory.module';
 import { ImportsModule } from '../imports/imports.module';
 import { PartnersModule } from '../partners/partners.module';
+import { PlatformMetricsModule } from '../platform-metrics/platform-metrics.module';
 import { InngestController } from './inngest.controller';
 import { inngest } from './inngest.client';
 
@@ -15,12 +16,14 @@ export const INNGEST_CLIENT = 'INNGEST_CLIENT';
     // Each feature module whose services are consumed by an Inngest function
     // factory is imported here. Phase 4d: CurrencyModule. Phase 4e:
     // DirectoryModule. Phase 4f: PartnersModule. Phase 4g:
-    // CustomDomainsModule. Phase 4h: ImportsModule.
+    // CustomDomainsModule. Phase 4h: ImportsModule. Phase 4i:
+    // PlatformMetricsModule.
     CurrencyModule,
     DirectoryModule,
     PartnersModule,
     CustomDomainsModule,
     ImportsModule,
+    PlatformMetricsModule,
   ],
   controllers: [InngestController],
   providers: [
