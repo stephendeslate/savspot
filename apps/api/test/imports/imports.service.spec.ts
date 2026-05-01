@@ -24,9 +24,9 @@ function makePrisma() {
   };
 }
 
-function makeQueue() {
+function makeDispatcher() {
   return {
-    add: vi.fn().mockResolvedValue({}),
+    dispatch: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -55,12 +55,12 @@ function makeImportJob(overrides: Record<string, unknown> = {}) {
 describe('ImportsService', () => {
   let service: ImportsService;
   let prisma: ReturnType<typeof makePrisma>;
-  let queue: ReturnType<typeof makeQueue>;
+  let dispatcher: ReturnType<typeof makeDispatcher>;
 
   beforeEach(() => {
     prisma = makePrisma();
-    queue = makeQueue();
-    service = new ImportsService(prisma as never, queue as never);
+    dispatcher = makeDispatcher();
+    service = new ImportsService(prisma as never, dispatcher as never);
   });
 
   // -----------------------------------------------------------------------
@@ -88,10 +88,11 @@ describe('ImportsService', () => {
           initiatedBy: USER_ID,
         },
       });
-      expect(queue.add).toHaveBeenCalledWith('processImport', {
-        importJobId: IMPORT_JOB_ID,
-        tenantId: TENANT_ID,
-      });
+      expect(dispatcher.dispatch).toHaveBeenCalledWith(
+        'imports',
+        'processImport',
+        { importJobId: IMPORT_JOB_ID, tenantId: TENANT_ID },
+      );
       expect(result.id).toBe(IMPORT_JOB_ID);
     });
 

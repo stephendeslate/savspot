@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
+import { JobDispatcher } from './job-dispatcher.service';
 import {
   QUEUE_BOOKINGS,
   QUEUE_PAYMENTS,
@@ -71,6 +72,7 @@ import {
       { name: QUEUE_PARTNERS },
     ),
   ],
-  exports: [BullModule],
+  providers: [JobDispatcher],
+  exports: [BullModule, JobDispatcher],
 })
 export class BullMqModule {}
