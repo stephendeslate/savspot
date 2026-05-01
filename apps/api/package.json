@@ -46,6 +46,7 @@
     "expo-server-sdk": "^6.1.0",
     "googleapis": "^171.4.0",
     "helmet": "^8.1.0",
+    "inngest": "^3.27.0",
     "ioredis": "^5.10.0",
     "jsonwebtoken": "^9.0.3",
     "nestjs-cls": "^6.2.0",
