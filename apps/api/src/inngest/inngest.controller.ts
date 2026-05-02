@@ -18,6 +18,8 @@ import { CleanupRetentionHandler } from '@/jobs/cleanup-retention.processor';
 import { ComputeBenchmarksHandler } from '@/jobs/compute-benchmarks.processor';
 import { DataExportHandler } from '@/jobs/data-export.processor';
 import { InvoicePdfService } from '@/jobs/invoice-pdf.service';
+import { ChurnRiskService } from '@/recommendations/churn-risk.service';
+import { RecommendationsService } from '@/recommendations/recommendations.service';
 import { PartnerPayoutService } from '@/partners/partner-payout.service';
 import { PlatformMetricsService } from '@/platform-metrics/platform-metrics.service';
 import { VoiceCallEventsService } from '@/voice/services/voice-call-events.service';
@@ -49,6 +51,12 @@ import { createCleanupRetentionFunction } from './functions/gdpr/cleanup-retenti
 import { createComputeBenchmarksFunction } from './functions/gdpr/compute-benchmarks.function';
 import { createDataExportFunction } from './functions/gdpr/data-export.function';
 import { createGenerateInvoicePdfFunction } from './functions/invoices/generate-invoice-pdf.function';
+import {
+  createChurnRiskComputeFunction,
+  createRecommendationCleanupFunction,
+  createRecommendationClientPreferenceFunction,
+  createRecommendationServiceAffinityFunction,
+} from './functions/ai-operations/recommendations.functions';
 
 /**
  * Serves Inngest's webhook endpoint at /inngest. Inngest cloud:
@@ -92,6 +100,8 @@ export class InngestController {
     private readonly computeBenchmarksHandler: ComputeBenchmarksHandler,
     private readonly dataExportHandler: DataExportHandler,
     private readonly invoicePdfService: InvoicePdfService,
+    private readonly recommendationsService: RecommendationsService,
+    private readonly churnRiskService: ChurnRiskService,
   ) {
     this.handler = serve({
       client: inngest,
@@ -119,6 +129,10 @@ export class InngestController {
         createComputeBenchmarksFunction(this.computeBenchmarksHandler),
         createDataExportFunction(this.dataExportHandler),
         createGenerateInvoicePdfFunction(this.invoicePdfService),
+        createRecommendationServiceAffinityFunction(this.recommendationsService),
+        createRecommendationClientPreferenceFunction(this.recommendationsService),
+        createChurnRiskComputeFunction(this.churnRiskService),
+        createRecommendationCleanupFunction(this.recommendationsService),
       ],
     });
   }
