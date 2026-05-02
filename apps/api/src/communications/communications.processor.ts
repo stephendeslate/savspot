@@ -1,19 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationsService } from './communications.service';
 import { CircuitBreaker } from '../common/utils/circuit-breaker';
-import {
-  JOB_DELIVER_COMMUNICATION,
-  JOB_PROCESS_POST_APPOINTMENT,
-  JOB_SEND_BOOKING_REMINDERS,
-} from '../bullmq/queue.constants';
 import { SendBookingRemindersHandler } from '../jobs/send-booking-reminders.processor';
 import { DEMO_TENANT_ID } from '@savspot/shared';
 
-interface DeliverCommunicationPayload {
+export interface DeliverCommunicationPayload {
   communicationId: string;
   tenantId: string;
 }
@@ -58,28 +52,12 @@ export class CommunicationsHandler {
     }
   }
 
-  async handle(job: Job): Promise<void> {
-    switch (job.name) {
-      case JOB_DELIVER_COMMUNICATION:
-        await this.handleDeliverCommunication(job as Job<DeliverCommunicationPayload>);
-        break;
-      case JOB_PROCESS_POST_APPOINTMENT:
-        await this.handleProcessPostAppointment();
-        break;
-      case JOB_SEND_BOOKING_REMINDERS:
-        await this.bookingRemindersHandler.handle(job);
-        break;
-      default:
-        this.logger.warn(`Unknown job name routed to CommunicationsHandler: ${job.name}`);
-    }
-  }
-
   // ---- deliverCommunication ----
 
-  private async handleDeliverCommunication(
-    job: Job<DeliverCommunicationPayload>,
+  async handleDeliverCommunication(
+    data: DeliverCommunicationPayload,
   ): Promise<void> {
-    const { communicationId, tenantId } = job.data;
+    const { communicationId, tenantId } = data;
 
     // Suppress email delivery for the demo tenant
     if (tenantId === DEMO_TENANT_ID) {
@@ -261,7 +239,7 @@ export class CommunicationsHandler {
    * follow-up emails with a 24-hour delay. Uses BookingReminder table
    * for deduplication.
    */
-  private async handleProcessPostAppointment(): Promise<void> {
+  async handleProcessPostAppointment(): Promise<void> {
     this.logger.log('Processing post-appointment triggers...');
 
     const cutoff = new Date(Date.now() - SCAN_WINDOW_MS);

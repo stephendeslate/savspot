@@ -21,9 +21,9 @@ function makePrisma() {
   };
 }
 
-function makeQueue() {
+function makeDispatcher() {
   return {
-    add: vi.fn().mockResolvedValue({}),
+    dispatch: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -59,12 +59,12 @@ function makeTicket(overrides: Record<string, unknown> = {}) {
 describe('SupportService', () => {
   let service: SupportService;
   let prisma: ReturnType<typeof makePrisma>;
-  let queue: ReturnType<typeof makeQueue>;
+  let dispatcher: ReturnType<typeof makeDispatcher>;
 
   beforeEach(() => {
     prisma = makePrisma();
-    queue = makeQueue();
-    service = new SupportService(prisma as never, queue as never);
+    dispatcher = makeDispatcher();
+    service = new SupportService(prisma as never, dispatcher as never);
   });
 
   // -----------------------------------------------------------------------
@@ -109,7 +109,8 @@ describe('SupportService', () => {
         body: 'Test body',
       });
 
-      expect(queue.add).toHaveBeenCalledWith(
+      expect(dispatcher.dispatch).toHaveBeenCalledWith(
+        'communications',
         'supportTriage',
         { ticketId: TICKET_ID },
         expect.objectContaining({

@@ -1,8 +1,7 @@
-import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
-import { Job, Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from './sms.service';
+import { JobDispatcher } from '../bullmq/job-dispatcher.service';
 import {
   QUEUE_COMMUNICATIONS,
   JOB_DELIVER_PROVIDER_SMS,
@@ -19,7 +18,7 @@ import {
   msUntilQuietHoursEnd,
 } from '../communications/quiet-hours.util';
 
-interface DeliverProviderSmsJobData {
+export interface DeliverProviderSmsJobData {
   tenantId: string;
   eventType: string;
   bookingData: {
@@ -51,11 +50,11 @@ export class SmsHandler {
   constructor(
     private readonly prisma: PrismaService,
     private readonly smsService: SmsService,
-    @InjectQueue(QUEUE_COMMUNICATIONS) private readonly commsQueue: Queue,
+    private readonly dispatcher: JobDispatcher,
   ) {}
 
-  async handle(job: Job<DeliverProviderSmsJobData>): Promise<void> {
-    const { tenantId, eventType, bookingData } = job.data;
+  async handle(data: DeliverProviderSmsJobData): Promise<void> {
+    const { tenantId, eventType, bookingData } = data;
 
     this.logger.log(
       `Processing provider SMS: ${eventType} for booking ${bookingData.bookingId} (tenant: ${tenantId})`,
@@ -95,9 +94,9 @@ export class SmsHandler {
       );
 
       // Re-enqueue with delay instead of sending now
-      await this.commsQueue.add(JOB_DELIVER_PROVIDER_SMS, job.data, {
+      // (routes to BullMQ or Inngest per QUEUE_COMMUNICATIONS_PROVIDER).
+      await this.dispatcher.dispatch(QUEUE_COMMUNICATIONS, JOB_DELIVER_PROVIDER_SMS, data, {
         delay: delayMs,
-        jobId: `${job.id}-delayed`,
       });
       return;
     }

@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from './sms.service';
 import { RedisService } from '../redis/redis.service';
@@ -23,7 +22,7 @@ export class MorningSummaryHandler {
     private readonly redisService: RedisService,
   ) {}
 
-  async handle(_job: Job): Promise<void> {
+  async handle(): Promise<void> {
     this.logger.log('Starting morning summary delivery');
 
     // Find all active tenants with an OWNER who has a phone number

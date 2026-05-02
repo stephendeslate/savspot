@@ -1,8 +1,7 @@
-import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
-import { Job, Queue } from 'bullmq';
 import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
+import { JobDispatcher } from '../bullmq/job-dispatcher.service';
 import {
   QUEUE_COMMUNICATIONS,
   JOB_DELIVER_COMMUNICATION,
@@ -24,13 +23,13 @@ export class ProcessNotificationDigestsHandler {
   constructor(
     private readonly prisma: PrismaService,
     private readonly communicationsService: CommunicationsService,
-    @InjectQueue(QUEUE_COMMUNICATIONS) private readonly commsQueue: Queue,
+    private readonly dispatcher: JobDispatcher,
   ) {}
 
   /**
    * Handle hourly digest job.
    */
-  async handleHourly(_job: Job): Promise<void> {
+  async handleHourly(): Promise<void> {
     this.logger.log('Processing hourly notification digests');
     await this.processDigests('HOURLY', 60 * 60 * 1000); // 1 hour
   }
@@ -38,7 +37,7 @@ export class ProcessNotificationDigestsHandler {
   /**
    * Handle daily digest job.
    */
-  async handleDaily(_job: Job): Promise<void> {
+  async handleDaily(): Promise<void> {
     this.logger.log('Processing daily notification digests');
     await this.processDigests('DAILY', 24 * 60 * 60 * 1000); // 24 hours
   }
@@ -131,8 +130,9 @@ export class ProcessNotificationDigestsHandler {
             },
           });
         } else {
-          // No tenant context — enqueue a raw delivery
-          await this.commsQueue.add(JOB_DELIVER_COMMUNICATION, {
+          // No tenant context — dispatch a raw delivery
+          // (routes to BullMQ or Inngest per QUEUE_COMMUNICATIONS_PROVIDER).
+          await this.dispatcher.dispatch(QUEUE_COMMUNICATIONS, JOB_DELIVER_COMMUNICATION, {
             tenantId: null,
             recipientEmail: user.email,
             recipientName: user.name,

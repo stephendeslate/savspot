@@ -17,6 +17,15 @@ import {
   CalendarWebhookRenewGoogleHandler,
   CalendarWebhookRenewOutlookHandler,
 } from '@/calendar/handlers/calendar-webhook-renew.handler';
+import { BrowserPushHandler } from '@/browser-push/browser-push.processor';
+import { CommunicationsHandler } from '@/communications/communications.processor';
+import { ComputeClientInsightsHandler } from '@/jobs/compute-client-insights.processor';
+import { ProcessNotificationDigestsHandler } from '@/jobs/process-notification-digests.processor';
+import { SendBookingRemindersHandler } from '@/jobs/send-booking-reminders.processor';
+import { SupportTriageHandler } from '@/jobs/support-triage.processor';
+import { MorningSummaryHandler } from '@/sms/morning-summary.processor';
+import { SmsHandler } from '@/sms/sms.processor';
+import { WeeklyDigestHandler } from '@/sms/weekly-digest.processor';
 import { CurrencyService } from '@/currency/currency.service';
 import { CustomDomainsService } from '@/custom-domains/custom-domains.service';
 import { DirectoryListingService } from '@/directory/directory-listing.service';
@@ -87,6 +96,19 @@ import {
   createCalendarWebhookRenewGoogleFunction,
   createCalendarWebhookRenewOutlookFunction,
 } from './functions/calendar/webhook-renew.functions';
+import { createDeliverCommunicationFunction } from './functions/communications/deliver-communication.function';
+import { createProcessPostAppointmentFunction } from './functions/communications/process-post-appointment.function';
+import { createSendBookingRemindersFunction } from './functions/communications/send-booking-reminders.function';
+import { createDeliverProviderSmsFunction } from './functions/communications/deliver-provider-sms.function';
+import { createSendMorningSummaryFunction } from './functions/communications/morning-summary.function';
+import { createSendWeeklyDigestFunction } from './functions/communications/weekly-digest.function';
+import { createDeliverBrowserPushFunction } from './functions/communications/deliver-browser-push.function';
+import { createSupportTriageFunction } from './functions/communications/support-triage.function';
+import {
+  createProcessHourlyDigestsFunction,
+  createProcessDailyDigestsFunction,
+} from './functions/communications/notification-digests.functions';
+import { createComputeClientInsightsFunction } from './functions/communications/compute-client-insights.function';
 
 /**
  * Serves Inngest's webhook endpoint at /inngest. Inngest cloud:
@@ -144,6 +166,15 @@ export class InngestController {
     private readonly calendarWebhookRenewGoogleHandler: CalendarWebhookRenewGoogleHandler,
     private readonly calendarWebhookRenewOutlookHandler: CalendarWebhookRenewOutlookHandler,
     private readonly calendarSyncFallbackHandler: CalendarSyncFallbackHandler,
+    private readonly communicationsHandler: CommunicationsHandler,
+    private readonly smsHandler: SmsHandler,
+    private readonly morningSummaryHandler: MorningSummaryHandler,
+    private readonly weeklyDigestHandler: WeeklyDigestHandler,
+    private readonly browserPushHandler: BrowserPushHandler,
+    private readonly supportTriageHandler: SupportTriageHandler,
+    private readonly notificationDigestsHandler: ProcessNotificationDigestsHandler,
+    private readonly computeClientInsightsHandler: ComputeClientInsightsHandler,
+    private readonly bookingRemindersHandler: SendBookingRemindersHandler,
   ) {
     this.handler = serve({
       client: inngest,
@@ -191,6 +222,17 @@ export class InngestController {
           this.calendarWebhookRenewOutlookHandler,
         ),
         createCalendarSyncFallbackFunction(this.calendarSyncFallbackHandler),
+        createDeliverCommunicationFunction(this.communicationsHandler),
+        createProcessPostAppointmentFunction(this.communicationsHandler),
+        createSendBookingRemindersFunction(this.bookingRemindersHandler),
+        createDeliverProviderSmsFunction(this.smsHandler),
+        createSendMorningSummaryFunction(this.morningSummaryHandler),
+        createSendWeeklyDigestFunction(this.weeklyDigestHandler),
+        createDeliverBrowserPushFunction(this.browserPushHandler),
+        createSupportTriageFunction(this.supportTriageHandler),
+        createProcessHourlyDigestsFunction(this.notificationDigestsHandler),
+        createProcessDailyDigestsFunction(this.notificationDigestsHandler),
+        createComputeClientInsightsFunction(this.computeClientInsightsHandler),
       ],
     });
   }

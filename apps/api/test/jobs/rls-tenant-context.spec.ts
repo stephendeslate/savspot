@@ -639,12 +639,10 @@ describe('RLS tenant context in BullMQ job processors', () => {
         return result;
       });
 
-      const job = {
-        data: { communicationId: 'comm-1', tenantId: 'tenant-comm' },
-        name: 'deliverCommunication',
-      } as never;
-
-      await handler.handle(job);
+      await handler.handleDeliverCommunication({
+        communicationId: 'comm-1',
+        tenantId: 'tenant-comm',
+      });
 
       // Load + SENDING update + SENT update = 3 transactions
       expect(prisma.$transaction).toHaveBeenCalledTimes(3);
