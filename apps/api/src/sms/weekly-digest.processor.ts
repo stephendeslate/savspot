@@ -1,7 +1,6 @@
-import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
-import { Job, Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
+import { JobDispatcher } from '../bullmq/job-dispatcher.service';
 import {
   QUEUE_COMMUNICATIONS,
   JOB_DELIVER_COMMUNICATION,
@@ -19,10 +18,10 @@ export class WeeklyDigestHandler {
 
   constructor(
     private readonly prisma: PrismaService,
-    @InjectQueue(QUEUE_COMMUNICATIONS) private readonly commsQueue: Queue,
+    private readonly dispatcher: JobDispatcher,
   ) {}
 
-  async handle(_job: Job): Promise<void> {
+  async handle(): Promise<void> {
     this.logger.log('Starting weekly digest generation');
 
     // Find all active tenants
@@ -57,7 +56,8 @@ export class WeeklyDigestHandler {
         }
 
         // Enqueue a deliverCommunication job with the weekly-digest template
-        await this.commsQueue.add(JOB_DELIVER_COMMUNICATION, {
+        // (routes to BullMQ or Inngest per QUEUE_COMMUNICATIONS_PROVIDER).
+        await this.dispatcher.dispatch(QUEUE_COMMUNICATIONS, JOB_DELIVER_COMMUNICATION, {
           tenantId: tenant.id,
           recipientId: ownerMembership.user.id,
           recipientEmail: ownerMembership.user.email,

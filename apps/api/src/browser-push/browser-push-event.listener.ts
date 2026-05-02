@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { JobDispatcher } from '../bullmq/job-dispatcher.service';
 import {
   QUEUE_COMMUNICATIONS,
   JOB_DELIVER_BROWSER_PUSH,
@@ -21,9 +20,7 @@ import {
 export class BrowserPushEventListener {
   private readonly logger = new Logger(BrowserPushEventListener.name);
 
-  constructor(
-    @InjectQueue(QUEUE_COMMUNICATIONS) private readonly commsQueue: Queue,
-  ) {}
+  constructor(private readonly dispatcher: JobDispatcher) {}
 
   @OnEvent(BOOKING_CONFIRMED)
   async onBookingConfirmed(payload: BookingEventPayload): Promise<void> {
@@ -75,7 +72,7 @@ export class BrowserPushEventListener {
       `Enqueuing browser push for "${notification.title}" — booking ${payload.bookingId}`,
     );
 
-    await this.commsQueue.add(JOB_DELIVER_BROWSER_PUSH, {
+    await this.dispatcher.dispatch(QUEUE_COMMUNICATIONS, JOB_DELIVER_BROWSER_PUSH, {
       tenantId: payload.tenantId,
       title: notification.title,
       body: notification.body,

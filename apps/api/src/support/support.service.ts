@@ -5,11 +5,10 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, TicketCategory, TicketSeverity, TicketStatus, ResolvedBy } from '../../../../prisma/generated/prisma';
 import { CreateTicketDto } from './dto/create-ticket.dto';
+import { JobDispatcher } from '../bullmq/job-dispatcher.service';
 import { QUEUE_COMMUNICATIONS, JOB_SUPPORT_TRIAGE } from '../bullmq/queue.constants';
 
 @Injectable()
@@ -18,7 +17,7 @@ export class SupportService {
 
   constructor(
     private readonly prisma: PrismaService,
-    @InjectQueue(QUEUE_COMMUNICATIONS) private readonly commsQueue: Queue,
+    private readonly dispatcher: JobDispatcher,
   ) {}
 
   /**
@@ -46,9 +45,10 @@ export class SupportService {
       `Support ticket ${ticket.id} created by user ${userId}`,
     );
 
-    // Enqueue AI triage job
-    this.commsQueue
-      .add(
+    // Enqueue AI triage job (routes to BullMQ or Inngest per QUEUE_COMMUNICATIONS_PROVIDER).
+    this.dispatcher
+      .dispatch(
+        QUEUE_COMMUNICATIONS,
         JOB_SUPPORT_TRIAGE,
         { ticketId: ticket.id },
         { removeOnComplete: { count: 10 }, removeOnFail: { count: 50 } },
@@ -135,8 +135,9 @@ export class SupportService {
     );
 
     // Enqueue AI triage job for the new ticket
-    this.commsQueue
-      .add(
+    this.dispatcher
+      .dispatch(
+        QUEUE_COMMUNICATIONS,
         JOB_SUPPORT_TRIAGE,
         { ticketId: newTicket.id },
         { removeOnComplete: { count: 10 }, removeOnFail: { count: 50 } },

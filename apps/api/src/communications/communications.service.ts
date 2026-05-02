@@ -1,10 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '../../../../prisma/generated/prisma';
+import { JobDispatcher } from '../bullmq/job-dispatcher.service';
 import {
   QUEUE_COMMUNICATIONS,
   JOB_DELIVER_COMMUNICATION,
@@ -68,7 +67,7 @@ export class CommunicationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-    @InjectQueue(QUEUE_COMMUNICATIONS) private readonly commsQueue: Queue,
+    private readonly dispatcher: JobDispatcher,
   ) {
     this.webUrl = this.configService.get<string>('WEB_URL', 'http://localhost:3000');
 
@@ -197,7 +196,10 @@ export class CommunicationsService {
       return communication.id;
     }
 
-    await this.commsQueue.add(
+    // Dispatch (routes to BullMQ or Inngest per QUEUE_COMMUNICATIONS_PROVIDER).
+    // attempts/backoff are BullMQ-only; Inngest controls retries on the function.
+    await this.dispatcher.dispatch(
+      QUEUE_COMMUNICATIONS,
       JOB_DELIVER_COMMUNICATION,
       {
         communicationId: communication.id,

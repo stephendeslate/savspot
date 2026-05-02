@@ -36,8 +36,8 @@ function makeTicket(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function makeJob(data = { ticketId: TICKET_ID }) {
-  return { data } as never;
+function makeData(overrides: Partial<{ ticketId: string }> = {}) {
+  return { ticketId: TICKET_ID, ...overrides };
 }
 
 // ---------------------------------------------------------------------------
@@ -58,7 +58,7 @@ describe('SupportTriageHandler', () => {
   it('should skip if ticket not found', async () => {
     prisma.supportTicket.findUnique.mockResolvedValue(null);
 
-    await handler.handle(makeJob());
+    await handler.handle(makeData());
 
     expect(prisma.supportTicket.update).not.toHaveBeenCalled();
   });
@@ -68,7 +68,7 @@ describe('SupportTriageHandler', () => {
       makeTicket({ status: 'NEEDS_MANUAL_REVIEW' }),
     );
 
-    await handler.handle(makeJob());
+    await handler.handle(makeData());
 
     expect(prisma.supportTicket.update).not.toHaveBeenCalled();
   });
@@ -90,7 +90,7 @@ describe('SupportTriageHandler', () => {
     });
     vi.stubGlobal('fetch', mockFetch);
 
-    await handler.handle(makeJob());
+    await handler.handle(makeData());
 
     expect(prisma.supportTicket.update).toHaveBeenCalledWith({
       where: { id: TICKET_ID },
@@ -121,7 +121,7 @@ describe('SupportTriageHandler', () => {
     });
     vi.stubGlobal('fetch', mockFetch);
 
-    await handler.handle(makeJob());
+    await handler.handle(makeData());
 
     expect(prisma.supportTicket.update).toHaveBeenCalledWith({
       where: { id: TICKET_ID },
@@ -150,7 +150,7 @@ describe('SupportTriageHandler', () => {
     });
     vi.stubGlobal('fetch', mockFetch);
 
-    await handler.handle(makeJob());
+    await handler.handle(makeData());
 
     expect(prisma.supportTicket.update).toHaveBeenCalledWith({
       where: { id: TICKET_ID },
@@ -169,7 +169,7 @@ describe('SupportTriageHandler', () => {
     const mockFetch = vi.fn().mockRejectedValue(new Error('Connection refused'));
     vi.stubGlobal('fetch', mockFetch);
 
-    await handler.handle(makeJob());
+    await handler.handle(makeData());
 
     expect(prisma.supportTicket.update).toHaveBeenCalledWith({
       where: { id: TICKET_ID },
@@ -192,7 +192,7 @@ describe('SupportTriageHandler', () => {
     });
     vi.stubGlobal('fetch', mockFetch);
 
-    await handler.handle(makeJob());
+    await handler.handle(makeData());
 
     expect(prisma.supportTicket.update).toHaveBeenCalledWith({
       where: { id: TICKET_ID },
@@ -221,7 +221,7 @@ describe('SupportTriageHandler', () => {
     });
     vi.stubGlobal('fetch', mockFetch);
 
-    await handler.handle(makeJob());
+    await handler.handle(makeData());
 
     expect(prisma.supportTicket.update).toHaveBeenCalledWith({
       where: { id: TICKET_ID },

@@ -1,6 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { AccountingModule } from '../accounting/accounting.module';
+import { BrowserPushModule } from '../browser-push/browser-push.module';
 import { CalendarModule } from '../calendar/calendar.module';
+import { CommunicationsModule } from '../communications/communications.module';
 import { CurrencyModule } from '../currency/currency.module';
 import { CustomDomainsModule } from '../custom-domains/custom-domains.module';
 import { DirectoryModule } from '../directory/directory.module';
@@ -9,6 +11,7 @@ import { JobsModule } from '../jobs/jobs.module';
 import { PartnersModule } from '../partners/partners.module';
 import { RecommendationsModule } from '../recommendations/recommendations.module';
 import { PlatformMetricsModule } from '../platform-metrics/platform-metrics.module';
+import { SmsModule } from '../sms/sms.module';
 import { VoiceModule } from '../voice/voice.module';
 import { WorkflowsModule } from '../workflows/workflows.module';
 import { InngestController } from './inngest.controller';
@@ -29,6 +32,11 @@ export const INNGEST_CLIENT = 'INNGEST_CLIENT';
     // duplicate import is deduped by NestJS DI). Phase 4m: JobsModule
     // (exposes the GDPR handler classes). Phase 4o: RecommendationsModule.
     // Phase 4q: CalendarModule (exposes the six calendar queue handlers).
+    // Phase 4r: CommunicationsModule + SmsModule + BrowserPushModule
+    // (expose the comms handlers — most live in CommunicationsModule but
+    // SmsHandler / MorningSummary / WeeklyDigest live in SmsModule and
+    // BrowserPushHandler in BrowserPushModule). NestJS dedupes the
+    // overlapping CommunicationsModule import via app.module.
     CurrencyModule,
     DirectoryModule,
     PartnersModule,
@@ -41,6 +49,9 @@ export const INNGEST_CLIENT = 'INNGEST_CLIENT';
     JobsModule,
     RecommendationsModule,
     CalendarModule,
+    CommunicationsModule,
+    SmsModule,
+    BrowserPushModule,
   ],
   controllers: [InngestController],
   providers: [

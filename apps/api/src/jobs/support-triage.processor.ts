@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   TicketStatus,
@@ -8,7 +7,7 @@ import {
   ResolvedBy,
 } from '../../../../prisma/generated/prisma';
 
-interface TriagePayload {
+export interface TriagePayload {
   ticketId: string;
 }
 
@@ -51,8 +50,8 @@ export class SupportTriageHandler {
     this.confidenceThreshold = this.configService.get<number>('AI_CONFIDENCE_THRESHOLD', 0.85);
   }
 
-  async handle(job: Job<TriagePayload>): Promise<void> {
-    const { ticketId } = job.data;
+  async handle(data: TriagePayload): Promise<void> {
+    const { ticketId } = data;
     this.logger.log(`Triaging support ticket ${ticketId}`);
 
     try {

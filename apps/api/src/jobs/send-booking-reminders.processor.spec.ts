@@ -23,10 +23,6 @@ function makeCommunicationsService() {
   };
 }
 
-function makeJob(data: Record<string, unknown> = {}) {
-  return { data, name: 'sendBookingReminders' } as never;
-}
-
 function makeBookingRow(overrides: Record<string, unknown> = {}) {
   return {
     id: 'booking-001',
@@ -79,7 +75,7 @@ describe('SendBookingRemindersHandler', () => {
       fn(mockTx),
     );
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     // Verify tenant context was set
     expect(mockTx.$executeRaw).toHaveBeenCalledTimes(1);
@@ -123,7 +119,7 @@ describe('SendBookingRemindersHandler', () => {
     // so a booking 26h away would not appear in the query results
     prisma.$queryRaw.mockResolvedValue([]);
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(commsService.createAndSend).not.toHaveBeenCalled();
@@ -134,7 +130,7 @@ describe('SendBookingRemindersHandler', () => {
     // so CANCELLED bookings are excluded at the query level
     prisma.$queryRaw.mockResolvedValue([]);
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(commsService.createAndSend).not.toHaveBeenCalled();
@@ -145,7 +141,7 @@ describe('SendBookingRemindersHandler', () => {
     // so PENDING bookings are excluded at the query level
     prisma.$queryRaw.mockResolvedValue([]);
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(commsService.createAndSend).not.toHaveBeenCalled();
@@ -174,7 +170,7 @@ describe('SendBookingRemindersHandler', () => {
       fn(mockTx),
     );
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     // Reminder already exists — should NOT create a new one or enqueue communication
     expect(mockTx.bookingReminder.create).not.toHaveBeenCalled();
@@ -184,7 +180,7 @@ describe('SendBookingRemindersHandler', () => {
   it('handles no bookings gracefully', async () => {
     prisma.$queryRaw.mockResolvedValue([]);
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(commsService.createAndSend).not.toHaveBeenCalled();
@@ -209,7 +205,7 @@ describe('SendBookingRemindersHandler', () => {
       fn(mockTx),
     );
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     // All 3 bookings should be processed
     expect(prisma.$transaction).toHaveBeenCalledTimes(3);
@@ -245,7 +241,7 @@ describe('SendBookingRemindersHandler', () => {
       return fn(mockTx);
     });
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     // First booking failed, second should still succeed
     expect(commsService.createAndSend).toHaveBeenCalledTimes(1);

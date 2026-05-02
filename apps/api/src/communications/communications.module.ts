@@ -48,6 +48,15 @@ import { ComputeClientInsightsHandler } from '../jobs/compute-client-insights.pr
     CommunicationsLogService,
     PreferenceCenterService,
   ],
-  exports: [CommunicationsService, CommunicationTemplatesService, CircuitBreaker],
+  exports: [
+    CommunicationsService,
+    CommunicationTemplatesService,
+    CircuitBreaker,
+    CommunicationsHandler,
+    SupportTriageHandler,
+    SendBookingRemindersHandler,
+    ProcessNotificationDigestsHandler,
+    ComputeClientInsightsHandler,
+  ],
 })
 export class CommunicationsModule {}

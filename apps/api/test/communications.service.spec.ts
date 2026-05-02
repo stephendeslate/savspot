@@ -25,9 +25,9 @@ function makeConfig() {
   };
 }
 
-function makeQueue() {
+function makeDispatcher() {
   return {
-    add: vi.fn(),
+    dispatch: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -50,16 +50,16 @@ describe('CommunicationsService', () => {
   let service: CommunicationsService;
   let prisma: ReturnType<typeof makePrisma>;
   let config: ReturnType<typeof makeConfig>;
-  let queue: ReturnType<typeof makeQueue>;
+  let dispatcher: ReturnType<typeof makeDispatcher>;
 
   beforeEach(() => {
     prisma = makePrisma();
     config = makeConfig();
-    queue = makeQueue();
+    dispatcher = makeDispatcher();
     service = new CommunicationsService(
       prisma as never,
       config as never,
-      queue as never,
+      dispatcher as never,
     );
   });
 
@@ -80,7 +80,6 @@ describe('CommunicationsService', () => {
 
     beforeEach(() => {
       prisma.communication.create.mockResolvedValue({ id: COMM_ID });
-      queue.add.mockResolvedValue(undefined);
     });
 
     it('should create a Communication record with status QUEUED and correct fields', async () => {
@@ -105,8 +104,9 @@ describe('CommunicationsService', () => {
     it('should enqueue a JOB_DELIVER_COMMUNICATION job with the communicationId', async () => {
       await service.createAndSend(defaultParams);
 
-      expect(queue.add).toHaveBeenCalledTimes(1);
-      expect(queue.add).toHaveBeenCalledWith(
+      expect(dispatcher.dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatcher.dispatch).toHaveBeenCalledWith(
+        'communications',
         'deliverCommunication',
         expect.objectContaining({
           communicationId: COMM_ID,
@@ -119,14 +119,14 @@ describe('CommunicationsService', () => {
     it('should pass delay option through to BullMQ job', async () => {
       await service.createAndSend(defaultParams, { delayMs: 60_000 });
 
-      const jobOpts = queue.add.mock.calls[0]![2];
+      const jobOpts = dispatcher.dispatch.mock.calls[0]![3];
       expect(jobOpts.delay).toBe(60_000);
     });
 
     it('should not include delay when delayMs is not provided', async () => {
       await service.createAndSend(defaultParams);
 
-      const jobOpts = queue.add.mock.calls[0]![2];
+      const jobOpts = dispatcher.dispatch.mock.calls[0]![3];
       expect(jobOpts.delay).toBeUndefined();
     });
 
@@ -138,7 +138,7 @@ describe('CommunicationsService', () => {
     it('should configure retry: attempts=3, exponential backoff', async () => {
       await service.createAndSend(defaultParams);
 
-      const jobOpts = queue.add.mock.calls[0]![2];
+      const jobOpts = dispatcher.dispatch.mock.calls[0]![3];
       expect(jobOpts.attempts).toBe(3);
       expect(jobOpts.backoff).toEqual({
         type: 'exponential',

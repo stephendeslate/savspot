@@ -1,8 +1,7 @@
-import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
-import { Job, Queue } from 'bullmq';
 import { BrowserPushService } from './browser-push.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { JobDispatcher } from '../bullmq/job-dispatcher.service';
 import {
   QUEUE_COMMUNICATIONS,
   JOB_DELIVER_BROWSER_PUSH,
@@ -12,7 +11,7 @@ import {
   msUntilQuietHoursEnd,
 } from '../communications/quiet-hours.util';
 
-interface DeliverBrowserPushPayload {
+export interface DeliverBrowserPushPayload {
   tenantId: string;
   title: string;
   body: string;
@@ -35,11 +34,11 @@ export class BrowserPushHandler {
   constructor(
     private readonly browserPushService: BrowserPushService,
     private readonly prisma: PrismaService,
-    @InjectQueue(QUEUE_COMMUNICATIONS) private readonly commsQueue: Queue,
+    private readonly dispatcher: JobDispatcher,
   ) {}
 
-  async handle(job: Job<DeliverBrowserPushPayload>): Promise<void> {
-    const { tenantId, title, body, data } = job.data;
+  async handle(payload: DeliverBrowserPushPayload): Promise<void> {
+    const { tenantId, title, body, data } = payload;
 
     this.logger.log(
       `Processing browser push delivery for tenant ${tenantId}: ${title}`,
@@ -64,9 +63,9 @@ export class BrowserPushHandler {
           `Quiet hours for tenant ${tenantId} — re-enqueuing browser push with ${Math.round(delayMs / 60000)}min delay`,
         );
 
-        await this.commsQueue.add(JOB_DELIVER_BROWSER_PUSH, job.data, {
+        // Re-enqueue with delay (routes to BullMQ or Inngest per QUEUE_COMMUNICATIONS_PROVIDER).
+        await this.dispatcher.dispatch(QUEUE_COMMUNICATIONS, JOB_DELIVER_BROWSER_PUSH, payload, {
           delay: delayMs,
-          jobId: `${job.id}-delayed`,
         });
         return;
       }

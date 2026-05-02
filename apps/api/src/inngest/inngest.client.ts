@@ -84,6 +84,48 @@ type Events = {
     data: { tenantId: string; invoiceId: string };
   };
 
+  // Phase 4r — communications queue. Four event-triggered jobs:
+  // - deliverCommunication: per-message email delivery via Resend.
+  // - deliverProviderSMS: per-event SMS to tenant OWNER on booking events.
+  // - deliverBrowserPush: per-event Web Push to tenant OWNER/ADMINs.
+  // - supportTriage: per-ticket AI triage via local Ollama.
+  // Schemas accept Record-shaped payloads to keep the dispatcher polymorphic
+  // (the deliverCommunication payload varies by producer — service vs.
+  // booking-reminders vs. payment-reminders).
+  'communications/deliverCommunication': {
+    data: Record<string, unknown>;
+  };
+  'communications/deliverProviderSMS': {
+    data: {
+      tenantId: string;
+      eventType: string;
+      bookingData: {
+        bookingId: string;
+        clientName: string;
+        serviceName: string;
+        startTime: string;
+        endTime: string;
+        previousStartTime?: string;
+        newStartTime?: string;
+      };
+    };
+  };
+  'communications/deliverBrowserPush': {
+    data: {
+      tenantId: string;
+      title: string;
+      body: string;
+      data?: {
+        bookingId?: string;
+        actionUrl?: string;
+        [key: string]: unknown;
+      };
+    };
+  };
+  'communications/supportTriage': {
+    data: { ticketId: string };
+  };
+
   // Phase 4q — calendar queue. Two event-triggered jobs:
   // - calendarEventPush: per-connection booking lifecycle push (confirm /
   //   reschedule / cancel). Fanned out by CalendarEventListener.

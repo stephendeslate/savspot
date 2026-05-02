@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Job, Queue } from 'bullmq';
+import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
+import { JobDispatcher } from '../bullmq/job-dispatcher.service';
 import {
   QUEUE_COMMUNICATIONS,
   JOB_DELIVER_COMMUNICATION,
@@ -34,7 +34,7 @@ export class SendPaymentRemindersHandler {
 
   constructor(
     private readonly prisma: PrismaService,
-    @InjectQueue(QUEUE_COMMUNICATIONS) private readonly communicationsQueue: Queue,
+    private readonly dispatcher: JobDispatcher,
   ) {}
 
   async handle(_job: Job): Promise<void> {
@@ -123,8 +123,9 @@ export class SendPaymentRemindersHandler {
               continue;
             }
 
-            // Enqueue deliverCommunication job (outside transaction — queue is external)
-            await this.communicationsQueue.add(JOB_DELIVER_COMMUNICATION, {
+            // Dispatch deliverCommunication job (routes to BullMQ or Inngest
+            // per QUEUE_COMMUNICATIONS_PROVIDER; outside transaction).
+            await this.dispatcher.dispatch(QUEUE_COMMUNICATIONS, JOB_DELIVER_COMMUNICATION, {
               tenantId: invoice.tenant_id,
               template: 'payment-reminder',
               channel: 'EMAIL',

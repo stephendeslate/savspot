@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { JobDispatcher } from '../bullmq/job-dispatcher.service';
 import {
   QUEUE_COMMUNICATIONS,
   JOB_DELIVER_PROVIDER_SMS,
@@ -21,9 +20,7 @@ import {
 export class SmsEventListener {
   private readonly logger = new Logger(SmsEventListener.name);
 
-  constructor(
-    @InjectQueue(QUEUE_COMMUNICATIONS) private readonly commsQueue: Queue,
-  ) {}
+  constructor(private readonly dispatcher: JobDispatcher) {}
 
   @OnEvent(BOOKING_CONFIRMED)
   async onBookingConfirmed(payload: BookingEventPayload): Promise<void> {
@@ -64,7 +61,7 @@ export class SmsEventListener {
       `Enqueuing provider SMS for ${eventType} — booking ${payload.bookingId}`,
     );
 
-    await this.commsQueue.add(JOB_DELIVER_PROVIDER_SMS, {
+    await this.dispatcher.dispatch(QUEUE_COMMUNICATIONS, JOB_DELIVER_PROVIDER_SMS, {
       tenantId: payload.tenantId,
       eventType,
       bookingData: {

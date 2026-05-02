@@ -280,22 +280,38 @@ describe('CalendarDispatcher', () => {
 
 describe('CommunicationsDispatcher', () => {
   let dispatcher: CommunicationsDispatcher;
-  let communications: ReturnType<typeof makeHandler>;
+  let communications: {
+    handleDeliverCommunication: ReturnType<typeof vi.fn>;
+    handleProcessPostAppointment: ReturnType<typeof vi.fn>;
+  };
   let sms: ReturnType<typeof makeHandler>;
   let morningSummary: ReturnType<typeof makeHandler>;
   let weeklyDigest: ReturnType<typeof makeHandler>;
   let browserPush: ReturnType<typeof makeHandler>;
   let supportTriage: ReturnType<typeof makeHandler>;
-  let notificationDigests: ReturnType<typeof makeHandler>;
+  let notificationDigests: {
+    handleHourly: ReturnType<typeof vi.fn>;
+    handleDaily: ReturnType<typeof vi.fn>;
+  };
+  let computeClientInsights: ReturnType<typeof makeHandler>;
+  let bookingReminders: ReturnType<typeof makeHandler>;
 
   beforeEach(() => {
-    communications = makeHandler();
+    communications = {
+      handleDeliverCommunication: vi.fn().mockResolvedValue(undefined),
+      handleProcessPostAppointment: vi.fn().mockResolvedValue(undefined),
+    };
     sms = makeHandler();
     morningSummary = makeHandler();
     weeklyDigest = makeHandler();
     browserPush = makeHandler();
     supportTriage = makeHandler();
-    notificationDigests = makeHandler();
+    notificationDigests = {
+      handleHourly: vi.fn().mockResolvedValue(undefined),
+      handleDaily: vi.fn().mockResolvedValue(undefined),
+    };
+    computeClientInsights = makeHandler();
+    bookingReminders = makeHandler();
     dispatcher = new CommunicationsDispatcher(
       communications as never,
       sms as never,
@@ -304,56 +320,79 @@ describe('CommunicationsDispatcher', () => {
       browserPush as never,
       supportTriage as never,
       notificationDigests as never,
-      makeHandler() as never,
+      computeClientInsights as never,
+      bookingReminders as never,
     );
   });
 
   it('should route deliverCommunication correctly', async () => {
-    const job = makeJob('deliverCommunication');
+    const data = { communicationId: 'c-1', tenantId: 't-1' };
+    const job = makeJob('deliverCommunication', data);
     await dispatcher.process(job);
-    expect(communications.handle).toHaveBeenCalledWith(job);
+    expect(communications.handleDeliverCommunication).toHaveBeenCalledWith(data);
   });
 
   it('should route processPostAppointmentTriggers correctly', async () => {
     const job = makeJob('processPostAppointmentTriggers');
     await dispatcher.process(job);
-    expect(communications.handle).toHaveBeenCalledWith(job);
+    expect(communications.handleProcessPostAppointment).toHaveBeenCalledWith();
   });
 
   it('should route sendBookingReminders correctly', async () => {
     const job = makeJob('sendBookingReminders');
     await dispatcher.process(job);
-    expect(communications.handle).toHaveBeenCalledWith(job);
+    expect(bookingReminders.handle).toHaveBeenCalledWith();
   });
 
   it('should route deliverProviderSMS correctly', async () => {
-    const job = makeJob('deliverProviderSMS');
+    const data = { tenantId: 't-1', eventType: 'booking.confirmed', bookingData: {} };
+    const job = makeJob('deliverProviderSMS', data);
     await dispatcher.process(job);
-    expect(sms.handle).toHaveBeenCalledWith(job);
+    expect(sms.handle).toHaveBeenCalledWith(data);
   });
 
   it('should route sendMorningSummary correctly', async () => {
     const job = makeJob('sendMorningSummary');
     await dispatcher.process(job);
-    expect(morningSummary.handle).toHaveBeenCalledWith(job);
+    expect(morningSummary.handle).toHaveBeenCalledWith();
   });
 
   it('should route sendWeeklyDigest correctly', async () => {
     const job = makeJob('sendWeeklyDigest');
     await dispatcher.process(job);
-    expect(weeklyDigest.handle).toHaveBeenCalledWith(job);
+    expect(weeklyDigest.handle).toHaveBeenCalledWith();
   });
 
   it('should route deliverBrowserPush correctly', async () => {
-    const job = makeJob('deliverBrowserPush');
+    const data = { tenantId: 't-1', title: 'Hi', body: 'There' };
+    const job = makeJob('deliverBrowserPush', data);
     await dispatcher.process(job);
-    expect(browserPush.handle).toHaveBeenCalledWith(job);
+    expect(browserPush.handle).toHaveBeenCalledWith(data);
   });
 
   it('should route supportTriage correctly', async () => {
-    const job = makeJob('supportTriage');
+    const data = { ticketId: 'tk-1' };
+    const job = makeJob('supportTriage', data);
     await dispatcher.process(job);
-    expect(supportTriage.handle).toHaveBeenCalledWith(job);
+    expect(supportTriage.handle).toHaveBeenCalledWith(data);
+  });
+
+  it('should route processHourlyDigests correctly', async () => {
+    const job = makeJob('processHourlyDigests');
+    await dispatcher.process(job);
+    expect(notificationDigests.handleHourly).toHaveBeenCalledWith();
+  });
+
+  it('should route processDailyDigests correctly', async () => {
+    const job = makeJob('processDailyDigests');
+    await dispatcher.process(job);
+    expect(notificationDigests.handleDaily).toHaveBeenCalledWith();
+  });
+
+  it('should route computeClientInsights correctly', async () => {
+    const job = makeJob('computeClientInsights');
+    await dispatcher.process(job);
+    expect(computeClientInsights.handle).toHaveBeenCalledWith();
   });
 
   it('should not throw for unknown job names', async () => {
