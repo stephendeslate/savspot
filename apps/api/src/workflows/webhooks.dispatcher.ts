@@ -6,8 +6,14 @@ import {
   JOB_DISPATCH_WEBHOOK,
   JOB_EXECUTE_STAGE,
 } from '../bullmq/queue.constants';
-import { WebhookDispatchHandler } from './processors/webhook-dispatch.processor';
-import { StageExecutionHandler } from './processors/stage-execution.handler';
+import {
+  WebhookDispatchHandler,
+  WebhookDispatchJobData,
+} from './processors/webhook-dispatch.processor';
+import {
+  StageExecutionHandler,
+  StageExecutionJobData,
+} from './processors/stage-execution.handler';
 
 @Processor(QUEUE_WEBHOOKS)
 export class WebhooksDispatcher extends WorkerHost {
@@ -23,9 +29,13 @@ export class WebhooksDispatcher extends WorkerHost {
   async process(job: Job): Promise<void> {
     switch (job.name) {
       case JOB_DISPATCH_WEBHOOK:
-        return this.dispatchHandler.handle(job);
+        return this.dispatchHandler.handle(
+          (job as Job<WebhookDispatchJobData>).data,
+        );
       case JOB_EXECUTE_STAGE:
-        return this.stageExecutionHandler.handle(job);
+        return this.stageExecutionHandler.handle(
+          (job as Job<StageExecutionJobData>).data,
+        );
       default:
         this.logger.warn(`Unknown webhooks job name: ${job.name}`);
     }

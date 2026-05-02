@@ -16,6 +16,8 @@ import { ImportsService } from '@/imports/imports.service';
 import { PartnerPayoutService } from '@/partners/partner-payout.service';
 import { PlatformMetricsService } from '@/platform-metrics/platform-metrics.service';
 import { VoiceCallEventsService } from '@/voice/services/voice-call-events.service';
+import { StageExecutionHandler } from '@/workflows/processors/stage-execution.handler';
+import { WebhookDispatchHandler } from '@/workflows/processors/webhook-dispatch.processor';
 import { inngest } from './inngest.client';
 import { ping } from './functions/ping.function';
 import { createRefreshRatesFunction } from './functions/currency-refresh/refresh-rates.function';
@@ -35,6 +37,8 @@ import {
 } from './functions/accounting/sync.functions';
 import { createPostCallActionsFunction } from './functions/voice-calls/post-call-actions.function';
 import { createProcessTranscriptFunction } from './functions/voice-calls/process-transcript.function';
+import { createDispatchWebhookFunction } from './functions/webhooks/dispatch-webhook.function';
+import { createExecuteStageFunction } from './functions/webhooks/execute-stage.function';
 
 /**
  * Serves Inngest's webhook endpoint at /inngest. Inngest cloud:
@@ -71,6 +75,8 @@ export class InngestController {
     private readonly accountingSyncPaymentsHandler: AccountingSyncPaymentsHandler,
     private readonly accountingSyncClientsHandler: AccountingSyncClientsHandler,
     private readonly accountingSyncSingleInvoiceHandler: AccountingSyncSingleInvoiceHandler,
+    private readonly webhookDispatchHandler: WebhookDispatchHandler,
+    private readonly stageExecutionHandler: StageExecutionHandler,
   ) {
     this.handler = serve({
       client: inngest,
@@ -91,6 +97,8 @@ export class InngestController {
         createAccountingSyncPaymentsFunction(this.accountingSyncPaymentsHandler),
         createAccountingSyncClientsFunction(this.accountingSyncClientsHandler),
         createAccountingSyncSingleInvoiceFunction(this.accountingSyncSingleInvoiceHandler),
+        createDispatchWebhookFunction(this.webhookDispatchHandler),
+        createExecuteStageFunction(this.stageExecutionHandler),
       ],
     });
   }

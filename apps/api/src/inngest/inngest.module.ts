@@ -7,6 +7,7 @@ import { ImportsModule } from '../imports/imports.module';
 import { PartnersModule } from '../partners/partners.module';
 import { PlatformMetricsModule } from '../platform-metrics/platform-metrics.module';
 import { VoiceModule } from '../voice/voice.module';
+import { WorkflowsModule } from '../workflows/workflows.module';
 import { InngestController } from './inngest.controller';
 import { inngest } from './inngest.client';
 
@@ -20,7 +21,9 @@ export const INNGEST_CLIENT = 'INNGEST_CLIENT';
     // DirectoryModule. Phase 4f: PartnersModule. Phase 4g:
     // CustomDomainsModule. Phase 4h: ImportsModule. Phase 4i:
     // PlatformMetricsModule. Phase 4j: VoiceModule. Phase 4k:
-    // AccountingModule.
+    // AccountingModule. Phase 4l: WorkflowsModule (note: WorkflowsModule
+    // is also added to app.module via the EE getEeModules() loader; the
+    // duplicate import is deduped by NestJS DI).
     CurrencyModule,
     DirectoryModule,
     PartnersModule,
@@ -29,6 +32,7 @@ export const INNGEST_CLIENT = 'INNGEST_CLIENT';
     PlatformMetricsModule,
     VoiceModule,
     AccountingModule,
+    WorkflowsModule,
   ],
   controllers: [InngestController],
   providers: [
