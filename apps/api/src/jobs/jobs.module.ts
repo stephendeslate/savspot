@@ -120,6 +120,10 @@ import { JobSchedulerService } from './job-scheduler.service';
     EnforceApprovalDeadlinesHandler,
     ComputeNoShowRiskHandler,
     ComputeDemandAnalysisHandler,
+    // Phase 4s — payments handlers
+    SendPaymentRemindersHandler,
+    EnforcePaymentDeadlinesHandler,
+    RetryFailedPaymentsHandler,
   ],
 })
 export class JobsModule {}

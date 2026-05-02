@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeProvider } from '../payments/providers/stripe.provider';
 
@@ -35,7 +34,7 @@ export class RetryFailedPaymentsHandler {
     private readonly stripeProvider: StripeProvider,
   ) {}
 
-  async handle(_job: Job): Promise<void> {
+  async handle(): Promise<void> {
     this.logger.log('Running retry failed payments job...');
 
     try {
