@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 
 interface BenchmarkRow {
@@ -17,7 +16,7 @@ export class ComputeBenchmarksHandler {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async handle(_job: Job): Promise<void> {
+  async handle(): Promise<void> {
     this.logger.log('Starting category benchmark computation');
 
     const benchmarkData = await this.prisma.$queryRaw<BenchmarkRow[]>`

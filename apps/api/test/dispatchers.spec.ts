@@ -42,19 +42,20 @@ describe('GdprDispatcher', () => {
   it('should route cleanupRetentionPolicy to CleanupRetentionHandler', async () => {
     const job = makeJob('cleanupRetentionPolicy');
     await dispatcher.process(job);
-    expect(cleanupRetention.handle).toHaveBeenCalledWith(job);
+    expect(cleanupRetention.handle).toHaveBeenCalledWith();
   });
 
   it('should route processDataExportRequest to DataExportHandler', async () => {
-    const job = makeJob('processDataExportRequest');
+    const data = { dataRequestId: 'req-1', userId: 'user-1' };
+    const job = makeJob('processDataExportRequest', data);
     await dispatcher.process(job);
-    expect(dataExport.handle).toHaveBeenCalledWith(job);
+    expect(dataExport.handle).toHaveBeenCalledWith(data);
   });
 
   it('should route processAccountDeletion to AccountDeletionHandler', async () => {
     const job = makeJob('processAccountDeletion');
     await dispatcher.process(job);
-    expect(accountDeletion.handle).toHaveBeenCalledWith(job);
+    expect(accountDeletion.handle).toHaveBeenCalledWith();
   });
 
   it('should not throw for unknown job names', async () => {

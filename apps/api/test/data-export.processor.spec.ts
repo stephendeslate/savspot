@@ -30,8 +30,8 @@ function makeUploadService() {
   };
 }
 
-function makeJob(data = { dataRequestId: REQUEST_ID, userId: USER_ID }) {
-  return { data } as never;
+function makePayload(overrides: Record<string, unknown> = {}) {
+  return { dataRequestId: REQUEST_ID, userId: USER_ID, ...overrides } as never;
 }
 
 // ---------------------------------------------------------------------------
@@ -65,7 +65,7 @@ describe('DataExportHandler', () => {
   it('should skip if data request is not found', async () => {
     prisma.dataRequest.findUnique.mockResolvedValue(null);
 
-    await handler.handle(makeJob());
+    await handler.handle(makePayload());
 
     expect(prisma.dataRequest.update).not.toHaveBeenCalled();
   });
@@ -76,7 +76,7 @@ describe('DataExportHandler', () => {
       status: 'COMPLETED',
     });
 
-    await handler.handle(makeJob());
+    await handler.handle(makePayload());
 
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
   });
@@ -93,7 +93,7 @@ describe('DataExportHandler', () => {
     );
     prisma.dataRequest.update.mockResolvedValue({});
 
-    await handler.handle(makeJob());
+    await handler.handle(makePayload());
 
     // Should have gathered user data
     expect(prisma.user.findUnique).toHaveBeenCalledWith({
@@ -129,7 +129,7 @@ describe('DataExportHandler', () => {
 
     prisma.dataRequest.update.mockResolvedValue({});
 
-    await handler.handle(makeJob());
+    await handler.handle(makePayload());
 
     expect(mockFetch).toHaveBeenCalledWith(
       'https://r2.example.com/upload',
@@ -153,7 +153,7 @@ describe('DataExportHandler', () => {
     prisma.user.findUnique.mockRejectedValue(new Error('DB connection lost'));
     prisma.dataRequest.update.mockResolvedValue({});
 
-    await expect(handler.handle(makeJob())).rejects.toThrow('DB connection lost');
+    await expect(handler.handle(makePayload())).rejects.toThrow('DB connection lost');
 
     expect(prisma.dataRequest.update).toHaveBeenCalledWith({
       where: { id: REQUEST_ID },
