@@ -154,37 +154,37 @@ describe('PaymentsDispatcher', () => {
   it('should route sendPaymentReminders correctly', async () => {
     const job = makeJob('sendPaymentReminders');
     await dispatcher.process(job);
-    expect(sendReminders.handle).toHaveBeenCalledWith(job);
+    expect(sendReminders.handle).toHaveBeenCalledWith();
   });
 
   it('should route enforcePaymentDeadlines correctly', async () => {
     const job = makeJob('enforcePaymentDeadlines');
     await dispatcher.process(job);
-    expect(enforceDeadlines.handle).toHaveBeenCalledWith(job);
+    expect(enforceDeadlines.handle).toHaveBeenCalledWith();
   });
 
   it('should route retryFailedPayments correctly', async () => {
     const job = makeJob('retryFailedPayments');
     await dispatcher.process(job);
-    expect(retryFailed.handle).toHaveBeenCalledWith(job);
+    expect(retryFailed.handle).toHaveBeenCalledWith();
   });
 
   it('should route processWebhookRetries correctly', async () => {
     const job = makeJob('processWebhookRetries');
     await dispatcher.process(job);
-    expect(processWebhookRetries.handle).toHaveBeenCalledWith(job);
+    expect(processWebhookRetries.handle).toHaveBeenCalledWith();
   });
 
   it('should route detectOrphanPayments correctly', async () => {
     const job = makeJob('detectOrphanPayments');
     await dispatcher.process(job);
-    expect(detectOrphanPayments.handle).toHaveBeenCalledWith(job);
+    expect(detectOrphanPayments.handle).toHaveBeenCalledWith();
   });
 
   it('should route reconcilePayments correctly', async () => {
     const job = makeJob('reconcilePayments');
     await dispatcher.process(job);
-    expect(reconcilePayments.handle).toHaveBeenCalledWith(job);
+    expect(reconcilePayments.handle).toHaveBeenCalledWith();
   });
 
   it('should not throw for unknown job names', async () => {

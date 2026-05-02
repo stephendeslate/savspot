@@ -35,17 +35,17 @@ export class PaymentsDispatcher extends WorkerHost {
   async process(job: Job): Promise<void> {
     switch (job.name) {
       case JOB_SEND_PAYMENT_REMINDERS:
-        return this.sendReminders.handle(job);
+        return this.sendReminders.handle();
       case JOB_ENFORCE_PAYMENT_DEADLINES:
-        return this.enforceDeadlines.handle(job);
+        return this.enforceDeadlines.handle();
       case JOB_RETRY_FAILED_PAYMENTS:
-        return this.retryFailed.handle(job);
+        return this.retryFailed.handle();
       case JOB_PROCESS_WEBHOOK_RETRIES:
-        return this.processWebhookRetries.handle(job);
+        return this.processWebhookRetries.handle();
       case JOB_DETECT_ORPHAN_PAYMENTS:
-        return this.detectOrphanPayments.handle(job);
+        return this.detectOrphanPayments.handle();
       case JOB_RECONCILE_PAYMENTS:
-        return this.reconcilePayments.handle(job);
+        return this.reconcilePayments.handle();
       default:
         this.logger.warn(`Unknown payments job: ${job.name}`);
     }

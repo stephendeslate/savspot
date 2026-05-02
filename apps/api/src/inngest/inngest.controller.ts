@@ -20,8 +20,11 @@ import {
 import { BrowserPushHandler } from '@/browser-push/browser-push.processor';
 import { CommunicationsHandler } from '@/communications/communications.processor';
 import { ComputeClientInsightsHandler } from '@/jobs/compute-client-insights.processor';
+import { EnforcePaymentDeadlinesHandler } from '@/jobs/enforce-payment-deadlines.processor';
 import { ProcessNotificationDigestsHandler } from '@/jobs/process-notification-digests.processor';
+import { RetryFailedPaymentsHandler } from '@/jobs/retry-failed-payments.processor';
 import { SendBookingRemindersHandler } from '@/jobs/send-booking-reminders.processor';
+import { SendPaymentRemindersHandler } from '@/jobs/send-payment-reminders.processor';
 import { SupportTriageHandler } from '@/jobs/support-triage.processor';
 import { MorningSummaryHandler } from '@/sms/morning-summary.processor';
 import { SmsHandler } from '@/sms/sms.processor';
@@ -109,6 +112,11 @@ import {
   createProcessDailyDigestsFunction,
 } from './functions/communications/notification-digests.functions';
 import { createComputeClientInsightsFunction } from './functions/communications/compute-client-insights.function';
+import {
+  createEnforcePaymentDeadlinesFunction,
+  createRetryFailedPaymentsFunction,
+  createSendPaymentRemindersFunction,
+} from './functions/payments/cron.functions';
 
 /**
  * Serves Inngest's webhook endpoint at /inngest. Inngest cloud:
@@ -175,6 +183,9 @@ export class InngestController {
     private readonly notificationDigestsHandler: ProcessNotificationDigestsHandler,
     private readonly computeClientInsightsHandler: ComputeClientInsightsHandler,
     private readonly bookingRemindersHandler: SendBookingRemindersHandler,
+    private readonly sendPaymentRemindersHandler: SendPaymentRemindersHandler,
+    private readonly enforcePaymentDeadlinesHandler: EnforcePaymentDeadlinesHandler,
+    private readonly retryFailedPaymentsHandler: RetryFailedPaymentsHandler,
   ) {
     this.handler = serve({
       client: inngest,
@@ -233,6 +244,11 @@ export class InngestController {
         createProcessHourlyDigestsFunction(this.notificationDigestsHandler),
         createProcessDailyDigestsFunction(this.notificationDigestsHandler),
         createComputeClientInsightsFunction(this.computeClientInsightsHandler),
+        createSendPaymentRemindersFunction(this.sendPaymentRemindersHandler),
+        createEnforcePaymentDeadlinesFunction(
+          this.enforcePaymentDeadlinesHandler,
+        ),
+        createRetryFailedPaymentsFunction(this.retryFailedPaymentsHandler),
       ],
     });
   }

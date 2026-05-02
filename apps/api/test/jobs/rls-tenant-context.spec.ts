@@ -269,7 +269,7 @@ describe('RLS tenant context in BullMQ job processors', () => {
         return result;
       });
 
-      await handler.handle(makeJob());
+      await handler.handle();
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(capturedTenantIds).toEqual(['tenant-pay']);
@@ -352,7 +352,7 @@ describe('RLS tenant context in BullMQ job processors', () => {
         return result;
       });
 
-      await handler.handle(makeJob());
+      await handler.handle();
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(capturedTenantIds).toEqual(['tenant-retry']);
@@ -387,7 +387,7 @@ describe('RLS tenant context in BullMQ job processors', () => {
         return result;
       });
 
-      await handler.handle(makeJob());
+      await handler.handle();
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(capturedTenantIds).toEqual(['tenant-inc']);
@@ -400,8 +400,8 @@ describe('RLS tenant context in BullMQ job processors', () => {
   describe('SendPaymentRemindersHandler', () => {
     it('should call set_config per invoice when creating reminders', async () => {
       const prisma = makePrisma();
-      const commsQueue = { add: vi.fn() };
-      const handler = new SendPaymentRemindersHandler(prisma as never, commsQueue as never);
+      const dispatcher = { dispatch: vi.fn().mockResolvedValue(undefined) };
+      const handler = new SendPaymentRemindersHandler(prisma as never, dispatcher as never);
 
       const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
       prisma.$queryRaw.mockResolvedValue([
@@ -429,7 +429,7 @@ describe('RLS tenant context in BullMQ job processors', () => {
         return result;
       });
 
-      await handler.handle(makeJob());
+      await handler.handle();
 
       expect(prisma.$transaction).toHaveBeenCalled();
       expect(capturedTenantIds.length).toBeGreaterThan(0);

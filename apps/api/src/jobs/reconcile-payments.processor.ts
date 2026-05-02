@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeProvider } from '../payments/providers/stripe.provider';
 
@@ -32,7 +31,7 @@ export class ReconcilePaymentsHandler {
     private readonly stripeProvider: StripeProvider,
   ) {}
 
-  async handle(_job: Job): Promise<void> {
+  async handle(): Promise<void> {
     this.logger.log('Running reconcile payments job...');
 
     try {
