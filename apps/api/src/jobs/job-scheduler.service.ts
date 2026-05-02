@@ -47,26 +47,17 @@ import {
   JOB_CHURN_RISK_COMPUTE,
   JOB_RECOMMENDATION_CLEANUP,
   JOB_PARTNER_PAYOUT_BATCH,
-  CRON_EVERY_5_MIN,
-  CRON_EVERY_15_MIN,
-  CRON_EVERY_30_MIN,
-  CRON_HOURLY,
-  CRON_DAILY_3AM_UTC,
-  CRON_DAILY_4AM_UTC,
-  CRON_DAILY_5AM_UTC,
-  CRON_DAILY_6AM_UTC,
-  CRON_DAILY_8AM_UTC,
-  CRON_MONDAY_8AM_UTC,
-  CRON_SUNDAY_2AM_UTC,
 } from '../bullmq/queue.constants';
 
 /**
- * Centralized service that registers all repeatable BullMQ job schedules.
- * BullMQ deduplicates by repeat key — safe to call on every application boot.
+ * One-shot Redis cleanup of stale BullMQ repeatable schedule entries.
  *
- * Separation of concerns:
- * - This service: Owns schedule registration (when jobs run)
- * - Processor classes: Own job execution logic (what jobs do)
+ * Phase 4 cleanup: every queue has been ported to Inngest. The
+ * `schedules` array is now empty; on every worker boot we walk
+ * `staleRepeatables` and delete the matching repeatable entries from
+ * Redis so BullMQ stops continuing to fire them. After one boot in
+ * each environment, this service can be deleted entirely (Phase 4
+ * cleanup B).
  */
 @Injectable()
 export class JobSchedulerService implements OnModuleInit {
@@ -86,76 +77,56 @@ export class JobSchedulerService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    const defaultOpts = { removeOnComplete: { count: 10 }, removeOnFail: { count: 50 } };
-
-    const schedules: Array<{ queue: Queue; name: string; pattern: string }> = [
-      // Booking queue
-      { queue: this.bookingsQueue, name: JOB_EXPIRE_RESERVATIONS, pattern: CRON_EVERY_5_MIN },
-      { queue: this.bookingsQueue, name: JOB_ABANDONED_BOOKING_RECOVERY, pattern: CRON_EVERY_15_MIN },
-      { queue: this.bookingsQueue, name: JOB_PROCESS_COMPLETED_BOOKINGS, pattern: CRON_HOURLY },
-      { queue: this.bookingsQueue, name: JOB_ENFORCE_APPROVAL_DEADLINES, pattern: CRON_EVERY_15_MIN },
-      // Payment queue
-      { queue: this.paymentsQueue, name: JOB_SEND_PAYMENT_REMINDERS, pattern: CRON_EVERY_15_MIN },
-      { queue: this.paymentsQueue, name: JOB_ENFORCE_PAYMENT_DEADLINES, pattern: CRON_DAILY_6AM_UTC },
-      { queue: this.paymentsQueue, name: JOB_RETRY_FAILED_PAYMENTS, pattern: CRON_EVERY_30_MIN },
-      // Calendar queue
-      // Note: JOB_CALENDAR_TWO_WAY_SYNC is per-connection (enqueued with { connectionId, tenantId }).
-      // Periodic sweeps go through JOB_CALENDAR_SYNC_FALLBACK below, which iterates active connections.
-      { queue: this.calendarQueue, name: JOB_CALENDAR_TOKEN_REFRESH, pattern: CRON_HOURLY },
-      // Communications queue
-      { queue: this.commsQueue, name: JOB_SEND_BOOKING_REMINDERS, pattern: CRON_EVERY_15_MIN },
-      { queue: this.commsQueue, name: JOB_PROCESS_POST_APPOINTMENT, pattern: CRON_EVERY_15_MIN },
-      { queue: this.commsQueue, name: JOB_SEND_MORNING_SUMMARY, pattern: CRON_DAILY_6AM_UTC },
-      { queue: this.commsQueue, name: JOB_SEND_WEEKLY_DIGEST, pattern: CRON_MONDAY_8AM_UTC },
-      { queue: this.commsQueue, name: JOB_PROCESS_HOURLY_DIGESTS, pattern: CRON_HOURLY },
-      { queue: this.commsQueue, name: JOB_PROCESS_DAILY_DIGESTS, pattern: CRON_DAILY_8AM_UTC },
-      // GDPR queue
-      { queue: this.gdprQueue, name: JOB_CLEANUP_RETENTION, pattern: CRON_DAILY_3AM_UTC },
-      { queue: this.gdprQueue, name: JOB_PROCESS_ACCOUNT_DELETION, pattern: CRON_DAILY_5AM_UTC },
-      { queue: this.gdprQueue, name: JOB_COMPUTE_BENCHMARKS, pattern: CRON_DAILY_5AM_UTC },
-      // AI Operations — bookings queue
-      { queue: this.bookingsQueue, name: JOB_COMPUTE_NO_SHOW_RISK, pattern: CRON_DAILY_4AM_UTC },
-      { queue: this.bookingsQueue, name: JOB_COMPUTE_DEMAND_ANALYSIS, pattern: CRON_SUNDAY_2AM_UTC },
-      // AI Operations — communications queue
-      { queue: this.commsQueue, name: JOB_COMPUTE_CLIENT_INSIGHTS, pattern: CRON_DAILY_3AM_UTC },
-      // Platform Metrics queue — migrated to Inngest (Phase 4i). Cleaned up below.
-      // Directory queue — migrated to Inngest (Phase 4e). Cleaned up below.
-      // Custom Domains queue — migrated to Inngest (Phase 4g). Cleaned up below.
-      // Calendar queue — Phase 4 additions
-      { queue: this.calendarQueue, name: JOB_CALENDAR_WEBHOOK_RENEW_GOOGLE, pattern: CRON_DAILY_3AM_UTC },
-      { queue: this.calendarQueue, name: JOB_CALENDAR_WEBHOOK_RENEW_OUTLOOK, pattern: CRON_DAILY_3AM_UTC },
-      { queue: this.calendarQueue, name: JOB_CALENDAR_SYNC_FALLBACK, pattern: CRON_EVERY_30_MIN },
-      // AI Operations queue — recommendations
-      { queue: this.aiOperationsQueue, name: JOB_RECOMMENDATION_SERVICE_AFFINITY, pattern: CRON_DAILY_4AM_UTC },
-      { queue: this.aiOperationsQueue, name: JOB_RECOMMENDATION_CLIENT_PREFERENCE, pattern: CRON_DAILY_4AM_UTC },
-      { queue: this.aiOperationsQueue, name: JOB_CHURN_RISK_COMPUTE, pattern: CRON_DAILY_5AM_UTC },
-      { queue: this.aiOperationsQueue, name: JOB_RECOMMENDATION_CLEANUP, pattern: CRON_SUNDAY_2AM_UTC },
-      // Partners queue — migrated to Inngest (Phase 4f). Cleaned up below.
-    ];
-
-    // Clean up stale repeatables left over from previous code versions or
-    // queues that have been migrated to Inngest. Removing them from Redis
-    // stops the BullMQ worker from continuing to fire them after the cron
-    // entry above is gone.
-    //
-    // - JOB_CALENDAR_TWO_WAY_SYNC: incorrectly registered as a parameterless
-    //   repeatable with empty payload; per-connection now (sweeps via
-    //   JOB_CALENDAR_SYNC_FALLBACK).
-    // - JOB_DIRECTORY_*: migrated to Inngest (Phase 4e).
-    // - JOB_PARTNER_PAYOUT_BATCH: migrated to Inngest (Phase 4f); must be
-    //   removed before the next monthly tick (2026-06-01) to avoid a
-    //   concurrent BullMQ + Inngest run racing on payout creation.
-    // - JOB_CUSTOM_DOMAIN_*: migrated to Inngest (Phase 4g).
-    // - JOB_COMPUTE_PLATFORM_METRICS: migrated to Inngest (Phase 4i).
+    // No active schedules — every queue is on Inngest as of Phase 4s.
+    // The full set of previously-scheduled job names is enumerated in
+    // staleRepeatables below so that any existing Redis repeatable
+    // entries are removed on the next worker boot.
     const staleRepeatables: Array<{ queue: Queue; name: string }> = [
+      // Bookings (Phase 4p)
+      { queue: this.bookingsQueue, name: JOB_EXPIRE_RESERVATIONS },
+      { queue: this.bookingsQueue, name: JOB_ABANDONED_BOOKING_RECOVERY },
+      { queue: this.bookingsQueue, name: JOB_PROCESS_COMPLETED_BOOKINGS },
+      { queue: this.bookingsQueue, name: JOB_ENFORCE_APPROVAL_DEADLINES },
+      { queue: this.bookingsQueue, name: JOB_COMPUTE_NO_SHOW_RISK },
+      { queue: this.bookingsQueue, name: JOB_COMPUTE_DEMAND_ANALYSIS },
+      // Payments (Phase 4s)
+      { queue: this.paymentsQueue, name: JOB_SEND_PAYMENT_REMINDERS },
+      { queue: this.paymentsQueue, name: JOB_ENFORCE_PAYMENT_DEADLINES },
+      { queue: this.paymentsQueue, name: JOB_RETRY_FAILED_PAYMENTS },
+      // Calendar (Phase 4q)
       { queue: this.calendarQueue, name: JOB_CALENDAR_TWO_WAY_SYNC },
+      { queue: this.calendarQueue, name: JOB_CALENDAR_TOKEN_REFRESH },
+      { queue: this.calendarQueue, name: JOB_CALENDAR_WEBHOOK_RENEW_GOOGLE },
+      { queue: this.calendarQueue, name: JOB_CALENDAR_WEBHOOK_RENEW_OUTLOOK },
+      { queue: this.calendarQueue, name: JOB_CALENDAR_SYNC_FALLBACK },
+      // Communications (Phase 4r)
+      { queue: this.commsQueue, name: JOB_PROCESS_POST_APPOINTMENT },
+      { queue: this.commsQueue, name: JOB_SEND_BOOKING_REMINDERS },
+      { queue: this.commsQueue, name: JOB_SEND_MORNING_SUMMARY },
+      { queue: this.commsQueue, name: JOB_SEND_WEEKLY_DIGEST },
+      { queue: this.commsQueue, name: JOB_PROCESS_HOURLY_DIGESTS },
+      { queue: this.commsQueue, name: JOB_PROCESS_DAILY_DIGESTS },
+      { queue: this.commsQueue, name: JOB_COMPUTE_CLIENT_INSIGHTS },
+      // GDPR (Phase 4m)
+      { queue: this.gdprQueue, name: JOB_CLEANUP_RETENTION },
+      { queue: this.gdprQueue, name: JOB_PROCESS_ACCOUNT_DELETION },
+      { queue: this.gdprQueue, name: JOB_COMPUTE_BENCHMARKS },
+      // Directory (Phase 4e)
       { queue: this.directoryQueue, name: JOB_DIRECTORY_LISTING_REFRESH },
       { queue: this.directoryQueue, name: JOB_DIRECTORY_SITEMAP_GENERATE },
+      // Partners (Phase 4f)
       { queue: this.partnersQueue, name: JOB_PARTNER_PAYOUT_BATCH },
+      // Custom domains (Phase 4g)
       { queue: this.customDomainsQueue, name: JOB_CUSTOM_DOMAIN_DNS_VERIFY },
       { queue: this.customDomainsQueue, name: JOB_CUSTOM_DOMAIN_SSL_RENEW },
       { queue: this.customDomainsQueue, name: JOB_CUSTOM_DOMAIN_HEALTH_CHECK },
+      // Platform metrics (Phase 4i)
       { queue: this.platformMetricsQueue, name: JOB_COMPUTE_PLATFORM_METRICS },
+      // AI Operations recommendations (Phase 4o)
+      { queue: this.aiOperationsQueue, name: JOB_RECOMMENDATION_SERVICE_AFFINITY },
+      { queue: this.aiOperationsQueue, name: JOB_RECOMMENDATION_CLIENT_PREFERENCE },
+      { queue: this.aiOperationsQueue, name: JOB_CHURN_RISK_COMPUTE },
+      { queue: this.aiOperationsQueue, name: JOB_RECOMMENDATION_CLEANUP },
     ];
 
     for (const { queue, name } of staleRepeatables) {
@@ -169,15 +140,6 @@ export class JobSchedulerService implements OnModuleInit {
         }
       } catch (error) {
         this.logger.error(`Failed to clean stale repeatable ${name}: ${error}`);
-      }
-    }
-
-    for (const { queue, name, pattern } of schedules) {
-      try {
-        await queue.add(name, {}, { repeat: { pattern }, ...defaultOpts });
-        this.logger.log(`Registered repeating job: ${name} (${pattern})`);
-      } catch (error) {
-        this.logger.error(`Failed to register repeating job ${name}: ${error}`);
       }
     }
   }

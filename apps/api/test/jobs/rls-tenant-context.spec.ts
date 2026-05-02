@@ -8,7 +8,6 @@ import { ProcessCompletedBookingsHandler } from '@/jobs/process-completed-bookin
 import { RetryFailedPaymentsHandler } from '@/jobs/retry-failed-payments.processor';
 import { SendPaymentRemindersHandler } from '@/jobs/send-payment-reminders.processor';
 import { AccountDeletionHandler } from '@/jobs/account-deletion.processor';
-import { GenerateInvoicePdfProcessor } from '@/jobs/generate-invoice-pdf.processor';
 import { InvoicePdfService } from '@/jobs/invoice-pdf.service';
 import { CommunicationsHandler } from '@/communications/communications.processor';
 import { CalendarPushHandler } from '@/calendar/calendar-push.processor';
@@ -17,10 +16,6 @@ import { CalendarSyncHandler } from '@/calendar/calendar-sync.processor';
 // ---------------------------------------------------------------------------
 // Shared helpers
 // ---------------------------------------------------------------------------
-
-function makeJob(data: Record<string, unknown> = {}) {
-  return { data, name: '' } as never;
-}
 
 /** Captures set_config calls made via $executeRaw tagged template */
 function captureSetConfigCalls(mockExecuteRaw: ReturnType<typeof vi.fn>) {
@@ -478,9 +473,9 @@ describe('RLS tenant context in BullMQ job processors', () => {
   });
 
   // -------------------------------------------------------------------------
-  // GenerateInvoicePdfProcessor
+  // InvoicePdfService (covers the former GenerateInvoicePdfProcessor RLS path)
   // -------------------------------------------------------------------------
-  describe('GenerateInvoicePdfProcessor', () => {
+  describe('InvoicePdfService', () => {
     it('should call set_config when loading and updating invoice', async () => {
       const prisma = makePrisma();
       const uploadService = {
@@ -490,7 +485,6 @@ describe('RLS tenant context in BullMQ job processors', () => {
         }),
       };
       const service = new InvoicePdfService(prisma as never, uploadService as never);
-      const handler = new GenerateInvoicePdfProcessor(service);
 
       const capturedTenantIds: string[] = [];
       prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
@@ -503,15 +497,10 @@ describe('RLS tenant context in BullMQ job processors', () => {
         return result;
       });
 
-      const job = makeJob({}) as never;
-      // Override job to have the right name and data
-      (job as { name: string }).name = 'generateInvoicePdf';
-      (job as { data: Record<string, string> }).data = {
+      await service.generateAndUpload({
         tenantId: 'tenant-inv',
         invoiceId: 'inv-pdf',
-      };
-
-      await handler.process(job);
+      });
 
       // The load transaction calls set_config, the early return on null skips the update tx
       expect(prisma.$transaction).toHaveBeenCalled();

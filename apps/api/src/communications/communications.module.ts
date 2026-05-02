@@ -1,9 +1,6 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
-import { QUEUE_COMMUNICATIONS } from '../bullmq/queue.constants';
 import { CommunicationsService } from './communications.service';
 import { CommunicationsHandler } from './communications.processor';
-import { CommunicationsDispatcher } from './communications.dispatcher';
 import { CircuitBreaker } from '../common/utils/circuit-breaker';
 import { ResendWebhookController } from './resend-webhook.controller';
 import { CommunicationTemplatesController } from './communication-templates.controller';
@@ -23,7 +20,6 @@ import { ComputeClientInsightsHandler } from '../jobs/compute-client-insights.pr
 
 @Module({
   imports: [
-    BullModule.registerQueue({ name: QUEUE_COMMUNICATIONS }),
     SmsModule,
     BrowserPushModule,
   ],
@@ -43,7 +39,6 @@ import { ComputeClientInsightsHandler } from '../jobs/compute-client-insights.pr
     ProcessNotificationDigestsHandler,
     ComputeClientInsightsHandler,
     CircuitBreaker,
-    CommunicationsDispatcher,
     CommunicationsComposeService,
     CommunicationsLogService,
     PreferenceCenterService,

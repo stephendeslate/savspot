@@ -1,12 +1,10 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
 import { CommunicationsModule } from '../communications/communications.module';
 import { SmsModule } from '../sms/sms.module';
 import { InvoicesModule } from '../invoices/invoices.module';
 import { BrowserPushModule } from '../browser-push/browser-push.module';
 import { DevicePushTokensModule } from '../device-push-tokens/device-push-tokens.module';
 import { NotificationsModule } from '../notifications/notifications.module';
-import { QUEUE_WEBHOOKS } from '../bullmq/queue.constants';
 import { WorkflowEngineService } from './workflow-engine.service';
 import { WorkflowsController } from './workflows.controller';
 import { WebhooksController } from './webhooks.controller';
@@ -18,7 +16,6 @@ import { StageAutomationService } from './services/stage-automation.service';
 import { StageOrchestratorService } from './services/stage-orchestrator.service';
 import { WebhookDispatchHandler } from './processors/webhook-dispatch.processor';
 import { StageExecutionHandler } from './processors/stage-execution.handler';
-import { WebhooksDispatcher } from './webhooks.dispatcher';
 
 @Module({
   imports: [
@@ -28,7 +25,6 @@ import { WebhooksDispatcher } from './webhooks.dispatcher';
     BrowserPushModule,
     DevicePushTokensModule,
     NotificationsModule,
-    BullModule.registerQueue({ name: QUEUE_WEBHOOKS }),
   ],
   controllers: [WorkflowsController, WebhooksController],
   providers: [
@@ -41,7 +37,6 @@ import { WebhooksDispatcher } from './webhooks.dispatcher';
     StageOrchestratorService,
     WebhookDispatchHandler,
     StageExecutionHandler,
-    WebhooksDispatcher,
   ],
   exports: [
     WorkflowEngineService,
