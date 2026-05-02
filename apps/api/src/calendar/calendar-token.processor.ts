@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { GoogleCalendarService } from './calendar.service';
 
@@ -17,7 +16,7 @@ export class CalendarTokenHandler {
     private readonly calendarService: GoogleCalendarService,
   ) {}
 
-  async handle(_job: Job): Promise<void> {
+  async handle(): Promise<void> {
     this.logger.log('Starting hourly calendar token refresh cycle');
 
     const connections = await this.prisma.calendarConnection.findMany({

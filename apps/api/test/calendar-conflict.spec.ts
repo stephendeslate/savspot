@@ -43,14 +43,11 @@ describe('CalendarSyncHandler — conflict detection (S7)', () => {
     handler = new CalendarSyncHandler(calendarService as never, prisma as never);
   });
 
-  const makeJob = (data = {}) =>
-    ({
-      data: {
-        connectionId: 'conn-1',
-        tenantId: 'tenant-1',
-        ...data,
-      },
-    }) as never;
+  const makeData = (data = {}) => ({
+    connectionId: 'conn-1',
+    tenantId: 'tenant-1',
+    ...data,
+  });
 
   it('detects conflicts when new inbound events overlap with bookings', async () => {
     calendarService.syncInboundEvents.mockResolvedValue({
@@ -88,7 +85,7 @@ describe('CalendarSyncHandler — conflict detection (S7)', () => {
     prisma.notificationType.upsert.mockResolvedValue({ id: 'notif-type-1' });
     prisma.notification.create.mockResolvedValue({});
 
-    await handler.handle(makeJob());
+    await handler.handle(makeData());
 
     expect(prisma.notification.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -108,7 +105,7 @@ describe('CalendarSyncHandler — conflict detection (S7)', () => {
       deleted: 2,
     });
 
-    await handler.handle(makeJob());
+    await handler.handle(makeData());
 
     expect(prisma.calendarEvent.findMany).not.toHaveBeenCalled();
   });
@@ -131,7 +128,7 @@ describe('CalendarSyncHandler — conflict detection (S7)', () => {
 
     prisma.booking.findMany.mockResolvedValue([]); // no overlapping bookings
 
-    await handler.handle(makeJob());
+    await handler.handle(makeData());
 
     expect(prisma.notification.create).not.toHaveBeenCalled();
   });
@@ -169,7 +166,7 @@ describe('CalendarSyncHandler — conflict detection (S7)', () => {
     prisma.notificationType.upsert.mockResolvedValue({ id: 'type-1' });
     prisma.notification.create.mockResolvedValue({});
 
-    await handler.handle(makeJob());
+    await handler.handle(makeData());
 
     expect(prisma.notification.create).toHaveBeenCalledTimes(2);
   });

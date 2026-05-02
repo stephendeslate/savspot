@@ -13,10 +13,9 @@ import {
   ApiExcludeEndpoint,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { Public } from '../common/decorators/public.decorator';
 import { GoogleCalendarService } from './calendar.service';
+import { JobDispatcher } from '../bullmq/job-dispatcher.service';
 import {
   QUEUE_CALENDAR,
   JOB_CALENDAR_TWO_WAY_SYNC,
@@ -34,7 +33,7 @@ export class CalendarWebhookController {
 
   constructor(
     private readonly calendarService: GoogleCalendarService,
-    @InjectQueue(QUEUE_CALENDAR) private readonly calendarQueue: Queue,
+    private readonly dispatcher: JobDispatcher,
   ) {}
 
   /**
@@ -81,7 +80,9 @@ export class CalendarWebhookController {
     }
 
     // Enqueue a two-way sync job for this connection
-    await this.calendarQueue.add(
+    // (routes to BullMQ or Inngest per QUEUE_CALENDAR_PROVIDER).
+    await this.dispatcher.dispatch(
+      QUEUE_CALENDAR,
       JOB_CALENDAR_TWO_WAY_SYNC,
       {
         connectionId: connection.id,

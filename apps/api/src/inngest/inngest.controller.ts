@@ -9,6 +9,14 @@ import {
   AccountingSyncPaymentsHandler,
   AccountingSyncSingleInvoiceHandler,
 } from '@/accounting/accounting-sync.processor';
+import { CalendarPushHandler } from '@/calendar/calendar-push.processor';
+import { CalendarSyncHandler } from '@/calendar/calendar-sync.processor';
+import { CalendarTokenHandler } from '@/calendar/calendar-token.processor';
+import { CalendarSyncFallbackHandler } from '@/calendar/handlers/calendar-sync-fallback.handler';
+import {
+  CalendarWebhookRenewGoogleHandler,
+  CalendarWebhookRenewOutlookHandler,
+} from '@/calendar/handlers/calendar-webhook-renew.handler';
 import { CurrencyService } from '@/currency/currency.service';
 import { CustomDomainsService } from '@/custom-domains/custom-domains.service';
 import { DirectoryListingService } from '@/directory/directory-listing.service';
@@ -71,6 +79,14 @@ import {
   createExpireReservationsFunction,
   createProcessCompletedBookingsFunction,
 } from './functions/bookings/cron.functions';
+import { createCalendarEventPushFunction } from './functions/calendar/event-push.function';
+import { createCalendarTwoWaySyncFunction } from './functions/calendar/two-way-sync.function';
+import { createCalendarTokenRefreshFunction } from './functions/calendar/token-refresh.function';
+import { createCalendarSyncFallbackFunction } from './functions/calendar/sync-fallback.function';
+import {
+  createCalendarWebhookRenewGoogleFunction,
+  createCalendarWebhookRenewOutlookFunction,
+} from './functions/calendar/webhook-renew.functions';
 
 /**
  * Serves Inngest's webhook endpoint at /inngest. Inngest cloud:
@@ -122,6 +138,12 @@ export class InngestController {
     private readonly enforceApprovalDeadlinesHandler: EnforceApprovalDeadlinesHandler,
     private readonly computeNoShowRiskHandler: ComputeNoShowRiskHandler,
     private readonly computeDemandAnalysisHandler: ComputeDemandAnalysisHandler,
+    private readonly calendarPushHandler: CalendarPushHandler,
+    private readonly calendarSyncHandler: CalendarSyncHandler,
+    private readonly calendarTokenHandler: CalendarTokenHandler,
+    private readonly calendarWebhookRenewGoogleHandler: CalendarWebhookRenewGoogleHandler,
+    private readonly calendarWebhookRenewOutlookHandler: CalendarWebhookRenewOutlookHandler,
+    private readonly calendarSyncFallbackHandler: CalendarSyncFallbackHandler,
   ) {
     this.handler = serve({
       client: inngest,
@@ -159,6 +181,16 @@ export class InngestController {
         createEnforceApprovalDeadlinesFunction(this.enforceApprovalDeadlinesHandler),
         createComputeNoShowRiskFunction(this.computeNoShowRiskHandler),
         createComputeDemandAnalysisFunction(this.computeDemandAnalysisHandler),
+        createCalendarEventPushFunction(this.calendarPushHandler),
+        createCalendarTwoWaySyncFunction(this.calendarSyncHandler),
+        createCalendarTokenRefreshFunction(this.calendarTokenHandler),
+        createCalendarWebhookRenewGoogleFunction(
+          this.calendarWebhookRenewGoogleHandler,
+        ),
+        createCalendarWebhookRenewOutlookFunction(
+          this.calendarWebhookRenewOutlookHandler,
+        ),
+        createCalendarSyncFallbackFunction(this.calendarSyncFallbackHandler),
       ],
     });
   }

@@ -1,7 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   BOOKING_CONFIRMED,
@@ -11,6 +9,7 @@ import {
   BookingRescheduledPayload,
   BookingCancelledPayload,
 } from '../events/event.types';
+import { JobDispatcher } from '../bullmq/job-dispatcher.service';
 import { QUEUE_CALENDAR, JOB_CALENDAR_EVENT_PUSH } from '../bullmq/queue.constants';
 
 /**
@@ -22,7 +21,7 @@ export class CalendarEventListener {
   private readonly logger = new Logger(CalendarEventListener.name);
 
   constructor(
-    @InjectQueue(QUEUE_CALENDAR) private readonly calendarQueue: Queue,
+    private readonly dispatcher: JobDispatcher,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -32,7 +31,7 @@ export class CalendarEventListener {
     if (connections.length === 0) return;
 
     for (const conn of connections) {
-      await this.calendarQueue.add(JOB_CALENDAR_EVENT_PUSH, {
+      await this.dispatcher.dispatch(QUEUE_CALENDAR, JOB_CALENDAR_EVENT_PUSH, {
         eventType: BOOKING_CONFIRMED,
         connectionId: conn.id,
         tenantId: payload.tenantId,
@@ -55,7 +54,7 @@ export class CalendarEventListener {
     if (connections.length === 0) return;
 
     for (const conn of connections) {
-      await this.calendarQueue.add(JOB_CALENDAR_EVENT_PUSH, {
+      await this.dispatcher.dispatch(QUEUE_CALENDAR, JOB_CALENDAR_EVENT_PUSH, {
         eventType: BOOKING_RESCHEDULED,
         connectionId: conn.id,
         tenantId: payload.tenantId,
@@ -82,7 +81,7 @@ export class CalendarEventListener {
     if (connections.length === 0) return;
 
     for (const conn of connections) {
-      await this.calendarQueue.add(JOB_CALENDAR_EVENT_PUSH, {
+      await this.dispatcher.dispatch(QUEUE_CALENDAR, JOB_CALENDAR_EVENT_PUSH, {
         eventType: BOOKING_CANCELLED,
         connectionId: conn.id,
         tenantId: payload.tenantId,

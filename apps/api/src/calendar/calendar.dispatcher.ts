@@ -11,8 +11,14 @@ import {
   JOB_CALENDAR_WEBHOOK_RENEW_OUTLOOK,
   JOB_CALENDAR_SYNC_FALLBACK,
 } from '../bullmq/queue.constants';
-import { CalendarPushHandler } from './calendar-push.processor';
-import { CalendarSyncHandler } from './calendar-sync.processor';
+import {
+  CalendarPushHandler,
+  CalendarEventPushJobData,
+} from './calendar-push.processor';
+import {
+  CalendarSyncHandler,
+  CalendarSyncJobData,
+} from './calendar-sync.processor';
 import { CalendarTokenHandler } from './calendar-token.processor';
 import { CalendarWatchRenewalHandler } from './calendar-watch-renewal.processor';
 import { CalendarWebhookRenewGoogleHandler, CalendarWebhookRenewOutlookHandler } from './handlers/calendar-webhook-renew.handler';
@@ -37,19 +43,19 @@ export class CalendarDispatcher extends WorkerHost {
   async process(job: Job): Promise<void> {
     switch (job.name) {
       case JOB_CALENDAR_EVENT_PUSH:
-        return this.pushHandler.handle(job);
+        return this.pushHandler.handle(job.data as CalendarEventPushJobData);
       case JOB_CALENDAR_TWO_WAY_SYNC:
-        return this.syncHandler.handle(job);
+        return this.syncHandler.handle(job.data as CalendarSyncJobData);
       case JOB_CALENDAR_TOKEN_REFRESH:
-        return this.tokenHandler.handle(job);
+        return this.tokenHandler.handle();
       case JOB_CALENDAR_WATCH_RENEWAL:
-        return this.watchRenewalHandler.handle(job);
+        return this.watchRenewalHandler.handle();
       case JOB_CALENDAR_WEBHOOK_RENEW_GOOGLE:
-        return this.webhookRenewGoogleHandler.handle(job);
+        return this.webhookRenewGoogleHandler.handle();
       case JOB_CALENDAR_WEBHOOK_RENEW_OUTLOOK:
-        return this.webhookRenewOutlookHandler.handle(job);
+        return this.webhookRenewOutlookHandler.handle();
       case JOB_CALENDAR_SYNC_FALLBACK:
-        return this.syncFallbackHandler.handle(job);
+        return this.syncFallbackHandler.handle();
       default:
         this.logger.warn(`Unknown calendar job name: ${job.name}`);
     }

@@ -1,15 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { GoogleCalendarService } from './calendar.service';
 import { PrismaService } from '../prisma/prisma.service';
 
-interface CalendarSyncJobData {
+export interface CalendarSyncJobData {
   connectionId: string;
   tenantId: string;
   manual?: boolean;
   triggeredBy?: string;
   channelId?: string;
   resourceId?: string;
+  subscriptionId?: string;
 }
 
 /**
@@ -26,12 +26,12 @@ export class CalendarSyncHandler {
     private readonly prisma: PrismaService,
   ) {}
 
-  async handle(job: Job<CalendarSyncJobData>): Promise<void> {
-    const { connectionId, tenantId, manual, triggeredBy } = job.data;
+  async handle(data: CalendarSyncJobData): Promise<void> {
+    const { connectionId, tenantId, manual, triggeredBy } = data;
 
     if (!connectionId || !tenantId) {
       this.logger.warn(
-        `Skipping ${job.name}: missing ${!connectionId ? 'connectionId' : 'tenantId'} — job should be enqueued per-connection`,
+        `Skipping calendar sync: missing ${!connectionId ? 'connectionId' : 'tenantId'} — job should be enqueued per-connection`,
       );
       return;
     }
@@ -58,7 +58,7 @@ export class CalendarSyncHandler {
       this.logger.error(
         `Calendar sync failed for connection ${connectionId}: ${message}`,
       );
-      throw err; // Let BullMQ retry
+      throw err; // Let the queue runtime retry (BullMQ or Inngest)
     }
   }
 

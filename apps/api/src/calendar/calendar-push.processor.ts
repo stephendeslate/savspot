@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { GoogleCalendarService } from './calendar.service';
 import {
@@ -9,7 +8,7 @@ import {
   BOOKING_CANCELLED,
 } from '../events/event.types';
 
-interface CalendarEventPushJobData {
+export interface CalendarEventPushJobData {
   eventType: string;
   tenantId: string;
   bookingId: string;
@@ -40,7 +39,7 @@ export class CalendarPushHandler {
     this.webUrl = this.configService.get<string>('WEB_URL', 'http://localhost:3000');
   }
 
-  async handle(job: Job<CalendarEventPushJobData>): Promise<void> {
+  async handle(data: CalendarEventPushJobData): Promise<void> {
     const {
       eventType,
       tenantId,
@@ -49,7 +48,7 @@ export class CalendarPushHandler {
       clientName,
       startTime,
       endTime,
-    } = job.data;
+    } = data;
 
     this.logger.log(
       `Processing calendar push: ${eventType} for booking ${bookingId} (tenant: ${tenantId})`,
@@ -96,7 +95,7 @@ export class CalendarPushHandler {
             bookingId,
             serviceName,
             clientName,
-            job.data,
+            data,
           );
           break;
         }

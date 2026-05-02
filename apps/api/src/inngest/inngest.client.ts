@@ -83,6 +83,40 @@ type Events = {
   'invoices/generateInvoicePdf': {
     data: { tenantId: string; invoiceId: string };
   };
+
+  // Phase 4q — calendar queue. Two event-triggered jobs:
+  // - calendarEventPush: per-connection booking lifecycle push (confirm /
+  //   reschedule / cancel). Fanned out by CalendarEventListener.
+  // - calendarTwoWaySync: per-connection inbound sync. Dispatched by
+  //   manualSync, Google + Outlook webhook controllers, and the
+  //   sync-fallback cron sweep.
+  'calendar/calendarEventPush': {
+    data: {
+      eventType: string;
+      tenantId: string;
+      connectionId?: string;
+      bookingId: string;
+      serviceName: string;
+      clientName: string;
+      startTime: string;
+      endTime: string;
+      previousStartTime?: string;
+      previousEndTime?: string;
+      newStartTime?: string;
+      newEndTime?: string;
+    };
+  };
+  'calendar/calendarTwoWaySync': {
+    data: {
+      connectionId: string;
+      tenantId: string;
+      manual?: boolean;
+      triggeredBy?: string;
+      channelId?: string;
+      resourceId?: string;
+      subscriptionId?: string;
+    };
+  };
 };
 
 export const inngest = new Inngest({
