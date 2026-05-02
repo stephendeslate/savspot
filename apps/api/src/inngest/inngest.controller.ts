@@ -17,6 +17,7 @@ import { AccountDeletionHandler } from '@/jobs/account-deletion.processor';
 import { CleanupRetentionHandler } from '@/jobs/cleanup-retention.processor';
 import { ComputeBenchmarksHandler } from '@/jobs/compute-benchmarks.processor';
 import { DataExportHandler } from '@/jobs/data-export.processor';
+import { InvoicePdfService } from '@/jobs/invoice-pdf.service';
 import { PartnerPayoutService } from '@/partners/partner-payout.service';
 import { PlatformMetricsService } from '@/platform-metrics/platform-metrics.service';
 import { VoiceCallEventsService } from '@/voice/services/voice-call-events.service';
@@ -47,6 +48,7 @@ import { createAccountDeletionFunction } from './functions/gdpr/account-deletion
 import { createCleanupRetentionFunction } from './functions/gdpr/cleanup-retention.function';
 import { createComputeBenchmarksFunction } from './functions/gdpr/compute-benchmarks.function';
 import { createDataExportFunction } from './functions/gdpr/data-export.function';
+import { createGenerateInvoicePdfFunction } from './functions/invoices/generate-invoice-pdf.function';
 
 /**
  * Serves Inngest's webhook endpoint at /inngest. Inngest cloud:
@@ -89,6 +91,7 @@ export class InngestController {
     private readonly accountDeletionHandler: AccountDeletionHandler,
     private readonly computeBenchmarksHandler: ComputeBenchmarksHandler,
     private readonly dataExportHandler: DataExportHandler,
+    private readonly invoicePdfService: InvoicePdfService,
   ) {
     this.handler = serve({
       client: inngest,
@@ -115,6 +118,7 @@ export class InngestController {
         createAccountDeletionFunction(this.accountDeletionHandler),
         createComputeBenchmarksFunction(this.computeBenchmarksHandler),
         createDataExportFunction(this.dataExportHandler),
+        createGenerateInvoicePdfFunction(this.invoicePdfService),
       ],
     });
   }

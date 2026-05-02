@@ -9,6 +9,7 @@ import { RetryFailedPaymentsHandler } from '@/jobs/retry-failed-payments.process
 import { SendPaymentRemindersHandler } from '@/jobs/send-payment-reminders.processor';
 import { AccountDeletionHandler } from '@/jobs/account-deletion.processor';
 import { GenerateInvoicePdfProcessor } from '@/jobs/generate-invoice-pdf.processor';
+import { InvoicePdfService } from '@/jobs/invoice-pdf.service';
 import { CommunicationsHandler } from '@/communications/communications.processor';
 import { CalendarPushHandler } from '@/calendar/calendar-push.processor';
 import { CalendarSyncHandler } from '@/calendar/calendar-sync.processor';
@@ -488,7 +489,8 @@ describe('RLS tenant context in BullMQ job processors', () => {
           publicUrl: 'https://public.test/invoice.html',
         }),
       };
-      const handler = new GenerateInvoicePdfProcessor(prisma as never, uploadService as never);
+      const service = new InvoicePdfService(prisma as never, uploadService as never);
+      const handler = new GenerateInvoicePdfProcessor(service);
 
       const capturedTenantIds: string[] = [];
       prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {

@@ -77,6 +77,12 @@ type Events = {
       requestType?: 'USER_EXPORT' | 'TENANT_EXPORT';
     };
   };
+
+  // Phase 4n — invoices queue. Triggered by InvoicesService when a new
+  // invoice row is created.
+  'invoices/generateInvoicePdf': {
+    data: { tenantId: string; invoiceId: string };
+  };
 };
 
 export const inngest = new Inngest({

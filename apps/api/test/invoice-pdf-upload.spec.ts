@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { InvoicePdfService } from '../src/jobs/invoice-pdf.service';
 import { GenerateInvoicePdfProcessor } from '../src/jobs/generate-invoice-pdf.processor';
 import { JOB_GENERATE_INVOICE_PDF } from '../src/bullmq/queue.constants';
 
@@ -62,27 +63,20 @@ const mockInvoice = {
   },
 };
 
-describe('GenerateInvoicePdfProcessor — R2 upload (S8)', () => {
-  it('uploads invoice HTML to R2 and stores public URL', async () => {
+describe('InvoicePdfService — generate + upload (S8)', () => {
+  it('uploads invoice HTML to storage and stores public URL', async () => {
     const prisma = makePrisma();
     const uploadService = makeUploadService();
-    const processor = new GenerateInvoicePdfProcessor(
-      prisma as never,
-      uploadService as never,
-    );
+    const service = new InvoicePdfService(prisma as never, uploadService as never);
 
     prisma.invoice.findFirst.mockResolvedValue(mockInvoice);
     prisma.invoice.update.mockResolvedValue({});
 
-    // Mock global fetch for presigned URL PUT
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue({ ok: true }) as never;
 
     try {
-      await processor.process({
-        name: JOB_GENERATE_INVOICE_PDF,
-        data: { tenantId: 'tenant-1', invoiceId: 'inv-1' },
-      } as never);
+      await service.generateAndUpload({ tenantId: 'tenant-1', invoiceId: 'inv-1' });
 
       expect(uploadService.getPresignedUploadUrl).toHaveBeenCalledWith({
         tenantId: 'tenant-1',
@@ -101,21 +95,15 @@ describe('GenerateInvoicePdfProcessor — R2 upload (S8)', () => {
     }
   });
 
-  it('falls back to data URI when R2 upload fails', async () => {
+  it('falls back to data URI when storage upload fails', async () => {
     const prisma = makePrisma();
     const uploadService = makeUploadService(true);
-    const processor = new GenerateInvoicePdfProcessor(
-      prisma as never,
-      uploadService as never,
-    );
+    const service = new InvoicePdfService(prisma as never, uploadService as never);
 
     prisma.invoice.findFirst.mockResolvedValue(mockInvoice);
     prisma.invoice.update.mockResolvedValue({});
 
-    await processor.process({
-      name: JOB_GENERATE_INVOICE_PDF,
-      data: { tenantId: 'tenant-1', invoiceId: 'inv-1' },
-    } as never);
+    await service.generateAndUpload({ tenantId: 'tenant-1', invoiceId: 'inv-1' });
 
     const updateCall = prisma.invoice.update.mock.calls[0]![0] as {
       data: { pdfUrl: string };
@@ -126,35 +114,37 @@ describe('GenerateInvoicePdfProcessor — R2 upload (S8)', () => {
   it('skips processing when invoice not found', async () => {
     const prisma = makePrisma();
     const uploadService = makeUploadService();
-    const processor = new GenerateInvoicePdfProcessor(
-      prisma as never,
-      uploadService as never,
-    );
+    const service = new InvoicePdfService(prisma as never, uploadService as never);
 
     prisma.invoice.findFirst.mockResolvedValue(null);
 
-    await processor.process({
-      name: JOB_GENERATE_INVOICE_PDF,
-      data: { tenantId: 'tenant-1', invoiceId: 'inv-1' },
-    } as never);
+    await service.generateAndUpload({ tenantId: 'tenant-1', invoiceId: 'inv-1' });
 
     expect(uploadService.getPresignedUploadUrl).not.toHaveBeenCalled();
     expect(prisma.invoice.update).not.toHaveBeenCalled();
   });
+});
 
+describe('GenerateInvoicePdfProcessor — BullMQ adapter', () => {
   it('skips processing for non-matching job names', async () => {
-    const prisma = makePrisma();
-    const uploadService = makeUploadService();
-    const processor = new GenerateInvoicePdfProcessor(
-      prisma as never,
-      uploadService as never,
-    );
+    const service = { generateAndUpload: vi.fn() };
+    const processor = new GenerateInvoicePdfProcessor(service as never);
 
     await processor.process({
       name: 'someOtherJob',
       data: { tenantId: 'tenant-1', invoiceId: 'inv-1' },
     } as never);
 
-    expect(prisma.invoice.findFirst).not.toHaveBeenCalled();
+    expect(service.generateAndUpload).not.toHaveBeenCalled();
+  });
+
+  it('delegates job.data to InvoicePdfService for matching job name', async () => {
+    const service = { generateAndUpload: vi.fn().mockResolvedValue(undefined) };
+    const processor = new GenerateInvoicePdfProcessor(service as never);
+
+    const data = { tenantId: 'tenant-1', invoiceId: 'inv-1' };
+    await processor.process({ name: JOB_GENERATE_INVOICE_PDF, data } as never);
+
+    expect(service.generateAndUpload).toHaveBeenCalledWith(data);
   });
 });

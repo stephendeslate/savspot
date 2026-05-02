@@ -34,6 +34,7 @@ import { DetectOrphanPaymentsHandler } from './detect-orphan-payments.processor'
 import { ReconcilePaymentsHandler } from './reconcile-payments.processor';
 // Invoice processor (single worker — no dispatcher needed)
 import { GenerateInvoicePdfProcessor } from './generate-invoice-pdf.processor';
+import { InvoicePdfService } from './invoice-pdf.service';
 // GDPR handlers
 import { CleanupRetentionHandler } from './cleanup-retention.processor';
 import { DataExportHandler } from './data-export.processor';
@@ -92,6 +93,7 @@ import { JobSchedulerService } from './job-scheduler.service';
     DetectOrphanPaymentsHandler,
     ReconcilePaymentsHandler,
     // Invoice (single processor, no dispatcher)
+    InvoicePdfService,
     GenerateInvoicePdfProcessor,
     // GDPR handlers
     CleanupRetentionHandler,
@@ -105,11 +107,12 @@ import { JobSchedulerService } from './job-scheduler.service';
   ],
   exports: [
     // Exposed for InngestModule (Phase 4m onward) so the Inngest controller
-    // can DI the GDPR handlers into closure factories.
+    // can DI handler/service classes into closure factories.
     CleanupRetentionHandler,
     DataExportHandler,
     AccountDeletionHandler,
     ComputeBenchmarksHandler,
+    InvoicePdfService,
   ],
 })
 export class JobsModule {}
