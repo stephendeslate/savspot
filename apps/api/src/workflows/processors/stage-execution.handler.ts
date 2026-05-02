@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { StageAutomationService } from '../services/stage-automation.service';
 import { ExecutionService } from '../services/execution.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -22,8 +21,7 @@ export class StageExecutionHandler {
     private readonly prisma: PrismaService,
   ) {}
 
-  async handle(job: Job<StageExecutionJobData>): Promise<void> {
-    const data = job.data;
+  async handle(data: StageExecutionJobData): Promise<void> {
     this.logger.log(
       `Processing delayed stage ${data.stageId} for execution=${data.executionId}`,
     );

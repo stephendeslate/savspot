@@ -50,6 +50,22 @@ type Events = {
   'accounting/accountingSyncSingleInvoice': {
     data: { connectionId: string; tenantId: string; invoiceId: string };
   };
+
+  // Phase 4l — webhooks queue (workflows EE module).
+  // dispatchWebhook: HMAC-sign + POST a WebhookDelivery row.
+  // executeStage: run a delayed workflow stage.
+  'webhooks/dispatchWebhook': {
+    data: { deliveryId: string };
+  };
+  'webhooks/executeStage': {
+    data: {
+      executionId: string;
+      stageId: string;
+      tenantId: string;
+      bookingId: string | null;
+      eventPayload: Record<string, unknown>;
+    };
+  };
 };
 
 export const inngest = new Inngest({

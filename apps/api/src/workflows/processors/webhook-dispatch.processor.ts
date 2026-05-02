@@ -1,9 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { createHmac } from 'node:crypto';
 import { Prisma } from '../../../../../prisma/generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WebhookService } from '../services/webhook.service';
+
+export interface WebhookDispatchJobData {
+  deliveryId: string;
+}
 
 const RETRY_DELAYS_MS = [
   60_000,       // 1 minute
@@ -24,8 +27,8 @@ export class WebhookDispatchHandler {
     private readonly webhookService: WebhookService,
   ) {}
 
-  async handle(job: Job<{ deliveryId: string }>): Promise<void> {
-    const { deliveryId } = job.data;
+  async handle(data: WebhookDispatchJobData): Promise<void> {
+    const { deliveryId } = data;
 
     const delivery = await this.prisma.webhookDelivery.findUnique({
       where: { id: deliveryId },

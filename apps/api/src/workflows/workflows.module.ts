@@ -43,6 +43,12 @@ import { WebhooksDispatcher } from './webhooks.dispatcher';
     StageExecutionHandler,
     WebhooksDispatcher,
   ],
-  exports: [WorkflowEngineService, WebhookService, ExecutionService],
+  exports: [
+    WorkflowEngineService,
+    WebhookService,
+    ExecutionService,
+    WebhookDispatchHandler,
+    StageExecutionHandler,
+  ],
 })
 export class WorkflowsModule {}
