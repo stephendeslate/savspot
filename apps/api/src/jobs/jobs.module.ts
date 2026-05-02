@@ -1,25 +1,7 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
-import {
-  QUEUE_BOOKINGS,
-  QUEUE_PAYMENTS,
-  QUEUE_CALENDAR,
-  QUEUE_COMMUNICATIONS,
-  QUEUE_INVOICES,
-  QUEUE_GDPR,
-  QUEUE_PLATFORM_METRICS,
-  QUEUE_AI_OPERATIONS,
-  QUEUE_DIRECTORY,
-  QUEUE_CUSTOM_DOMAINS,
-  QUEUE_PARTNERS,
-} from '../bullmq/queue.constants';
 import { PaymentsModule } from '../payments/payments.module';
 import { CommunicationsModule } from '../communications/communications.module';
 import { UploadModule } from '../upload/upload.module';
-// Dispatchers (one @Processor per queue)
-import { BookingsDispatcher } from './bookings.dispatcher';
-import { PaymentsDispatcher } from './payments.dispatcher';
-import { GdprDispatcher } from './gdpr.dispatcher';
 // Bookings handlers
 import { ExpireReservationsHandler } from './expire-reservations.processor';
 import { AbandonedRecoveryHandler } from './abandoned-recovery.processor';
@@ -32,8 +14,7 @@ import { RetryFailedPaymentsHandler } from './retry-failed-payments.processor';
 import { ProcessWebhookRetriesHandler } from './process-webhook-retries.processor';
 import { DetectOrphanPaymentsHandler } from './detect-orphan-payments.processor';
 import { ReconcilePaymentsHandler } from './reconcile-payments.processor';
-// Invoice processor (single worker — no dispatcher needed)
-import { GenerateInvoicePdfProcessor } from './generate-invoice-pdf.processor';
+// Invoice service (BullMQ processor retired in Phase 4n cleanup)
 import { InvoicePdfService } from './invoice-pdf.service';
 // GDPR handlers
 import { CleanupRetentionHandler } from './cleanup-retention.processor';
@@ -47,39 +28,24 @@ import { ComputeBenchmarksHandler } from './compute-benchmarks.processor';
 import { JobSchedulerService } from './job-scheduler.service';
 
 /**
- * Module that registers all scheduled background job processors.
+ * Module that exposes the handler classes formerly invoked by per-queue
+ * BullMQ dispatchers. Each handler is now invoked directly by an Inngest
+ * function defined in `apps/api/src/inngest/functions/`.
  *
- * Each queue has a single Dispatcher (@Processor) that routes jobs by name
- * to Injectable handler classes. This prevents BullMQ from creating competing
- * workers that silently drop jobs.
- *
- * JobSchedulerService registers all repeatable cron schedules on module init.
+ * Phase 4l-4s cleanup retired the BullMQ dispatchers (BookingsDispatcher,
+ * PaymentsDispatcher, GdprDispatcher, GenerateInvoicePdfProcessor) and the
+ * per-feature-module @Processor classes. JobSchedulerService remains for
+ * the one-shot Redis cleanup of stale repeatable entries; it has an empty
+ * schedules array post-cleanup and will be deleted in Phase 4 cleanup B.
  */
 @Module({
   imports: [
-    BullModule.registerQueue(
-      { name: QUEUE_BOOKINGS },
-      { name: QUEUE_PAYMENTS },
-      { name: QUEUE_CALENDAR },
-      { name: QUEUE_COMMUNICATIONS },
-      { name: QUEUE_INVOICES },
-      { name: QUEUE_GDPR },
-      { name: QUEUE_PLATFORM_METRICS },
-      { name: QUEUE_AI_OPERATIONS },
-      { name: QUEUE_DIRECTORY },
-      { name: QUEUE_CUSTOM_DOMAINS },
-      { name: QUEUE_PARTNERS },
-    ),
     PaymentsModule,
     CommunicationsModule,
     UploadModule,
   ],
   providers: [
     JobSchedulerService,
-    // Dispatchers
-    BookingsDispatcher,
-    PaymentsDispatcher,
-    GdprDispatcher,
     // Bookings handlers
     ExpireReservationsHandler,
     AbandonedRecoveryHandler,
@@ -92,9 +58,8 @@ import { JobSchedulerService } from './job-scheduler.service';
     ProcessWebhookRetriesHandler,
     DetectOrphanPaymentsHandler,
     ReconcilePaymentsHandler,
-    // Invoice (single processor, no dispatcher)
+    // Invoice service (PDF rendering — used by Inngest function directly)
     InvoicePdfService,
-    GenerateInvoicePdfProcessor,
     // GDPR handlers
     CleanupRetentionHandler,
     DataExportHandler,

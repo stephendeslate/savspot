@@ -1,7 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { InvoicePdfService } from '../src/jobs/invoice-pdf.service';
-import { GenerateInvoicePdfProcessor } from '../src/jobs/generate-invoice-pdf.processor';
-import { JOB_GENERATE_INVOICE_PDF } from '../src/bullmq/queue.constants';
 
 function makePrisma() {
   const prisma = {
@@ -125,26 +123,3 @@ describe('InvoicePdfService — generate + upload (S8)', () => {
   });
 });
 
-describe('GenerateInvoicePdfProcessor — BullMQ adapter', () => {
-  it('skips processing for non-matching job names', async () => {
-    const service = { generateAndUpload: vi.fn() };
-    const processor = new GenerateInvoicePdfProcessor(service as never);
-
-    await processor.process({
-      name: 'someOtherJob',
-      data: { tenantId: 'tenant-1', invoiceId: 'inv-1' },
-    } as never);
-
-    expect(service.generateAndUpload).not.toHaveBeenCalled();
-  });
-
-  it('delegates job.data to InvoicePdfService for matching job name', async () => {
-    const service = { generateAndUpload: vi.fn().mockResolvedValue(undefined) };
-    const processor = new GenerateInvoicePdfProcessor(service as never);
-
-    const data = { tenantId: 'tenant-1', invoiceId: 'inv-1' };
-    await processor.process({ name: JOB_GENERATE_INVOICE_PDF, data } as never);
-
-    expect(service.generateAndUpload).toHaveBeenCalledWith(data);
-  });
-});
