@@ -103,5 +103,13 @@ import { JobSchedulerService } from './job-scheduler.service';
     ComputeDemandAnalysisHandler,
     ComputeBenchmarksHandler,
   ],
+  exports: [
+    // Exposed for InngestModule (Phase 4m onward) so the Inngest controller
+    // can DI the GDPR handlers into closure factories.
+    CleanupRetentionHandler,
+    DataExportHandler,
+    AccountDeletionHandler,
+    ComputeBenchmarksHandler,
+  ],
 })
 export class JobsModule {}

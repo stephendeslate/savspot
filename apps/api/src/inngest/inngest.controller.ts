@@ -13,6 +13,10 @@ import { CurrencyService } from '@/currency/currency.service';
 import { CustomDomainsService } from '@/custom-domains/custom-domains.service';
 import { DirectoryListingService } from '@/directory/directory-listing.service';
 import { ImportsService } from '@/imports/imports.service';
+import { AccountDeletionHandler } from '@/jobs/account-deletion.processor';
+import { CleanupRetentionHandler } from '@/jobs/cleanup-retention.processor';
+import { ComputeBenchmarksHandler } from '@/jobs/compute-benchmarks.processor';
+import { DataExportHandler } from '@/jobs/data-export.processor';
 import { PartnerPayoutService } from '@/partners/partner-payout.service';
 import { PlatformMetricsService } from '@/platform-metrics/platform-metrics.service';
 import { VoiceCallEventsService } from '@/voice/services/voice-call-events.service';
@@ -39,6 +43,10 @@ import { createPostCallActionsFunction } from './functions/voice-calls/post-call
 import { createProcessTranscriptFunction } from './functions/voice-calls/process-transcript.function';
 import { createDispatchWebhookFunction } from './functions/webhooks/dispatch-webhook.function';
 import { createExecuteStageFunction } from './functions/webhooks/execute-stage.function';
+import { createAccountDeletionFunction } from './functions/gdpr/account-deletion.function';
+import { createCleanupRetentionFunction } from './functions/gdpr/cleanup-retention.function';
+import { createComputeBenchmarksFunction } from './functions/gdpr/compute-benchmarks.function';
+import { createDataExportFunction } from './functions/gdpr/data-export.function';
 
 /**
  * Serves Inngest's webhook endpoint at /inngest. Inngest cloud:
@@ -77,6 +85,10 @@ export class InngestController {
     private readonly accountingSyncSingleInvoiceHandler: AccountingSyncSingleInvoiceHandler,
     private readonly webhookDispatchHandler: WebhookDispatchHandler,
     private readonly stageExecutionHandler: StageExecutionHandler,
+    private readonly cleanupRetentionHandler: CleanupRetentionHandler,
+    private readonly accountDeletionHandler: AccountDeletionHandler,
+    private readonly computeBenchmarksHandler: ComputeBenchmarksHandler,
+    private readonly dataExportHandler: DataExportHandler,
   ) {
     this.handler = serve({
       client: inngest,
@@ -99,6 +111,10 @@ export class InngestController {
         createAccountingSyncSingleInvoiceFunction(this.accountingSyncSingleInvoiceHandler),
         createDispatchWebhookFunction(this.webhookDispatchHandler),
         createExecuteStageFunction(this.stageExecutionHandler),
+        createCleanupRetentionFunction(this.cleanupRetentionHandler),
+        createAccountDeletionFunction(this.accountDeletionHandler),
+        createComputeBenchmarksFunction(this.computeBenchmarksHandler),
+        createDataExportFunction(this.dataExportHandler),
       ],
     });
   }

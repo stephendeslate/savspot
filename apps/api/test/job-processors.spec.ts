@@ -108,7 +108,7 @@ describe('CleanupRetentionHandler', () => {
       fn(mockTx),
     );
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
@@ -137,7 +137,7 @@ describe('CleanupRetentionHandler', () => {
   it('should handle no tenants with data to clean', async () => {
     prisma.$queryRaw.mockResolvedValue([]);
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
@@ -145,7 +145,7 @@ describe('CleanupRetentionHandler', () => {
   it('should re-throw errors from the database', async () => {
     prisma.$queryRaw.mockRejectedValue(new Error('Permission denied'));
 
-    await expect(handler.handle(makeJob()))
+    await expect(handler.handle())
       .rejects.toThrow('Permission denied');
   });
 });

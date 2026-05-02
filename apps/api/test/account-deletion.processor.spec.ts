@@ -31,10 +31,6 @@ function makeDeletionRequest(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function makeJob() {
-  return { data: {} } as never;
-}
-
 // ---------------------------------------------------------------------------
 // Suite
 // ---------------------------------------------------------------------------
@@ -51,7 +47,7 @@ describe('AccountDeletionHandler', () => {
   it('should skip when no pending deletion requests exist', async () => {
     prisma.dataRequest.findMany.mockResolvedValue([]);
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.$queryRaw).not.toHaveBeenCalled();
     expect(prisma.$transaction).not.toHaveBeenCalled();
@@ -87,7 +83,7 @@ describe('AccountDeletionHandler', () => {
       },
     );
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     // One per-tenant transaction + one global transaction
     expect(prisma.$transaction).toHaveBeenCalledTimes(2);
@@ -165,7 +161,7 @@ describe('AccountDeletionHandler', () => {
     );
 
     // Should not throw despite first request failing
-    await handler.handle(makeJob());
+    await handler.handle();
 
     // Only the second user's global transaction runs (no tenant-scoped ones since no tenants)
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
@@ -174,7 +170,7 @@ describe('AccountDeletionHandler', () => {
   it('should query only PENDING deletions past deadline', async () => {
     prisma.dataRequest.findMany.mockResolvedValue([]);
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.dataRequest.findMany).toHaveBeenCalledWith({
       where: {

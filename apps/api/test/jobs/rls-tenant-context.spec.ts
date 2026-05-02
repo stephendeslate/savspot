@@ -155,7 +155,7 @@ describe('RLS tenant context in BullMQ job processors', () => {
         return result;
       });
 
-      await handler.handle(makeJob());
+      await handler.handle();
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(capturedTenantIds).toEqual(['tenant-cleanup']);
@@ -467,7 +467,7 @@ describe('RLS tenant context in BullMQ job processors', () => {
         return result;
       });
 
-      await handler.handle(makeJob());
+      await handler.handle();
 
       // One tenant-scoped tx + one global tx
       expect(prisma.$transaction).toHaveBeenCalledTimes(2);

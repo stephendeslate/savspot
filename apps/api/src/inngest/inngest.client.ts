@@ -66,6 +66,17 @@ type Events = {
       eventPayload: Record<string, unknown>;
     };
   };
+
+  // Phase 4m — gdpr queue. Only the data-export job carries a payload;
+  // the other three are cron-triggered and have no event payload.
+  'gdpr/processDataExportRequest': {
+    data: {
+      dataRequestId: string;
+      userId: string;
+      tenantId?: string;
+      requestType?: 'USER_EXPORT' | 'TENANT_EXPORT';
+    };
+  };
 };
 
 export const inngest = new Inngest({

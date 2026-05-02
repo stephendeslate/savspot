@@ -9,7 +9,7 @@ import {
   JOB_COMPUTE_BENCHMARKS,
 } from '../bullmq/queue.constants';
 import { CleanupRetentionHandler } from './cleanup-retention.processor';
-import { DataExportHandler } from './data-export.processor';
+import { DataExportHandler, DataExportPayload } from './data-export.processor';
 import { AccountDeletionHandler } from './account-deletion.processor';
 import { ComputeBenchmarksHandler } from './compute-benchmarks.processor';
 
@@ -29,13 +29,13 @@ export class GdprDispatcher extends WorkerHost {
   async process(job: Job): Promise<void> {
     switch (job.name) {
       case JOB_CLEANUP_RETENTION:
-        return this.cleanupRetention.handle(job);
+        return this.cleanupRetention.handle();
       case JOB_PROCESS_DATA_EXPORT:
-        return this.dataExport.handle(job);
+        return this.dataExport.handle((job as Job<DataExportPayload>).data);
       case JOB_PROCESS_ACCOUNT_DELETION:
-        return this.accountDeletion.handle(job);
+        return this.accountDeletion.handle();
       case JOB_COMPUTE_BENCHMARKS:
-        return this.computeBenchmarks.handle(job);
+        return this.computeBenchmarks.handle();
       default:
         this.logger.warn(`Unknown GDPR job: ${job.name}`);
     }

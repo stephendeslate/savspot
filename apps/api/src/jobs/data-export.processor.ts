@@ -1,12 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { DataRequestStatus } from '../../../../prisma/generated/prisma';
 import { UploadService } from '../upload/upload.service';
 
 export const JOB_PROCESS_DATA_EXPORT = 'processDataExportRequest';
 
-interface DataExportPayload {
+export interface DataExportPayload {
   dataRequestId: string;
   userId: string;
   tenantId?: string;
@@ -27,8 +26,8 @@ export class DataExportHandler {
     private readonly uploadService: UploadService,
   ) {}
 
-  async handle(job: Job<DataExportPayload>): Promise<void> {
-    const { dataRequestId, userId } = job.data;
+  async handle(data: DataExportPayload): Promise<void> {
+    const { dataRequestId, userId } = data;
     this.logger.log(`Processing data export request ${dataRequestId} for user ${userId}`);
 
     try {
@@ -43,7 +42,7 @@ export class DataExportHandler {
       }
 
       // Gather data based on request type
-      const { tenantId, requestType } = job.data;
+      const { tenantId, requestType } = data;
       const exportData =
         requestType === 'TENANT_EXPORT' && tenantId
           ? await this.gatherTenantData(tenantId)

@@ -4,6 +4,7 @@ import { CurrencyModule } from '../currency/currency.module';
 import { CustomDomainsModule } from '../custom-domains/custom-domains.module';
 import { DirectoryModule } from '../directory/directory.module';
 import { ImportsModule } from '../imports/imports.module';
+import { JobsModule } from '../jobs/jobs.module';
 import { PartnersModule } from '../partners/partners.module';
 import { PlatformMetricsModule } from '../platform-metrics/platform-metrics.module';
 import { VoiceModule } from '../voice/voice.module';
@@ -23,7 +24,8 @@ export const INNGEST_CLIENT = 'INNGEST_CLIENT';
     // PlatformMetricsModule. Phase 4j: VoiceModule. Phase 4k:
     // AccountingModule. Phase 4l: WorkflowsModule (note: WorkflowsModule
     // is also added to app.module via the EE getEeModules() loader; the
-    // duplicate import is deduped by NestJS DI).
+    // duplicate import is deduped by NestJS DI). Phase 4m: JobsModule
+    // (exposes the GDPR handler classes).
     CurrencyModule,
     DirectoryModule,
     PartnersModule,
@@ -33,6 +35,7 @@ export const INNGEST_CLIENT = 'INNGEST_CLIENT';
     VoiceModule,
     AccountingModule,
     WorkflowsModule,
+    JobsModule,
   ],
   controllers: [InngestController],
   providers: [

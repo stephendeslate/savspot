@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { DataRequestType, DataRequestStatus, Prisma } from '../../../../prisma/generated/prisma';
 
@@ -16,7 +15,7 @@ export class AccountDeletionHandler {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async handle(_job: Job): Promise<void> {
+  async handle(): Promise<void> {
     this.logger.log('Running account deletion processor...');
 
     try {
