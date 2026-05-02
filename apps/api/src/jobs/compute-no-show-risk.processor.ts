@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 
 interface UpcomingBookingRow {
@@ -31,7 +30,7 @@ export class ComputeNoShowRiskHandler {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async handle(_job: Job): Promise<void> {
+  async handle(): Promise<void> {
     this.logger.log('Starting no-show risk computation');
 
     const upcomingBookings = await this.prisma.$queryRaw<UpcomingBookingRow[]>`

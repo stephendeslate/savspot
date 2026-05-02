@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationsService } from '../communications/communications.service';
 
@@ -19,7 +18,7 @@ export class AbandonedRecoveryHandler {
     private readonly communicationsService: CommunicationsService,
   ) {}
 
-  async handle(_job: Job): Promise<void> {
+  async handle(): Promise<void> {
     this.logger.log('Running abandoned booking recovery job...');
 
     try {

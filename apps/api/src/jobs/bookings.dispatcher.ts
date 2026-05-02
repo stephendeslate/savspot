@@ -35,17 +35,17 @@ export class BookingsDispatcher extends WorkerHost {
   async process(job: Job): Promise<void> {
     switch (job.name) {
       case JOB_EXPIRE_RESERVATIONS:
-        return this.expireReservations.handle(job);
+        return this.expireReservations.handle();
       case JOB_ABANDONED_BOOKING_RECOVERY:
-        return this.abandonedRecovery.handle(job);
+        return this.abandonedRecovery.handle();
       case JOB_PROCESS_COMPLETED_BOOKINGS:
-        return this.processCompleted.handle(job);
+        return this.processCompleted.handle();
       case JOB_ENFORCE_APPROVAL_DEADLINES:
-        return this.enforceApprovals.handle(job);
+        return this.enforceApprovals.handle();
       case JOB_COMPUTE_NO_SHOW_RISK:
-        return this.computeNoShowRisk.handle(job);
+        return this.computeNoShowRisk.handle();
       case JOB_COMPUTE_DEMAND_ANALYSIS:
-        return this.computeDemandAnalysis.handle(job);
+        return this.computeDemandAnalysis.handle();
       default:
         this.logger.warn(`Unknown bookings job: ${job.name}`);
     }

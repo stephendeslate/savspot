@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**
@@ -14,7 +13,7 @@ export class ExpireReservationsHandler {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async handle(_job: Job): Promise<void> {
+  async handle(): Promise<void> {
     this.logger.log('Running expire reservations job...');
 
     try {

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Job, Queue } from 'bullmq';
+import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   QUEUE_PAYMENTS,
@@ -33,7 +33,7 @@ export class EnforceApprovalDeadlinesHandler {
     @InjectQueue(QUEUE_PAYMENTS) private readonly paymentsQueue: Queue,
   ) {}
 
-  async handle(_job: Job): Promise<void> {
+  async handle(): Promise<void> {
     this.logger.log('Running enforce approval deadlines job...');
 
     try {

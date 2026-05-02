@@ -113,6 +113,13 @@ import { JobSchedulerService } from './job-scheduler.service';
     AccountDeletionHandler,
     ComputeBenchmarksHandler,
     InvoicePdfService,
+    // Phase 4p — bookings handlers
+    ExpireReservationsHandler,
+    AbandonedRecoveryHandler,
+    ProcessCompletedBookingsHandler,
+    EnforceApprovalDeadlinesHandler,
+    ComputeNoShowRiskHandler,
+    ComputeDemandAnalysisHandler,
   ],
 })
 export class JobsModule {}
