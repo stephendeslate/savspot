@@ -1,12 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GoogleCalendarService } from '../calendar.service';
 import { OutlookCalendarService } from '../outlook-calendar.service';
-
-interface WebhookRenewJobData {
-  tenantId?: string;
-}
 
 @Injectable()
 export class CalendarWebhookRenewGoogleHandler {
@@ -17,7 +12,7 @@ export class CalendarWebhookRenewGoogleHandler {
     private readonly googleCalendar: GoogleCalendarService,
   ) {}
 
-  async handle(_job: Job<WebhookRenewJobData>): Promise<void> {
+  async handle(): Promise<void> {
     this.logger.log('Starting Google calendar webhook renewal');
 
     const connections = await this.prisma.calendarConnection.findMany({
@@ -48,7 +43,7 @@ export class CalendarWebhookRenewOutlookHandler {
     private readonly outlookCalendar: OutlookCalendarService,
   ) {}
 
-  async handle(_job: Job<WebhookRenewJobData>): Promise<void> {
+  async handle(): Promise<void> {
     this.logger.log('Starting Outlook calendar webhook renewal');
 
     const connections = await this.prisma.calendarConnection.findMany({

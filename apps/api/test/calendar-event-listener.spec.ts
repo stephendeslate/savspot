@@ -8,7 +8,10 @@ import {
   BookingRescheduledPayload,
   BookingCancelledPayload,
 } from '../src/events/event.types';
-import { JOB_CALENDAR_EVENT_PUSH } from '../src/bullmq/queue.constants';
+import {
+  QUEUE_CALENDAR,
+  JOB_CALENDAR_EVENT_PUSH,
+} from '../src/bullmq/queue.constants';
 
 function makePrisma() {
   return {
@@ -18,9 +21,9 @@ function makePrisma() {
   };
 }
 
-function makeQueue() {
+function makeDispatcher() {
   return {
-    add: vi.fn().mockResolvedValue(undefined),
+    dispatch: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -43,12 +46,12 @@ function basePayload(overrides: Partial<BookingEventPayload> = {}): BookingEvent
 describe('CalendarEventListener', () => {
   let listener: CalendarEventListener;
   let prisma: ReturnType<typeof makePrisma>;
-  let queue: ReturnType<typeof makeQueue>;
+  let dispatcher: ReturnType<typeof makeDispatcher>;
 
   beforeEach(() => {
     prisma = makePrisma();
-    queue = makeQueue();
-    listener = new CalendarEventListener(queue as never, prisma as never);
+    dispatcher = makeDispatcher();
+    listener = new CalendarEventListener(dispatcher as never, prisma as never);
   });
 
   describe('onBookingConfirmed', () => {
@@ -60,8 +63,9 @@ describe('CalendarEventListener', () => {
 
       await listener.onBookingConfirmed(basePayload());
 
-      expect(queue.add).toHaveBeenCalledTimes(2);
-      expect(queue.add).toHaveBeenCalledWith(
+      expect(dispatcher.dispatch).toHaveBeenCalledTimes(2);
+      expect(dispatcher.dispatch).toHaveBeenCalledWith(
+        QUEUE_CALENDAR,
         JOB_CALENDAR_EVENT_PUSH,
         expect.objectContaining({
           eventType: BOOKING_CONFIRMED,
@@ -71,7 +75,8 @@ describe('CalendarEventListener', () => {
           clientName: 'Jane Doe',
         }),
       );
-      expect(queue.add).toHaveBeenCalledWith(
+      expect(dispatcher.dispatch).toHaveBeenCalledWith(
+        QUEUE_CALENDAR,
         JOB_CALENDAR_EVENT_PUSH,
         expect.objectContaining({
           connectionId: 'conn-2',
@@ -84,7 +89,7 @@ describe('CalendarEventListener', () => {
 
       await listener.onBookingConfirmed(basePayload());
 
-      expect(queue.add).not.toHaveBeenCalled();
+      expect(dispatcher.dispatch).not.toHaveBeenCalled();
     });
 
     it('serializes Date objects to ISO strings', async () => {
@@ -92,7 +97,10 @@ describe('CalendarEventListener', () => {
 
       await listener.onBookingConfirmed(basePayload());
 
-      const jobData = queue.add.mock.calls[0]![1] as Record<string, unknown>;
+      const jobData = dispatcher.dispatch.mock.calls[0]![2] as Record<
+        string,
+        unknown
+      >;
       expect(jobData['startTime']).toBe('2026-04-01T10:00:00.000Z');
       expect(jobData['endTime']).toBe('2026-04-01T11:00:00.000Z');
       expect(typeof jobData['startTime']).toBe('string');
@@ -124,7 +132,8 @@ describe('CalendarEventListener', () => {
 
       await listener.onBookingRescheduled(payload);
 
-      expect(queue.add).toHaveBeenCalledWith(
+      expect(dispatcher.dispatch).toHaveBeenCalledWith(
+        QUEUE_CALENDAR,
         JOB_CALENDAR_EVENT_PUSH,
         expect.objectContaining({
           eventType: BOOKING_RESCHEDULED,
@@ -148,7 +157,8 @@ describe('CalendarEventListener', () => {
 
       await listener.onBookingCancelled(payload);
 
-      expect(queue.add).toHaveBeenCalledWith(
+      expect(dispatcher.dispatch).toHaveBeenCalledWith(
+        QUEUE_CALENDAR,
         JOB_CALENDAR_EVENT_PUSH,
         expect.objectContaining({
           eventType: BOOKING_CANCELLED,

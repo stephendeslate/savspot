@@ -5,8 +5,6 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import * as crypto from 'crypto';
 import { google, calendar_v3 } from 'googleapis';
 
@@ -15,6 +13,7 @@ type OAuth2Client = InstanceType<typeof google.auth.OAuth2>;
 import { Prisma } from '../../../../prisma/generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
+import { JobDispatcher } from '../bullmq/job-dispatcher.service';
 import {
   QUEUE_CALENDAR,
   JOB_CALENDAR_TWO_WAY_SYNC,
@@ -45,7 +44,7 @@ export class GoogleCalendarService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
-    @InjectQueue(QUEUE_CALENDAR) private readonly calendarQueue: Queue,
+    private readonly dispatcher: JobDispatcher,
   ) {
     this.clientId = this.configService.get<string>(
       'googleCalendar.clientId',
@@ -345,8 +344,8 @@ export class GoogleCalendarService {
       await this.redisService.set(rateLimitKey, String(count + 1));
     }
 
-    // Enqueue sync job
-    await this.calendarQueue.add(JOB_CALENDAR_TWO_WAY_SYNC, {
+    // Enqueue sync job (routes to BullMQ or Inngest per QUEUE_CALENDAR_PROVIDER)
+    await this.dispatcher.dispatch(QUEUE_CALENDAR, JOB_CALENDAR_TWO_WAY_SYNC, {
       connectionId: connection.id,
       tenantId: connection.tenantId,
       manual: true,

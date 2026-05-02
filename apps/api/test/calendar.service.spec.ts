@@ -132,10 +132,10 @@ function makeRedis() {
   };
 }
 
-function makeQueue() {
+function makeDispatcher() {
   return {
-    add: vi.fn(),
-    addBulk: vi.fn(),
+    dispatch: vi.fn().mockResolvedValue(undefined),
+    dispatchBulk: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -165,18 +165,18 @@ describe('GoogleCalendarService', () => {
   let service: GoogleCalendarService;
   let prisma: ReturnType<typeof makePrisma>;
   let redis: ReturnType<typeof makeRedis>;
-  let queue: ReturnType<typeof makeQueue>;
+  let dispatcher: ReturnType<typeof makeDispatcher>;
 
   beforeEach(() => {
     prisma = makePrisma();
     const config = makeConfig();
     redis = makeRedis();
-    queue = makeQueue();
+    dispatcher = makeDispatcher();
     service = new GoogleCalendarService(
       prisma as never,
       config as never,
       redis as never,
-      queue as never,
+      dispatcher as never,
     );
     vi.clearAllMocks();
   });
@@ -458,7 +458,6 @@ describe('GoogleCalendarService', () => {
     it('should set rate limit counter with 1-hour TTL on first sync', async () => {
       prisma.calendarConnection.findUnique.mockResolvedValue(makeConnection());
       redis.get.mockResolvedValue(null);
-      queue.add.mockResolvedValue({});
 
       await service.manualSync(CONNECTION_ID);
 
@@ -472,7 +471,6 @@ describe('GoogleCalendarService', () => {
     it('should increment rate limit counter on subsequent syncs', async () => {
       prisma.calendarConnection.findUnique.mockResolvedValue(makeConnection());
       redis.get.mockResolvedValue('2');
-      queue.add.mockResolvedValue({});
 
       await service.manualSync(CONNECTION_ID);
 
@@ -485,11 +483,11 @@ describe('GoogleCalendarService', () => {
     it('should enqueue a sync job with manual=true', async () => {
       prisma.calendarConnection.findUnique.mockResolvedValue(makeConnection());
       redis.get.mockResolvedValue(null);
-      queue.add.mockResolvedValue({});
 
       await service.manualSync(CONNECTION_ID);
 
-      expect(queue.add).toHaveBeenCalledWith(
+      expect(dispatcher.dispatch).toHaveBeenCalledWith(
+        expect.any(String),
         expect.any(String),
         expect.objectContaining({
           connectionId: CONNECTION_ID,
@@ -699,7 +697,7 @@ describe('GoogleCalendarService', () => {
         prisma as never,
         config as never,
         redis as never,
-        queue as never,
+        dispatcher as never,
       );
 
       prisma.calendarConnection.findUnique.mockResolvedValue(makeConnection());

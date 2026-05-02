@@ -9,9 +9,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { Public } from '../common/decorators/public.decorator';
+import { JobDispatcher } from '../bullmq/job-dispatcher.service';
 import {
   QUEUE_CALENDAR,
   JOB_CALENDAR_TWO_WAY_SYNC,
@@ -37,7 +36,7 @@ export class OutlookWebhookController {
 
   constructor(
     private readonly outlookService: OutlookCalendarService,
-    @InjectQueue(QUEUE_CALENDAR) private readonly calendarQueue: Queue,
+    private readonly dispatcher: JobDispatcher,
   ) {}
 
   @Post()
@@ -85,7 +84,8 @@ export class OutlookWebhookController {
           continue;
         }
 
-        await this.calendarQueue.add(
+        await this.dispatcher.dispatch(
+          QUEUE_CALENDAR,
           JOB_CALENDAR_TWO_WAY_SYNC,
           {
             connectionId: connection.id,

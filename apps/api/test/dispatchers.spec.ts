@@ -226,45 +226,47 @@ describe('CalendarDispatcher', () => {
   });
 
   it('should route calendarEventPush correctly', async () => {
-    const job = makeJob('calendarEventPush');
+    const data = { eventType: 'booking.confirmed', tenantId: 't-1', bookingId: 'b-1' };
+    const job = makeJob('calendarEventPush', data);
     await dispatcher.process(job);
-    expect(pushHandler.handle).toHaveBeenCalledWith(job);
+    expect(pushHandler.handle).toHaveBeenCalledWith(data);
   });
 
   it('should route calendarTwoWaySync correctly', async () => {
-    const job = makeJob('calendarTwoWaySync');
+    const data = { connectionId: 'c-1', tenantId: 't-1' };
+    const job = makeJob('calendarTwoWaySync', data);
     await dispatcher.process(job);
-    expect(syncHandler.handle).toHaveBeenCalledWith(job);
+    expect(syncHandler.handle).toHaveBeenCalledWith(data);
   });
 
   it('should route calendarTokenRefresh correctly', async () => {
     const job = makeJob('calendarTokenRefresh');
     await dispatcher.process(job);
-    expect(tokenHandler.handle).toHaveBeenCalledWith(job);
+    expect(tokenHandler.handle).toHaveBeenCalledWith();
   });
 
   it('should route calendarWatchRenewal correctly', async () => {
     const job = makeJob('calendarWatchRenewal');
     await dispatcher.process(job);
-    expect(watchRenewalHandler.handle).toHaveBeenCalledWith(job);
+    expect(watchRenewalHandler.handle).toHaveBeenCalledWith();
   });
 
   it('should route calendarWebhookRenewGoogle correctly', async () => {
     const job = makeJob('calendarWebhookRenewGoogle');
     await dispatcher.process(job);
-    expect(webhookRenewGoogleHandler.handle).toHaveBeenCalledWith(job);
+    expect(webhookRenewGoogleHandler.handle).toHaveBeenCalledWith();
   });
 
   it('should route calendarWebhookRenewOutlook correctly', async () => {
     const job = makeJob('calendarWebhookRenewOutlook');
     await dispatcher.process(job);
-    expect(webhookRenewOutlookHandler.handle).toHaveBeenCalledWith(job);
+    expect(webhookRenewOutlookHandler.handle).toHaveBeenCalledWith();
   });
 
   it('should route calendarSyncFallback correctly', async () => {
     const job = makeJob('calendarSyncFallback');
     await dispatcher.process(job);
-    expect(syncFallbackHandler.handle).toHaveBeenCalledWith(job);
+    expect(syncFallbackHandler.handle).toHaveBeenCalledWith();
   });
 
   it('should not throw for unknown job names', async () => {

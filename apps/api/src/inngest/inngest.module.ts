@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { AccountingModule } from '../accounting/accounting.module';
+import { CalendarModule } from '../calendar/calendar.module';
 import { CurrencyModule } from '../currency/currency.module';
 import { CustomDomainsModule } from '../custom-domains/custom-domains.module';
 import { DirectoryModule } from '../directory/directory.module';
@@ -27,6 +28,7 @@ export const INNGEST_CLIENT = 'INNGEST_CLIENT';
     // is also added to app.module via the EE getEeModules() loader; the
     // duplicate import is deduped by NestJS DI). Phase 4m: JobsModule
     // (exposes the GDPR handler classes). Phase 4o: RecommendationsModule.
+    // Phase 4q: CalendarModule (exposes the six calendar queue handlers).
     CurrencyModule,
     DirectoryModule,
     PartnersModule,
@@ -38,6 +40,7 @@ export const INNGEST_CLIENT = 'INNGEST_CLIENT';
     WorkflowsModule,
     JobsModule,
     RecommendationsModule,
+    CalendarModule,
   ],
   controllers: [InngestController],
   providers: [

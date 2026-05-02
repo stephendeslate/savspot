@@ -544,19 +544,17 @@ describe('RLS tenant context in BullMQ job processors', () => {
         return result;
       });
 
-      const job = {
-        data: {
-          eventType: 'booking.confirmed',
-          tenantId: 'tenant-cal',
-          bookingId: 'booking-cal',
-          serviceName: 'Haircut',
-          clientName: 'Jane',
-          startTime: new Date().toISOString(),
-          endTime: new Date().toISOString(),
-        },
-      } as never;
+      const data = {
+        eventType: 'booking.confirmed',
+        tenantId: 'tenant-cal',
+        bookingId: 'booking-cal',
+        serviceName: 'Haircut',
+        clientName: 'Jane',
+        startTime: new Date().toISOString(),
+        endTime: new Date().toISOString(),
+      };
 
-      await handler.handle(job);
+      await handler.handle(data);
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(capturedTenantIds).toEqual(['tenant-cal']);
@@ -586,14 +584,10 @@ describe('RLS tenant context in BullMQ job processors', () => {
         return result;
       });
 
-      const job = {
-        data: {
-          connectionId: 'conn-1',
-          tenantId: 'tenant-sync',
-        },
-      } as never;
-
-      await handler.handle(job);
+      await handler.handle({
+        connectionId: 'conn-1',
+        tenantId: 'tenant-sync',
+      });
 
       // The sync handler calls detectConflicts which uses $transaction
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);

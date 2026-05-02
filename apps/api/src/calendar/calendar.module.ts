@@ -41,6 +41,16 @@ import { CalendarSyncFallbackHandler } from './handlers/calendar-sync-fallback.h
     CalendarWebhookRenewOutlookHandler,
     CalendarSyncFallbackHandler,
   ],
-  exports: [GoogleCalendarService, IcalFeedService, OutlookCalendarService],
+  exports: [
+    GoogleCalendarService,
+    IcalFeedService,
+    OutlookCalendarService,
+    CalendarPushHandler,
+    CalendarSyncHandler,
+    CalendarTokenHandler,
+    CalendarWebhookRenewGoogleHandler,
+    CalendarWebhookRenewOutlookHandler,
+    CalendarSyncFallbackHandler,
+  ],
 })
 export class CalendarModule {}
