@@ -13,11 +13,17 @@ import { CurrencyService } from '@/currency/currency.service';
 import { CustomDomainsService } from '@/custom-domains/custom-domains.service';
 import { DirectoryListingService } from '@/directory/directory-listing.service';
 import { ImportsService } from '@/imports/imports.service';
+import { AbandonedRecoveryHandler } from '@/jobs/abandoned-recovery.processor';
 import { AccountDeletionHandler } from '@/jobs/account-deletion.processor';
 import { CleanupRetentionHandler } from '@/jobs/cleanup-retention.processor';
 import { ComputeBenchmarksHandler } from '@/jobs/compute-benchmarks.processor';
+import { ComputeDemandAnalysisHandler } from '@/jobs/compute-demand-analysis.processor';
+import { ComputeNoShowRiskHandler } from '@/jobs/compute-no-show-risk.processor';
 import { DataExportHandler } from '@/jobs/data-export.processor';
+import { EnforceApprovalDeadlinesHandler } from '@/jobs/enforce-approval-deadlines.processor';
+import { ExpireReservationsHandler } from '@/jobs/expire-reservations.processor';
 import { InvoicePdfService } from '@/jobs/invoice-pdf.service';
+import { ProcessCompletedBookingsHandler } from '@/jobs/process-completed-bookings.processor';
 import { ChurnRiskService } from '@/recommendations/churn-risk.service';
 import { RecommendationsService } from '@/recommendations/recommendations.service';
 import { PartnerPayoutService } from '@/partners/partner-payout.service';
@@ -57,6 +63,14 @@ import {
   createRecommendationClientPreferenceFunction,
   createRecommendationServiceAffinityFunction,
 } from './functions/ai-operations/recommendations.functions';
+import {
+  createAbandonedBookingRecoveryFunction,
+  createComputeDemandAnalysisFunction,
+  createComputeNoShowRiskFunction,
+  createEnforceApprovalDeadlinesFunction,
+  createExpireReservationsFunction,
+  createProcessCompletedBookingsFunction,
+} from './functions/bookings/cron.functions';
 
 /**
  * Serves Inngest's webhook endpoint at /inngest. Inngest cloud:
@@ -102,6 +116,12 @@ export class InngestController {
     private readonly invoicePdfService: InvoicePdfService,
     private readonly recommendationsService: RecommendationsService,
     private readonly churnRiskService: ChurnRiskService,
+    private readonly expireReservationsHandler: ExpireReservationsHandler,
+    private readonly abandonedRecoveryHandler: AbandonedRecoveryHandler,
+    private readonly processCompletedBookingsHandler: ProcessCompletedBookingsHandler,
+    private readonly enforceApprovalDeadlinesHandler: EnforceApprovalDeadlinesHandler,
+    private readonly computeNoShowRiskHandler: ComputeNoShowRiskHandler,
+    private readonly computeDemandAnalysisHandler: ComputeDemandAnalysisHandler,
   ) {
     this.handler = serve({
       client: inngest,
@@ -133,6 +153,12 @@ export class InngestController {
         createRecommendationClientPreferenceFunction(this.recommendationsService),
         createChurnRiskComputeFunction(this.churnRiskService),
         createRecommendationCleanupFunction(this.recommendationsService),
+        createExpireReservationsFunction(this.expireReservationsHandler),
+        createAbandonedBookingRecoveryFunction(this.abandonedRecoveryHandler),
+        createProcessCompletedBookingsFunction(this.processCompletedBookingsHandler),
+        createEnforceApprovalDeadlinesFunction(this.enforceApprovalDeadlinesHandler),
+        createComputeNoShowRiskFunction(this.computeNoShowRiskHandler),
+        createComputeDemandAnalysisFunction(this.computeDemandAnalysisHandler),
       ],
     });
   }

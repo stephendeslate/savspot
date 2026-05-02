@@ -26,10 +26,6 @@ function makeEvents() {
   };
 }
 
-function makeJob(data: Record<string, unknown> = {}) {
-  return { data } as never;
-}
-
 // ---------------------------------------------------------------------------
 // ExpireReservationsHandler
 // ---------------------------------------------------------------------------
@@ -54,7 +50,7 @@ describe('ExpireReservationsHandler', () => {
       fn(mockTx),
     );
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
@@ -68,7 +64,7 @@ describe('ExpireReservationsHandler', () => {
   it('should handle no tenants with held reservations', async () => {
     prisma.$queryRaw.mockResolvedValue([]);
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
@@ -76,7 +72,7 @@ describe('ExpireReservationsHandler', () => {
   it('should re-throw errors from the database', async () => {
     prisma.$queryRaw.mockRejectedValue(new Error('DB error'));
 
-    await expect(handler.handle(makeJob()))
+    await expect(handler.handle())
       .rejects.toThrow('DB error');
   });
 });
@@ -169,7 +165,7 @@ describe('ProcessCompletedBookingsHandler', () => {
     // First call: detectNoShows phase; second call: auto-complete phase
     prisma.$queryRaw.mockResolvedValue([]);
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
   });
@@ -199,7 +195,7 @@ describe('ProcessCompletedBookingsHandler', () => {
       fn(mockTx),
     );
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(mockTx.$executeRaw).toHaveBeenCalledTimes(2);
@@ -237,7 +233,7 @@ describe('ProcessCompletedBookingsHandler', () => {
       }),
     );
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(events.emitBookingCompleted).toHaveBeenCalledTimes(1);
     expect(events.emitBookingCompleted).toHaveBeenCalledWith({
@@ -258,7 +254,7 @@ describe('ProcessCompletedBookingsHandler', () => {
     // Both detectNoShows and auto-complete return empty
     prisma.$queryRaw.mockResolvedValue([]);
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(events.emitBookingCompleted).not.toHaveBeenCalled();
@@ -305,7 +301,7 @@ describe('ProcessCompletedBookingsHandler', () => {
       });
     });
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(2);
     expect(events.emitBookingCompleted).toHaveBeenCalledTimes(1);
@@ -317,7 +313,7 @@ describe('ProcessCompletedBookingsHandler', () => {
   it('should re-throw when the top-level query fails', async () => {
     prisma.$queryRaw.mockRejectedValue(new Error('Connection refused'));
 
-    await expect(handler.handle(makeJob()))
+    await expect(handler.handle())
       .rejects.toThrow('Connection refused');
   });
 });

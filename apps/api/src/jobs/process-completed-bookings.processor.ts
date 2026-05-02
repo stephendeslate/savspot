@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsService } from '../events/events.service';
 
@@ -44,7 +43,7 @@ export class ProcessCompletedBookingsHandler {
     private readonly eventsService: EventsService,
   ) {}
 
-  async handle(_job: Job): Promise<void> {
+  async handle(): Promise<void> {
     this.logger.log('Running process completed bookings job...');
 
     try {

@@ -95,25 +95,25 @@ describe('BookingsDispatcher', () => {
   it('should route expireReservations correctly', async () => {
     const job = makeJob('expireReservations');
     await dispatcher.process(job);
-    expect(expireReservations.handle).toHaveBeenCalledWith(job);
+    expect(expireReservations.handle).toHaveBeenCalledWith();
   });
 
   it('should route abandonedBookingRecovery correctly', async () => {
     const job = makeJob('abandonedBookingRecovery');
     await dispatcher.process(job);
-    expect(abandonedRecovery.handle).toHaveBeenCalledWith(job);
+    expect(abandonedRecovery.handle).toHaveBeenCalledWith();
   });
 
   it('should route processCompletedBookings correctly', async () => {
     const job = makeJob('processCompletedBookings');
     await dispatcher.process(job);
-    expect(processCompleted.handle).toHaveBeenCalledWith(job);
+    expect(processCompleted.handle).toHaveBeenCalledWith();
   });
 
   it('should route enforceApprovalDeadlines correctly', async () => {
     const job = makeJob('enforceApprovalDeadlines');
     await dispatcher.process(job);
-    expect(enforceApprovals.handle).toHaveBeenCalledWith(job);
+    expect(enforceApprovals.handle).toHaveBeenCalledWith();
   });
 
   it('should not throw for unknown job names', async () => {

@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 
 interface TenantRow {
@@ -21,7 +20,7 @@ export class ComputeDemandAnalysisHandler {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async handle(_job: Job): Promise<void> {
+  async handle(): Promise<void> {
     this.logger.log('Starting weekly demand analysis');
 
     const eligibleTenants = await this.prisma.$queryRaw<TenantRow[]>`

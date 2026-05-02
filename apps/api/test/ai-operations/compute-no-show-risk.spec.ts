@@ -13,9 +13,6 @@ function makePrisma() {
   };
 }
 
-function makeJob(data: Record<string, unknown> = {}) {
-  return { data } as never;
-}
 
 // ---------------------------------------------------------------------------
 // Suite
@@ -33,7 +30,7 @@ describe('ComputeNoShowRiskHandler', () => {
   it('should do nothing when there are no upcoming bookings', async () => {
     prisma.$queryRaw.mockResolvedValue([]);
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
@@ -66,7 +63,7 @@ describe('ComputeNoShowRiskHandler', () => {
       async (fn: (tx: unknown) => Promise<unknown>) => fn(mockTx),
     );
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(mockTx.$executeRaw).toHaveBeenCalled();
@@ -110,7 +107,7 @@ describe('ComputeNoShowRiskHandler', () => {
       async (fn: (tx: unknown) => Promise<unknown>) => fn(mockTx),
     );
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(mockTx.$executeRaw).toHaveBeenCalled();
@@ -152,7 +149,7 @@ describe('ComputeNoShowRiskHandler', () => {
       async (fn: (tx: unknown) => Promise<unknown>) => fn(mockTx),
     );
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
@@ -185,7 +182,7 @@ describe('ComputeNoShowRiskHandler', () => {
       async (fn: (tx: unknown) => Promise<unknown>) => fn(mockTx),
     );
 
-    await handler.handle(makeJob());
+    await handler.handle();
 
     expect(mockTx.$executeRaw).toHaveBeenCalled();
   });
