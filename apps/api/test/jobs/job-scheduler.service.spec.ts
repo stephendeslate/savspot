@@ -59,7 +59,12 @@ describe('JobSchedulerService', () => {
       // Queues fully migrated to Inngest (directory, partners) have no
       // schedules registered here — they're only listed in staleRepeatables
       // so any leftover Redis repeatables are removed at startup.
-      const inngestMigrated = new Set(['directory', 'partners', 'customDomains']);
+      const inngestMigrated = new Set([
+        'directory',
+        'partners',
+        'customDomains',
+        'platformMetrics',
+      ]);
       for (const [name, queue] of Object.entries(queues)) {
         if (inngestMigrated.has(name)) {
           expect(queue.add).not.toHaveBeenCalled();

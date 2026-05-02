@@ -118,8 +118,7 @@ export class JobSchedulerService implements OnModuleInit {
       { queue: this.bookingsQueue, name: JOB_COMPUTE_DEMAND_ANALYSIS, pattern: CRON_SUNDAY_2AM_UTC },
       // AI Operations — communications queue
       { queue: this.commsQueue, name: JOB_COMPUTE_CLIENT_INSIGHTS, pattern: CRON_DAILY_3AM_UTC },
-      // Platform Metrics queue
-      { queue: this.platformMetricsQueue, name: JOB_COMPUTE_PLATFORM_METRICS, pattern: CRON_DAILY_3AM_UTC },
+      // Platform Metrics queue — migrated to Inngest (Phase 4i). Cleaned up below.
       // Directory queue — migrated to Inngest (Phase 4e). Cleaned up below.
       // Custom Domains queue — migrated to Inngest (Phase 4g). Cleaned up below.
       // Calendar queue — Phase 4 additions
@@ -147,6 +146,7 @@ export class JobSchedulerService implements OnModuleInit {
     //   removed before the next monthly tick (2026-06-01) to avoid a
     //   concurrent BullMQ + Inngest run racing on payout creation.
     // - JOB_CUSTOM_DOMAIN_*: migrated to Inngest (Phase 4g).
+    // - JOB_COMPUTE_PLATFORM_METRICS: migrated to Inngest (Phase 4i).
     const staleRepeatables: Array<{ queue: Queue; name: string }> = [
       { queue: this.calendarQueue, name: JOB_CALENDAR_TWO_WAY_SYNC },
       { queue: this.directoryQueue, name: JOB_DIRECTORY_LISTING_REFRESH },
@@ -155,6 +155,7 @@ export class JobSchedulerService implements OnModuleInit {
       { queue: this.customDomainsQueue, name: JOB_CUSTOM_DOMAIN_DNS_VERIFY },
       { queue: this.customDomainsQueue, name: JOB_CUSTOM_DOMAIN_SSL_RENEW },
       { queue: this.customDomainsQueue, name: JOB_CUSTOM_DOMAIN_HEALTH_CHECK },
+      { queue: this.platformMetricsQueue, name: JOB_COMPUTE_PLATFORM_METRICS },
     ];
 
     for (const { queue, name } of staleRepeatables) {
